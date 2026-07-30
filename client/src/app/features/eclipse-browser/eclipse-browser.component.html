@@ -1,0 +1,129 @@
+@if (facade.eclipseBrowserOpen()) {
+  <section class="eclipse-browser" aria-label="Éclipses terrestres">
+    <header>
+      <div>
+        <span class="eyebrow">Terre · Soleil · Lune</span>
+        <h2>Événements astronomiques</h2>
+      </div>
+      <button
+        type="button"
+        class="close-button"
+        aria-label="Fermer les éclipses"
+        (click)="facade.toggleEclipseBrowser()"
+      >
+        ×
+      </button>
+    </header>
+
+    <p class="introduction">
+      Choisissez une éclipse pour régler la date et la cadrer. L’ombre reste ensuite visible dans la
+      navigation orbitale ; sa trajectoire est optionnelle.
+    </p>
+
+    <div class="observer-picker">
+      <label>
+        <span>Maximum local depuis</span>
+        <select
+          aria-label="Ville d’observation de l’éclipse"
+          [value]="selectedLocationId()"
+          (change)="changeLocation($event)"
+        >
+          @for (location of observerLocations; track location.id) {
+            <option [value]="location.id">{{ location.name }}</option>
+          }
+        </select>
+      </label>
+      <p>Calcul embarqué · aucune géolocalisation</p>
+    </div>
+
+    @if (facade.eclipseEventsLoading()) {
+      <div class="catalog-loading" role="status">Calcul des prochains alignements…</div>
+    } @else {
+      <ul class="event-list">
+        @for (event of facade.upcomingEclipses(); track event.id) {
+          <li class="event-list__item" [attr.data-kind]="event.kind">
+            <button
+              type="button"
+              class="event-card"
+              [attr.data-kind]="event.kind"
+              [attr.aria-label]="'Voir ' + eventTitle(event) + ', ' + peakLabel(event) + ' UTC'"
+              (click)="view(event)"
+            >
+              <span class="event-card__symbol" aria-hidden="true">
+                <i [class.event-card__moon]="event.family === 'lunar'"></i>
+              </span>
+              <span class="event-card__content">
+                <span class="event-card__badges">
+                  <span>{{ event.family === 'lunar' ? 'Lunaire' : 'Solaire' }}</span>
+                  <span>{{ kindLabel(event.kind) }}</span>
+                </span>
+                <strong>{{ eventTitle(event) }}</strong>
+                <time>
+                  {{ peakLabel(event) }} UTC
+                  <span>· {{ localPeakLabel(event) }} heure locale</span>
+                </time>
+                <small>
+                  Maximum mondial · {{ obscurationLabel(event) }}
+                  @if (durationLabel(event); as duration) {
+                    · phase {{ duration }}
+                  }
+                </small>
+              </span>
+              <span class="event-card__arrow" aria-hidden="true">›</span>
+            </button>
+            @if (event.family === 'solar') {
+              <div class="event-card__actions">
+                @if (event.latitude !== null && event.longitude !== null) {
+                  <button
+                    type="button"
+                    class="observer-action"
+                    [attr.aria-label]="
+                      'Observer ' + eventTitle(event) + ' depuis le corridor central'
+                    "
+                    (click)="observe(event)"
+                  >
+                    <span aria-hidden="true">◎</span>
+                    <span>
+                      <strong>Vue depuis le sol</strong>
+                      <small>{{ coordinatesLabel(event) }}</small>
+                    </span>
+                  </button>
+                }
+                <button
+                  type="button"
+                  class="observer-action observer-action--local"
+                  [disabled]="facade.localEclipseLoading()"
+                  [attr.aria-label]="
+                    'Voir le maximum local de ' +
+                    eventTitle(event) +
+                    ', ' +
+                    peakLabel(event) +
+                    ' UTC, depuis ' +
+                    selectedLocation().name
+                  "
+                  (click)="viewLocal(event)"
+                >
+                  <span aria-hidden="true">⌖</span>
+                  <span>
+                    <strong>Maximum depuis {{ selectedLocation().name }}</strong>
+                    <small>
+                      {{
+                        facade.localEclipseLoading()
+                          ? 'Calcul en cours…'
+                          : 'Horaire et occultation locale'
+                      }}
+                    </small>
+                  </span>
+                </button>
+              </div>
+            }
+          </li>
+        }
+      </ul>
+    }
+
+    <footer>
+      Positions calculées · reconstruction approximative · événements terrestres uniquement
+    </footer>
+  </section>
+}

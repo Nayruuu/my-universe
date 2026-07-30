@@ -1,0 +1,26 @@
+{
+  "version": "1.0.0",
+  "datasets": [
+    {
+      "id": "solar-system",
+      "url": "/data/solar-system/system.json",
+      "type": "json"
+    },
+    {
+      "id": "nearby-stars",
+      "url": "/data/stars/nearby-stars.json",
+      "type": "json"
+    },
+    {
+      "id": "local-group",
+      "url": "/data/galaxies/local-group.json",
+      "type": "json"
+    },
+    {
+      "id": "hyg-v41-bright-stars",
+      "url": "/data/stars/hyg-v41.bin",
+      "type": "binary",
+      "format": "star-catalog-v2"
+    }
+  ]
+}

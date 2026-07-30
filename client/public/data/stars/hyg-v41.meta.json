@@ -1,0 +1,40 @@
+{
+  "id": "hyg-v41-bright-stars",
+  "source": {
+    "name": "HYG Database v4.1",
+    "url": "https://github.com/astronexus/HYG-Database/blob/main/hyg/CURRENT/hygdata_v41.csv",
+    "license": "CC BY-SA 4.0"
+  },
+  "input": "hygdata_v41.csv",
+  "format": {
+    "magic": "UMSC",
+    "version": 2,
+    "byteOrder": "little-endian",
+    "headerBytes": 40,
+    "recordBytes": 36,
+    "fields": [
+      "xParsec:float32",
+      "yParsec:float32",
+      "zParsec:float32",
+      "apparentMagnitude:float32",
+      "colorIndexBv:float32",
+      "hygId:uint32",
+      "nameOffset:uint32",
+      "aliasesOffset:uint32",
+      "spectralTypeOffset:uint32"
+    ],
+    "stringEncoding": "UTF-8 null-terminated",
+    "aliasSeparator": "U+001F"
+  },
+  "referenceEpochJulianDay": 2451545,
+  "referenceFrame": "J2000 equatorial Cartesian",
+  "distanceUnit": "parsec",
+  "scientificConfidence": "observed",
+  "selection": {
+    "method": "brightest-valid-apparent-magnitude",
+    "requestedCount": 10000,
+    "emittedCount": 10000,
+    "dimmestMagnitude": 6.63,
+    "excludesUnknownDistanceAtParsecs": 100000
+  }
+}

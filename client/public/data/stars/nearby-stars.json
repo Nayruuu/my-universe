@@ -1,0 +1,476 @@
+{
+  "version": "1.0.0",
+  "objects": [
+    {
+      "id": "proxima-centauri",
+      "name": "Proxima du Centaure",
+      "aliases": ["Proxima Centauri", "Alpha Centauri C"],
+      "type": "star",
+      "parentId": "milky-way",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "observed",
+      "description": "L’étoile connue la plus proche du Soleil, une naine rouge du système Alpha Centauri.",
+      "physical": {
+        "radiusKm": 107280,
+        "massKg": 2.428e29,
+        "temperatureK": 3042,
+        "luminositySolar": 0.0017,
+        "spectralType": "M5.5Ve"
+      },
+      "visual": {
+        "color": "#ff9a75",
+        "visualRadius": 0.9,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [3.7, -1.5, 1.4],
+        "unit": "light-year"
+      },
+      "metadata": {
+        "source": "Catalogue stellaire simplifié",
+        "distanceLy": 4.2465
+      }
+    },
+    {
+      "id": "alpha-centauri-a",
+      "name": "Alpha Centauri A",
+      "aliases": ["Rigil Kentaurus", "Toliman A"],
+      "type": "star",
+      "parentId": "milky-way",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "observed",
+      "description": "Composante principale du système stellaire le plus proche du Soleil.",
+      "physical": {
+        "temperatureK": 5790,
+        "luminositySolar": 1.519,
+        "spectralType": "G2V"
+      },
+      "visual": {
+        "color": "#fff1c7",
+        "visualRadius": 1.25,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [3.84, -1.2, 1.72],
+        "unit": "light-year"
+      },
+      "metadata": {
+        "source": "Catalogue stellaire simplifié",
+        "distanceLy": 4.367
+      }
+    },
+    {
+      "id": "barnards-star",
+      "name": "Étoile de Barnard",
+      "aliases": ["Barnard's Star", "HIP 87937"],
+      "type": "star",
+      "parentId": "milky-way",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "extrapolated",
+      "description": "Naine rouge connue pour son mouvement propre apparent très élevé.",
+      "physical": {
+        "temperatureK": 3134,
+        "luminositySolar": 0.0035,
+        "spectralType": "M4V"
+      },
+      "visual": {
+        "color": "#ff8c68",
+        "visualRadius": 0.82,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "linear-motion",
+        "positionAtEpoch": [-4.9, 2.7, 2.1],
+        "velocityPerDay": [0.00000003, -0.00000002, 0.00000001],
+        "epochJulianDay": 2451545,
+        "unit": "light-year"
+      },
+      "metadata": {
+        "source": "Mouvement propre illustratif",
+        "distanceLy": 5.963
+      }
+    },
+    {
+      "id": "wolf-359",
+      "name": "Wolf 359",
+      "aliases": ["CN Leonis"],
+      "type": "star",
+      "parentId": "milky-way",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "observed",
+      "description": "Petite naine rouge située dans le voisinage solaire.",
+      "physical": {
+        "temperatureK": 2800,
+        "luminositySolar": 0.0014,
+        "spectralType": "M6V"
+      },
+      "visual": {
+        "color": "#ff8062",
+        "visualRadius": 0.76,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [2.1, 6.7, -2.7],
+        "unit": "light-year"
+      },
+      "metadata": {
+        "source": "Catalogue stellaire simplifié",
+        "distanceLy": 7.8558
+      }
+    },
+    {
+      "id": "sirius",
+      "name": "Sirius",
+      "aliases": ["Alpha Canis Majoris", "Étoile du Chien"],
+      "type": "star",
+      "parentId": "milky-way",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "observed",
+      "description": "L’étoile la plus brillante du ciel nocturne terrestre.",
+      "physical": {
+        "temperatureK": 9940,
+        "luminositySolar": 25.4,
+        "spectralType": "A1V"
+      },
+      "visual": {
+        "color": "#dceaff",
+        "visualRadius": 1.65,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-4.2, -2.1, 7.2],
+        "unit": "light-year"
+      },
+      "metadata": {
+        "source": "Catalogue stellaire simplifié",
+        "distanceLy": 8.611,
+        "galacticLabel": true
+      }
+    },
+    {
+      "id": "epsilon-eridani",
+      "name": "Epsilon Eridani",
+      "aliases": ["Ran"],
+      "type": "star",
+      "parentId": "milky-way",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "observed",
+      "description": "Étoile orangée relativement jeune du voisinage solaire.",
+      "physical": {
+        "temperatureK": 5084,
+        "luminositySolar": 0.34,
+        "spectralType": "K2V"
+      },
+      "visual": {
+        "color": "#ffd09a",
+        "visualRadius": 1.05,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [7.5, -4.9, 5.2],
+        "unit": "light-year"
+      },
+      "metadata": {
+        "source": "Catalogue stellaire simplifié",
+        "distanceLy": 10.475
+      }
+    },
+    {
+      "id": "procyon",
+      "name": "Procyon",
+      "aliases": ["Alpha Canis Minoris"],
+      "type": "star",
+      "parentId": "milky-way",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "observed",
+      "description": "Étoile blanche brillante de la constellation du Petit Chien.",
+      "physical": {
+        "temperatureK": 6530,
+        "luminositySolar": 6.93,
+        "spectralType": "F5IV–V"
+      },
+      "visual": {
+        "color": "#fff8e8",
+        "visualRadius": 1.45,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-7.8, 3.6, 7.5],
+        "unit": "light-year"
+      },
+      "metadata": {
+        "source": "Catalogue stellaire simplifié",
+        "distanceLy": 11.46
+      }
+    },
+    {
+      "id": "altair",
+      "name": "Altaïr",
+      "aliases": ["Altair", "Alpha Aquilae"],
+      "type": "star",
+      "parentId": "milky-way",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "observed",
+      "description": "Étoile blanche proche et lumineuse, sommet du Triangle d’été.",
+      "physical": {
+        "temperatureK": 7550,
+        "luminositySolar": 10.6,
+        "spectralType": "A7V"
+      },
+      "visual": {
+        "color": "#f1f5ff",
+        "visualRadius": 1.48,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [12.8, 5.2, 10.6],
+        "unit": "light-year"
+      },
+      "metadata": {
+        "source": "Catalogue stellaire simplifié",
+        "distanceLy": 16.73
+      }
+    },
+    {
+      "id": "vega",
+      "name": "Véga",
+      "aliases": ["Vega", "Alpha Lyrae"],
+      "type": "star",
+      "parentId": "milky-way",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "observed",
+      "description": "Étoile de référence brillante de la constellation de la Lyre.",
+      "physical": {
+        "temperatureK": 9602,
+        "luminositySolar": 40.12,
+        "spectralType": "A0V"
+      },
+      "visual": {
+        "color": "#dce9ff",
+        "visualRadius": 1.72,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [13, 18, -12],
+        "unit": "light-year"
+      },
+      "metadata": {
+        "source": "Catalogue stellaire simplifié",
+        "distanceLy": 25.05,
+        "galacticLabel": true
+      }
+    },
+    {
+      "id": "fomalhaut",
+      "name": "Fomalhaut",
+      "aliases": ["Alpha Piscis Austrini"],
+      "type": "star",
+      "parentId": "milky-way",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "observed",
+      "description": "Étoile blanche entourée d’un disque de débris bien connu.",
+      "physical": {
+        "temperatureK": 8590,
+        "luminositySolar": 16.63,
+        "spectralType": "A3V"
+      },
+      "visual": {
+        "color": "#e9f0ff",
+        "visualRadius": 1.5,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [10.8, -18.5, 12.1],
+        "unit": "light-year"
+      },
+      "metadata": {
+        "source": "Catalogue stellaire simplifié",
+        "distanceLy": 25.13
+      }
+    },
+    {
+      "id": "arcturus",
+      "name": "Arcturus",
+      "aliases": ["Alpha Boötis"],
+      "type": "star",
+      "parentId": "milky-way",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "observed",
+      "description": "Géante orange, l’une des étoiles les plus brillantes visibles depuis la Terre.",
+      "physical": {
+        "temperatureK": 4286,
+        "luminositySolar": 170,
+        "spectralType": "K1.5III"
+      },
+      "visual": {
+        "color": "#ffc07c",
+        "visualRadius": 1.8,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-20, 22, 21],
+        "unit": "light-year"
+      },
+      "metadata": {
+        "source": "Catalogue stellaire simplifié",
+        "distanceLy": 36.66
+      }
+    },
+    {
+      "id": "capella",
+      "name": "Capella",
+      "aliases": ["Alpha Aurigae"],
+      "type": "star",
+      "parentId": "milky-way",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "observed",
+      "description": "Système stellaire multiple dominé par deux géantes jaunes.",
+      "physical": {
+        "temperatureK": 4970,
+        "luminositySolar": 78.7,
+        "spectralType": "G3III"
+      },
+      "visual": {
+        "color": "#ffe2a9",
+        "visualRadius": 1.72,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-28, 18, -28],
+        "unit": "light-year"
+      },
+      "metadata": {
+        "source": "Catalogue stellaire simplifié",
+        "distanceLy": 42.92
+      }
+    },
+    {
+      "id": "aldebaran",
+      "name": "Aldébaran",
+      "aliases": ["Aldebaran", "Alpha Tauri"],
+      "type": "star",
+      "parentId": "milky-way",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "observed",
+      "description": "Géante orange marquant l’œil du Taureau.",
+      "physical": {
+        "temperatureK": 3910,
+        "luminositySolar": 439,
+        "spectralType": "K5+III"
+      },
+      "visual": {
+        "color": "#ffab6b",
+        "visualRadius": 1.92,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [40, -22, 47],
+        "unit": "light-year"
+      },
+      "metadata": {
+        "source": "Catalogue stellaire simplifié",
+        "distanceLy": 65.3
+      }
+    },
+    {
+      "id": "polaris",
+      "name": "Polaris",
+      "aliases": ["Étoile polaire", "Alpha Ursae Minoris"],
+      "type": "star",
+      "parentId": "milky-way",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "observed",
+      "description": "Supergéante jaune proche du pôle nord céleste actuel.",
+      "physical": {
+        "temperatureK": 6015,
+        "luminositySolar": 1260,
+        "spectralType": "F7Ib"
+      },
+      "visual": {
+        "color": "#fff0ca",
+        "visualRadius": 2.05,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-95, 412, 75],
+        "unit": "light-year"
+      },
+      "metadata": {
+        "source": "Catalogue stellaire simplifié",
+        "distanceLy": 433
+      }
+    },
+    {
+      "id": "betelgeuse",
+      "name": "Bételgeuse",
+      "aliases": ["Betelgeuse", "Alpha Orionis"],
+      "type": "star",
+      "parentId": "milky-way",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "extrapolated",
+      "description": "Supergéante rouge variable d’Orion. Sa distance et son évolution comportent des incertitudes.",
+      "physical": {
+        "temperatureK": 3500,
+        "luminositySolar": 126000,
+        "spectralType": "M1–M2Ia–ab"
+      },
+      "visual": {
+        "color": "#ff825a",
+        "visualRadius": 2.35,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [310, 230, -390],
+        "unit": "light-year"
+      },
+      "metadata": {
+        "source": "Distance approximative",
+        "distanceLy": 548,
+        "galacticLabel": true
+      }
+    },
+    {
+      "id": "rigel",
+      "name": "Rigel",
+      "aliases": ["Beta Orionis"],
+      "type": "star",
+      "parentId": "milky-way",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "extrapolated",
+      "description": "Supergéante bleue très lumineuse de la constellation d’Orion.",
+      "physical": {
+        "temperatureK": 12100,
+        "luminositySolar": 120000,
+        "spectralType": "B8Ia"
+      },
+      "visual": {
+        "color": "#a9c8ff",
+        "visualRadius": 2.3,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [280, -330, 480],
+        "unit": "light-year"
+      },
+      "metadata": {
+        "source": "Distance approximative",
+        "distanceLy": 860
+      }
+    }
+  ]
+}

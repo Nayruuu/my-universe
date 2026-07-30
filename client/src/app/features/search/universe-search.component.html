@@ -1,0 +1,48 @@
+<div class="search-shell" [class.search-shell--active]="active()">
+  <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="11" cy="11" r="6.5"></circle>
+    <path d="m16 16 4 4"></path>
+  </svg>
+  <input
+    type="search"
+    autocomplete="off"
+    spellcheck="false"
+    placeholder="Rechercher une planète, une étoile…"
+    aria-label="Rechercher un objet astronomique"
+    [value]="query()"
+    (input)="updateQuery($event)"
+    (focus)="active.set(true)"
+    (blur)="active.set(false)"
+  />
+  @if (query()) {
+    <button class="clear-button" type="button" aria-label="Effacer la recherche" (click)="clear()">
+      ×
+    </button>
+  }
+</div>
+
+@if (active() && query()) {
+  <div class="results" role="listbox" aria-label="Résultats de recherche">
+    @for (result of results(); track result.id) {
+      <button
+        type="button"
+        role="option"
+        class="result"
+        (pointerdown)="$event.preventDefault()"
+        (click)="choose(result)"
+      >
+        <span class="result__marker" [attr.data-type]="result.type"></span>
+        <span class="result__text">
+          <strong>{{ result.name }}</strong>
+          <small>{{ typeLabel(result.type) }} · {{ result.parentName ?? 'Univers' }}</small>
+        </span>
+        <span class="result__arrow" aria-hidden="true">↗</span>
+      </button>
+    } @empty {
+      <div class="empty-result">
+        <strong>Aucun objet trouvé</strong>
+        <span>Essayez un alias, par exemple « Earth » ou « étoile polaire ».</span>
+      </div>
+    }
+  </div>
+}

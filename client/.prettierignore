@@ -1,0 +1,8 @@
+# Build and dependencies
+dist/
+.angular/
+node_modules/
+coverage/
+playwright-report/
+test-results/
+blob-report/

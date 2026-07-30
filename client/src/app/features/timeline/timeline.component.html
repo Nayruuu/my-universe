@@ -1,0 +1,181 @@
+<section
+  class="timeline"
+  [class.timeline--eclipse]="facade.timelineSolarEclipse()"
+  aria-label="Contrôle du temps"
+>
+  @if (facade.timelineSolarEclipse(); as eclipse) {
+    <div class="eclipse-context" aria-live="polite">
+      <span class="eclipse-context__symbol" aria-hidden="true"><i></i></span>
+      <span class="eclipse-context__copy">
+        <small>{{ facade.eclipseContextLabel() }}</small>
+        <strong>
+          Éclipse solaire {{ eclipseKindLabel(eclipse.kind) }}
+          @if (eclipse.scope === 'local' && eclipse.observerName) {
+            à {{ eclipse.observerName }}
+          }
+        </strong>
+        @if (facade.solarObserverActive()) {
+          <span>{{ facade.solarObserverLocation() }} · reconstruction calculée</span>
+        } @else if (facade.localEclipseSummary(); as summary) {
+          <span>{{ summary }}</span>
+        } @else {
+          <span
+            class="eclipse-context__legend"
+            aria-label="Légende de la couche colorée de l’éclipse"
+          >
+            <span class="eclipse-legend__item">
+              <i class="eclipse-legend__dot eclipse-legend__dot--penumbra"></i>
+              Pénombre
+            </span>
+            <span class="eclipse-legend__item">
+              <i
+                class="eclipse-legend__dot eclipse-legend__dot--central"
+                [class.eclipse-legend__dot--annular]="eclipse.kind === 'annular'"
+              ></i>
+              {{ eclipse.kind === 'annular' ? 'Annularité' : 'Totalité' }}
+            </span>
+            <span class="eclipse-legend__note">Couche colorée adaptée</span>
+          </span>
+        }
+      </span>
+
+      <div class="eclipse-context__actions">
+        @if (facade.solarObserverActive()) {
+          <button
+            type="button"
+            class="eclipse-action eclipse-action--primary"
+            (click)="facade.showSolarShadow()"
+          >
+            ↗ Retour en orbite
+          </button>
+        } @else {
+          <button
+            type="button"
+            class="eclipse-action eclipse-action--primary"
+            (click)="centerSolarShadow(eclipse)"
+          >
+            Centrer l’ombre
+          </button>
+          <button
+            type="button"
+            class="eclipse-action"
+            [class.active]="facade.solarPathVisible()"
+            [attr.aria-pressed]="facade.solarPathVisible()"
+            (click)="facade.toggleSolarPath(eclipse)"
+          >
+            Trajectoire
+          </button>
+          @if (eclipse.latitude !== null && eclipse.longitude !== null) {
+            <button type="button" class="eclipse-action" (click)="observeSolarEclipse(eclipse)">
+              ◎ Vue au sol
+            </button>
+          }
+        }
+      </div>
+    </div>
+  }
+
+  <div class="timeline__primary">
+    <button
+      type="button"
+      class="play-button"
+      [attr.aria-label]="facade.playing() ? 'Mettre le temps en pause' : 'Faire avancer le temps'"
+      [title]="facade.playing() ? 'Pause (Espace)' : 'Lecture (Espace)'"
+      (click)="facade.togglePlaying()"
+    >
+      @if (facade.playing()) {
+        <span class="pause-icon" aria-hidden="true"></span>
+      } @else {
+        <span class="play-icon" aria-hidden="true"></span>
+      }
+    </button>
+
+    <div class="date-heading">
+      <strong>{{ epochLabel() }} UTC</strong>
+      <span [title]="'JD ' + facade.currentTime().julianDay.toFixed(2)">
+        Heure locale · {{ facade.currentLocalClock() }}
+      </span>
+    </div>
+
+    <input
+      class="timeline-range"
+      type="range"
+      min="-3652.5"
+      max="3652.5"
+      step="1"
+      aria-label="Parcourir dix années avant ou après le présent"
+      [value]="timelineOffset()"
+      (input)="changeTimeline($event)"
+    />
+
+    <button
+      type="button"
+      class="present-button"
+      title="Revenir à aujourd’hui"
+      (click)="facade.returnToPresent()"
+    >
+      Aujourd’hui
+    </button>
+  </div>
+
+  <div class="timeline__secondary">
+    <button
+      type="button"
+      class="events-button"
+      [class.active]="facade.eclipseBrowserOpen()"
+      [attr.aria-expanded]="facade.eclipseBrowserOpen()"
+      aria-label="Ouvrir les événements astronomiques"
+      (click)="facade.toggleEclipseBrowser()"
+    >
+      <span class="events-button__icon" aria-hidden="true"><i></i></span>
+      <span>Événements</span>
+    </button>
+
+    <label class="select-control">
+      <span>
+        {{ facade.earthRotationStabilized() ? 'Vitesse · Terre stabilisée' : 'Vitesse' }}
+      </span>
+      <select
+        aria-label="Vitesse temporelle"
+        [title]="
+          facade.earthRotationStabilized()
+            ? 'Rotation terrestre ralentie visuellement ; orientation exacte restaurée à la pause'
+            : 'Vitesse temporelle'
+        "
+        [value]="facade.speed()"
+        (change)="changeSpeed($event)"
+      >
+        @for (speed of speeds; track speed.id) {
+          <option [value]="speed.daysPerSecond">{{ speed.label }}</option>
+        }
+      </select>
+    </label>
+
+    <label class="select-control mode-control">
+      <span>Mode</span>
+      <select
+        aria-label="Mode temporel"
+        [value]="facade.displayOptions().temporalMode"
+        (change)="changeMode($event)"
+      >
+        <option value="state">État à la date choisie</option>
+        <option value="observable">Vue observable · aperçu</option>
+      </select>
+    </label>
+
+    <label class="date-control">
+      <span>Date et heure · UTC</span>
+      <input
+        type="datetime-local"
+        step="60"
+        aria-label="Date et heure UTC de simulation"
+        [value]="facade.currentIsoDateTime()"
+        (change)="changeDateTime($event)"
+      />
+    </label>
+  </div>
+
+  @defer (when facade.eclipseBrowserOpen()) {
+    <app-eclipse-browser />
+  }
+</section>

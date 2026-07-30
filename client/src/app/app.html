@@ -1,0 +1,122 @@
+<main class="app-shell">
+  <app-universe-view />
+
+  <header class="topbar">
+    <button type="button" class="brand" title="Centrer sur le Soleil" (click)="focus('sun')">
+      <span class="brand__mark" aria-hidden="true">
+        <i></i>
+      </span>
+      <span class="brand__name">Universe <strong>Map</strong></span>
+      <span class="brand__edition">Prototype</span>
+    </button>
+
+    <app-universe-search />
+
+    <div class="topbar__actions">
+      <button
+        type="button"
+        class="icon-button"
+        title="Revenir à la Terre"
+        aria-label="Revenir à la Terre"
+        (click)="focus('earth')"
+      >
+        <span class="home-icon" aria-hidden="true"></span>
+      </button>
+      <button
+        type="button"
+        class="icon-button"
+        [class.active]="facade.settingsOpen()"
+        title="Paramètres"
+        aria-label="Ouvrir les paramètres"
+        (click)="facade.toggleSettings()"
+      >
+        <span class="settings-icon" aria-hidden="true">☼</span>
+      </button>
+      <button
+        type="button"
+        class="icon-button help-button"
+        [class.active]="facade.helpOpen()"
+        title="Aide"
+        aria-label="Ouvrir l’aide"
+        (click)="facade.toggleHelp()"
+      >
+        ?
+      </button>
+    </div>
+  </header>
+
+  @defer (when facade.ready()) {
+    <app-scale-navigator />
+  }
+
+  @defer (when facade.selectedId()) {
+    <app-object-details />
+  }
+  @defer (when facade.ready()) {
+    <app-floating-controls />
+  }
+  @defer (when facade.ready()) {
+    <app-timeline />
+  }
+  @defer (when facade.debugEnabled()) {
+    <app-debug-panel />
+  }
+
+  @if (facade.loading()) {
+    <div class="loading-screen" aria-live="polite">
+      <div class="loading-orbit" aria-hidden="true"><span></span></div>
+      <strong>Universe Map</strong>
+      <p>Initialisation de la carte céleste…</p>
+    </div>
+  }
+
+  @if (facade.error(); as error) {
+    <div class="error-card" role="alert">
+      <span aria-hidden="true">!</span>
+      <div>
+        <strong>La carte n’a pas pu démarrer</strong>
+        <p>{{ error }}</p>
+      </div>
+    </div>
+  }
+
+  @if (facade.performanceWarning(); as warning) {
+    <button
+      type="button"
+      class="notice notice--warning"
+      title="Fermer"
+      (click)="facade.performanceWarning.set(null)"
+    >
+      <span aria-hidden="true">◇</span>
+      {{ warning }}
+    </button>
+  }
+
+  @if (facade.shareNotice(); as shareNotice) {
+    <div class="notice notice--success" role="status">
+      <span aria-hidden="true">✓</span>
+      {{ shareNotice }}
+    </div>
+  }
+
+  @if (facade.ready() && navigationHintVisible() && !facade.currentSolarEclipse()) {
+    <button
+      type="button"
+      class="navigation-hint"
+      aria-label="Masquer l’aide à la navigation"
+      (click)="navigationHintVisible.set(false)"
+    >
+      <span class="mouse-glyph" aria-hidden="true"><i></i></span>
+      <span
+        ><strong>Noms interactifs</strong>Survolez un nom, puis cliquez pour le centrer · Molette
+        pour zoomer</span
+      >
+      <span class="hint-close" aria-hidden="true">×</span>
+    </button>
+  }
+
+  <div class="science-caption">
+    <span class="science-caption__dot"></span>
+    Distances et tailles visuelles adaptées · données statiques locales
+  </div>
+</main>

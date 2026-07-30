@@ -1,0 +1,89 @@
+{
+  "name": "universe-map",
+  "version": "0.1.0",
+  "description": "An interactive 3D map of the Universe built with Angular and Three.js.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Nayruuu/my-universe.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Nayruuu/my-universe/issues"
+  },
+  "homepage": "https://github.com/Nayruuu/my-universe#readme",
+  "keywords": [
+    "angular",
+    "astronomy",
+    "threejs",
+    "typescript",
+    "webgl",
+    "3d-visualization"
+  ],
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test",
+    "test:unit": "ng test --watch=false",
+    "test:ci": "npm run test:coverage && npm run test:e2e",
+    "test:coverage": "ng test --watch=false --coverage --coverage-reporters=text-summary --coverage-reporters=json-summary && node tools/check-coverage.mjs",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:report": "playwright show-report",
+    "data:stars": "node tools/import-hyg-stars.mjs",
+    "format": "prettier --write \"src/**/*.{ts,html,scss,json}\" \"e2e/**/*.ts\" \"public/**/*.{json,md}\" \"data-sources/**/*.md\" \"../.agents/**/*.md\" \"../.claude/agents/**/*.md\" \"../*.md\" \"../docs/**/*.md\" \"playwright.config.ts\" \"package.json\"",
+    "format:check": "prettier --check \"src/**/*.{ts,html,scss,json}\" \"e2e/**/*.ts\" \"public/**/*.{json,md}\" \"data-sources/**/*.md\" \"../.agents/**/*.md\" \"../.claude/agents/**/*.md\" \"../*.md\" \"../docs/**/*.md\" \"playwright.config.ts\" \"package.json\"",
+    "lint": "eslint . && stylelint \"src/**/*.scss\"",
+    "lint:fix": "eslint . --fix && stylelint \"src/**/*.scss\" --fix",
+    "lint:style": "stylelint \"src/**/*.scss\"",
+    "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.e2e.json --noEmit",
+    "verify": "npm run typecheck && npm run format:check && npm run lint && npm run test:coverage && npm run build && npm run test:e2e"
+  },
+  "prettier": {
+    "printWidth": 100,
+    "singleQuote": true,
+    "overrides": [
+      {
+        "files": "*.html",
+        "options": {
+          "parser": "angular"
+        }
+      }
+    ]
+  },
+  "private": true,
+  "packageManager": "npm@8.6.0",
+  "dependencies": {
+    "@angular/common": "^21.1.0",
+    "@angular/compiler": "^21.1.0",
+    "@angular/core": "^21.1.0",
+    "@angular/forms": "^21.1.0",
+    "@angular/platform-browser": "^21.1.0",
+    "@angular/router": "^21.1.0",
+    "@types/three": "^0.185.1",
+    "astronomy-engine": "^2.1.19",
+    "rxjs": "~7.8.0",
+    "three": "^0.185.1",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular/build": "^21.1.1",
+    "@angular/cli": "^21.1.1",
+    "@angular/compiler-cli": "^21.1.0",
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.62.0",
+    "@types/node": "^26.1.1",
+    "@vitest/coverage-v8": "^4.1.10",
+    "angular-eslint": "^21.4.0",
+    "eslint": "^10.8.0",
+    "eslint-config-prettier": "^10.1.8",
+    "jsdom": "^27.1.0",
+    "prettier": "^3.9.6",
+    "stylelint": "^17.14.1",
+    "stylelint-config-standard-scss": "^17.0.0",
+    "typescript": "~5.9.2",
+    "typescript-eslint": "^8.65.0",
+    "vitest": "^4.0.8"
+  }
+}
