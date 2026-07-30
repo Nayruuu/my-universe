@@ -4,7 +4,6 @@ import { CameraController } from './camera-controller';
 import {
   CAMERA_FAR_DISTANCE,
   FREE_NAVIGATION_MIN_DISTANCE,
-  getFreeNavigationMinimumDistance,
   getMinimumNavigationDistance,
   MAX_NAVIGATION_DISTANCE,
 } from './navigation-policy';
@@ -18,12 +17,14 @@ const earth = {
 describe('CameraController', () => {
   let controller: CameraController;
   let camera: THREE.PerspectiveCamera;
+  let canvas: HTMLCanvasElement;
   const settled = vi.fn();
 
   beforeEach(() => {
     camera = new THREE.PerspectiveCamera(48, 1, 0.025, CAMERA_FAR_DISTANCE);
     camera.position.set(0, 0, 24);
-    controller = new CameraController(camera, document.createElement('canvas'), settled);
+    canvas = document.createElement('canvas');
+    controller = new CameraController(camera, canvas, settled);
   });
 
   afterEach(() => {
@@ -48,9 +49,8 @@ describe('CameraController', () => {
     expect(controller.hasActiveTarget).toBe(false);
     expect(controller.controls.enableRotate).toBe(false);
     expect(controller.controls.enablePan).toBe(false);
-    expect(controller.controls.minDistance).toBe(
-      getFreeNavigationMinimumDistance(distanceBeforeRelease),
-    );
+    expect(controller.controls.minDistance).toBe(FREE_NAVIGATION_MIN_DISTANCE);
+    expect(controller.controls.minDistance).toBeLessThan(distanceBeforeRelease);
     expect(controller.isTransitioning).toBe(false);
   });
 
@@ -66,20 +66,20 @@ describe('CameraController', () => {
     expect(controller.isTransitioning).toBe(false);
     expect(distanceAfterZoom).toBeLessThan(distanceBeforeZoom);
     expect(controller.distanceToTarget).toBeCloseTo(distanceAfterZoom);
-    expect(settled).toHaveBeenCalledWith(distanceAfterZoom);
+    expect(settled).toHaveBeenCalledWith(distanceAfterZoom, 'zoom');
   });
 
   it('effectue un aller-retour sémantique sans perdre la cible caméra', () => {
     camera.position.set(0, 0, 4.8);
 
-    for (const expected of [520, 1_400, 5_200, 17_000]) {
+    for (const expected of [520, 1_400, 9_600, 17_000, 120_000]) {
       controller.zoomSemantically(480);
       expect(controller.distanceToTarget).toBeCloseTo(expected, 6);
     }
     expect(controller.semanticZoomActive).toBe(true);
     expect(controller.hasActiveTarget).toBe(false);
 
-    for (const expected of [5_200, 1_400, 520, 4.8]) {
+    for (const expected of [17_000, 9_600, 1_400, 520, 4.8]) {
       controller.zoomSemantically(-480);
       expect(controller.distanceToTarget).toBeCloseTo(expected, 6);
     }
@@ -101,6 +101,123 @@ describe('CameraController', () => {
     expect(controller.distanceToTarget).toBeLessThan(focusedDistance);
   });
 
+  it('garde le point visé sous le même pixel pendant le zoom', () => {
+    const anchor = new THREE.Vector3(6, 2, 0);
+
+    camera.updateMatrixWorld();
+    const screenPosition = anchor.clone().project(camera);
+
+    controller.adoptZoomTarget(anchor, earth);
+    controller.zoomSemantically(-120);
+    camera.updateMatrixWorld();
+    const zoomedScreenPosition = anchor.clone().project(camera);
+
+    expect(zoomedScreenPosition.x).toBeCloseTo(screenPosition.x, 8);
+    expect(zoomedScreenPosition.y).toBeCloseTo(screenPosition.y, 8);
+    expect(controller.controls.target).not.toEqual(anchor);
+    expect(controller.controls.target.x).toBeGreaterThan(0);
+    expect(controller.distanceToTarget).toBeLessThan(24);
+    expect(controller.isTransitioning).toBe(false);
+  });
+
+  it('projette le curseur vide sur le plan de navigation avant de zoomer', () => {
+    expect(controller.lastZoomDiagnostics).toBeNull();
+
+    controller.adoptZoomPointer(0.5, 0.25);
+    controller.zoomSemantically(-120);
+
+    expect(controller.controls.target.x).toBeGreaterThan(0);
+    expect(controller.controls.target.y).toBeGreaterThan(0);
+    expect(controller.distanceToTarget).toBeLessThan(24);
+    expect(controller.isTransitioning).toBe(false);
+    expect(controller.lastZoomDiagnostics).toMatchObject({
+      deltaY: -120,
+      beforeDistance: 24,
+      status: 'applied',
+    });
+    expect(controller.lastZoomDiagnostics?.requestedDistance).toBeCloseTo(24 * Math.exp(-0.18));
+    expect(controller.lastZoomDiagnostics?.appliedDistance).toBeCloseTo(
+      controller.distanceToTarget,
+    );
+  });
+
+  it('change de référentiel sans perdre la distance ni le trajet sémantique', () => {
+    controller.zoomSemantically(480);
+    const distance = controller.distanceToTarget;
+    const target = new THREE.Vector3(12, 3, -2);
+
+    controller.rebaseTarget(target, earth);
+
+    expect(controller.controls.target).toEqual(target);
+    expect(controller.distanceToTarget).toBeCloseTo(distance, 8);
+    expect(controller.semanticZoomActive).toBe(true);
+    expect(controller.hasActiveTarget).toBe(true);
+  });
+
+  it('interpole un changement de référentiel sans saut de distance ou de direction', () => {
+    controller.zoomSemantically(480);
+    const distance = controller.distanceToTarget;
+    const direction = camera.position.clone().sub(controller.controls.target).normalize();
+    const target = new THREE.Vector3(100, 20, -8);
+
+    controller.transitionReferenceFrame(target, earth);
+
+    expect(controller.isTransitioning).toBe(true);
+    controller.update(0.16);
+    expect(controller.controls.target.x).toBeGreaterThan(0);
+    expect(controller.controls.target.x).toBeLessThan(target.x);
+    expect(controller.distanceToTarget).toBeCloseTo(distance, 8);
+
+    controller.update(1);
+    expect(controller.controls.target).toEqual(target);
+    expect(controller.distanceToTarget).toBeCloseTo(distance, 8);
+    const finalDirection = camera.position.clone().sub(controller.controls.target).normalize();
+
+    expect(finalDirection.x).toBeCloseTo(direction.x, 12);
+    expect(finalDirection.y).toBeCloseTo(direction.y, 12);
+    expect(finalDirection.z).toBeCloseTo(direction.z, 12);
+    expect(controller.semanticZoomActive).toBe(true);
+  });
+
+  it('termine le référentiel précédent avant un nouveau zoom ou geste', () => {
+    const firstTarget = new THREE.Vector3(100, 20, -8);
+
+    controller.transitionReferenceFrame(firstTarget, earth);
+    controller.zoomSemantically(-120);
+
+    expect(controller.controls.target).toEqual(firstTarget);
+    expect(controller.isTransitioning).toBe(false);
+
+    const secondTarget = new THREE.Vector3(-50, 8, 12);
+
+    controller.transitionReferenceFrame(secondTarget, earth);
+    controller.controls.dispatchEvent({ type: 'start' });
+
+    expect(controller.controls.target).toEqual(secondTarget);
+    expect(controller.isTransitioning).toBe(false);
+  });
+
+  it('finalise le référentiel avant de projeter une nouvelle ancre de curseur', () => {
+    const target = new THREE.Vector3(100, 20, -8);
+
+    controller.transitionReferenceFrame(target, earth);
+    controller.adoptZoomPointer(0, 0);
+
+    expect(controller.controls.target).toEqual(target);
+    controller.zoomSemantically(-120);
+    expect(controller.controls.target).toEqual(target);
+  });
+
+  it('choisit une direction stable pour un changement de référentiel dégénéré', () => {
+    camera.position.copy(controller.controls.target);
+
+    controller.transitionReferenceFrame(new THREE.Vector3(8, 3, -2), earth);
+    controller.update(1);
+
+    expect(Number.isFinite(controller.distanceToTarget)).toBe(true);
+    expect(controller.distanceToTarget).toBeGreaterThan(0);
+  });
+
   it('ignore les deltas sémantiques nuls ou invalides', () => {
     const initialDistance = controller.distanceToTarget;
 
@@ -109,6 +226,14 @@ describe('CameraController', () => {
 
     expect(controller.distanceToTarget).toBe(initialDistance);
     expect(controller.semanticZoomActive).toBe(false);
+    expect(controller.lastZoomDiagnostics).toMatchObject({
+      status: 'ignored',
+      beforeDistance: initialDistance,
+      appliedDistance: initialDistance,
+    });
+
+    controller.zoomSemantically(-Number.MIN_VALUE);
+    expect(controller.lastZoomDiagnostics?.status).toBe('unchanged');
   });
 
   it('termine une transition douce et signale la distance finale', () => {
@@ -116,7 +241,24 @@ describe('CameraController', () => {
     controller.update(3);
 
     expect(controller.isTransitioning).toBe(false);
-    expect(settled).toHaveBeenCalledWith(controller.distanceToTarget);
+    expect(settled).toHaveBeenCalledWith(controller.distanceToTarget, 'transition');
+  });
+
+  it('peut finaliser le cadrage initial avant la première frame', () => {
+    const target = new THREE.Vector3(120, -30, 8);
+
+    controller.focusOn(target, earth, 17_000);
+    expect(controller.isTransitioning).toBe(true);
+
+    controller.completeFocusTransition();
+
+    expect(controller.isTransitioning).toBe(false);
+    expect(controller.controls.target).toEqual(target);
+    expect(controller.distanceToTarget).toBeCloseTo(17_000, 8);
+    expect(settled).toHaveBeenCalledWith(17_000, 'transition');
+
+    controller.completeFocusTransition();
+    expect(settled).toHaveBeenCalledOnce();
   });
 
   it('interpole les grands changements d’échelle de façon logarithmique', () => {
@@ -154,17 +296,20 @@ describe('CameraController', () => {
     expect(controller.controls.minDistance).toBe(FREE_NAVIGATION_MIN_DISTANCE);
   });
 
-  it('borne le rapprochement en navigation libre au contexte récemment quitté', () => {
+  it('laisse plusieurs zooms avant progresser après la libération de la cible', () => {
     controller.focusOn(new THREE.Vector3(4, 0, 0), earth);
     controller.update(3);
-    controller.releaseTarget();
-    const minimumDistance = controller.controls.minDistance;
+    const releasedDistance = controller.distanceToTarget;
 
-    for (let index = 0; index < 20; index += 1) {
-      controller.zoomBy(0.5);
+    controller.releaseTarget();
+
+    for (let index = 0; index < 8; index += 1) {
+      controller.zoomSemantically(-120);
     }
 
-    expect(controller.distanceToTarget).toBeCloseTo(minimumDistance);
+    expect(controller.hasActiveTarget).toBe(false);
+    expect(controller.distanceToTarget).toBeLessThan(releasedDistance * 0.5);
+    expect(controller.lastZoomDiagnostics?.status).toBe('applied');
   });
 
   it('borne le recul à l’échelle utile de la carte', () => {
@@ -173,6 +318,27 @@ describe('CameraController', () => {
     }
 
     expect(controller.distanceToTarget).toBe(MAX_NAVIGATION_DISTANCE);
+
+    controller.zoomSemantically(480);
+    expect(controller.lastZoomDiagnostics).toMatchObject({
+      status: 'maximum',
+      appliedDistance: MAX_NAVIGATION_DISTANCE,
+    });
+  });
+
+  it('explique lorsqu’une collision de cible borne le rapprochement', () => {
+    controller.setNavigationConstraints(earth);
+    camera.position.set(0, 0, controller.controls.minDistance);
+    controller.controls.target.set(0, 0, 0);
+    controller.controls.update();
+
+    controller.zoomSemantically(-120);
+
+    expect(controller.lastZoomDiagnostics).toMatchObject({
+      status: 'minimum',
+      appliedDistance: getMinimumNavigationDistance(earth),
+      minimumDistance: getMinimumNavigationDistance(earth),
+    });
   });
 
   it('choisit une direction sûre lorsque caméra, cible ou direction sont dégénérées', () => {
@@ -241,7 +407,24 @@ describe('CameraController', () => {
     expect(controller.isTransitioning).toBe(false);
 
     controller.controls.dispatchEvent({ type: 'end' });
-    expect(settled).toHaveBeenCalledWith(controller.distanceToTarget);
+    expect(settled).toHaveBeenCalledWith(controller.distanceToTarget, 'interaction');
+  });
+
+  it('identifie uniquement un geste tactile à deux doigts comme un pincement', () => {
+    const touchStart = (touchCount: number): void => {
+      const event = new Event('touchstart');
+
+      Object.defineProperty(event, 'touches', { value: { length: touchCount } });
+      canvas.dispatchEvent(event);
+    };
+
+    touchStart(1);
+    controller.controls.dispatchEvent({ type: 'end' });
+    expect(settled).toHaveBeenLastCalledWith(controller.distanceToTarget, 'interaction');
+
+    touchStart(2);
+    controller.controls.dispatchEvent({ type: 'end' });
+    expect(settled).toHaveBeenLastCalledWith(controller.distanceToTarget, 'pinch');
   });
 });
 

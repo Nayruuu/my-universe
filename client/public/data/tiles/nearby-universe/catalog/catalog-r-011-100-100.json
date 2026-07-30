@@ -1,0 +1,173 @@
+{
+  "version": "2.0.0",
+  "objects": [
+    {
+      "id": "lv-ddo099",
+      "name": "DDO099",
+      "aliases": [],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#9eb8c8",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 29.41,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.37,
+        "galaxyRotationDegrees": 0
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-2.053499, 1.657125, 0.081729],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 2.64,
+        "distanceLy": 8610528,
+        "rightAscensionDegrees": 177.72083333,
+        "declinationDegrees": 38.88055556,
+        "angularDiameterArcmin": 4.27,
+        "diameterLy": 10695,
+        "apparentMagnitudeB": 13.7,
+        "morphologicalType": 10,
+        "morphology": "Ir",
+        "distanceMethod": "TRGB",
+        "nearbyUniverseLabelRank": 254,
+        "nearbyUniversePointBatch": true,
+        "keywords": "DDO099 DDO099 Ir Local Volume"
+      }
+    },
+    {
+      "id": "lv-ngc3741",
+      "name": "NGC 3741",
+      "aliases": ["NGC3741"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#9eb8c8",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 26.03,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.55,
+        "galaxyRotationDegrees": 50
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-2.120264, 2.153175, 0.221851],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 3.03,
+        "distanceLy": 9882538,
+        "rightAscensionDegrees": 174.02666667,
+        "declinationDegrees": 45.28527778,
+        "angularDiameterArcmin": 1.48,
+        "diameterLy": 4255,
+        "apparentMagnitudeB": 14.38,
+        "morphologicalType": 9,
+        "morphology": "BCD",
+        "distanceMethod": "TRGB",
+        "nearbyUniverseLabelRank": 298,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC3741 NGC 3741 BCD Local Volume"
+      }
+    },
+    {
+      "id": "lv-ugc06757",
+      "name": "UGC 6757",
+      "aliases": ["UGC06757"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#9eb8c8",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 22.72,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.55,
+        "galaxyRotationDegrees": 141
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-1.307436, 2.395409, 0.074327],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 2.73,
+        "distanceLy": 8904069,
+        "rightAscensionDegrees": 176.74625,
+        "declinationDegrees": 61.335,
+        "angularDiameterArcmin": 1.1,
+        "diameterLy": 2849,
+        "apparentMagnitudeB": 16.3,
+        "morphologicalType": 10,
+        "morphology": "Ir",
+        "distanceMethod": "h",
+        "nearbyUniverseLabelRank": 509,
+        "nearbyUniversePointBatch": true,
+        "keywords": "UGC06757 UGC 6757 Ir Local Volume"
+      }
+    },
+    {
+      "id": "lv-leop",
+      "name": "LeoP",
+      "aliases": [],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#9eb8c8",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 20.45,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.54,
+        "galaxyRotationDegrees": 89
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-1.729128, 0.620957, 0.790273],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 2,
+        "distanceLy": 6523128,
+        "rightAscensionDegrees": 155.43791667,
+        "declinationDegrees": 18.08805556,
+        "angularDiameterArcmin": 0.55,
+        "diameterLy": 1044,
+        "apparentMagnitudeB": 17.2,
+        "morphologicalType": 10,
+        "morphology": "Ir",
+        "distanceMethod": "txt",
+        "nearbyUniverseLabelRank": 632,
+        "nearbyUniversePointBatch": true,
+        "keywords": "LeoP LeoP Ir Local Volume"
+      }
+    }
+  ]
+}

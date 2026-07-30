@@ -29,8 +29,48 @@
         <dd>{{ stats.catalogStars }}</dd>
       </div>
       <div>
-        <dt>Référentiel LOD</dt>
+        <dt>Groupes Cosmicflows-4</dt>
+        <dd>{{ stats.cosmicGroups }}</dd>
+      </div>
+      <div>
+        <dt>Galaxies groupées</dt>
+        <dd>{{ stats.batchedGalaxies }}</dd>
+      </div>
+      <div>
+        <dt>Tuiles galactiques actives / index</dt>
+        <dd>{{ stats.loadedTiles }} / {{ stats.indexedGalaxyTiles }}</dd>
+      </div>
+      <div>
+        <dt>Tuiles galactiques en cache</dt>
+        <dd>{{ stats.cachedGalaxyTiles }}</dd>
+      </div>
+      <div>
+        <dt>Tuiles stellaires actives</dt>
+        <dd>{{ stats.activeStarTiles }}</dd>
+      </div>
+      <div>
+        <dt>Paquets stellaires en cache</dt>
+        <dd>{{ stats.cachedStarPacks }}</dd>
+      </div>
+      <div>
+        <dt>Tuiles stellaires en cache</dt>
+        <dd>{{ stats.cachedStarTiles }}</dd>
+      </div>
+      <div>
+        <dt>Cellules actives / cache</dt>
+        <dd>{{ stats.activeStarClusters }} / {{ stats.cachedStarClusters }}</dd>
+      </div>
+      <div>
+        <dt>Cellules visibles</dt>
+        <dd>{{ stats.visibleStarClusters }}</dd>
+      </div>
+      <div>
+        <dt>Niveau de détail</dt>
         <dd>{{ stats.lodLevel }}</dd>
+      </div>
+      <div>
+        <dt>Référentiel actif</dt>
+        <dd>{{ stats.navigationReferenceFrame }}</dd>
       </div>
       <div>
         <dt>Distance caméra</dt>
@@ -41,14 +81,51 @@
         <dd>{{ stats.targetId ?? 'libre' }}</dd>
       </div>
       <div>
+        <dt>Origine navigation</dt>
+        <dd>{{ stats.navigationOriginId ?? 'point libre' }}</dd>
+      </div>
+      <div>
         <dt>Qualité</dt>
         <dd>{{ stats.quality }}</dd>
       </div>
+      <div>
+        <dt>Résolution rendu</dt>
+        <dd>{{ format(stats.pixelRatio) }}×</dd>
+      </div>
+      @if (stats.zoom; as zoom) {
+        <div class="wide">
+          <dt>Dernier zoom · {{ zoomStatus(zoom.status) }}</dt>
+          <dd>
+            {{
+              zoom.anchorObjectId ?? (zoom.anchorType === 'target' ? 'cible caméra' : 'point libre')
+            }}
+            · Δ {{ format(zoom.deltaY) }}
+          </dd>
+        </div>
+        <div class="wide">
+          <dt>Avant → demandée → appliquée</dt>
+          <dd>
+            {{ format(zoom.beforeDistance) }} → {{ format(zoom.requestedDistance) }} →
+            {{ format(zoom.appliedDistance) }}
+          </dd>
+        </div>
+        <div class="wide">
+          <dt>Limites min. / max.</dt>
+          <dd>{{ format(zoom.minimumDistance) }} / {{ format(zoom.maximumDistance) }}</dd>
+        </div>
+      }
       <div class="wide">
         <dt>Caméra</dt>
         <dd>
           {{ format(stats.cameraPosition.x) }}, {{ format(stats.cameraPosition.y) }},
           {{ format(stats.cameraPosition.z) }}
+        </dd>
+      </div>
+      <div class="wide">
+        <dt>Cible caméra</dt>
+        <dd>
+          {{ format(stats.cameraTarget.x) }}, {{ format(stats.cameraTarget.y) }},
+          {{ format(stats.cameraTarget.z) }}
         </dd>
       </div>
       <div class="wide">

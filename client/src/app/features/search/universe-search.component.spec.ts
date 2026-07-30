@@ -48,6 +48,10 @@ describe('UniverseSearchComponent', () => {
     expect(component.results()).toEqual([sirius]);
     expect(search).toHaveBeenCalledWith('sir');
 
+    component.active.set(false);
+    component.updateQuery(inputEvent('sirius'));
+    expect(component.active()).toBe(true);
+
     component.choose(sirius);
 
     expect(component.query()).toBe('');
@@ -62,10 +66,12 @@ describe('UniverseSearchComponent', () => {
       ['planet', 'Planète'],
       ['moon', 'Lune'],
       ['galaxy', 'Galaxie'],
+      ['black-hole', 'Trou noir'],
       ['dwarf-planet', 'Planète naine'],
       ['asteroid', 'Astéroïde'],
       ['comet', 'Comète'],
-      ['universe', 'Objet'],
+      ['galaxy-cluster', 'Groupe de galaxies'],
+      ['universe', 'Univers'],
     ];
 
     component.query.set('mars');
@@ -75,6 +81,8 @@ describe('UniverseSearchComponent', () => {
     for (const [type, label] of labels) {
       expect(component.typeLabel(type)).toBe(label);
     }
+    expect(component.typeLabel('region', ['constellation'])).toBe('Constellation');
+    expect(component.typeLabel('region')).toBe('Objet');
   });
 
   it('rend les résultats, le parent de repli et l’état vide', () => {
@@ -112,7 +120,7 @@ interface UniverseSearchAccess {
   updateQuery(event: Event): void;
   choose(result: SearchEntry): void;
   clear(): void;
-  typeLabel(type: SpaceObjectType): string;
+  typeLabel(type: SpaceObjectType, keywords?: readonly string[]): string;
 }
 
 function createComponent(): UniverseSearchAccess {

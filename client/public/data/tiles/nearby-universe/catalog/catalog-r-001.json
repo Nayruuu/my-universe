@@ -1,0 +1,169 @@
+{
+  "version": "2.0.0",
+  "objects": [
+    {
+      "id": "lv-ngc3521",
+      "name": "NGC 3521",
+      "aliases": ["NGC3521"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 37.62,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.46,
+        "galaxyRotationDegrees": 26
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-10.402282, -0.006692, 2.50649],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 10.7,
+        "distanceLy": 34898732,
+        "rightAscensionDegrees": 166.4525,
+        "declinationDegrees": -0.03583333,
+        "angularDiameterArcmin": 10.96,
+        "diameterLy": 111262,
+        "apparentMagnitudeB": 9.83,
+        "morphologicalType": 4,
+        "distanceMethod": "TF",
+        "nearbyUniverseLabelRank": 115,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC3521 NGC 3521 Local Volume"
+      }
+    },
+    {
+      "id": "lv-ngc3115",
+      "name": "NGC 3115",
+      "aliases": ["NGC3115"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#d0bea1",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 36.84,
+        "scaleMode": "adaptive",
+        "galaxyShape": "elliptical",
+        "galaxyAxisRatio": 0.35,
+        "galaxyRotationDegrees": 149
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-8.414515, -1.300102, 4.605222],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 9.68,
+        "distanceLy": 31571937,
+        "rightAscensionDegrees": 151.30833333,
+        "declinationDegrees": -7.71861111,
+        "angularDiameterArcmin": 8.51,
+        "diameterLy": 78155,
+        "apparentMagnitudeB": 9.87,
+        "morphologicalType": -1,
+        "distanceMethod": "SBF",
+        "nearbyUniverseLabelRank": 116,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC3115 NGC 3115 Local Volume"
+      }
+    },
+    {
+      "id": "lv-ngc3621",
+      "name": "NGC 3621",
+      "aliases": ["NGC3621"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 37.45,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.44,
+        "galaxyRotationDegrees": 171
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-5.537962, -3.630592, 1.019695],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 6.7,
+        "distanceLy": 21852477,
+        "rightAscensionDegrees": 169.56708333,
+        "declinationDegrees": -32.81166667,
+        "angularDiameterArcmin": 12.3,
+        "diameterLy": 78187,
+        "apparentMagnitudeB": 10.18,
+        "morphologicalType": 7,
+        "distanceMethod": "Cep",
+        "nearbyUniverseLabelRank": 119,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC3621 NGC 3621 Local Volume"
+      }
+    },
+    {
+      "id": "lv-ngc2835",
+      "name": "NGC 2835",
+      "aliases": ["NGC2835"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 35.32,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.67,
+        "galaxyRotationDegrees": 21
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-7.240344, -3.917591, 6.190307],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 10.3,
+        "distanceLy": 33594107,
+        "rightAscensionDegrees": 139.47041667,
+        "declinationDegrees": -22.35527778,
+        "angularDiameterArcmin": 8.91,
+        "diameterLy": 87070,
+        "apparentMagnitudeB": 11.01,
+        "morphologicalType": 5,
+        "distanceMethod": "TF",
+        "nearbyUniverseLabelRank": 138,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC2835 NGC 2835 Local Volume"
+      }
+    }
+  ]
+}

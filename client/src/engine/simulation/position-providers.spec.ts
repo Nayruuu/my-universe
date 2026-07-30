@@ -143,6 +143,67 @@ describe('fournisseurs de position', () => {
     ).toBeCloseTo(31.2175, 6);
   });
 
+  it('calcule les quatre lunes galiléennes dans le référentiel de Jupiter', () => {
+    const factory = new PositionProviderFactory(coordinates);
+    const time = { julianDay: JULIAN_DAY_J2000 };
+
+    for (const [body, meanDistanceKm] of [
+      ['io', 421_800],
+      ['europa', 671_100],
+      ['ganymede', 1_070_400],
+      ['callisto', 1_882_700],
+    ] as const) {
+      const scientific = factory.create(ephemerisDefinition(body, 'jupiter', 1), 'solar-system');
+      const visual = factory.create(
+        { ...ephemerisDefinition(body, 'jupiter', 1), distanceScale: 40 },
+        'solar-system',
+      );
+      const physicalDistanceKm =
+        (vectorLength(scientific.getPositionAt(time)) / 15) * 149_597_870.7;
+
+      expect(Math.abs(physicalDistanceKm - meanDistanceKm) / meanDistanceKm).toBeLessThan(0.02);
+      expect(
+        vectorLength(visual.getPositionAt(time)) / vectorLength(scientific.getPositionAt(time)),
+      ).toBeCloseTo(40, 8);
+    }
+  });
+
+  it('utilise l’éphéméride héliocentrique de Pluton', () => {
+    const provider = new PositionProviderFactory(coordinates).create(
+      ephemerisDefinition('pluto', 'sun', 90_560),
+      'solar-system',
+    );
+    const distanceAu = vectorLength(provider.getPositionAt({ julianDay: JULIAN_DAY_J2000 })) / 15;
+
+    expect(distanceAu).toBeGreaterThan(29);
+    expect(distanceAu).toBeLessThan(50);
+  });
+
+  it('applique une exagération visuelle optionnelle aux orbites képlériennes satellites', () => {
+    const definition: Extract<PositionProviderDefinition, { type: 'keplerian' }> = {
+      type: 'keplerian',
+      semiMajorAxis: 1_221_900,
+      eccentricity: 0,
+      inclination: 0,
+      longitudeOfAscendingNode: 0,
+      argumentOfPeriapsis: 0,
+      meanAnomalyAtEpoch: 0,
+      epochJulianDay: JULIAN_DAY_J2000,
+      orbitalPeriodDays: 15.945448,
+      unit: 'kilometer',
+      distanceScale: 40,
+    };
+    const provider = new KeplerianOrbitProvider(definition, coordinates, 'solar-system');
+    const distance = vectorLength(provider.getPositionAt({ julianDay: JULIAN_DAY_J2000 }));
+    const physicalDistance = coordinates.toSceneDistance(
+      definition.semiMajorAxis,
+      'kilometer',
+      'solar-system',
+    );
+
+    expect(distance / physicalDistance).toBeCloseTo(40, 10);
+  });
+
   it('rejette une origine incompatible et crée le fournisseur via la factory', () => {
     expect(
       () =>
@@ -238,11 +299,24 @@ describe('fournisseurs de position', () => {
     expect(Math.hypot(firstProceduralPosition.x, firstProceduralPosition.z)).toBeCloseTo(2_442, 8);
     expect(laterProceduralPosition).not.toEqual(firstProceduralPosition);
   });
+
+  it('refuse explicitement un lien de catalogue non résolu par le registre stellaire', () => {
+    expect(() =>
+      new PositionProviderFactory(coordinates).create(
+        {
+          type: 'catalog',
+          catalogId: 'hyg-v41-bright-stars',
+          identifier: 'HIP 32349',
+        },
+        'stellar',
+      ),
+    ).toThrow(/catalogue.*résolu/iu);
+  });
 });
 
 function ephemerisDefinition(
-  body: 'earth' | 'moon' | 'mars',
-  origin: 'sun' | 'earth',
+  body: Extract<PositionProviderDefinition, { type: 'ephemeris' }>['body'],
+  origin: Extract<PositionProviderDefinition, { type: 'ephemeris' }>['origin'],
   orbitalPeriodDays: number,
 ): Extract<PositionProviderDefinition, { type: 'ephemeris' }> {
   return {

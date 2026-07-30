@@ -3,6 +3,7 @@
     <div class="details__hero">
       <div
         class="object-orb"
+        [attr.data-object-type]="selected.type"
         [style.--object-color]="selected.visual.color ?? '#9cb9d6'"
         [style.--object-color-secondary]="selected.visual.secondaryColor ?? selected.visual.color"
       >
@@ -18,7 +19,7 @@
       </button>
       <div class="details__heading">
         <span class="eyebrow">
-          {{ typeLabel(selected.type) }}
+          {{ typeLabel(selected.type, selected.metadata) }}
           @if (parentName(selected); as parent) {
             · {{ parent }}
           }
@@ -53,7 +54,7 @@
 
       <dl class="facts">
         @if (distanceLabel(selected); as distance) {
-          <div>
+          <div [class.facts__wide]="selected.type === 'black-hole'">
             <dt>Distance</dt>
             <dd>{{ distance }}</dd>
           </div>
@@ -76,6 +77,18 @@
             <dd>{{ catalogIdentifier }}</dd>
           </div>
         }
+        @if (distanceUncertaintyLabel(selected); as uncertainty) {
+          <div>
+            <dt>Incertitude de distance</dt>
+            <dd>{{ uncertainty }}</dd>
+          </div>
+        }
+        @if (cmbVelocityLabel(selected); as velocity) {
+          <div>
+            <dt>Vitesse · fond cosmologique</dt>
+            <dd>{{ velocity }}</dd>
+          </div>
+        }
         @if (morphologyLabel(selected); as morphology) {
           <div>
             <dt>Morphologie</dt>
@@ -88,9 +101,57 @@
             <dd>{{ diameter }}</dd>
           </div>
         }
+        @if (subgroupLabel(selected); as subgroup) {
+          <div>
+            <dt>Sous-groupe</dt>
+            <dd>{{ subgroup }}</dd>
+          </div>
+        }
+        @if (absoluteMagnitudeLabel(selected); as absoluteMagnitude) {
+          <div>
+            <dt>Magnitude absolue</dt>
+            <dd>{{ absoluteMagnitude }}</dd>
+          </div>
+        }
+        @if (halfLightRadiusLabel(selected); as halfLightRadius) {
+          <div>
+            <dt>Rayon de demi-lumière</dt>
+            <dd>{{ halfLightRadius }}</dd>
+          </div>
+        }
+        @if (massSolarLabel(selected); as massSolar) {
+          <div class="facts__wide">
+            <dt>Masse</dt>
+            <dd>{{ massSolar }}</dd>
+          </div>
+        }
+        @if (blackHoleActivityLabel(selected); as activity) {
+          <div>
+            <dt>Activité</dt>
+            <dd>{{ activity }}</dd>
+          </div>
+        }
+        @if (constellationAbbreviationLabel(selected); as abbreviation) {
+          <div>
+            <dt>Abréviation</dt>
+            <dd>{{ abbreviation }}</dd>
+          </div>
+        }
+        @if (constellationStarCountLabel(selected); as starCount) {
+          <div>
+            <dt>Étoiles reliées</dt>
+            <dd>{{ starCount }}</dd>
+          </div>
+        }
+        @if (constellationSegmentCountLabel(selected); as segmentCount) {
+          <div>
+            <dt>Segments</dt>
+            <dd>{{ segmentCount }}</dd>
+          </div>
+        }
         @if (selected.physical?.radiusKm; as radius) {
           <div>
-            <dt>Rayon</dt>
+            <dt>{{ selected.type === 'black-hole' ? 'Rayon de Schwarzschild' : 'Rayon' }}</dt>
             <dd>{{ formatNumber(radius) }} km</dd>
           </div>
         }
@@ -102,7 +163,7 @@
         }
         @if (selected.physical?.massKg; as mass) {
           <div>
-            <dt>Masse</dt>
+            <dt>{{ selected.type === 'black-hole' ? 'Masse · SI' : 'Masse' }}</dt>
             <dd>{{ formatNumber(mass, 2) }} kg</dd>
           </div>
         }
@@ -134,6 +195,12 @@
         <span>Source</span>
         <strong>{{ selected.metadata?.['source'] ?? 'Données statiques du prototype' }}</strong>
       </div>
+      @if (selected.metadata?.['visualSource']; as visualSource) {
+        <div class="details__source">
+          <span>Apparence</span>
+          <strong>{{ visualSource }}</strong>
+        </div>
+      }
     </div>
 
     <div class="details__actions">

@@ -69,6 +69,22 @@
   }
 }
 
+.object-orb[data-object-type='black-hole'] {
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      #000 0 39%,
+      color-mix(in srgb, var(--object-color) 42%, #fff) 41%,
+      var(--object-color) 44%,
+      color-mix(in srgb, var(--object-color-secondary) 16%, transparent) 48%,
+      transparent 58%
+    ),
+    radial-gradient(circle at 50% 50%, #080d17, #02040a 72%);
+  box-shadow:
+    0 0 24px color-mix(in srgb, var(--object-color) 14%, transparent),
+    inset 0 0 18px rgb(0 0 0 / 86%);
+}
+
 .close-button {
   position: absolute;
   z-index: 2;
@@ -204,6 +220,10 @@ h2 {
     min-width: 0;
     padding: 10px 11px;
     background: rgb(6 11 22 / 82%);
+  }
+
+  .facts__wide {
+    grid-column: 1 / -1;
   }
 
   dt {

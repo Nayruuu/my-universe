@@ -36,6 +36,24 @@ describe('conversion des distances', () => {
     expect(rendered).toEqual({ x: 1_000, y: -200, z: 300 });
   });
 
+  it('préserve linéairement l’Univers proche à raison de 4 000 unités par mégaparsec', () => {
+    const coordinates = new CoordinateSystem();
+    const rendered = coordinates.toRenderPosition([1.5, -2, 0.25], 'megaparsec', 'nearby-universe');
+
+    expect(rendered).toEqual({ x: 6_000, y: -8_000, z: 1_000 });
+    expect(coordinates.toSceneDistance(1, 'megaparsec', 'nearby-universe')).toBe(4_000);
+    expect(coordinates.getLinearMotionScale('megaparsec', 'nearby-universe')).toBe(4_000);
+  });
+
+  it('compresse le réseau cosmique à raison de 200 unités par mégaparsec', () => {
+    const coordinates = new CoordinateSystem();
+    const rendered = coordinates.toRenderPosition([120, -40, 10], 'megaparsec', 'cosmic-web');
+
+    expect(rendered).toEqual({ x: 24_000, y: -8_000, z: 2_000 });
+    expect(coordinates.toSceneDistance(1, 'megaparsec', 'cosmic-web')).toBe(200);
+    expect(coordinates.getLinearMotionScale('megaparsec', 'cosmic-web')).toBe(200);
+  });
+
   it('couvre explicitement les quatre référentiels et le vecteur nul', () => {
     const coordinates = new CoordinateSystem();
 

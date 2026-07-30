@@ -1,0 +1,214 @@
+{
+  "version": "2.0.0",
+  "objects": [
+    {
+      "id": "lv-ngc1744",
+      "name": "NGC 1744",
+      "aliases": ["NGC1744"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 33.59,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.54,
+        "galaxyRotationDegrees": 163
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [2.326858, -4.387894, 8.679408],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 10,
+        "distanceLy": 32615638,
+        "rightAscensionDegrees": 74.9925,
+        "declinationDegrees": -26.02666667,
+        "angularDiameterArcmin": 6.92,
+        "diameterLy": 65654,
+        "apparentMagnitudeB": 11.71,
+        "morphologicalType": 7,
+        "distanceMethod": "TF",
+        "nearbyUniverseLabelRank": 167,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC1744 NGC 1744 Local Volume"
+      }
+    },
+    {
+      "id": "lv-ngc1800",
+      "name": "NGC 1800",
+      "aliases": ["NGC1800"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#9eb8c8",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 28.45,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.55,
+        "galaxyRotationDegrees": 42
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [1.572236, -4.233926, 6.603177],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 8,
+        "distanceLy": 26092510,
+        "rightAscensionDegrees": 76.60708333,
+        "declinationDegrees": -31.95416667,
+        "angularDiameterArcmin": 2,
+        "diameterLy": 15180,
+        "apparentMagnitudeB": 13.13,
+        "morphologicalType": 9,
+        "morphology": "BCD",
+        "distanceMethod": "TF",
+        "nearbyUniverseLabelRank": 215,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC1800 NGC 1800 BCD Local Volume"
+      }
+    },
+    {
+      "id": "lv-eso483-013",
+      "name": "ESO483-013",
+      "aliases": [],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#9eb8c8",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 26.62,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.54,
+        "galaxyRotationDegrees": 150
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [3.070679, -2.910289, 6.071338],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 7.4,
+        "distanceLy": 24135572,
+        "rightAscensionDegrees": 63.17125,
+        "declinationDegrees": -23.15888889,
+        "angularDiameterArcmin": 1.58,
+        "diameterLy": 11093,
+        "apparentMagnitudeB": 14.06,
+        "morphologicalType": 9,
+        "morphology": "BCD",
+        "distanceMethod": "TF",
+        "nearbyUniverseLabelRank": 272,
+        "nearbyUniversePointBatch": true,
+        "keywords": "ESO483-013 ESO483-013 BCD Local Volume"
+      }
+    },
+    {
+      "id": "lv-eso486-021",
+      "name": "ESO486-021",
+      "aliases": [],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#9eb8c8",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 26.08,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.76,
+        "galaxyRotationDegrees": 32
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [2.210621, -4.292986, 8.756907],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 10,
+        "distanceLy": 32615638,
+        "rightAscensionDegrees": 75.83208333,
+        "declinationDegrees": -25.42305556,
+        "angularDiameterArcmin": 1.51,
+        "diameterLy": 14326,
+        "apparentMagnitudeB": 14.37,
+        "morphologicalType": 9,
+        "morphology": "BCD",
+        "distanceMethod": "mem",
+        "nearbyUniverseLabelRank": 296,
+        "nearbyUniversePointBatch": true,
+        "keywords": "ESO486-021 ESO486-021 BCD Local Volume"
+      }
+    },
+    {
+      "id": "lv-ngc1592",
+      "name": "NGC 1592",
+      "aliases": ["NGC1592"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#9eb8c8",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 25.84,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.48,
+        "galaxyRotationDegrees": 130
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [3.101923, -4.189032, 7.459228],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 9.1,
+        "distanceLy": 29680230,
+        "rightAscensionDegrees": 67.42,
+        "declinationDegrees": -27.40861111,
+        "angularDiameterArcmin": 1.41,
+        "diameterLy": 12173,
+        "apparentMagnitudeB": 14.45,
+        "morphologicalType": 10,
+        "morphology": "Ir",
+        "distanceMethod": "TF",
+        "nearbyUniverseLabelRank": 309,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC1592 NGC 1592 Ir Local Volume"
+      }
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "version": "2.0.0",
+  "sourceCatalog": "hyg-v41-bright-stars",
+  "referenceEpochJulianDay": 2451545,
+  "tiles": [
+    {
+      "id": "c-n3-p0-p1",
+      "parentId": "r-n2-p0-p0",
+      "version": "2.0.0",
+      "sourceCatalog": "hyg-v41-bright-stars",
+      "sourceStarCount": 1,
+      "referenceEpochJulianDay": 2451545,
+      "lodLevel": 3,
+      "cellSizeParsec": 40,
+      "clusterCount": 1,
+      "cellCoordinates": [-18, 1, 8],
+      "positionsParsec": [-710.6669311523438, 49.01111602783203, 335.4871520996094],
+      "starCounts": [1],
+      "apparentMagnitudes": [6.019999980926514],
+      "colorIndicesBv": [1.5329999923706055]
+    }
+  ]
+}

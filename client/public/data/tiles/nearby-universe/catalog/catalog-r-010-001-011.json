@@ -1,0 +1,173 @@
+{
+  "version": "2.0.0",
+  "objects": [
+    {
+      "id": "lv-ngc4509",
+      "name": "NGC 4509",
+      "aliases": ["NGC4509"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#9eb8c8",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 25.61,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.76,
+        "galaxyRotationDegrees": 167
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-8.467554, 5.365881, -1.232012],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 10.1,
+        "distanceLy": 32941794,
+        "rightAscensionDegrees": 188.27833333,
+        "declinationDegrees": 32.09166667,
+        "angularDiameterArcmin": 0.91,
+        "diameterLy": 8720,
+        "apparentMagnitudeB": 14.1,
+        "morphologicalType": 9,
+        "morphology": "BCD",
+        "distanceMethod": "TF",
+        "nearbyUniverseLabelRank": 277,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC4509 NGC 4509 BCD Local Volume"
+      }
+    },
+    {
+      "id": "lv-ugca294",
+      "name": "UGCA294",
+      "aliases": [],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#9eb8c8",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 24.87,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.57,
+        "galaxyRotationDegrees": 160
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-8.538032, 4.719695, -1.684189],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 9.9,
+        "distanceLy": 32289481,
+        "rightAscensionDegrees": 191.15875,
+        "declinationDegrees": 28.4725,
+        "angularDiameterArcmin": 1.1,
+        "diameterLy": 10332,
+        "apparentMagnitudeB": 14.82,
+        "morphologicalType": 9,
+        "morphology": "BCD",
+        "distanceMethod": "TF",
+        "nearbyUniverseLabelRank": 346,
+        "nearbyUniversePointBatch": true,
+        "keywords": "UGCA294 UGCA294 BCD Local Volume"
+      }
+    },
+    {
+      "id": "lv-ugca298",
+      "name": "UGCA298",
+      "aliases": [],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#9eb8c8",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 23.91,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.78,
+        "galaxyRotationDegrees": 172
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-9.633278, 4.919198, -2.000363],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 11,
+        "distanceLy": 35877202,
+        "rightAscensionDegrees": 191.73083333,
+        "declinationDegrees": 26.56416667,
+        "angularDiameterArcmin": 0.89,
+        "diameterLy": 9288,
+        "apparentMagnitudeB": 15.25,
+        "morphologicalType": 9,
+        "morphology": "BCD",
+        "distanceMethod": "TF",
+        "nearbyUniverseLabelRank": 391,
+        "nearbyUniversePointBatch": true,
+        "keywords": "UGCA298 UGCA298 BCD Local Volume"
+      }
+    },
+    {
+      "id": "lv-ugc07584",
+      "name": "UGC 7584",
+      "aliases": ["UGC07584"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#9eb8c8",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 22.58,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.5,
+        "galaxyRotationDegrees": 174
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-8.430652, 3.533952, -1.036959],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 9.2,
+        "distanceLy": 30006387,
+        "rightAscensionDegrees": 187.01208333,
+        "declinationDegrees": 22.58944444,
+        "angularDiameterArcmin": 0.91,
+        "diameterLy": 7943,
+        "apparentMagnitudeB": 16.19,
+        "morphologicalType": 9,
+        "morphology": "BCD",
+        "distanceMethod": "TF",
+        "nearbyUniverseLabelRank": 492,
+        "nearbyUniversePointBatch": true,
+        "keywords": "UGC07584 UGC 7584 BCD Local Volume"
+      }
+    }
+  ]
+}

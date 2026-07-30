@@ -69,12 +69,18 @@ export class ObjectDetailsComponent {
     return `Orbite · ${this.parentName(object) ?? 'corps parent'}`;
   }
 
-  protected typeLabel(type: SpaceObjectType): string {
+  protected typeLabel(type: SpaceObjectType, metadata?: SpaceObject['metadata']): string {
+    if (type === 'region' && typeof metadata?.['constellationId'] === 'string') {
+      return 'Constellation';
+    }
     const labels: Partial<Record<SpaceObjectType, string>> = {
       star: 'Étoile',
       planet: 'Planète',
       moon: 'Satellite naturel',
       galaxy: 'Galaxie',
+      'black-hole': 'Trou noir',
+      'galaxy-cluster': 'Groupe ou amas de galaxies',
+      universe: 'Univers',
       'dwarf-planet': 'Planète naine',
       asteroid: 'Astéroïde',
       comet: 'Comète',
@@ -107,7 +113,7 @@ export class ObjectDetailsComponent {
   protected confidenceDescription(confidence: ScientificConfidence): string {
     const descriptions: Record<ScientificConfidence, string> = {
       observed: 'Fondé sur des mesures ou un catalogue astronomique.',
-      calculated: 'Position obtenue par un modèle orbital ou une éphéméride documentée.',
+      calculated: 'Position ou distance obtenue par un calcul scientifique documenté.',
       extrapolated: 'Estimation prolongée à partir d’un mouvement connu.',
       simulated: 'Résultat d’un modèle scientifique.',
       procedural: 'Contenu généré pour compléter la scène.',
@@ -129,6 +135,11 @@ export class ObjectDetailsComponent {
   }
 
   protected distanceLabel(object: SpaceObject): string | null {
+    const distanceMpc = object.metadata?.['distanceMpc'];
+
+    if (typeof distanceMpc === 'number') {
+      return `${this.formatNumber(distanceMpc, 3)} Mpc`;
+    }
     const distanceLy = object.metadata?.['distanceLy'];
 
     if (typeof distanceLy === 'number') {
@@ -138,6 +149,11 @@ export class ObjectDetailsComponent {
 
     if (typeof semiMajorAxisAu === 'number') {
       return `${this.formatNumber(semiMajorAxisAu, 3)} UA`;
+    }
+    const semiMajorAxisKm = object.metadata?.['semiMajorAxisKm'];
+
+    if (typeof semiMajorAxisKm === 'number') {
+      return `${this.formatNumber(semiMajorAxisKm, 0)} km`;
     }
     if (object.id === 'sun') {
       return '1 UA depuis la Terre';
@@ -161,7 +177,24 @@ export class ObjectDetailsComponent {
   protected catalogIdentifierLabel(object: SpaceObject): string | null {
     const hygId = object.metadata?.['hygId'];
 
-    return typeof hygId === 'number' ? `HYG ${hygId}` : null;
+    if (typeof hygId === 'number') {
+      return `HYG ${hygId}`;
+    }
+    const pgcId = object.metadata?.['pgcId'];
+
+    return typeof pgcId === 'number' ? `PGC ${pgcId}` : null;
+  }
+
+  protected distanceUncertaintyLabel(object: SpaceObject): string | null {
+    const uncertainty = object.metadata?.['distanceModulusError'];
+
+    return typeof uncertainty === 'number' ? `± ${this.formatNumber(uncertainty, 3)} mag` : null;
+  }
+
+  protected cmbVelocityLabel(object: SpaceObject): string | null {
+    const velocity = object.metadata?.['velocityCmbKmPerSecond'];
+
+    return typeof velocity === 'number' ? `${this.formatNumber(velocity, 0)} km/s` : null;
   }
 
   protected morphologyLabel(object: SpaceObject): string | null {
@@ -174,5 +207,67 @@ export class ObjectDetailsComponent {
     const diameterLy = object.metadata?.['diameterLy'];
 
     return typeof diameterLy === 'number' ? `${this.formatNumber(diameterLy, 3)} a.l.` : null;
+  }
+
+  protected subgroupLabel(object: SpaceObject): string | null {
+    const subgroup = object.metadata?.['subgroup'];
+
+    return typeof subgroup === 'string' ? subgroup : null;
+  }
+
+  protected absoluteMagnitudeLabel(object: SpaceObject): string | null {
+    const absoluteMagnitude = object.metadata?.['absoluteMagnitude'];
+
+    return typeof absoluteMagnitude === 'number'
+      ? this.formatNumber(absoluteMagnitude, 2).replace('-', '−')
+      : null;
+  }
+
+  protected halfLightRadiusLabel(object: SpaceObject): string | null {
+    const halfLightRadiusPc = object.metadata?.['halfLightRadiusPc'];
+
+    return typeof halfLightRadiusPc === 'number'
+      ? `${this.formatNumber(halfLightRadiusPc, 0)} pc`
+      : null;
+  }
+
+  protected massSolarLabel(object: SpaceObject): string | null {
+    const massSolar = object.metadata?.['massSolar'];
+
+    return typeof massSolar === 'number'
+      ? `${this.formatNumber(massSolar, 2)} masses solaires`
+      : null;
+  }
+
+  protected blackHoleActivityLabel(object: SpaceObject): string | null {
+    if (object.type !== 'black-hole') {
+      return null;
+    }
+    const labels = {
+      dormant: 'Dormant',
+      quiescent: 'Quiescent',
+      active: 'Actif',
+    } as const;
+    const activity = object.visual.blackHoleActivity;
+
+    return activity ? labels[activity] : null;
+  }
+
+  protected constellationAbbreviationLabel(object: SpaceObject): string | null {
+    const abbreviation = object.metadata?.['abbreviation'];
+
+    return typeof abbreviation === 'string' ? abbreviation : null;
+  }
+
+  protected constellationStarCountLabel(object: SpaceObject): string | null {
+    const starCount = object.metadata?.['starCount'];
+
+    return typeof starCount === 'number' ? this.formatNumber(starCount, 0) : null;
+  }
+
+  protected constellationSegmentCountLabel(object: SpaceObject): string | null {
+    const segmentCount = object.metadata?.['segmentCount'];
+
+    return typeof segmentCount === 'number' ? this.formatNumber(segmentCount, 0) : null;
   }
 }

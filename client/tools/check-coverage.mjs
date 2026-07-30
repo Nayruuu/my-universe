@@ -14,12 +14,28 @@ const scientificModules = [
     suffix: '/src/engine/coordinates/unit-conversion.ts',
   },
   {
+    name: 'coordonnées du Groupe local',
+    suffix: '/src/data/validation/local-group-catalog.ts',
+  },
+  {
     name: 'couleur stellaire',
     suffix: '/src/engine/materials/star-color.ts',
   },
   {
+    name: 'catalogue de groupes Cosmicflows-4',
+    suffix: '/src/engine/loaders/cosmic-group-catalog.ts',
+  },
+  {
+    name: 'référentiel du catalogue Cosmicflows-4',
+    suffix: '/src/engine/objects/cosmic-group-catalog-registry.ts',
+  },
+  {
     name: 'rotation axiale',
     suffix: '/src/engine/simulation/body-rotation.ts',
+  },
+  {
+    name: 'orientation axiale IAU',
+    suffix: '/src/engine/simulation/body-orientation.ts',
   },
   {
     name: 'catalogue des éclipses',

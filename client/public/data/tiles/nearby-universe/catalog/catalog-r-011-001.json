@@ -1,0 +1,173 @@
+{
+  "version": "2.0.0",
+  "objects": [
+    {
+      "id": "lv-kdg058",
+      "name": "KDG058",
+      "aliases": [],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#9eb8c8",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 20.67,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.78,
+        "galaxyRotationDegrees": 132
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-8.202765, 0.007418, 5.719668],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 10,
+        "distanceLy": 32615638,
+        "rightAscensionDegrees": 145.1125,
+        "declinationDegrees": 0.0425,
+        "angularDiameterArcmin": 0.66,
+        "diameterLy": 6262,
+        "apparentMagnitudeB": 17.2,
+        "morphologicalType": 10,
+        "morphology": "Ir",
+        "distanceMethod": "txt",
+        "nearbyUniverseLabelRank": 631,
+        "nearbyUniversePointBatch": true,
+        "keywords": "KDG058 KDG058 Ir Local Volume"
+      }
+    },
+    {
+      "id": "lv-lsbc-d634-03",
+      "name": "LSBC D634-03",
+      "aliases": [],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#9eb8c8",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 19.85,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.88,
+        "galaxyRotationDegrees": 150
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-6.783922, 2.40435, 6.276942],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 9.55,
+        "distanceLy": 31147934,
+        "rightAscensionDegrees": 137.22291667,
+        "declinationDegrees": 14.58194444,
+        "angularDiameterArcmin": 0.47,
+        "diameterLy": 4258,
+        "apparentMagnitudeB": 17.5,
+        "morphologicalType": 10,
+        "morphology": "Ir",
+        "distanceMethod": "TRGB",
+        "nearbyUniverseLabelRank": 673,
+        "nearbyUniversePointBatch": true,
+        "keywords": "LSBC D634-03 LSBC D634-03 Ir Local Volume"
+      }
+    },
+    {
+      "id": "lv-agc198508",
+      "name": "AGC198508",
+      "aliases": [],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#9eb8c8",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 19.21,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.57,
+        "galaxyRotationDegrees": 39
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-7.300979, 4.386454, 5.967807],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 10.4,
+        "distanceLy": 33920263,
+        "rightAscensionDegrees": 140.7375,
+        "declinationDegrees": 24.94666667,
+        "angularDiameterArcmin": 0.38,
+        "diameterLy": 3749,
+        "apparentMagnitudeB": 17.8,
+        "morphologicalType": 10,
+        "morphology": "Ir",
+        "distanceMethod": "TF",
+        "nearbyUniverseLabelRank": 701,
+        "nearbyUniversePointBatch": true,
+        "keywords": "AGC198508 AGC198508 Ir Local Volume"
+      }
+    },
+    {
+      "id": "lv-lsbc-d564-08",
+      "name": "LSBC D564-08",
+      "aliases": [],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#9eb8c8",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 19.77,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.71,
+        "galaxyRotationDegrees": 127
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-5.830533, 2.976016, 5.684814],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 8.67,
+        "distanceLy": 28277758,
+        "rightAscensionDegrees": 135.725,
+        "declinationDegrees": 20.07527778,
+        "angularDiameterArcmin": 0.72,
+        "diameterLy": 5922,
+        "apparentMagnitudeB": 17.9,
+        "morphologicalType": 10,
+        "morphology": "Ir",
+        "distanceMethod": "TRGB",
+        "nearbyUniverseLabelRank": 705,
+        "nearbyUniversePointBatch": true,
+        "keywords": "LSBC D564-08 LSBC D564-08 Ir Local Volume"
+      }
+    }
+  ]
+}

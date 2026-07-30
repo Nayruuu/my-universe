@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { SpaceObject } from '../../data/models/universe.models';
 import { CoordinateSystem } from '../coordinates/coordinate-system';
 import { StarCatalog } from '../loaders/star-catalog';
 import { StarCatalogRegistry } from './star-catalog-registry';
@@ -31,6 +32,7 @@ describe('StarCatalogRegistry', () => {
     });
     expect(sirius?.metadata?.['apparentMagnitude']).toBeCloseTo(-1.44, 5);
     expect(sirius?.metadata?.['distanceLy']).toBeGreaterThan(8);
+    expect(sirius?.visual.visualRadius).toBeLessThanOrEqual(0.1);
     expect(registry.getDefinition('hyg-32263')).toBe(sirius);
     expect(registry.getDefinition('missing')).toBeUndefined();
   });
@@ -48,7 +50,7 @@ describe('StarCatalogRegistry', () => {
       aliases: ['HIP 32349', 'HD 48915'],
       parentName: 'Voie lactée',
     });
-    expect(position?.x).toBeLessThan(0);
+    expect(position?.x).toBeGreaterThan(0);
     expect(position?.y).toBeLessThan(0);
     expect(position?.z).toBeLessThan(0);
     expect(registry.getLocalPosition('missing')).toBeNull();
@@ -79,6 +81,19 @@ describe('StarCatalogRegistry', () => {
     ]);
   });
 
+  it('prépare les 3 000 étoiles les plus lumineuses pour le placement adaptatif des noms', () => {
+    const registry = new StarCatalogRegistry(createLargeCatalog(3_200), new CoordinateSystem());
+
+    expect(registry.getLabelObjects([])).toHaveLength(3_000);
+    expect(registry.getLabelObjects([]).at(-1)).toMatchObject({
+      id: 'hyg-3000',
+      name: 'HIP 3000',
+      metadata: {
+        catalogRecordIndex: 2_999,
+      },
+    });
+  });
+
   it('gère les métadonnées optionnelles, les limites de labels et un spectre absent', () => {
     const catalog = createCatalog();
     const registry = new StarCatalogRegistry(
@@ -96,7 +111,127 @@ describe('StarCatalogRegistry', () => {
     expect(registry.getLabelObjects([{ name: 'Personne' }], 1.8)).toHaveLength(1);
     expect(registry.getLabelObjects([{ name: 'Personne' }], 100)).toHaveLength(2);
   });
+
+  it('rattache une fiche éditoriale au point HYG sans conserver sa position manuelle', () => {
+    const featuredSirius = catalogLinkedSirius();
+    const registry = new StarCatalogRegistry(createCatalog(), new CoordinateSystem(), [
+      featuredSirius,
+    ]);
+    const unrelated = {
+      ...featuredSirius,
+      id: 'future-catalog-star',
+      positionProvider: {
+        type: 'catalog' as const,
+        catalogId: 'future-catalog',
+        identifier: 'future-1',
+      },
+    };
+    const resolved = registry.resolveCatalogObjects([featuredSirius, unrelated]);
+    const sirius = registry.getDefinition('sirius');
+
+    expect(registry.objectIds).toEqual(['sirius', 'hyg-30365']);
+    expect(registry.has('sirius')).toBe(true);
+    expect(registry.has('hyg-32263')).toBe(true);
+    expect(registry.isCatalogBackedObject('sirius')).toBe(true);
+    expect(registry.isCatalogBackedObject('hyg-32263')).toBe(false);
+    expect(resolved).toEqual([sirius, unrelated]);
+    expect(sirius).toMatchObject({
+      id: 'sirius',
+      name: 'Sirius',
+      referenceEpoch: 2_451_545,
+      positionProvider: {
+        type: 'static',
+        unit: 'parsec',
+      },
+      metadata: {
+        hygId: 32_263,
+        catalogIdentifier: 'HIP 32349',
+        sourceReferenceFrame: 'J2000 equatorial Cartesian',
+        renderReferenceFrame: 'Galactic heliocentric, north Galactic pole on +Y',
+      },
+    });
+    expect(sirius?.positionProvider).not.toEqual(featuredSirius.positionProvider);
+    expect(registry.getSearchEntries()).toHaveLength(1);
+    expect(registry.getSearchEntries()[0]?.name).toBe('Canopus');
+    expect(registry.getLabelObjects([]).map(({ id }) => id)).toEqual(['hyg-30365']);
+  });
+
+  it('refuse un identifiant éditorial absent du catalogue chargé', () => {
+    const missing = {
+      ...catalogLinkedSirius(),
+      positionProvider: {
+        type: 'catalog' as const,
+        catalogId: 'hyg-v41-bright-stars',
+        identifier: 'HIP 999999',
+      },
+    };
+
+    expect(
+      () => new StarCatalogRegistry(createCatalog(), new CoordinateSystem(), [missing]),
+    ).toThrow('HIP 999999');
+  });
+
+  it('refuse deux fiches éditoriales pour le même point HYG', () => {
+    const sirius = catalogLinkedSirius();
+
+    expect(
+      () =>
+        new StarCatalogRegistry(createCatalog(), new CoordinateSystem(), [
+          sirius,
+          { ...sirius, id: 'sirius-copy' },
+        ]),
+    ).toThrow('Plusieurs fiches éditoriales');
+  });
+
+  it("résout aussi une fiche lorsque l'entrée HYG ne fournit aucun alias", () => {
+    const catalog = createCatalog();
+    const sirius = catalogLinkedSirius();
+    const registry = new StarCatalogRegistry(
+      {
+        ...catalog,
+        aliases: [undefined as unknown as readonly string[], catalog.aliases[1]!],
+      },
+      new CoordinateSystem(),
+      [
+        {
+          ...sirius,
+          positionProvider: {
+            type: 'catalog',
+            catalogId: 'hyg-v41-bright-stars',
+            identifier: 'Sirius',
+          },
+        },
+      ],
+    );
+
+    expect(registry.getDefinition('sirius')?.aliases).toEqual(['Alpha Canis Majoris', 'Sirius']);
+  });
 });
+
+function catalogLinkedSirius(): SpaceObject {
+  return {
+    id: 'sirius',
+    name: 'Sirius',
+    aliases: ['Alpha Canis Majoris'],
+    type: 'star',
+    parentId: 'milky-way',
+    referenceFrame: 'stellar',
+    scientificConfidence: 'observed',
+    visual: {
+      color: '#dceaff',
+      visualRadius: 1.65,
+      scaleMode: 'adaptive',
+    },
+    positionProvider: {
+      type: 'catalog',
+      catalogId: 'hyg-v41-bright-stars',
+      identifier: 'HIP 32349',
+    },
+    metadata: {
+      source: 'HYG Database v4.1',
+    },
+  };
+}
 
 function createCatalog(): StarCatalog {
   return {
@@ -111,5 +246,25 @@ function createCatalog(): StarCatalog {
     names: ['Sirius', 'Canopus'],
     aliases: [['HIP 32349', 'HD 48915'], ['HIP 30438']],
     spectralTypes: ['A0m', 'F0Ib'],
+  };
+}
+
+function createLargeCatalog(count: number): StarCatalog {
+  const positionsParsec = new Float32Array(count * 3);
+
+  for (let index = 0; index < count; index += 1) {
+    positionsParsec[index * 3] = index + 1;
+  }
+
+  return {
+    count,
+    referenceEpochJulianDay: 2_451_545,
+    positionsParsec,
+    apparentMagnitudes: Float32Array.from({ length: count }, (_, index) => index / count),
+    colorIndicesBv: new Float32Array(count),
+    catalogIds: Uint32Array.from({ length: count }, (_, index) => index + 1),
+    names: Array.from({ length: count }, (_, index) => `HIP ${index + 1}`),
+    aliases: Array.from({ length: count }, () => []),
+    spectralTypes: Array.from({ length: count }, () => null),
   };
 }

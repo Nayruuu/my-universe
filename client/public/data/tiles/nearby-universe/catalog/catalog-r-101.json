@@ -1,0 +1,169 @@
+{
+  "version": "2.0.0",
+  "objects": [
+    {
+      "id": "lv-ngc1291",
+      "name": "NGC 1291",
+      "aliases": ["NGC1291"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 39.03,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.92,
+        "galaxyRotationDegrees": 154
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [4.321354, -5.785834, 5.028918],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 8.8,
+        "distanceLy": 28701761,
+        "rightAscensionDegrees": 49.3275,
+        "declinationDegrees": -41.10805556,
+        "angularDiameterArcmin": 14.45,
+        "diameterLy": 120643,
+        "apparentMagnitudeB": 9.42,
+        "morphologicalType": 1,
+        "distanceMethod": "mem",
+        "nearbyUniverseLabelRank": 106,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC1291 NGC 1291 Local Volume"
+      }
+    },
+    {
+      "id": "lv-ngc1313",
+      "name": "NGC 1313",
+      "aliases": ["NGC1313"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 38.27,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.8,
+        "galaxyRotationDegrees": 123
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [1.052718, -3.732364, 1.235373],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 4.07,
+        "distanceLy": 13274565,
+        "rightAscensionDegrees": 49.56416667,
+        "declinationDegrees": -66.4975,
+        "angularDiameterArcmin": 12.59,
+        "diameterLy": 48615,
+        "apparentMagnitudeB": 9.66,
+        "morphologicalType": 7,
+        "distanceMethod": "TRGB",
+        "nearbyUniverseLabelRank": 110,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC1313 NGC 1313 Local Volume"
+      }
+    },
+    {
+      "id": "lv-ngc1637",
+      "name": "NGC 1637",
+      "aliases": ["NGC1637"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 32.7,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.79,
+        "galaxyRotationDegrees": 82
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [3.117426, -0.463216, 8.739061],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 9.29,
+        "distanceLy": 30299927,
+        "rightAscensionDegrees": 70.3675,
+        "declinationDegrees": -2.85805556,
+        "angularDiameterArcmin": 4.37,
+        "diameterLy": 38517,
+        "apparentMagnitudeB": 11.47,
+        "morphologicalType": 6,
+        "distanceMethod": "SN",
+        "nearbyUniverseLabelRank": 153,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC1637 NGC 1637 Local Volume"
+      }
+    },
+    {
+      "id": "lv-ngc0045",
+      "name": "NGC 45",
+      "aliases": ["NGC0045"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 34.4,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.69,
+        "galaxyRotationDegrees": 96
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [8.441248, -3.621642, 0.518692],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 9.2,
+        "distanceLy": 30006387,
+        "rightAscensionDegrees": 3.51625,
+        "declinationDegrees": -23.18222222,
+        "angularDiameterArcmin": 8.51,
+        "diameterLy": 74280,
+        "apparentMagnitudeB": 11.55,
+        "morphologicalType": 8,
+        "distanceMethod": "TF",
+        "nearbyUniverseLabelRank": 156,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC0045 NGC 45 Local Volume"
+      }
+    }
+  ]
+}

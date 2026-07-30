@@ -1,5 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { SpaceObject } from '../../../data/models/universe.models';
 import {
   NavigationScaleDefinition,
   NAVIGATION_SCALES,
@@ -9,13 +10,19 @@ import { ScaleNavigatorComponent } from './scale-navigator.component';
 
 describe('ScaleNavigatorComponent', () => {
   const lodLevel = signal(0);
+  const targetId = signal<string | null>(null);
+  const objects = signal<readonly SpaceObject[]>([]);
   const facade = {
     lodLevel,
+    targetId,
+    objects,
     viewScale: vi.fn(),
   };
 
   beforeEach(() => {
     lodLevel.set(0);
+    targetId.set(null);
+    objects.set([]);
     vi.clearAllMocks();
     TestBed.configureTestingModule({
       imports: [ScaleNavigatorComponent],
@@ -36,6 +43,67 @@ describe('ScaleNavigatorComponent', () => {
 
     lodLevel.set(4);
     expect(component.scaleLabel()).toBe('Groupe local');
+    lodLevel.set(5);
+    expect(component.scaleLabel()).toBe('Univers proche');
+    lodLevel.set(6);
+    expect(component.scaleLabel()).toBe('Réseau cosmique');
+  });
+
+  it('nomme la galaxie courante au niveau galactique', () => {
+    const component = createComponent();
+
+    lodLevel.set(3);
+    targetId.set('andromeda');
+    objects.set([
+      {
+        id: 'andromeda',
+        name: 'Andromède',
+        type: 'galaxy',
+        referenceFrame: 'local-group',
+        scientificConfidence: 'observed',
+        visual: {
+          visualRadius: 1,
+          scaleMode: 'adaptive',
+        },
+        positionProvider: {
+          type: 'static',
+          position: [0, 0, 0],
+          unit: 'kiloparsec',
+        },
+      },
+    ]);
+
+    expect(component.scaleLabel()).toBe('Andromède');
+
+    targetId.set('missing');
+    expect(component.scaleLabel()).toBe('Voie lactée');
+  });
+
+  it('nomme explicitement le contexte compact lorsqu’un trou noir est ciblé', () => {
+    const component = createComponent();
+
+    targetId.set('sagittarius-a-star');
+    objects.set([
+      {
+        id: 'sagittarius-a-star',
+        name: 'Sagittarius A*',
+        type: 'black-hole',
+        referenceFrame: 'galactic',
+        scientificConfidence: 'observed',
+        visual: {
+          visualRadius: 3,
+          scaleMode: 'adaptive',
+          blackHoleActivity: 'quiescent',
+        },
+        positionProvider: {
+          type: 'static',
+          position: [0, 0, 0],
+          unit: 'kiloparsec',
+        },
+      },
+    ]);
+
+    expect(component.scaleLabel()).toBe('Trou noir');
   });
 
   it('ferme le menu avant de naviguer vers une échelle', () => {

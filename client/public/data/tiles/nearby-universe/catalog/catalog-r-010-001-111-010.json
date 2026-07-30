@@ -1,0 +1,47 @@
+{
+  "version": "2.0.0",
+  "objects": [
+    {
+      "id": "lv-ddo143",
+      "name": "DDO143",
+      "aliases": [],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#9eb8c8",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 24.53,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.36,
+        "galaxyRotationDegrees": 76
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-7.369151, 5.139416, -1.446382],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 9.1,
+        "distanceLy": 29680230,
+        "rightAscensionDegrees": 191.10458333,
+        "declinationDegrees": 34.38638889,
+        "angularDiameterArcmin": 2.24,
+        "diameterLy": 19339,
+        "apparentMagnitudeB": 16,
+        "morphologicalType": 10,
+        "morphology": "Ir",
+        "distanceMethod": "TF",
+        "nearbyUniverseLabelRank": 474,
+        "nearbyUniversePointBatch": true,
+        "keywords": "DDO143 DDO143 Ir Local Volume"
+      }
+    }
+  ]
+}

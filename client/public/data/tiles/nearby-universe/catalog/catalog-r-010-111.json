@@ -1,0 +1,170 @@
+{
+  "version": "2.0.0",
+  "objects": [
+    {
+      "id": "lv-ngc5195",
+      "name": "NGC 5195",
+      "aliases": ["NGC5195"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#d0bea1",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 35.42,
+        "scaleMode": "adaptive",
+        "galaxyShape": "elliptical",
+        "galaxyAxisRatio": 0.92,
+        "galaxyRotationDegrees": 35
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-4.802367, 5.626549, -1.988674],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 7.66,
+        "distanceLy": 24983579,
+        "rightAscensionDegrees": 202.49458333,
+        "declinationDegrees": 47.26805556,
+        "angularDiameterArcmin": 6.92,
+        "diameterLy": 50291,
+        "apparentMagnitudeB": 10.45,
+        "morphologicalType": 0,
+        "distanceMethod": "SBF",
+        "nearbyUniverseLabelRank": 124,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC5195 NGC 5195 Local Volume"
+      }
+    },
+    {
+      "id": "lv-ngc5474",
+      "name": "NGC 5474",
+      "aliases": ["NGC5474"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 32.93,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.9,
+        "galaxyRotationDegrees": 145
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-3.646917, 5.799934, -2.213766],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 7.2,
+        "distanceLy": 23483259,
+        "rightAscensionDegrees": 211.25875,
+        "declinationDegrees": 53.66305556,
+        "angularDiameterArcmin": 4.79,
+        "diameterLy": 32721,
+        "apparentMagnitudeB": 11.48,
+        "morphologicalType": 8,
+        "distanceMethod": "BS",
+        "nearbyUniverseLabelRank": 154,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC5474 NGC 5474 Local Volume"
+      }
+    },
+    {
+      "id": "lv-holmiv",
+      "name": "HolmIV",
+      "aliases": [],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 29.2,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.3,
+        "galaxyRotationDegrees": 128
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-3.726219, 5.825957, -2.039024],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 7.21,
+        "distanceLy": 23515875,
+        "rightAscensionDegrees": 208.68791667,
+        "declinationDegrees": 53.90472222,
+        "angularDiameterArcmin": 4.07,
+        "diameterLy": 27841,
+        "apparentMagnitudeB": 13.76,
+        "morphologicalType": 8,
+        "distanceMethod": "TRGB",
+        "nearbyUniverseLabelRank": 259,
+        "nearbyUniversePointBatch": true,
+        "keywords": "HolmIV HolmIV Local Volume"
+      }
+    },
+    {
+      "id": "lv-ngc5477",
+      "name": "NGC 5477",
+      "aliases": ["NGC5477"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#9eb8c8",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 26.95,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.76,
+        "galaxyRotationDegrees": 148
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-3.820726, 6.265631, -2.331075],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 7.7,
+        "distanceLy": 25114041,
+        "rightAscensionDegrees": 211.38791667,
+        "declinationDegrees": 54.46083333,
+        "angularDiameterArcmin": 2.04,
+        "diameterLy": 14903,
+        "apparentMagnitudeB": 14.19,
+        "morphologicalType": 9,
+        "morphology": "Im",
+        "distanceMethod": "BS",
+        "nearbyUniverseLabelRank": 282,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC5477 NGC 5477 Im Local Volume"
+      }
+    }
+  ]
+}

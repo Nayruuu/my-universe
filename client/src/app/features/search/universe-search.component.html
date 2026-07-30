@@ -7,7 +7,7 @@
     type="search"
     autocomplete="off"
     spellcheck="false"
-    placeholder="Rechercher une planète, une étoile…"
+    placeholder="Rechercher une planète, une étoile, une constellation…"
     aria-label="Rechercher un objet astronomique"
     [value]="query()"
     (input)="updateQuery($event)"
@@ -34,14 +34,16 @@
         <span class="result__marker" [attr.data-type]="result.type"></span>
         <span class="result__text">
           <strong>{{ result.name }}</strong>
-          <small>{{ typeLabel(result.type) }} · {{ result.parentName ?? 'Univers' }}</small>
+          <small>
+            {{ typeLabel(result.type, result.keywords) }} · {{ result.parentName ?? 'Univers' }}
+          </small>
         </span>
         <span class="result__arrow" aria-hidden="true">↗</span>
       </button>
     } @empty {
       <div class="empty-result">
         <strong>Aucun objet trouvé</strong>
-        <span>Essayez un alias, par exemple « Earth » ou « étoile polaire ».</span>
+        <span>Essayez un alias, par exemple « Earth », « étoile polaire » ou « Orion ».</span>
       </div>
     }
   </div>

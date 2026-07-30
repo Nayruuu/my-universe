@@ -1,6 +1,11 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { DisplayOptions, GraphicQuality, TemporalMode } from '../../../data/models/universe.models';
+import {
+  DisplayOptions,
+  GraphicQuality,
+  LabelDensity,
+  TemporalMode,
+} from '../../../data/models/universe.models';
 import { UniverseEngineFacade } from '../../core/engine/universe-engine.facade';
 import { FloatingControlsComponent } from './floating-controls.component';
 
@@ -9,15 +14,19 @@ describe('FloatingControlsComponent', () => {
     selectedId: signal<string | null>(null),
     displayOptions: signal<DisplayOptions>({
       showOrbits: true,
+      showConstellations: true,
       showLabels: true,
       quality: 'high',
+      labelDensity: 'balanced',
       temporalMode: 'state',
     }),
     settingsOpen: signal(false),
     helpOpen: signal(false),
     focus: vi.fn(() => Promise.resolve()),
     setQuality: vi.fn(),
+    setLabelDensity: vi.fn(),
     setTemporalMode: vi.fn(),
+    toggleConstellations: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -26,8 +35,10 @@ describe('FloatingControlsComponent', () => {
     facade.helpOpen.set(false);
     facade.displayOptions.set({
       showOrbits: true,
+      showConstellations: true,
       showLabels: true,
       quality: 'high',
+      labelDensity: 'balanced',
       temporalMode: 'state',
     });
     vi.clearAllMocks();
@@ -45,11 +56,15 @@ describe('FloatingControlsComponent', () => {
 
     component.focus('earth');
     component.setQuality('high');
+    component.setDensity('dense');
     component.setMode('observable');
+    component.changeDensity(selectEvent('minimal'));
     component.changeMode(selectEvent('state'));
 
     expect(facade.focus).toHaveBeenCalledWith('earth');
     expect(facade.setQuality).toHaveBeenCalledWith('high');
+    expect(facade.setLabelDensity).toHaveBeenNthCalledWith(1, 'dense');
+    expect(facade.setLabelDensity).toHaveBeenNthCalledWith(2, 'minimal');
     expect(facade.setTemporalMode).toHaveBeenNthCalledWith(1, 'observable');
     expect(facade.setTemporalMode).toHaveBeenNthCalledWith(2, 'state');
   });
@@ -60,8 +75,10 @@ describe('FloatingControlsComponent', () => {
     facade.helpOpen.set(true);
     facade.displayOptions.set({
       showOrbits: false,
+      showConstellations: false,
       showLabels: false,
       quality: 'medium',
+      labelDensity: 'dense',
       temporalMode: 'observable',
     });
     const fixture = TestBed.createComponent(FloatingControlsComponent);
@@ -71,13 +88,32 @@ describe('FloatingControlsComponent', () => {
     expect(fixture.nativeElement.querySelector('.controls--details')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('.settings-popover')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('.help-popover')).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('[aria-label="Afficher ou masquer les constellations"]'),
+    ).not.toBeNull();
+    expect(
+      (
+        fixture.nativeElement.querySelector(
+          'select[aria-label="Densité des noms"]',
+        ) as HTMLSelectElement | null
+      )?.value,
+    ).toBe('dense');
+    expect(
+      (
+        fixture.nativeElement.querySelector(
+          'select[aria-label="Densité des noms"]',
+        ) as HTMLSelectElement | null
+      )?.disabled,
+    ).toBe(true);
   });
 });
 
 interface FloatingControlsAccess {
   focus(objectId: string): void;
   setQuality(value: GraphicQuality): void;
+  setDensity(value: LabelDensity): void;
   setMode(value: TemporalMode): void;
+  changeDensity(event: Event): void;
   changeMode(event: Event): void;
 }
 

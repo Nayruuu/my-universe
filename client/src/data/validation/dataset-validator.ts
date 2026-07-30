@@ -1,6 +1,7 @@
 import {
   DatasetManifest,
   DistanceUnit,
+  BlackHoleActivity,
   EphemerisBody,
   EphemerisOrigin,
   PositionProviderDefinition,
@@ -15,6 +16,7 @@ const SPACE_OBJECT_TYPES: readonly SpaceObjectType[] = [
   'universe',
   'galaxy-cluster',
   'galaxy',
+  'black-hole',
   'nebula',
   'star',
   'planet',
@@ -26,11 +28,15 @@ const SPACE_OBJECT_TYPES: readonly SpaceObjectType[] = [
   'region',
 ];
 
+const BLACK_HOLE_ACTIVITIES: readonly BlackHoleActivity[] = ['dormant', 'quiescent', 'active'];
+
 const REFERENCE_FRAMES: readonly ReferenceFrame[] = [
   'solar-system',
   'stellar',
   'galactic',
   'local-group',
+  'nearby-universe',
+  'cosmic-web',
 ];
 
 const CONFIDENCE_LEVELS: readonly ScientificConfidence[] = [
@@ -62,9 +68,14 @@ const EPHEMERIS_BODIES: readonly EphemerisBody[] = [
   'saturn',
   'uranus',
   'neptune',
+  'pluto',
+  'io',
+  'europa',
+  'ganymede',
+  'callisto',
 ];
 
-const EPHEMERIS_ORIGINS: readonly EphemerisOrigin[] = ['sun', 'earth'];
+const EPHEMERIS_ORIGINS: readonly EphemerisOrigin[] = ['sun', 'earth', 'jupiter'];
 
 export function parseManifest(value: unknown): DatasetManifest {
   if (
@@ -82,7 +93,12 @@ export function parseManifest(value: unknown): DatasetManifest {
       !isRecord(entry) ||
       typeof entry['id'] !== 'string' ||
       typeof entry['url'] !== 'string' ||
-      (datasetType !== 'json' && datasetType !== 'binary')
+      (datasetType !== 'json' &&
+        datasetType !== 'binary' &&
+        datasetType !== 'space-tile-index' &&
+        datasetType !== 'constellation-lines' &&
+        datasetType !== 'star-tile-index' &&
+        datasetType !== 'cosmic-group-catalog')
     ) {
       throw new Error(`Entrée de manifest invalide à l’index ${index}.`);
     }
@@ -96,6 +112,62 @@ export function parseManifest(value: unknown): DatasetManifest {
         id: entry['id'],
         url: entry['url'],
         type: 'binary',
+        format: entry['format'],
+      };
+    }
+
+    if (datasetType === 'space-tile-index') {
+      if (entry['format'] !== 'space-tiles-v1' && entry['format'] !== 'space-tiles-v2') {
+        throw new Error(`Format de tuiles invalide à l’index ${index}.`);
+      }
+
+      return {
+        id: entry['id'],
+        url: entry['url'],
+        type: 'space-tile-index',
+        format: entry['format'],
+      };
+    }
+
+    if (datasetType === 'constellation-lines') {
+      if (entry['format'] !== 'constellation-lines-v1') {
+        throw new Error(`Format de constellations invalide à l’index ${index}.`);
+      }
+
+      return {
+        id: entry['id'],
+        url: entry['url'],
+        type: 'constellation-lines',
+        format: entry['format'],
+      };
+    }
+
+    if (datasetType === 'star-tile-index') {
+      if (entry['format'] !== 'star-tiles-v2') {
+        throw new Error(`Format de tuiles stellaires invalide à l’index ${index}.`);
+      }
+      if (typeof entry['starCatalogId'] !== 'string') {
+        throw new Error(`Catalogue stellaire manquant à l’index ${index}.`);
+      }
+
+      return {
+        id: entry['id'],
+        url: entry['url'],
+        type: 'star-tile-index',
+        format: entry['format'],
+        starCatalogId: entry['starCatalogId'],
+      };
+    }
+
+    if (datasetType === 'cosmic-group-catalog') {
+      if (entry['format'] !== 'cosmicflows4-group-catalog-v1') {
+        throw new Error(`Format de groupes cosmiques invalide à l’index ${index}.`);
+      }
+
+      return {
+        id: entry['id'],
+        url: entry['url'],
+        type: 'cosmic-group-catalog',
         format: entry['format'],
       };
     }
@@ -158,6 +230,22 @@ function parseSpaceObject(value: unknown, source: string, index: number): SpaceO
     throw new Error(`Forme galactique invalide pour ${value['id']}.`);
   }
   if (
+    (value['type'] === 'black-hole' &&
+      !isEnumValue(visual['blackHoleActivity'], BLACK_HOLE_ACTIVITIES)) ||
+    (visual['blackHoleActivity'] !== undefined &&
+      !isEnumValue(visual['blackHoleActivity'], BLACK_HOLE_ACTIVITIES))
+  ) {
+    throw new Error(`Activité de trou noir invalide pour ${value['id']}.`);
+  }
+  if (
+    visual['accretionDiskInclinationDegrees'] !== undefined &&
+    (!isFiniteNumber(visual['accretionDiskInclinationDegrees']) ||
+      visual['accretionDiskInclinationDegrees'] < 0 ||
+      visual['accretionDiskInclinationDegrees'] > 90)
+  ) {
+    throw new Error(`Inclinaison du disque d’accrétion invalide pour ${value['id']}.`);
+  }
+  if (
     (value['aliases'] !== undefined &&
       (!Array.isArray(value['aliases']) ||
         !value['aliases'].every((alias) => typeof alias === 'string'))) ||
@@ -188,6 +276,16 @@ function parsePositionProvider(value: unknown, objectId: string): PositionProvid
       }
 
       return value as unknown as PositionProviderDefinition;
+    case 'catalog':
+      if (
+        typeof value['catalogId'] === 'string' &&
+        value['catalogId'].trim().length > 0 &&
+        typeof value['identifier'] === 'string' &&
+        value['identifier'].trim().length > 0
+      ) {
+        return value as unknown as PositionProviderDefinition;
+      }
+      break;
     case 'keplerian':
       if (
         typeof value['semiMajorAxis'] === 'number' &&
@@ -197,8 +295,16 @@ function parsePositionProvider(value: unknown, objectId: string): PositionProvid
         typeof value['argumentOfPeriapsis'] === 'number' &&
         typeof value['meanAnomalyAtEpoch'] === 'number' &&
         typeof value['epochJulianDay'] === 'number' &&
-        typeof value['orbitalPeriodDays'] === 'number' &&
-        isEnumValue(value['unit'], DISTANCE_UNITS)
+        isPositiveFiniteNumber(value['semiMajorAxis']) &&
+        isEccentricity(value['eccentricity']) &&
+        isFiniteNumber(value['inclination']) &&
+        isFiniteNumber(value['longitudeOfAscendingNode']) &&
+        isFiniteNumber(value['argumentOfPeriapsis']) &&
+        isFiniteNumber(value['meanAnomalyAtEpoch']) &&
+        isFiniteNumber(value['epochJulianDay']) &&
+        isPositiveFiniteNumber(value['orbitalPeriodDays']) &&
+        isEnumValue(value['unit'], DISTANCE_UNITS) &&
+        (value['distanceScale'] === undefined || isPositiveFiniteNumber(value['distanceScale']))
       ) {
         return value as unknown as PositionProviderDefinition;
       }
@@ -253,9 +359,24 @@ function isEnumValue<T extends string>(value: unknown, allowed: readonly T[]): v
 }
 
 function isValidEphemerisOrigin(body: EphemerisBody, origin: EphemerisOrigin): boolean {
-  return body === 'moon' ? origin === 'earth' : origin === 'sun';
+  if (body === 'moon') {
+    return origin === 'earth';
+  }
+  if (body === 'io' || body === 'europa' || body === 'ganymede' || body === 'callisto') {
+    return origin === 'jupiter';
+  }
+
+  return origin === 'sun';
 }
 
 function isPositiveFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value > 0;
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function isEccentricity(value: unknown): value is number {
+  return isFiniteNumber(value) && value >= 0 && value < 1;
 }

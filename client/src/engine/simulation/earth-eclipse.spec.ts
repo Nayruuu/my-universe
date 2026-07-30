@@ -1,10 +1,12 @@
 import { EclipseKind } from 'astronomy-engine';
 import { findUpcomingEarthEclipses } from './earth-eclipse-catalog';
 import { mapAstronomyEclipseKind } from './earth-eclipse';
-import { calculateLunarEclipseAppearance } from './lunar-eclipse-calculator';
 import {
   calculateEarthObserverDirection,
   calculateEarthTextureOrientation,
+} from './body-orientation';
+import { calculateLunarEclipseAppearance } from './lunar-eclipse-calculator';
+import {
   calculateSolarEclipseAppearance,
   calculateSolarEclipsePath,
   calculateSolarObserverDiscRatio,

@@ -46,6 +46,22 @@
     <span class="separator"></span>
     <button
       type="button"
+      title="Afficher ou masquer les constellations"
+      aria-label="Afficher ou masquer les constellations"
+      [class.active]="facade.displayOptions().showConstellations"
+      (click)="facade.toggleConstellations()"
+    >
+      <svg class="constellation-icon" viewBox="0 0 22 18" aria-hidden="true">
+        <path d="M3 14 8 5l6 7 5-9"></path>
+        <circle cx="3" cy="14" r="1.5"></circle>
+        <circle cx="8" cy="5" r="1.5"></circle>
+        <circle cx="14" cy="12" r="1.5"></circle>
+        <circle cx="19" cy="3" r="1.5"></circle>
+      </svg>
+    </button>
+    <span class="separator"></span>
+    <button
+      type="button"
       title="Afficher ou masquer les noms"
       aria-label="Afficher ou masquer les noms"
       [class.active]="facade.displayOptions().showLabels"
@@ -109,6 +125,18 @@
 
     <label class="toggle-row">
       <span>
+        <strong>Constellations</strong>
+        <small>Tracés culturels illustratifs vus depuis le Système solaire</small>
+      </span>
+      <input
+        type="checkbox"
+        [checked]="facade.displayOptions().showConstellations"
+        (change)="facade.toggleConstellations()"
+      />
+    </label>
+
+    <label class="toggle-row">
+      <span>
         <strong>Orbites</strong>
         <small>Trajectoires calculées et illustratives</small>
       </span>
@@ -129,6 +157,23 @@
         [checked]="facade.displayOptions().showLabels"
         (change)="facade.toggleLabels()"
       />
+    </label>
+
+    <label class="setting-row">
+      <span>
+        <strong>Densité des noms</strong>
+        <small>Règle la quantité de repères sans modifier le rendu 3D.</small>
+      </span>
+      <select
+        aria-label="Densité des noms"
+        [value]="facade.displayOptions().labelDensity"
+        [disabled]="!facade.displayOptions().showLabels"
+        (change)="changeDensity($event)"
+      >
+        <option value="minimal">Épuré</option>
+        <option value="balanced">Équilibré</option>
+        <option value="dense">Dense</option>
+      </select>
     </label>
   </section>
 }

@@ -1,4 +1,4 @@
-const LEVEL_THRESHOLDS = [80, 700, 2_400, 12_000] as const;
+const LEVEL_THRESHOLDS = [80, 700, 2_400, 12_000, 50_000, 200_000] as const;
 const ENTER_MARGIN = 1.08;
 const EXIT_MARGIN = 0.92;
 

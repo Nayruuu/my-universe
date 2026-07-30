@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.6.0",
   "datasets": [
     {
       "id": "solar-system",
@@ -12,15 +12,45 @@
       "type": "json"
     },
     {
+      "id": "black-holes",
+      "url": "/data/black-holes/catalog.json",
+      "type": "json"
+    },
+    {
       "id": "local-group",
       "url": "/data/galaxies/local-group.json",
       "type": "json"
+    },
+    {
+      "id": "nearby-universe",
+      "url": "/data/tiles/nearby-universe/index.json",
+      "type": "space-tile-index",
+      "format": "space-tiles-v2"
     },
     {
       "id": "hyg-v41-bright-stars",
       "url": "/data/stars/hyg-v41.bin",
       "type": "binary",
       "format": "star-catalog-v2"
+    },
+    {
+      "id": "hyg-v41-spatial-index",
+      "url": "/data/stars/tiles/index.json",
+      "type": "star-tile-index",
+      "format": "star-tiles-v2",
+      "starCatalogId": "hyg-v41-bright-stars"
+    },
+    {
+      "id": "modern-constellation-lines",
+      "url": "/data/stars/constellations-modern.json",
+      "type": "constellation-lines",
+      "format": "constellation-lines-v1"
+    },
+    {
+      "id": "cosmicflows4-groups",
+      "url": "/data/galaxies/cosmicflows4-groups.bin",
+      "type": "cosmic-group-catalog",
+      "format": "cosmicflows4-group-catalog-v1"
     }
   ]
 }

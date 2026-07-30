@@ -70,6 +70,39 @@ test('le geste de pincement modifie réellement la distance caméra', async ({ p
   expect(browserErrors).toEqual([]);
 });
 
+test('un pincement arrière change automatiquement le contexte de la Terre au Soleil', async ({
+  page,
+  context,
+}) => {
+  const browserErrors = monitorBrowserErrors(page);
+
+  await openUniverse(page, universeUrl({ target: 'earth', selected: '', zoom: '50' }));
+  const session = await context.newCDPSession(page);
+
+  await session.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [
+      { x: 80, y: 390, id: 1 },
+      { x: 330, y: 390, id: 2 },
+    ],
+  });
+  await session.send('Input.dispatchTouchEvent', {
+    type: 'touchMove',
+    touchPoints: [
+      { x: 198, y: 390, id: 1 },
+      { x: 212, y: 390, id: 2 },
+    ],
+  });
+  await session.send('Input.dispatchTouchEvent', {
+    type: 'touchEnd',
+    touchPoints: [],
+  });
+
+  await expect.poll(() => numericQueryParameter(page, 'zoom')).toBeGreaterThan(500);
+  await expect.poll(() => queryParameter(page, 'target')).toBe('sun');
+  expect(browserErrors).toEqual([]);
+});
+
 test('le guide de rotation et ses actions restent lisibles sur mobile', async ({ page }) => {
   const browserErrors = monitorBrowserErrors(page);
 
@@ -119,10 +152,10 @@ test('le sélecteur d’échelle reste contenu et navigable sur mobile', async (
   await expect(scaleSwitcher).toContainText('Système solaire');
 
   await scaleSwitcher.click();
-  await page.getByRole('button', { name: 'Afficher l’échelle Groupe local' }).click();
-  await expect.poll(() => queryParameter(page, 'target')).toBe('local-group');
-  await expect.poll(() => numericQueryParameter(page, 'zoom')).toBeGreaterThan(16_900);
-  await expect(scaleSwitcher).toContainText('Groupe local');
+  await page.getByRole('button', { name: 'Afficher l’échelle Réseau cosmique' }).click();
+  await expect.poll(() => queryParameter(page, 'target')).toBe('cosmic-web');
+  await expect.poll(() => numericQueryParameter(page, 'zoom')).toBeGreaterThan(419_900);
+  await expect(scaleSwitcher).toContainText('Réseau cosmique');
   expect(browserErrors).toEqual([]);
 });
 

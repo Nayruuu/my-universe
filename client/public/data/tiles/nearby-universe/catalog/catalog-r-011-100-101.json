@@ -1,0 +1,86 @@
+{
+  "version": "2.0.0",
+  "objects": [
+    {
+      "id": "lv-agc174585",
+      "name": "AGC174585",
+      "aliases": [],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#9eb8c8",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 19.11,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.62,
+        "galaxyRotationDegrees": 46
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-2.447613, 1.057827, 5.486364],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 6.1,
+        "distanceLy": 19895539,
+        "rightAscensionDegrees": 114.04291667,
+        "declinationDegrees": 9.98638889,
+        "angularDiameterArcmin": 0.4,
+        "diameterLy": 2315,
+        "apparentMagnitudeB": 17.9,
+        "morphologicalType": 10,
+        "morphology": "Ir",
+        "distanceMethod": "h'",
+        "nearbyUniverseLabelRank": 708,
+        "nearbyUniversePointBatch": true,
+        "keywords": "AGC174585 AGC174585 Ir Local Volume"
+      }
+    },
+    {
+      "id": "lv-hipass-j0630-08",
+      "name": "HIPASS J0630+08",
+      "aliases": [],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#9eb8c8",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 16.45,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.72,
+        "galaxyRotationDegrees": 57
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-0.460703, 0.517182, 3.481778],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 3.55,
+        "distanceLy": 11578551,
+        "rightAscensionDegrees": 97.5375,
+        "declinationDegrees": 8.37694444,
+        "morphologicalType": 10,
+        "morphology": "Ir",
+        "distanceMethod": "h",
+        "nearbyUniverseLabelRank": 795,
+        "nearbyUniversePointBatch": true,
+        "keywords": "HIPASS J0630+08 HIPASS J0630+08 Ir Local Volume"
+      }
+    }
+  ]
+}

@@ -1,10 +1,26 @@
-import { SpaceObject } from '../../data/models/universe.models';
+import {
+  ConstellationCatalog,
+  SpaceObject,
+  SpaceTileIndex,
+  StarTileSource,
+} from '../../data/models/universe.models';
+import {
+  assertConstellationCatalogReferences,
+  parseConstellationCatalog,
+} from '../../data/validation/constellation-catalog';
 import { parseManifest, parseUniverseDataset } from '../../data/validation/dataset-validator';
+import { assertLocalGroupCatalogCoordinates } from '../../data/validation/local-group-catalog';
+import { parseSpaceTileIndex } from '../../data/validation/space-tile-index';
 import { parseStarCatalog, StarCatalog } from './star-catalog';
+import { CosmicGroupCatalog, parseCosmicGroupCatalog } from './cosmic-group-catalog';
 
 export interface LoadedUniverseAssets {
   readonly objects: SpaceObject[];
   readonly starCatalog: StarCatalog | null;
+  readonly cosmicGroupCatalog: CosmicGroupCatalog | null;
+  readonly constellationCatalog: ConstellationCatalog | null;
+  readonly spaceTileIndex: SpaceTileIndex | null;
+  readonly starTileSource: StarTileSource | null;
   readonly warnings: readonly string[];
 }
 
@@ -19,33 +35,116 @@ export class AssetLoader {
     const manifest = parseManifest(await manifestResponse.json());
     const jsonDatasets = manifest.datasets.filter((dataset) => dataset.type === 'json');
     const binaryDataset = manifest.datasets.find((dataset) => dataset.type === 'binary');
-    const [loadedDatasets, catalogResult] = await Promise.all([
-      Promise.all(
-        jsonDatasets.map(async (dataset) => {
-          const response = await fetch(dataset.url);
+    const tileIndexDataset = manifest.datasets.find(
+      (dataset) => dataset.type === 'space-tile-index',
+    );
+    const constellationDataset = manifest.datasets.find(
+      (dataset) => dataset.type === 'constellation-lines',
+    );
+    const starTileDataset = manifest.datasets.find((dataset) => dataset.type === 'star-tile-index');
+    const cosmicGroupDataset = manifest.datasets.find(
+      (dataset) => dataset.type === 'cosmic-group-catalog',
+    );
+    const [loadedDatasets, catalogResult, cosmicGroupResult, spaceTileIndex, constellationCatalog] =
+      await Promise.all([
+        Promise.all(
+          jsonDatasets.map(async (dataset) => {
+            const response = await fetch(dataset.url);
 
-          if (!response.ok) {
-            throw new Error(`Impossible de charger ${dataset.id} (${response.status}).`);
-          }
+            if (!response.ok) {
+              throw new Error(`Impossible de charger ${dataset.id} (${response.status}).`);
+            }
 
-          return parseUniverseDataset(await response.json(), dataset.id);
-        }),
-      ),
-      binaryDataset
-        ? loadOptionalStarCatalog(binaryDataset.id, binaryDataset.url)
-        : Promise.resolve({ catalog: null, warnings: [] }),
-    ]);
+            return parseUniverseDataset(await response.json(), dataset.id);
+          }),
+        ),
+        binaryDataset
+          ? loadOptionalStarCatalog(binaryDataset.id, binaryDataset.url)
+          : Promise.resolve({ catalog: null, warnings: [] }),
+        cosmicGroupDataset
+          ? loadOptionalCosmicGroupCatalog(cosmicGroupDataset.id, cosmicGroupDataset.url)
+          : Promise.resolve({ catalog: null, warnings: [] }),
+        tileIndexDataset
+          ? loadSpaceTileIndex(tileIndexDataset.id, tileIndexDataset.url)
+          : Promise.resolve(null),
+        constellationDataset
+          ? loadConstellationCatalog(constellationDataset.id, constellationDataset.url)
+          : Promise.resolve(null),
+      ]);
     const objects = loadedDatasets.flatMap((dataset) => dataset.objects);
 
     assertUniqueIds(objects);
     assertValidParents(objects);
+    assertLocalGroupCatalogCoordinates(objects);
+    assertTileIdsAreDeferred(objects, spaceTileIndex);
+    if (constellationCatalog && catalogResult.catalog) {
+      assertConstellationCatalogReferences(constellationCatalog, catalogResult.catalog.catalogIds);
+    }
 
     return {
       objects,
       starCatalog: catalogResult.catalog,
-      warnings: catalogResult.warnings,
+      cosmicGroupCatalog: cosmicGroupResult.catalog,
+      constellationCatalog,
+      spaceTileIndex,
+      starTileSource: starTileDataset
+        ? {
+            id: starTileDataset.id,
+            url: starTileDataset.url,
+            starCatalogId: starTileDataset.starCatalogId,
+          }
+        : null,
+      warnings: [...catalogResult.warnings, ...cosmicGroupResult.warnings],
     };
   }
+}
+
+async function loadOptionalCosmicGroupCatalog(
+  datasetId: string,
+  url: string,
+): Promise<{ catalog: CosmicGroupCatalog | null; warnings: readonly string[] }> {
+  try {
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`Impossible de charger ${datasetId} (${response.status}).`);
+    }
+
+    return {
+      catalog: parseCosmicGroupCatalog(await response.arrayBuffer()),
+      warnings: [],
+    };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : 'erreur inconnue';
+
+    return {
+      catalog: null,
+      warnings: [`Catalogue de groupes cosmiques indisponible : ${reason}`],
+    };
+  }
+}
+
+async function loadConstellationCatalog(
+  datasetId: string,
+  url: string,
+): Promise<ConstellationCatalog> {
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`Impossible de charger ${datasetId} (${response.status}).`);
+  }
+
+  return parseConstellationCatalog(await response.json(), datasetId);
+}
+
+async function loadSpaceTileIndex(datasetId: string, url: string): Promise<SpaceTileIndex> {
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`Impossible de charger ${datasetId} (${response.status}).`);
+  }
+
+  return parseSpaceTileIndex(await response.json(), datasetId);
 }
 
 async function loadOptionalStarCatalog(
@@ -90,6 +189,24 @@ function assertValidParents(objects: readonly SpaceObject[]): void {
   for (const object of objects) {
     if (object.parentId && !ids.has(object.parentId)) {
       throw new Error(`Parent ${object.parentId} introuvable pour ${object.id}.`);
+    }
+  }
+}
+
+function assertTileIdsAreDeferred(
+  objects: readonly SpaceObject[],
+  spaceTileIndex: SpaceTileIndex | null,
+): void {
+  if (!spaceTileIndex) {
+    return;
+  }
+  const loadedIds = new Set(objects.map((object) => object.id));
+
+  for (const tile of spaceTileIndex.tiles) {
+    for (const objectId of tile.objectIds) {
+      if (loadedIds.has(objectId)) {
+        throw new Error(`Identifiant tuilé déjà chargé au démarrage : ${objectId}.`);
+      }
     }
   }
 }

@@ -1,5 +1,5 @@
 {
-  "version": "1.1.0",
+  "version": "1.4.0",
   "objects": [
     {
       "id": "milky-way",
@@ -9,7 +9,7 @@
       "parentId": "local-group",
       "referenceFrame": "local-group",
       "scientificConfidence": "illustrative",
-      "description": "Notre galaxie, représentée ici par un disque de particules volontairement simplifié. Sa structure sert de transition visuelle entre les échelles stellaire et galactique.",
+      "description": "Notre galaxie, représentée par un champ de densité galactocentrique à quatre bras logarithmiques, un disque diffus et une barre centrale. Cette reconstruction illustrative sert de transition entre les échelles stellaire et galactique.",
       "physical": {
         "radiusKm": 500000000000000000
       },
@@ -28,10 +28,13 @@
         "unit": "kiloparsec"
       },
       "metadata": {
-        "source": "McConnachie 2012, AJ 144:4 · représentation procédurale éducative",
+        "source": "Reid et al. 2019, ApJ 885:131 · représentation procédurale éducative",
         "diameterLy": 100000,
         "morphology": "Galaxie spirale barrée",
-        "visualAdaptation": "Disque détaillé à l’échelle galactique, imposteur au Groupe local"
+        "spiralStructureSource": "Reid et al. 2019, ApJ 885:131, doi:10.3847/1538-4357/ab4a11",
+        "spiralArmCount": 4,
+        "spiralPitchDegrees": 13,
+        "visualAdaptation": "Champ de densité galactocentrique illustratif ; disque détaillé à l’échelle galactique, imposteur au Groupe local"
       }
     },
     {
@@ -40,7 +43,7 @@
       "aliases": ["Sol", "Sun"],
       "type": "star",
       "parentId": "milky-way",
-      "referenceFrame": "solar-system",
+      "referenceFrame": "galactic",
       "scientificConfidence": "observed",
       "description": "Étoile de type G2V au centre du Système solaire. Les tailles visuelles sont exagérées pour préserver la lisibilité.",
       "physical": {
@@ -61,12 +64,16 @@
       },
       "positionProvider": {
         "type": "static",
-        "position": [0, 0, 0],
-        "unit": "astronomical-unit"
+        "position": [8.178, 0, 0],
+        "unit": "kiloparsec"
       },
       "metadata": {
         "source": "NASA Planetary Fact Sheet",
-        "distanceFromEarthAu": 1
+        "distanceFromEarthAu": 1,
+        "galactocentricDistanceKpc": 8.178,
+        "galactocentricPositionSource": "GRAVITY Collaboration 2019, A&A 625:L10, doi:10.1051/0004-6361/201935656",
+        "galactocentricReferenceFrame": "Centre galactique à l’origine, Soleil sur +X dans le plan galactique ; décalage vertical omis",
+        "visualAdaptation": "Position galactocentrique scientifique convertie vers l’échelle galactique comprimée"
       }
     },
     {
@@ -110,7 +117,7 @@
       "parentId": "sun",
       "referenceFrame": "solar-system",
       "scientificConfidence": "calculated",
-      "description": "Monde rocheux enveloppé d’une atmosphère dense. Sa position est calculée localement à partir d’une éphéméride analytique.",
+      "description": "Monde rocheux enveloppé d’une atmosphère dense. Sa position est calculée localement ; son apparence révèle ici la surface mesurée par radar Magellan avec une couleur simulée, et non une vue visible à travers les nuages.",
       "physical": {
         "radiusKm": 6051.8,
         "massKg": 4.8675e24,
@@ -133,6 +140,10 @@
       },
       "metadata": {
         "source": "Astronomy Engine — modèle VSOP87 vérifié contre JPL Horizons",
+        "textureSource": "NASA/JPL Solar System Simulator — mosaïque radar globale Magellan",
+        "textureReference": "Carte cylindrique native 1440 × 720 ; lacunes complétées et couleur simulée",
+        "visualSource": "Radar Magellan observé · couleur simulée",
+        "visualConfidence": "observed-radar-with-simulated-color",
         "semiMajorAxisAu": 0.723
       }
     },
@@ -144,7 +155,7 @@
       "parentId": "sun",
       "referenceFrame": "solar-system",
       "scientificConfidence": "calculated",
-      "description": "Troisième planète du Système solaire. Sa position et son orientation sont calculées localement ; sa surface utilise la mosaïque satellitaire NASA Blue Marble sans couverture nuageuse.",
+      "description": "Troisième planète du Système solaire. Sa position et son orientation sont calculées localement ; sa surface, ses nuages statiques et ses lumières nocturnes utilisent des composites satellitaires NASA distincts.",
       "physical": {
         "radiusKm": 6371,
         "massKg": 5.97237e24,
@@ -168,7 +179,11 @@
       "metadata": {
         "source": "Astronomy Engine — modèle VSOP87 vérifié contre JPL Horizons",
         "textureSource": "NASA Visible Earth — Blue Marble, MODIS",
-        "textureReference": "Composite satellitaire sans nuages publié en 2002",
+        "textureReference": "Surface sans nuages publiée en 2002",
+        "cloudTextureSource": "NASA Visible Earth — Blue Marble: Clouds, MODIS",
+        "cloudTextureReference": "Composite statique publié en 2002 ; aucune météo en direct",
+        "nightTextureSource": "NASA Earth Observatory — Black Marble 2012, Suomi NPP VIIRS",
+        "nightTextureReference": "Composite des lumières nocturnes d’avril et octobre 2012",
         "semiMajorAxisAu": 1
       }
     },
@@ -180,7 +195,7 @@
       "parentId": "earth",
       "referenceFrame": "solar-system",
       "scientificConfidence": "calculated",
-      "description": "Satellite naturel de la Terre. Sa direction et sa phase orbitale proviennent d’une théorie lunaire analytique ; seule sa distance visuelle est amplifiée.",
+      "description": "Satellite naturel de la Terre. Sa direction et sa phase orbitale proviennent d’une théorie lunaire analytique ; son apparence associe une mosaïque couleur LRO à un relief LOLA amplifié pour rester lisible.",
       "physical": {
         "radiusKm": 1737.4,
         "massKg": 7.342e22,
@@ -203,6 +218,12 @@
       },
       "metadata": {
         "source": "Astronomy Engine — théorie lunaire de Brown",
+        "textureSource": "NASA GSFC SVS CGI Moon Kit — mosaïque couleur LRO WAC 2025",
+        "textureReference": "Carte globale traitée pour le rendu et fondée sur plus de 100 000 images LRO WAC",
+        "reliefSource": "NASA Lunar Reconnaissance Orbiter — altimètre LOLA",
+        "reliefReference": "Carte globale d’élévation ; amplitude visuelle volontairement renforcée",
+        "visualSource": "Mosaïque LRO observée · relief LOLA amplifié",
+        "visualConfidence": "observed-with-illustrative-relief-scale",
         "physicalMeanDistanceKm": 384400,
         "visualDistanceExaggerated": true
       }
@@ -215,7 +236,7 @@
       "parentId": "sun",
       "referenceFrame": "solar-system",
       "scientificConfidence": "calculated",
-      "description": "Planète rocheuse froide, reconnaissable à ses oxydes de fer. Sa position est calculée localement à partir d’une éphéméride analytique.",
+      "description": "Planète rocheuse froide, reconnaissable à ses oxydes de fer. Sa position est calculée localement ; son apparence utilise la mosaïque globale Viking MDIM 2.1, dont la colorisation est illustrative.",
       "physical": {
         "radiusKm": 3389.5,
         "massKg": 6.4171e23,
@@ -238,6 +259,10 @@
       },
       "metadata": {
         "source": "Astronomy Engine — modèle VSOP87 vérifié contre JPL Horizons",
+        "textureSource": "USGS Astrogeology / NASA Ames — mosaïque globale Viking MDIM 2.1",
+        "textureReference": "Produit cylindrique contrôlé à partir d’environ 4 600 images Viking ; colorisation artistique",
+        "visualSource": "Mosaïque Viking observée · colorisation illustrative",
+        "visualConfidence": "observed-with-illustrative-colorization",
         "semiMajorAxisAu": 1.524
       }
     },
@@ -249,7 +274,7 @@
       "parentId": "sun",
       "referenceFrame": "solar-system",
       "scientificConfidence": "calculated",
-      "description": "La plus grande planète du Système solaire, géante gazeuse marquée par des bandes nuageuses.",
+      "description": "La plus grande planète du Système solaire, géante gazeuse marquée par des bandes nuageuses. Son apparence utilise une carte globale Hubble de 2015.",
       "physical": {
         "radiusKm": 69911,
         "massKg": 1.8982e27,
@@ -271,6 +296,8 @@
       },
       "metadata": {
         "source": "Astronomy Engine — modèle VSOP87 vérifié contre JPL Horizons",
+        "textureSource": "NASA/ESA Hubble Space Telescope — carte globale OPAL 2015",
+        "textureReference": "NASA GSFC SVS 12021 ; extension polaire illustrative",
         "semiMajorAxisAu": 5.204
       }
     },
@@ -305,6 +332,8 @@
       },
       "metadata": {
         "source": "Astronomy Engine — modèle VSOP87 vérifié contre JPL Horizons",
+        "visualSource": "Bandes atmosphériques et tempêtes procédurales représentatives",
+        "visualConfidence": "illustrative",
         "semiMajorAxisAu": 9.583
       }
     },
@@ -374,6 +403,339 @@
       "metadata": {
         "source": "Astronomy Engine — modèle VSOP87 vérifié contre JPL Horizons",
         "semiMajorAxisAu": 30.11
+      }
+    },
+    {
+      "id": "io",
+      "name": "Io",
+      "aliases": ["Jupiter I"],
+      "type": "moon",
+      "parentId": "jupiter",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "calculated",
+      "description": "La lune galiléenne la plus proche de Jupiter, couverte de volcans actifs. Sa position jovicentrique est calculée par un modèle analytique local ; sa distance visuelle est amplifiée.",
+      "physical": {
+        "radiusKm": 1821.49,
+        "massKg": 8.93194e22,
+        "temperatureK": 110
+      },
+      "visual": {
+        "color": "#d8b96e",
+        "secondaryColor": "#76613c",
+        "visualRadius": 0.26,
+        "scaleMode": "exaggerated",
+        "rotationPeriodHours": 42.305568
+      },
+      "positionProvider": {
+        "type": "ephemeris",
+        "body": "io",
+        "origin": "jupiter",
+        "orbitalPeriodDays": 1.762732,
+        "orbitEpochJulianDay": 2451545,
+        "distanceScale": 40
+      },
+      "metadata": {
+        "source": "Astronomy Engine · paramètres physiques et distance moyenne NASA/JPL JUP365",
+        "semiMajorAxisKm": 421800,
+        "visualDistanceExaggerated": true
+      }
+    },
+    {
+      "id": "europa",
+      "name": "Europe",
+      "aliases": ["Europa", "Jupiter II"],
+      "type": "moon",
+      "parentId": "jupiter",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "calculated",
+      "description": "Lune glacée de Jupiter dont l’océan interne est une cible majeure de l’exploration planétaire. Sa position jovicentrique est calculée localement ; sa distance visuelle est amplifiée.",
+      "physical": {
+        "radiusKm": 1560.8,
+        "massKg": 4.79984e22,
+        "temperatureK": 102
+      },
+      "visual": {
+        "color": "#d5c7a4",
+        "secondaryColor": "#8f7655",
+        "visualRadius": 0.24,
+        "scaleMode": "exaggerated",
+        "rotationPeriodHours": 84.611112
+      },
+      "positionProvider": {
+        "type": "ephemeris",
+        "body": "europa",
+        "origin": "jupiter",
+        "orbitalPeriodDays": 3.525463,
+        "orbitEpochJulianDay": 2451545,
+        "distanceScale": 40
+      },
+      "metadata": {
+        "source": "Astronomy Engine · paramètres physiques et distance moyenne NASA/JPL JUP365",
+        "semiMajorAxisKm": 671100,
+        "visualDistanceExaggerated": true
+      }
+    },
+    {
+      "id": "ganymede",
+      "name": "Ganymède",
+      "aliases": ["Ganymede", "Jupiter III"],
+      "type": "moon",
+      "parentId": "jupiter",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "calculated",
+      "description": "Le plus grand satellite naturel du Système solaire. Sa position jovicentrique est calculée par le modèle local des lunes galiléennes ; sa distance visuelle est amplifiée.",
+      "physical": {
+        "radiusKm": 2631.2,
+        "massKg": 1.4819e23,
+        "temperatureK": 110
+      },
+      "visual": {
+        "color": "#a99b83",
+        "secondaryColor": "#5f5549",
+        "visualRadius": 0.3,
+        "scaleMode": "exaggerated",
+        "rotationPeriodHours": 171.734112
+      },
+      "positionProvider": {
+        "type": "ephemeris",
+        "body": "ganymede",
+        "origin": "jupiter",
+        "orbitalPeriodDays": 7.155588,
+        "orbitEpochJulianDay": 2451545,
+        "distanceScale": 40
+      },
+      "metadata": {
+        "source": "Astronomy Engine · paramètres physiques et distance moyenne NASA/JPL JUP365",
+        "semiMajorAxisKm": 1070400,
+        "visualDistanceExaggerated": true
+      }
+    },
+    {
+      "id": "callisto",
+      "name": "Callisto",
+      "aliases": ["Jupiter IV"],
+      "type": "moon",
+      "parentId": "jupiter",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "calculated",
+      "description": "Lune sombre et fortement cratérisée de Jupiter. Sa position jovicentrique est calculée localement ; sa distance visuelle est amplifiée.",
+      "physical": {
+        "radiusKm": 2410.3,
+        "massKg": 1.07594e23,
+        "temperatureK": 134
+      },
+      "visual": {
+        "color": "#77716a",
+        "secondaryColor": "#3d3936",
+        "visualRadius": 0.29,
+        "scaleMode": "exaggerated",
+        "rotationPeriodHours": 400.57056
+      },
+      "positionProvider": {
+        "type": "ephemeris",
+        "body": "callisto",
+        "origin": "jupiter",
+        "orbitalPeriodDays": 16.69044,
+        "orbitEpochJulianDay": 2451545,
+        "distanceScale": 40
+      },
+      "metadata": {
+        "source": "Astronomy Engine · paramètres physiques et distance moyenne NASA/JPL JUP365",
+        "semiMajorAxisKm": 1882700,
+        "visualDistanceExaggerated": true
+      }
+    },
+    {
+      "id": "titan",
+      "name": "Titan",
+      "aliases": ["Saturne VI", "Saturn VI"],
+      "type": "moon",
+      "parentId": "saturn",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "extrapolated",
+      "description": "La plus grande lune de Saturne, enveloppée d’une atmosphère dense. Son orbite est une approximation képlérienne issue des éléments moyens JPL J2000 et sa distance visuelle est amplifiée.",
+      "physical": {
+        "radiusKm": 2574.76,
+        "massKg": 1.3452e23,
+        "temperatureK": 94
+      },
+      "visual": {
+        "color": "#c7954e",
+        "secondaryColor": "#76552f",
+        "atmosphereColor": "#d69a49",
+        "visualRadius": 0.32,
+        "scaleMode": "exaggerated",
+        "rotationPeriodHours": 382.690752
+      },
+      "positionProvider": {
+        "type": "keplerian",
+        "semiMajorAxis": 1221900,
+        "eccentricity": 0.029,
+        "inclination": 0.3,
+        "longitudeOfAscendingNode": 78.6,
+        "argumentOfPeriapsis": 78.3,
+        "meanAnomalyAtEpoch": 11.7,
+        "epochJulianDay": 2451545,
+        "orbitalPeriodDays": 15.945448,
+        "unit": "kilometer",
+        "distanceScale": 40
+      },
+      "metadata": {
+        "source": "NASA/JPL SAT441 · éléments moyens J2000, représentation képlérienne simplifiée",
+        "semiMajorAxisKm": 1221900,
+        "visualDistanceExaggerated": true,
+        "referencePlane": "Plan de Laplace local, orientation visuelle simplifiée"
+      }
+    },
+    {
+      "id": "pluto",
+      "name": "Pluton",
+      "aliases": ["Pluto", "134340 Pluto"],
+      "type": "dwarf-planet",
+      "parentId": "sun",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "calculated",
+      "description": "Planète naine de la ceinture de Kuiper. Sa position héliocentrique est calculée par l’éphéméride analytique locale.",
+      "physical": {
+        "radiusKm": 1188.3,
+        "massKg": 1.30246e22,
+        "temperatureK": 44
+      },
+      "visual": {
+        "color": "#c5ad96",
+        "secondaryColor": "#756158",
+        "visualRadius": 0.32,
+        "scaleMode": "exaggerated",
+        "rotationPeriodHours": -153.2928
+      },
+      "positionProvider": {
+        "type": "ephemeris",
+        "body": "pluto",
+        "origin": "sun",
+        "orbitalPeriodDays": 90560,
+        "orbitEpochJulianDay": 2451545
+      },
+      "metadata": {
+        "source": "Astronomy Engine · éphéméride Pluton vérifiée contre NASA/JPL",
+        "semiMajorAxisAu": 39.482
+      }
+    },
+    {
+      "id": "ceres",
+      "name": "Cérès",
+      "aliases": ["Ceres", "1 Ceres"],
+      "type": "dwarf-planet",
+      "parentId": "sun",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "extrapolated",
+      "description": "La plus grande planète naine de la ceinture principale. Sa trajectoire est extrapolée par un modèle à deux corps depuis la solution orbitale JPL SBDB.",
+      "physical": {
+        "radiusKm": 469.7,
+        "massKg": 9.3835e20,
+        "temperatureK": 167
+      },
+      "visual": {
+        "color": "#8e8b84",
+        "secondaryColor": "#4d4b48",
+        "visualRadius": 0.24,
+        "scaleMode": "exaggerated",
+        "rotationPeriodHours": 9.07417
+      },
+      "positionProvider": {
+        "type": "keplerian",
+        "semiMajorAxis": 2.77,
+        "eccentricity": 0.0797,
+        "inclination": 10.6,
+        "longitudeOfAscendingNode": 80.2,
+        "argumentOfPeriapsis": 73.3,
+        "meanAnomalyAtEpoch": 274,
+        "epochJulianDay": 2461200.5,
+        "orbitalPeriodDays": 1680,
+        "unit": "astronomical-unit"
+      },
+      "metadata": {
+        "source": "NASA/JPL Small-Body Database, solution 48 · approximation à deux corps",
+        "semiMajorAxisAu": 2.77,
+        "orbitSolutionEpoch": 2461200.5
+      }
+    },
+    {
+      "id": "vesta",
+      "name": "Vesta",
+      "aliases": ["4 Vesta"],
+      "type": "asteroid",
+      "parentId": "sun",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "extrapolated",
+      "description": "L’un des plus grands objets de la ceinture principale. Sa trajectoire est extrapolée par un modèle à deux corps depuis la solution orbitale JPL SBDB.",
+      "physical": {
+        "radiusKm": 261.385,
+        "massKg": 2.59076e20,
+        "temperatureK": 172
+      },
+      "visual": {
+        "color": "#a9a39a",
+        "secondaryColor": "#625d57",
+        "visualRadius": 0.2,
+        "scaleMode": "exaggerated",
+        "rotationPeriodHours": 5.3421276322
+      },
+      "positionProvider": {
+        "type": "keplerian",
+        "semiMajorAxis": 2.36,
+        "eccentricity": 0.0902,
+        "inclination": 7.14,
+        "longitudeOfAscendingNode": 104,
+        "argumentOfPeriapsis": 151,
+        "meanAnomalyAtEpoch": 81.2,
+        "epochJulianDay": 2461200.5,
+        "orbitalPeriodDays": 1330,
+        "unit": "astronomical-unit"
+      },
+      "metadata": {
+        "source": "NASA/JPL Small-Body Database, solution 36 · approximation à deux corps",
+        "semiMajorAxisAu": 2.36,
+        "orbitSolutionEpoch": 2461200.5
+      }
+    },
+    {
+      "id": "halley",
+      "name": "Comète de Halley",
+      "aliases": ["Halley", "1P/Halley"],
+      "type": "comet",
+      "parentId": "sun",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "extrapolated",
+      "description": "Comète périodique célèbre dont la trajectoire très excentrique et rétrograde est extrapolée ici par un modèle à deux corps. Les accélérations non gravitationnelles ne sont pas simulées.",
+      "physical": {
+        "radiusKm": 5.5
+      },
+      "visual": {
+        "color": "#b8d9d2",
+        "secondaryColor": "#668d87",
+        "emissiveColor": "#9bd4ca",
+        "emissiveIntensity": 0.2,
+        "visualRadius": 0.19,
+        "scaleMode": "exaggerated"
+      },
+      "positionProvider": {
+        "type": "keplerian",
+        "semiMajorAxis": 17.9,
+        "eccentricity": 0.968,
+        "inclination": 162,
+        "longitudeOfAscendingNode": 59.1,
+        "argumentOfPeriapsis": 112,
+        "meanAnomalyAtEpoch": 274,
+        "epochJulianDay": 2439875.5,
+        "orbitalPeriodDays": 27700,
+        "unit": "astronomical-unit"
+      },
+      "metadata": {
+        "source": "NASA/JPL Small-Body Database, solution 75 · approximation à deux corps",
+        "semiMajorAxisAu": 17.9,
+        "perihelionAu": 0.575,
+        "aphelionAu": 35.3,
+        "nonGravitationalForcesOmitted": true
       }
     }
   ]

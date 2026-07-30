@@ -50,10 +50,15 @@ export function shouldDisplayObjectAtLevel(
     return true;
   }
   if (object.type === 'galaxy') {
-    return object.id === 'milky-way' ? lodLevel >= 3 : lodLevel >= 4;
+    return object.id === 'milky-way'
+      ? lodLevel >= 3 && lodLevel <= 5
+      : lodLevel >= 4 && lodLevel <= 5;
   }
   if (object.type === 'star') {
     return object.id === 'sun' || lodLevel >= 1;
+  }
+  if (object.type === 'black-hole') {
+    return lodLevel >= 1 && lodLevel <= 3;
   }
   if (
     object.type === 'planet' ||

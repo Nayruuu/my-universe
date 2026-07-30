@@ -29,6 +29,9 @@ yarn-error.log
 .sass-cache/
 /connect.lock
 client/data-sources/*.csv
+client/data-sources/*.dat
+client/data-sources/*.dat.gz
+client/data-sources/*.source.json
 coverage/
 playwright-report/
 test-results/

@@ -1,0 +1,87 @@
+{
+  "version": "2.0.0",
+  "objects": [
+    {
+      "id": "lv-eso137-018",
+      "name": "ESO137-018",
+      "aliases": [],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 31.02,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.34,
+        "galaxyRotationDegrees": 95
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-1.320065, -5.569589, -2.863059],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 6.4,
+        "distanceLy": 20874008,
+        "rightAscensionDegrees": 245.24708333,
+        "declinationDegrees": -60.4875,
+        "angularDiameterArcmin": 3.47,
+        "diameterLy": 21070,
+        "apparentMagnitudeB": 12.23,
+        "morphologicalType": 6,
+        "distanceMethod": "TRGB",
+        "nearbyUniverseLabelRank": 184,
+        "nearbyUniversePointBatch": true,
+        "keywords": "ESO137-018 ESO137-018 Local Volume"
+      }
+    },
+    {
+      "id": "lv-eso273-014",
+      "name": "ESO273-014",
+      "aliases": [],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 30.27,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.73,
+        "galaxyRotationDegrees": 38
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-4.742087, -7.322186, -4.68062],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 9.9,
+        "distanceLy": 32289481,
+        "rightAscensionDegrees": 224.62625,
+        "declinationDegrees": -47.69861111,
+        "angularDiameterArcmin": 3.8,
+        "diameterLy": 35692,
+        "apparentMagnitudeB": 12.9,
+        "morphologicalType": 7,
+        "distanceMethod": "TF",
+        "nearbyUniverseLabelRank": 203,
+        "nearbyUniversePointBatch": true,
+        "keywords": "ESO273-014 ESO273-014 Local Volume"
+      }
+    }
+  ]
+}

@@ -1,12 +1,22 @@
 import * as THREE from 'three';
-import { GraphicQuality, SpaceObject, SpaceObjectType } from '../../data/models/universe.models';
+import {
+  GraphicQuality,
+  LabelDensity,
+  SpaceObject,
+  SpaceObjectType,
+} from '../../data/models/universe.models';
+import { calculateApparentRadiusPixels } from '../lod/screen-space-lod';
+import { isGalaxyMapRankVisible } from './galaxy-map-policy';
+import { scaleLabelLimit } from './label-density-policy';
 
 type WorldPositionReader = (objectId: string, target: THREE.Vector3) => THREE.Vector3 | null;
+type ObjectVisibilityReader = (objectId: string) => boolean;
 
 export interface LabelObject {
   readonly id: string;
   readonly name: string;
   readonly type: SpaceObjectType;
+  readonly visual?: Pick<SpaceObject['visual'], 'visualRadius'>;
   readonly metadata?: SpaceObject['metadata'];
 }
 
@@ -15,6 +25,14 @@ interface LabelCandidate {
   distanceSquared: number;
   priority: number;
   selected: boolean;
+}
+
+interface ScreenOccluder {
+  objectId: string;
+  centerX: number;
+  centerY: number;
+  radius: number;
+  distanceSquared: number;
 }
 
 export interface ScreenRectangle {
@@ -31,18 +49,64 @@ export interface LabelHitRegion {
 
 const LABEL_FRAME_INTERVAL_MS = 1_000 / 30;
 const LABEL_HIT_PADDING_PX = 6;
-const DEFAULT_MAXIMUM_CATALOG_LABEL_RANK = 240;
+const MAXIMUM_CATALOG_LABEL_RANKS = {
+  low: [400, 700, 1_000, 0, 0],
+  medium: [800, 1_400, 2_200, 0, 0],
+  high: [1_400, 2_400, 3_000, 0, 0],
+} as const satisfies Record<GraphicQuality, readonly number[]>;
+const MAXIMUM_CONSTELLATION_LABEL_RANKS = {
+  low: [8, 12, 16, 0, 0, 0],
+  medium: [14, 22, 30, 0, 0, 0],
+  high: [20, 32, 44, 0, 0, 0],
+} as const satisfies Record<GraphicQuality, readonly number[]>;
+const MAXIMUM_COSMIC_LABEL_RANKS = {
+  low: 120,
+  medium: 240,
+  high: 480,
+} as const satisfies Record<GraphicQuality, number>;
+const LABEL_TEXT_COLORS = {
+  universe: '#d7ccff',
+  'galaxy-cluster': '#d7ccff',
+  galaxy: '#c9b8ff',
+  'black-hole': '#ffb274',
+  nebula: '#efb9dc',
+  star: '#ffe7ad',
+  planet: '#a9d4ff',
+  'dwarf-planet': '#b9cfff',
+  moon: '#d7dee8',
+  asteroid: '#dbbe93',
+  comet: '#a8e4d4',
+  'artificial-object': '#bdcad7',
+  region: '#b9c8dc',
+} as const satisfies Record<SpaceObjectType, string>;
+const CONSTELLATION_LABEL_TEXT_COLOR = '#8edff5';
+const ACTIVE_LABEL_TEXT_COLOR = '#c8efff';
+const MAXIMUM_LABELS_BY_LOD = [64, 80, 96, 72, 36, 48, 72] as const;
+const OCCLUDING_OBJECT_TYPES = new Set<SpaceObjectType>([
+  'black-hole',
+  'star',
+  'planet',
+  'dwarf-planet',
+  'moon',
+  'asteroid',
+  'comet',
+]);
+const MINIMUM_OCCLUDER_RADIUS_PX = 6;
+const LABEL_OCCLUSION_PADDING_PX = 4;
 
 export class LabelManager {
   private readonly canvas = document.createElement('canvas');
   private readonly context: CanvasRenderingContext2D;
   private readonly worldPosition = new THREE.Vector3();
   private readonly projectedPosition = new THREE.Vector3();
+  private readonly cameraSpacePosition = new THREE.Vector3();
   private readonly occupiedRectangles: ScreenRectangle[] = [];
+  private readonly screenOccluders: ScreenOccluder[] = [];
   private readonly hitRegions: LabelHitRegion[] = [];
   private readonly candidates: LabelCandidate[] = [];
   private transientObject: LabelObject | null = null;
   private quality: GraphicQuality;
+  private density: LabelDensity;
   private enabled = true;
   private hoveredId: string | null = null;
   private width = 1;
@@ -52,8 +116,10 @@ export class LabelManager {
 
   constructor(
     container: HTMLElement,
-    private readonly objects: readonly LabelObject[],
+    private objects: readonly LabelObject[],
     quality: GraphicQuality,
+    density: LabelDensity = 'balanced',
+    private readonly isObjectVisible: ObjectVisibilityReader = () => true,
   ) {
     const context = this.canvas.getContext('2d');
 
@@ -62,6 +128,7 @@ export class LabelManager {
     }
     this.context = context;
     this.quality = quality;
+    this.density = density;
     this.canvas.className = 'universe-label-layer';
     this.canvas.setAttribute('aria-hidden', 'true');
     Object.assign(this.canvas.style, {
@@ -91,6 +158,21 @@ export class LabelManager {
     }
     this.quality = quality;
     this.resize(this.width, this.height);
+  }
+
+  public setDensity(density: LabelDensity): void {
+    if (density === this.density) {
+      return;
+    }
+    this.density = density;
+    this.hitRegions.length = 0;
+    this.lastRenderTime = Number.NEGATIVE_INFINITY;
+  }
+
+  public setObjects(objects: readonly LabelObject[]): void {
+    this.objects = objects;
+    this.hitRegions.length = 0;
+    this.lastRenderTime = Number.NEGATIVE_INFINITY;
   }
 
   public setTransientObject(object: LabelObject | null): void {
@@ -139,15 +221,25 @@ export class LabelManager {
     this.lastRenderTime = now;
     this.clearCanvas();
     this.collectCandidates(camera, readWorldPosition, lodLevel, selectedId);
+    this.collectScreenOccluders(camera, readWorldPosition);
 
-    const maximumLabels = getMaximumLabelCount(this.quality, lodLevel);
-    let renderedLabels = 0;
+    const maximumLabels = getMaximumLabelCount(this.quality, lodLevel, this.density);
+    const maximumOrdinaryLabels =
+      maximumLabels -
+      Number(this.candidates.some(({ object }) => isScaleLandmarkAtLevel(object, lodLevel)));
+    let renderedOrdinaryLabels = 0;
 
     this.occupiedRectangles.length = 0;
 
     for (const candidate of this.candidates) {
-      if (renderedLabels >= maximumLabels && !candidate.selected) {
-        break;
+      const scaleLandmark = isScaleLandmarkAtLevel(candidate.object, lodLevel);
+
+      if (
+        renderedOrdinaryLabels >= maximumOrdinaryLabels &&
+        !candidate.selected &&
+        !scaleLandmark
+      ) {
+        continue;
       }
       const position = readWorldPosition(candidate.object.id, this.worldPosition);
 
@@ -155,7 +247,20 @@ export class LabelManager {
         continue;
       }
       this.projectedPosition.copy(position).project(camera);
-      if (this.projectedPosition.z < -1 || this.projectedPosition.z > 1) {
+      const behindCamera =
+        this.cameraSpacePosition.copy(position).applyMatrix4(camera.matrixWorldInverse).z >= 0;
+
+      if (scaleLandmark && behindCamera) {
+        this.projectedPosition.x *= -1;
+        this.projectedPosition.y *= -1;
+        if (
+          Math.abs(this.projectedPosition.x) < 0.001 &&
+          Math.abs(this.projectedPosition.y) < 0.001
+        ) {
+          this.projectedPosition.y = 1;
+        }
+      }
+      if (!scaleLandmark && (this.projectedPosition.z < -1 || this.projectedPosition.z > 1)) {
         continue;
       }
 
@@ -164,19 +269,35 @@ export class LabelManager {
       const safeTop = this.width <= 720 ? 112 : 76;
       const safeBottom = this.width <= 720 ? 124 : 88;
 
-      if (x < -40 || x > this.width + 40 || y < safeTop || y > this.height - safeBottom) {
+      if (
+        !scaleLandmark &&
+        (x < -40 || x > this.width + 40 || y < safeTop || y > this.height - safeBottom)
+      ) {
         continue;
       }
 
       const rectangle = this.measureRectangle(candidate.object, x, y, candidate.selected);
 
-      fitRectangleHorizontally(rectangle, this.width);
-      if (!candidate.selected && this.overlapsExistingLabel(rectangle)) {
+      if (scaleLandmark) {
+        fitLandmarkRectangle(rectangle, this.width, this.height, safeTop, safeBottom);
+        this.moveLandmarkToFreeSlot(rectangle, safeTop, safeBottom);
+      } else {
+        fitRectangleHorizontally(rectangle, this.width);
+      }
+      if (!scaleLandmark && this.isOccludedByBody(candidate, rectangle, x, y + 18)) {
+        continue;
+      }
+      if (!candidate.selected && !scaleLandmark && this.overlapsExistingLabel(rectangle)) {
         continue;
       }
       const hovered = candidate.object.id === this.hoveredId;
 
-      if (candidate.object.type === 'star' && candidate.object.id !== 'sun') {
+      if (
+        candidate.object.id !== 'sun' &&
+        (candidate.object.type === 'star' ||
+          candidate.object.type === 'black-hole' ||
+          isCosmicCatalogLabel(candidate.object))
+      ) {
         this.drawAnchor(rectangle, x, y + 18, candidate.selected, hovered);
       }
       this.drawLabel(candidate.object, rectangle, candidate.selected, hovered);
@@ -185,7 +306,9 @@ export class LabelManager {
         objectId: candidate.object.id,
         rectangle,
       });
-      renderedLabels += 1;
+      if (!scaleLandmark) {
+        renderedOrdinaryLabels += 1;
+      }
     }
   }
 
@@ -209,6 +332,7 @@ export class LabelManager {
     this.canvas.remove();
     this.candidates.length = 0;
     this.occupiedRectangles.length = 0;
+    this.screenOccluders.length = 0;
     this.hitRegions.length = 0;
   }
 
@@ -244,11 +368,19 @@ export class LabelManager {
     selectedId: string | null,
   ): void {
     const selected = object.id === selectedId;
+    const scaleLandmark = isScaleLandmarkAtLevel(object, lodLevel);
 
-    if (object.type === 'region') {
+    if (object.type === 'region' && !isConstellationLabel(object)) {
       return;
     }
-    if (!selected && !isLabelVisibleAtLevel(object, lodLevel)) {
+    if (
+      (!selected || isConstellationLabel(object)) &&
+      !scaleLandmark &&
+      !this.isObjectVisible(object.id)
+    ) {
+      return;
+    }
+    if (!selected && !isLabelVisibleAtLevel(object, lodLevel, this.quality, this.density)) {
       return;
     }
     const position = readWorldPosition(object.id, this.worldPosition);
@@ -269,6 +401,82 @@ export class LabelManager {
     this.context.setTransform(1, 0, 0, 1, 0, 0);
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.context.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0);
+  }
+
+  private collectScreenOccluders(
+    camera: THREE.Camera,
+    readWorldPosition: WorldPositionReader,
+  ): void {
+    this.screenOccluders.length = 0;
+    if (!(camera instanceof THREE.PerspectiveCamera)) {
+      return;
+    }
+
+    for (const object of this.objects) {
+      const visualRadius = object.visual?.visualRadius;
+
+      if (
+        typeof visualRadius !== 'number' ||
+        !OCCLUDING_OBJECT_TYPES.has(object.type) ||
+        visualRadius <= 0
+      ) {
+        continue;
+      }
+      const position = readWorldPosition(object.id, this.worldPosition);
+
+      if (!position) {
+        continue;
+      }
+      const distanceSquared = camera.position.distanceToSquared(position);
+      const radius = calculateApparentRadiusPixels(
+        visualRadius,
+        Math.sqrt(distanceSquared),
+        this.height,
+        camera.fov,
+      );
+
+      if (radius < MINIMUM_OCCLUDER_RADIUS_PX) {
+        continue;
+      }
+      this.projectedPosition.copy(position).project(camera);
+      if (this.projectedPosition.z < -1 || this.projectedPosition.z > 1) {
+        continue;
+      }
+      this.screenOccluders.push({
+        objectId: object.id,
+        centerX: (this.projectedPosition.x * 0.5 + 0.5) * this.width,
+        centerY: (-this.projectedPosition.y * 0.5 + 0.5) * this.height,
+        radius,
+        distanceSquared,
+      });
+    }
+  }
+
+  private isOccludedByBody(
+    candidate: LabelCandidate,
+    rectangle: ScreenRectangle,
+    pointX: number,
+    pointY: number,
+  ): boolean {
+    if (candidate.selected) {
+      return false;
+    }
+
+    return this.screenOccluders.some((occluder) => {
+      if (
+        occluder.objectId === candidate.object.id ||
+        candidate.distanceSquared <= occluder.distanceSquared
+      ) {
+        return false;
+      }
+      const radius = occluder.radius + LABEL_OCCLUSION_PADDING_PX;
+      const pointDistance = Math.hypot(pointX - occluder.centerX, pointY - occluder.centerY);
+
+      return (
+        pointDistance <= radius ||
+        circleIntersectsRectangle(occluder.centerX, occluder.centerY, radius, rectangle)
+      );
+    });
   }
 
   private measureRectangle(
@@ -323,12 +531,7 @@ export class LabelManager {
     const fontSize = selected ? 13 : object.type === 'galaxy' ? 12 : catalogLabel ? 10 : 11;
 
     this.context.font = `${selected ? 600 : 500} ${fontSize}px Inter, system-ui, sans-serif`;
-    this.context.fillStyle =
-      catalogLabel && !selected && !hovered
-        ? '#cbd8e7'
-        : object.type === 'star'
-          ? '#fff5df'
-          : '#dce9f8';
+    this.context.fillStyle = getLabelTextColor(object, selected || hovered);
     this.context.textAlign = 'center';
     this.context.textBaseline = 'middle';
     this.context.fillText(
@@ -375,45 +578,144 @@ export class LabelManager {
         rectangle.bottom > occupied.top - padding,
     );
   }
+
+  private moveLandmarkToFreeSlot(
+    rectangle: ScreenRectangle,
+    safeTop: number,
+    safeBottom: number,
+  ): void {
+    if (!this.overlapsExistingLabel(rectangle)) {
+      return;
+    }
+    const margin = 8;
+    const width = rectangle.right - rectangle.left;
+    const height = rectangle.bottom - rectangle.top;
+    const maximumLeft = Math.max(margin, this.width - margin - width);
+    const maximumTop = Math.max(safeTop, this.height - safeBottom - height);
+    const horizontalStep = width + margin;
+    const verticalStep = height + margin;
+
+    for (let top = safeTop; top <= maximumTop; top += verticalStep) {
+      for (let left = margin; left <= maximumLeft; left += horizontalStep) {
+        const candidate = {
+          left,
+          top,
+          right: left + width,
+          bottom: top + height,
+        };
+
+        if (!this.overlapsExistingLabel(candidate)) {
+          Object.assign(rectangle, candidate);
+
+          return;
+        }
+      }
+    }
+  }
 }
 
-export function isLabelVisibleAtLevel(object: LabelObject, lodLevel: number): boolean {
+export function getLabelTextColor(object: LabelObject, active: boolean): string {
+  if (active) {
+    return ACTIVE_LABEL_TEXT_COLOR;
+  }
+  if (isConstellationLabel(object)) {
+    return CONSTELLATION_LABEL_TEXT_COLOR;
+  }
+
+  return LABEL_TEXT_COLORS[object.type];
+}
+
+export function isLabelVisibleAtLevel(
+  object: LabelObject,
+  lodLevel: number,
+  quality: GraphicQuality = 'high',
+  density: LabelDensity = 'balanced',
+): boolean {
   const catalogRecordIndex = object.metadata?.['catalogRecordIndex'];
+  const cosmicCatalogRank = object.metadata?.['cosmicCatalogRank'];
+  const constellationLabelRank = object.metadata?.['constellationLabelRank'];
 
   if (typeof catalogRecordIndex === 'number') {
-    if (lodLevel <= 0) {
-      return catalogRecordIndex < 16;
-    }
-    if (lodLevel === 1) {
-      return catalogRecordIndex < 80;
-    }
-    if (lodLevel === 2) {
-      return catalogRecordIndex < DEFAULT_MAXIMUM_CATALOG_LABEL_RANK;
-    }
-    if (lodLevel === 3) {
-      return catalogRecordIndex < 64;
-    }
-
-    return false;
+    return catalogRecordIndex < getMaximumCatalogLabelRank(quality, lodLevel, density);
+  }
+  if (typeof cosmicCatalogRank === 'number') {
+    return cosmicCatalogRank < getMaximumCosmicLabelRank(quality, lodLevel, density);
+  }
+  if (typeof constellationLabelRank === 'number') {
+    return constellationLabelRank < getMaximumConstellationLabelRank(quality, lodLevel, density);
   }
   if (object.type === 'galaxy') {
-    return object.id === 'milky-way' ? lodLevel >= 3 : lodLevel >= 4;
+    if (object.id === 'milky-way') {
+      return lodLevel >= 3;
+    }
+    const nearbyUniverseLabelRank = object.metadata?.['nearbyUniverseLabelRank'];
+
+    if (typeof nearbyUniverseLabelRank === 'number') {
+      return lodLevel >= 5;
+    }
+
+    return lodLevel >= 3 && lodLevel <= 4 && isGalaxyMapRankVisible(object, quality, density);
   }
-  if (object.type === 'star' && object.id !== 'sun') {
-    return (
-      (lodLevel >= 1 && lodLevel <= 2) ||
-      (lodLevel === 3 && object.metadata?.['galacticLabel'] === true)
-    );
+  if (object.type === 'star') {
+    if (object.id === 'sun') {
+      return lodLevel <= 2;
+    }
+
+    return lodLevel >= 1 && lodLevel <= 2;
+  }
+  if (object.type === 'black-hole') {
+    return lodLevel >= 1 && lodLevel <= 3;
   }
 
   return lodLevel <= 1;
 }
 
-export function getMaximumLabelCount(quality: GraphicQuality, lodLevel: number): number {
-  const qualityLimit = quality === 'low' ? 14 : quality === 'medium' ? 26 : 40;
-  const lodLimit = lodLevel <= 0 ? 14 : lodLevel === 1 ? 26 : lodLevel === 2 ? 40 : 28;
+export function isScaleLandmarkAtLevel(object: LabelObject, lodLevel: number): boolean {
+  return object.id === (lodLevel <= 2 ? 'sun' : 'milky-way');
+}
 
-  return Math.min(qualityLimit, lodLimit);
+export function getMaximumLabelCount(
+  quality: GraphicQuality,
+  lodLevel: number,
+  density: LabelDensity = 'balanced',
+): number {
+  const qualityLimit = quality === 'low' ? 28 : quality === 'medium' ? 56 : 96;
+  const lodLimit = MAXIMUM_LABELS_BY_LOD[lodLevel] ?? MAXIMUM_LABELS_BY_LOD.at(-1)!;
+
+  return scaleLabelLimit(Math.min(qualityLimit, lodLimit), density);
+}
+
+export function getMaximumCatalogLabelRank(
+  quality: GraphicQuality,
+  lodLevel: number,
+  density: LabelDensity = 'balanced',
+): number {
+  return scaleLabelLimit(MAXIMUM_CATALOG_LABEL_RANKS[quality][lodLevel] ?? 0, density);
+}
+
+export function getMaximumConstellationLabelRank(
+  quality: GraphicQuality,
+  lodLevel: number,
+  density: LabelDensity = 'balanced',
+): number {
+  return scaleLabelLimit(MAXIMUM_CONSTELLATION_LABEL_RANKS[quality][lodLevel] ?? 0, density);
+}
+
+export function getMaximumCosmicLabelRank(
+  quality: GraphicQuality,
+  lodLevel: number,
+  density: LabelDensity = 'balanced',
+): number {
+  return lodLevel === 6 ? scaleLabelLimit(MAXIMUM_COSMIC_LABEL_RANKS[quality], density) : 0;
+}
+
+export function getMaximumCatalogLabelPoolRank(
+  quality: GraphicQuality,
+  density: LabelDensity,
+): number {
+  return Math.max(
+    ...MAXIMUM_CATALOG_LABEL_RANKS[quality].map((rank) => scaleLabelLimit(rank, density)),
+  );
 }
 
 export function findLabelHit(
@@ -448,12 +750,77 @@ function fitRectangleHorizontally(rectangle: ScreenRectangle, viewportWidth: num
   rectangle.right += offset;
 }
 
+function fitLandmarkRectangle(
+  rectangle: ScreenRectangle,
+  viewportWidth: number,
+  viewportHeight: number,
+  safeTop: number,
+  safeBottom: number,
+): void {
+  fitRectangleHorizontally(rectangle, viewportWidth);
+  const maximumBottom = Math.max(safeTop, viewportHeight - safeBottom);
+  const offset =
+    rectangle.top < safeTop
+      ? safeTop - rectangle.top
+      : rectangle.bottom > maximumBottom
+        ? maximumBottom - rectangle.bottom
+        : 0;
+
+  rectangle.top += offset;
+  rectangle.bottom += offset;
+}
+
+function circleIntersectsRectangle(
+  centerX: number,
+  centerY: number,
+  radius: number,
+  rectangle: ScreenRectangle,
+): boolean {
+  const closestX = THREE.MathUtils.clamp(centerX, rectangle.left, rectangle.right);
+  const closestY = THREE.MathUtils.clamp(centerY, rectangle.top, rectangle.bottom);
+
+  return Math.hypot(centerX - closestX, centerY - closestY) <= radius;
+}
+
 function getLabelPriority(object: LabelObject): number {
+  if (object.id === 'sun' || object.id === 'milky-way') {
+    return Number.MAX_SAFE_INTEGER;
+  }
   const catalogRecordIndex = object.metadata?.['catalogRecordIndex'];
 
-  return typeof catalogRecordIndex === 'number' ? 1_000 + catalogRecordIndex : 0;
+  if (typeof catalogRecordIndex === 'number') {
+    return 1_000 + catalogRecordIndex;
+  }
+  const cosmicCatalogRank = object.metadata?.['cosmicCatalogRank'];
+
+  if (typeof cosmicCatalogRank === 'number') {
+    return 600 + cosmicCatalogRank;
+  }
+  const constellationLabelRank = object.metadata?.['constellationLabelRank'];
+
+  if (typeof constellationLabelRank === 'number') {
+    return 400 + constellationLabelRank;
+  }
+  const mapLabelRank = object.metadata?.['mapLabelRank'];
+  const nearbyUniverseLabelRank = object.metadata?.['nearbyUniverseLabelRank'];
+
+  if (object.type === 'galaxy' && typeof nearbyUniverseLabelRank === 'number') {
+    return 25 + nearbyUniverseLabelRank;
+  }
+
+  return object.type === 'galaxy' && typeof mapLabelRank === 'number' ? 50 + mapLabelRank : 0;
 }
 
 function isCatalogLabel(object: LabelObject): boolean {
-  return typeof object.metadata?.['catalogRecordIndex'] === 'number';
+  return (
+    typeof object.metadata?.['catalogRecordIndex'] === 'number' || isCosmicCatalogLabel(object)
+  );
+}
+
+function isCosmicCatalogLabel(object: LabelObject): boolean {
+  return typeof object.metadata?.['cosmicCatalogRank'] === 'number';
+}
+
+function isConstellationLabel(object: LabelObject): boolean {
+  return typeof object.metadata?.['constellationLabelRank'] === 'number';
 }

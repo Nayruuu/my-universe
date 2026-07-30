@@ -1,10 +1,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { SpaceObject } from '../../data/models/universe.models';
+import { SpaceObject, type ZoomDebugStats } from '../../data/models/universe.models';
 import {
   FREE_NAVIGATION_MIN_DISTANCE,
   getFocusDistance,
-  getFreeNavigationMinimumDistance,
   getMinimumNavigationDistance,
   MAX_NAVIGATION_DISTANCE,
 } from './navigation-policy';
@@ -20,24 +19,32 @@ interface FocusTransition {
   startDistance: number;
   endDistance: number;
   logarithmicDistance: boolean;
+  completeBeforeInteraction: boolean;
   elapsed: number;
   duration: number;
 }
+
+export type CameraZoomDiagnostics = Omit<ZoomDebugStats, 'anchorType' | 'anchorObjectId'>;
+export type CameraSettledSource = 'interaction' | 'pinch' | 'transition' | 'zoom';
 
 export class CameraController {
   public readonly controls: OrbitControls;
   private transition: FocusTransition | null = null;
   private readonly zoomAnchor = new THREE.Vector3();
+  private readonly zoomRayDirection = new THREE.Vector3();
+  private readonly zoomCameraDirection = new THREE.Vector3();
   private readonly transitionDirection = new THREE.Vector3();
   private readonly semanticZoomJourney = new SemanticZoomJourney();
+  private zoomDiagnostics: CameraZoomDiagnostics | null = null;
   private zoomAnchorActive = false;
+  private pinchInteractionActive = false;
 
   constructor(
     public readonly camera: THREE.PerspectiveCamera,
-    canvas: HTMLCanvasElement,
-    private readonly onCameraSettled: (distance: number) => void,
+    private readonly canvas: HTMLCanvasElement,
+    private readonly onCameraSettled: (distance: number, source: CameraSettledSource) => void,
   ) {
-    this.controls = new OrbitControls(camera, canvas);
+    this.controls = new OrbitControls(camera, this.canvas);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.065;
     this.controls.enablePan = true;
@@ -52,6 +59,7 @@ export class CameraController {
     this.setTargetInteractionActive(false);
     this.controls.addEventListener('start', this.cancelTransition);
     this.controls.addEventListener('end', this.handleInteractionEnd);
+    this.canvas.addEventListener('touchstart', this.handleTouchStart, { passive: true });
     this.controls.update();
   }
 
@@ -69,6 +77,10 @@ export class CameraController {
 
   public get semanticZoomActive(): boolean {
     return this.semanticZoomJourney.active;
+  }
+
+  public get lastZoomDiagnostics(): CameraZoomDiagnostics | null {
+    return this.zoomDiagnostics;
   }
 
   public focusOn(position: THREE.Vector3, object: SpaceObject, distanceOverride?: number): void {
@@ -126,6 +138,17 @@ export class CameraController {
         : getFocusDistance(object);
 
     this.startTargetTransition(position, normalizedDirection, distance, object);
+  }
+
+  public completeFocusTransition(): void {
+    if (!this.transition) {
+      return;
+    }
+    this.camera.position.copy(this.transition.endCamera);
+    this.controls.target.copy(this.transition.endTarget);
+    this.transition = null;
+    this.controls.update();
+    this.onCameraSettled(this.distanceToTarget, 'transition');
   }
 
   public observeFrom(position: THREE.Vector3, target: THREE.Vector3): void {
@@ -204,8 +227,7 @@ export class CameraController {
       }
 
       if (progress >= 1) {
-        this.transition = null;
-        this.onCameraSettled(this.distanceToTarget);
+        this.completeFocusTransition();
       }
     }
 
@@ -217,7 +239,7 @@ export class CameraController {
       if (remainingDistance < Math.max(0.015, this.distanceToTarget * 0.000_15)) {
         this.controls.target.copy(this.zoomAnchor);
         this.zoomAnchorActive = false;
-        this.onCameraSettled(this.distanceToTarget);
+        this.onCameraSettled(this.distanceToTarget, 'zoom');
       }
     }
 
@@ -237,35 +259,100 @@ export class CameraController {
     offset.setLength(targetDistance);
     this.camera.position.copy(this.controls.target).add(offset);
     this.controls.update();
-    this.onCameraSettled(this.distanceToTarget);
+    this.onCameraSettled(this.distanceToTarget, 'zoom');
   }
 
   public zoomSemantically(deltaY: number): void {
+    this.completeReferenceFrameTransition();
     this.transition = null;
-    this.zoomAnchorActive = false;
     const step = this.semanticZoomJourney.step(this.distanceToTarget, deltaY);
 
     if (step.handled) {
-      this.setDistance(step.distance);
+      this.applyZoomDistance(deltaY, step.distance);
 
       return;
     }
     if (!Number.isFinite(deltaY) || deltaY === 0) {
+      this.zoomAnchorActive = false;
+      this.recordIgnoredZoom(deltaY);
+
       return;
     }
-    this.setDistance(this.distanceToTarget * Math.exp(deltaY * 0.0015));
+    this.applyZoomDistance(deltaY, this.distanceToTarget * Math.exp(deltaY * 0.0015));
+  }
+
+  public adoptZoomAnchor(position: THREE.Vector3): void {
+    this.completeReferenceFrameTransition();
+    this.zoomAnchor.copy(position);
+    this.zoomAnchorActive = true;
+  }
+
+  public adoptZoomPointer(x: number, y: number): void {
+    this.completeReferenceFrameTransition();
+    this.camera.updateMatrixWorld();
+    this.zoomRayDirection
+      .set(x, y, 0.5)
+      .unproject(this.camera)
+      .sub(this.camera.position)
+      .normalize();
+    this.camera.getWorldDirection(this.zoomCameraDirection);
+    const targetDepth = this.zoomCameraDirection.dot(
+      this.controls.target.clone().sub(this.camera.position),
+    );
+    const rayDepth = Math.max(this.zoomRayDirection.dot(this.zoomCameraDirection), Number.EPSILON);
+
+    this.zoomAnchor
+      .copy(this.camera.position)
+      .addScaledVector(this.zoomRayDirection, targetDepth / rayDepth);
+    this.zoomAnchorActive = true;
+  }
+
+  public setNavigationConstraints(object: SpaceObject): void {
+    this.controls.minDistance = getMinimumNavigationDistance(object);
+    this.setTargetInteractionActive(true);
+  }
+
+  public rebaseTarget(position: THREE.Vector3, object: SpaceObject): void {
+    this.transition = null;
+    this.zoomAnchorActive = false;
+    this.setNavigationConstraints(object);
+    this.moveTargetPreservingOffset(position);
+    this.controls.update();
+  }
+
+  public transitionReferenceFrame(position: THREE.Vector3, object: SpaceObject): void {
+    const offset = this.camera.position.clone().sub(this.controls.target);
+
+    if (offset.lengthSq() < 0.0001) {
+      offset.set(1, 0.55, 1);
+    }
+    const distance = THREE.MathUtils.clamp(
+      offset.length(),
+      getMinimumNavigationDistance(object),
+      this.controls.maxDistance,
+    );
+
+    offset.setLength(distance);
+    this.zoomAnchorActive = false;
+    this.setNavigationConstraints(object);
+    this.transition = this.createTransition(
+      position.clone().add(offset),
+      position,
+      0.32,
+      false,
+      true,
+    );
   }
 
   public adoptZoomTarget(position: THREE.Vector3, object: SpaceObject): void {
     this.semanticZoomJourney.reset();
     this.transition = null;
-    this.controls.minDistance = getMinimumNavigationDistance(object);
-    this.setTargetInteractionActive(true);
-    this.zoomAnchor.copy(position);
-    this.zoomAnchorActive = true;
+    this.setNavigationConstraints(object);
+    this.adoptZoomAnchor(position);
   }
 
   public cancelFocus(): void {
+    this.completeReferenceFrameTransition();
     this.semanticZoomJourney.reset();
     this.transition = null;
     this.zoomAnchorActive = false;
@@ -273,13 +360,14 @@ export class CameraController {
 
   public releaseTarget(): void {
     this.cancelFocus();
-    this.controls.minDistance = getFreeNavigationMinimumDistance(this.distanceToTarget);
+    this.controls.minDistance = FREE_NAVIGATION_MIN_DISTANCE;
     this.setTargetInteractionActive(false);
   }
 
   public dispose(): void {
     this.controls.removeEventListener('start', this.cancelTransition);
     this.controls.removeEventListener('end', this.handleInteractionEnd);
+    this.canvas.removeEventListener('touchstart', this.handleTouchStart);
     this.controls.dispose();
   }
 
@@ -309,6 +397,7 @@ export class CameraController {
     endTarget: THREE.Vector3,
     duration: number,
     logarithmicDistance: boolean,
+    completeBeforeInteraction = false,
   ): FocusTransition {
     const startCamera = this.camera.position.clone();
     const startTarget = this.controls.target.clone();
@@ -330,32 +419,113 @@ export class CameraController {
       startDistance,
       endDistance,
       logarithmicDistance,
+      completeBeforeInteraction,
       elapsed: 0,
       duration,
     };
   }
 
   private readonly cancelTransition = (): void => {
+    this.completeReferenceFrameTransition();
     this.transition = null;
     this.zoomAnchorActive = false;
   };
 
   private readonly handleInteractionEnd = (): void => {
-    this.onCameraSettled(this.distanceToTarget);
+    const source = this.pinchInteractionActive ? 'pinch' : 'interaction';
+
+    this.pinchInteractionActive = false;
+    this.onCameraSettled(this.distanceToTarget, source);
+  };
+
+  private readonly handleTouchStart = (event: TouchEvent): void => {
+    if (event.touches.length >= 2) {
+      this.pinchInteractionActive = true;
+    }
   };
 
   private setDistance(distance: number): void {
-    const offset = this.camera.position.clone().sub(this.controls.target);
+    const currentDistance = Math.max(this.distanceToTarget, Number.EPSILON);
     const targetDistance = THREE.MathUtils.clamp(
       distance,
       this.controls.minDistance,
       this.controls.maxDistance,
     );
 
-    offset.setLength(targetDistance);
-    this.camera.position.copy(this.controls.target).add(offset);
+    if (this.zoomAnchorActive) {
+      const factor = targetDistance / currentDistance;
+
+      this.camera.position.sub(this.zoomAnchor).multiplyScalar(factor).add(this.zoomAnchor);
+      this.controls.target.sub(this.zoomAnchor).multiplyScalar(factor).add(this.zoomAnchor);
+      this.zoomAnchorActive = false;
+    } else {
+      const offset = this.camera.position.clone().sub(this.controls.target);
+
+      offset.setLength(targetDistance);
+      this.camera.position.copy(this.controls.target).add(offset);
+    }
     this.controls.update();
-    this.onCameraSettled(this.distanceToTarget);
+    this.onCameraSettled(this.distanceToTarget, 'zoom');
+  }
+
+  private completeReferenceFrameTransition(): void {
+    if (!this.transition?.completeBeforeInteraction) {
+      return;
+    }
+
+    this.camera.position.copy(this.transition.endCamera);
+    this.controls.target.copy(this.transition.endTarget);
+    this.transition = null;
+    this.controls.update();
+  }
+
+  private applyZoomDistance(deltaY: number, requestedDistance: number): void {
+    const beforeDistance = this.distanceToTarget;
+    const minimumDistance = this.controls.minDistance;
+    const maximumDistance = this.controls.maxDistance;
+
+    this.setDistance(requestedDistance);
+    const appliedDistance = this.distanceToTarget;
+    const tolerance = Math.max(Number.EPSILON, beforeDistance * 1e-12);
+    const status =
+      requestedDistance < minimumDistance
+        ? 'minimum'
+        : requestedDistance > maximumDistance
+          ? 'maximum'
+          : Math.abs(appliedDistance - beforeDistance) <= tolerance
+            ? 'unchanged'
+            : 'applied';
+
+    this.zoomDiagnostics = {
+      deltaY,
+      beforeDistance,
+      requestedDistance,
+      appliedDistance,
+      minimumDistance,
+      maximumDistance,
+      status,
+    };
+  }
+
+  private recordIgnoredZoom(deltaY: number): void {
+    const distance = this.distanceToTarget;
+
+    this.zoomDiagnostics = {
+      deltaY,
+      beforeDistance: distance,
+      requestedDistance: distance,
+      appliedDistance: distance,
+      minimumDistance: this.controls.minDistance,
+      maximumDistance: this.controls.maxDistance,
+      status: 'ignored',
+    };
+  }
+
+  private moveTargetPreservingOffset(position: THREE.Vector3): void {
+    const offset = this.camera.position.clone().sub(this.controls.target);
+
+    this.controls.target.copy(position);
+    this.camera.position.copy(position).add(offset);
   }
 
   private setTargetInteractionActive(active: boolean): void {

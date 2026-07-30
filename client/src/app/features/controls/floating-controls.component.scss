@@ -110,6 +110,20 @@
   font-size: 0.78rem;
 }
 
+.constellation-icon {
+  width: 21px;
+  height: 17px;
+  overflow: visible;
+  fill: currentcolor;
+
+  path {
+    fill: none;
+    stroke: currentcolor;
+    stroke-width: 1;
+    opacity: 0.72;
+  }
+}
+
 .share-icon {
   font-size: 1rem;
 }

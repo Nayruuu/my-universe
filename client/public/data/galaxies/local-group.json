@@ -1,11 +1,64 @@
 {
-  "version": "1.0.0",
+  "version": "2.0.0",
   "objects": [
+    {
+      "id": "cosmic-web",
+      "name": "Réseau cosmique",
+      "aliases": ["Cosmic Web", "Univers à grande échelle"],
+      "type": "universe",
+      "referenceFrame": "cosmic-web",
+      "scientificConfidence": "calculated",
+      "description": "Carte des groupes de galaxies mesurés par Cosmicflows-4 au-delà du volume local. Les points révèlent statistiquement les filaments et les grandes structures, sans constituer une simulation exhaustive de l’Univers.",
+      "visual": {
+        "color": "#86b6cf",
+        "visualRadius": 1,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [0, 0, 0],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Cosmicflows-4 · Tully et al. 2023, ApJ 944:94, doi:10.3847/1538-4357/ac94d8",
+        "catalogGroups": 37730,
+        "minimumDistanceMpc": 11.1,
+        "maximumDistanceMpc": 772.7,
+        "keywords": "réseau cosmique cosmic web filaments groupes galaxies PGC Cosmicflows",
+        "visualAdaptation": "Distances linéaires compressées ; groupes représentés par des halos ponctuels"
+      }
+    },
+    {
+      "id": "nearby-universe",
+      "name": "Univers proche",
+      "aliases": ["Nearby Universe", "Volume local"],
+      "type": "region",
+      "parentId": "cosmic-web",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "illustrative",
+      "description": "Référentiel cartographique centré sur la Voie lactée, couvrant les principaux groupes du volume local jusqu’à l’amas de la Vierge.",
+      "visual": {
+        "color": "#819ab5",
+        "visualRadius": 1,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [0, 0, 0],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · Mei et al. 2007, ApJ 655:144",
+        "keywords": "univers proche nearby universe volume local amas vierge",
+        "visualAdaptation": "Distances linéaires ; tailles et luminosités adaptées à la lecture"
+      }
+    },
     {
       "id": "local-group",
       "name": "Groupe local",
       "aliases": ["Local Group", "Amas local"],
       "type": "region",
+      "parentId": "nearby-universe",
       "referenceFrame": "local-group",
       "scientificConfidence": "illustrative",
       "description": "Ensemble gravitationnel qui réunit la Voie lactée, Andromède, la galaxie du Triangle et plusieurs dizaines de galaxies naines. Sa limite et son centre sont représentés de manière simplifiée.",
@@ -57,6 +110,8 @@
         "galacticLongitudeDegrees": 121.2,
         "galacticLatitudeDegrees": -21.6,
         "morphology": "Galaxie spirale SA(s)b",
+        "subgroup": "Sous-groupe d’Andromède",
+        "mapLabelRank": 0,
         "keywords": "M31 Messier NGC 224 groupe local",
         "visualAdaptation": "Taille, inclinaison et luminosité adaptées au rendu"
       }
@@ -87,7 +142,13 @@
         "source": "McConnachie 2012, AJ 144:4",
         "distanceKpc": 805,
         "distanceLy": 2625556,
+        "galacticLongitudeDegrees": 121.2,
+        "galacticLatitudeDegrees": -22,
         "morphology": "Elliptique compacte cE",
+        "subgroup": "Sous-groupe d’Andromède",
+        "absoluteMagnitude": -16.4,
+        "halfLightRadiusPc": 110,
+        "mapLabelRank": 7,
         "keywords": "M32 Messier 32 NGC 221 Andromède",
         "visualAdaptation": "Rayon visuel exagéré pour rester sélectionnable"
       }
@@ -118,7 +179,13 @@
         "source": "McConnachie 2012, AJ 144:4",
         "distanceKpc": 824,
         "distanceLy": 2687525,
+        "galacticLongitudeDegrees": 120.7,
+        "galacticLatitudeDegrees": -21.1,
         "morphology": "Elliptique naine dE/dSph",
+        "subgroup": "Sous-groupe d’Andromède",
+        "absoluteMagnitude": -16.5,
+        "halfLightRadiusPc": 590,
+        "mapLabelRank": 8,
         "keywords": "M110 Messier 110 Andromède",
         "visualAdaptation": "Rayon visuel exagéré pour rester sélectionnable"
       }
@@ -149,7 +216,13 @@
         "source": "McConnachie 2012, AJ 144:4",
         "distanceKpc": 676,
         "distanceLy": 2204815,
+        "galacticLongitudeDegrees": 119.8,
+        "galacticLatitudeDegrees": -14.3,
         "morphology": "Elliptique naine dE/dSph",
+        "subgroup": "Sous-groupe d’Andromède",
+        "absoluteMagnitude": -14.6,
+        "halfLightRadiusPc": 623,
+        "mapLabelRank": 10,
         "keywords": "NGC 147 Andromède",
         "visualAdaptation": "Rayon visuel exagéré pour rester sélectionnable"
       }
@@ -180,7 +253,13 @@
         "source": "McConnachie 2012, AJ 144:4",
         "distanceKpc": 617,
         "distanceLy": 2012383,
+        "galacticLongitudeDegrees": 120.8,
+        "galacticLatitudeDegrees": -14.5,
         "morphology": "Elliptique naine dE/dSph",
+        "subgroup": "Sous-groupe d’Andromède",
+        "absoluteMagnitude": -14.8,
+        "halfLightRadiusPc": 458,
+        "mapLabelRank": 11,
         "keywords": "NGC 185 Andromède",
         "visualAdaptation": "Rayon visuel exagéré pour rester sélectionnable"
       }
@@ -213,7 +292,12 @@
         "distanceKpc": 809,
         "distanceLy": 2638602,
         "diameterLy": 60000,
+        "galacticLongitudeDegrees": 133.6,
+        "galacticLatitudeDegrees": -31.3,
         "morphology": "Galaxie spirale SA(s)cd",
+        "subgroup": "Sous-groupe d’Andromède",
+        "absoluteMagnitude": -18.8,
+        "mapLabelRank": 1,
         "keywords": "M33 Messier 33 NGC 598 Triangle",
         "visualAdaptation": "Taille, inclinaison et luminosité adaptées au rendu"
       }
@@ -245,7 +329,13 @@
         "source": "McConnachie 2012, AJ 144:4",
         "distanceKpc": 794,
         "distanceLy": 2589679,
+        "galacticLongitudeDegrees": 119,
+        "galacticLatitudeDegrees": -3.3,
         "morphology": "Naine irrégulière dIrr",
+        "subgroup": "Sous-groupe d’Andromède",
+        "absoluteMagnitude": -15,
+        "halfLightRadiusPc": 612,
+        "mapLabelRank": 9,
         "keywords": "IC 10 UGC 192 Andromède",
         "visualAdaptation": "Rayon visuel exagéré pour rester sélectionnable"
       }
@@ -277,7 +367,12 @@
         "source": "McConnachie 2012, AJ 144:4 · SIMBAD/CDS",
         "distanceKpc": 51,
         "distanceLy": 166340,
+        "galacticLongitudeDegrees": 280.5,
+        "galacticLatitudeDegrees": -32.9,
         "morphology": "Irrégulière barrée SB(s)m",
+        "subgroup": "Sous-groupe de la Voie lactée",
+        "absoluteMagnitude": -18.1,
+        "mapLabelRank": 2,
         "keywords": "LMC Nuage Magellan satellite Voie lactée",
         "visualAdaptation": "Rayon visuel exagéré pour rester lisible"
       }
@@ -309,7 +404,12 @@
         "source": "McConnachie 2012, AJ 144:4",
         "distanceKpc": 64,
         "distanceLy": 208740,
+        "galacticLongitudeDegrees": 302.8,
+        "galacticLatitudeDegrees": -44.3,
         "morphology": "Naine irrégulière dIrr",
+        "subgroup": "Sous-groupe de la Voie lactée",
+        "absoluteMagnitude": -16.8,
+        "mapLabelRank": 3,
         "keywords": "SMC Nuage Magellan NGC 292 satellite Voie lactée",
         "visualAdaptation": "Rayon visuel exagéré pour rester lisible"
       }
@@ -340,7 +440,13 @@
         "source": "McConnachie 2012, AJ 144:4",
         "distanceKpc": 755,
         "distanceLy": 2462478,
+        "galacticLongitudeDegrees": 129.7,
+        "galacticLatitudeDegrees": -60.6,
         "morphology": "Naine irrégulière dIrr",
+        "subgroup": "Galaxies isolées du Groupe local",
+        "absoluteMagnitude": -15.2,
+        "halfLightRadiusPc": 1496,
+        "mapLabelRank": 5,
         "keywords": "IC 1613 UGC 668 groupe local",
         "visualAdaptation": "Rayon visuel exagéré pour rester sélectionnable"
       }
@@ -372,7 +478,13 @@
         "source": "McConnachie 2012, AJ 144:4 · SIMBAD/CDS",
         "distanceKpc": 459,
         "distanceLy": 1497056,
+        "galacticLongitudeDegrees": 25.4,
+        "galacticLatitudeDegrees": -18.4,
         "morphology": "Naine irrégulière IBm",
+        "subgroup": "Galaxies isolées du Groupe local",
+        "absoluteMagnitude": -15.2,
+        "halfLightRadiusPc": 354,
+        "mapLabelRank": 4,
         "keywords": "NGC 6822 IC 4895 Barnard groupe local",
         "visualAdaptation": "Rayon visuel exagéré pour rester sélectionnable"
       }
@@ -403,9 +515,725 @@
         "source": "McConnachie 2012, AJ 144:4",
         "distanceKpc": 933,
         "distanceLy": 3043035,
+        "galacticLongitudeDegrees": 75.9,
+        "galacticLatitudeDegrees": -73.6,
         "morphology": "Naine irrégulière dIrr",
+        "subgroup": "Galaxies isolées du Groupe local",
+        "absoluteMagnitude": -14.2,
+        "halfLightRadiusPc": 2111,
+        "mapLabelRank": 6,
         "keywords": "WLM Wolf Lundmark Melotte DDO 221 groupe local",
         "visualAdaptation": "Rayon visuel exagéré pour rester sélectionnable"
+      }
+    },
+    {
+      "id": "sagittarius-dwarf-spheroidal",
+      "name": "Galaxie naine du Sagittaire",
+      "aliases": ["Sagittarius dSph", "Sagittarius Dwarf Spheroidal"],
+      "type": "galaxy",
+      "parentId": "milky-way",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "observed",
+      "description": "Galaxie sphéroïdale naine très proche, en interaction avec la Voie lactée et étirée en courants stellaires.",
+      "visual": {
+        "color": "#c6b6ad",
+        "visualRadius": 118,
+        "scaleMode": "adaptive",
+        "galaxyShape": "elliptical",
+        "galaxyAxisRatio": 0.36,
+        "galaxyRotationDegrees": 102
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [25.085, -6.378, 2.46],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012 via VizieR J/AJ/144/4",
+        "distanceKpc": 26,
+        "distanceLy": 84801,
+        "galacticLongitudeDegrees": 5.6,
+        "galacticLatitudeDegrees": -14.2,
+        "morphology": "Sphéroïdale naine dSph",
+        "subgroup": "Sous-groupe de la Voie lactée",
+        "absoluteMagnitude": -13.5,
+        "halfLightRadiusPc": 2587,
+        "mapLabelRank": 12,
+        "keywords": "Sagittarius dSph galaxie naine satellite Voie lactée",
+        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+      }
+    },
+    {
+      "id": "fornax-dwarf",
+      "name": "Galaxie naine du Fourneau",
+      "aliases": ["Fornax", "Fornax Dwarf"],
+      "type": "galaxy",
+      "parentId": "milky-way",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "observed",
+      "description": "Galaxie sphéroïdale naine satellite de la Voie lactée, relativement lumineuse et riche en amas globulaires.",
+      "visual": {
+        "color": "#c8bdb4",
+        "visualRadius": 106,
+        "scaleMode": "adaptive",
+        "galaxyShape": "elliptical",
+        "galaxyAxisRatio": 0.7,
+        "galaxyRotationDegrees": 41
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-32.858, -133.976, -50.791],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012 via VizieR J/AJ/144/4",
+        "distanceKpc": 147,
+        "distanceLy": 479450,
+        "galacticLongitudeDegrees": 237.1,
+        "galacticLatitudeDegrees": -65.7,
+        "morphology": "Sphéroïdale naine dSph",
+        "subgroup": "Sous-groupe de la Voie lactée",
+        "absoluteMagnitude": -13.4,
+        "halfLightRadiusPc": 710,
+        "mapLabelRank": 13,
+        "keywords": "Fornax Fourneau galaxie naine satellite Voie lactée",
+        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+      }
+    },
+    {
+      "id": "leo-i",
+      "name": "Leo I",
+      "aliases": ["Regulus Dwarf", "UGC 5470", "DDO 74"],
+      "type": "galaxy",
+      "parentId": "milky-way",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "observed",
+      "description": "Galaxie sphéroïdale naine éloignée du halo de la Voie lactée, projetée près de Régulus dans le ciel.",
+      "visual": {
+        "color": "#bdb8b5",
+        "visualRadius": 82,
+        "scaleMode": "adaptive",
+        "galaxyShape": "elliptical",
+        "galaxyAxisRatio": 0.79,
+        "galaxyRotationDegrees": 79
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-115.525, 191.987, -119.629],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012 via VizieR J/AJ/144/4",
+        "distanceKpc": 254,
+        "distanceLy": 828437,
+        "galacticLongitudeDegrees": 226,
+        "galacticLatitudeDegrees": 49.1,
+        "morphology": "Sphéroïdale naine dSph",
+        "subgroup": "Sous-groupe de la Voie lactée",
+        "absoluteMagnitude": -12,
+        "halfLightRadiusPc": 251,
+        "mapLabelRank": 14,
+        "keywords": "Leo I Regulus Dwarf UGC 5470 satellite Voie lactée",
+        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+      }
+    },
+    {
+      "id": "andromeda-vii",
+      "name": "Andromède VII",
+      "aliases": ["Cassiopeia Dwarf", "Cassiopeia dSph"],
+      "type": "galaxy",
+      "parentId": "andromeda",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "observed",
+      "description": "Galaxie sphéroïdale naine du halo d’Andromède, également appelée naine de Cassiopée.",
+      "visual": {
+        "color": "#b9b7bd",
+        "visualRadius": 86,
+        "scaleMode": "adaptive",
+        "galaxyShape": "elliptical",
+        "galaxyAxisRatio": 0.87,
+        "galaxyRotationDegrees": 94
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [126.634, 155.922, 84.662],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012 via VizieR J/AJ/144/4",
+        "distanceKpc": 762,
+        "distanceLy": 2485312,
+        "galacticLongitudeDegrees": 109.5,
+        "galacticLatitudeDegrees": -10,
+        "morphology": "Sphéroïdale naine dSph",
+        "subgroup": "Sous-groupe d’Andromède",
+        "absoluteMagnitude": -12.6,
+        "halfLightRadiusPc": 776,
+        "mapLabelRank": 15,
+        "keywords": "Andromeda VII Cassiopeia Dwarf satellite M31",
+        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+      }
+    },
+    {
+      "id": "andromeda-ii",
+      "name": "Andromède II",
+      "aliases": ["Andromeda II", "And II"],
+      "type": "galaxy",
+      "parentId": "andromeda",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "observed",
+      "description": "Galaxie sphéroïdale naine étendue appartenant au sous-groupe d’Andromède.",
+      "visual": {
+        "color": "#b7b5bf",
+        "visualRadius": 88,
+        "scaleMode": "adaptive",
+        "galaxyShape": "elliptical",
+        "galaxyAxisRatio": 0.8,
+        "galaxyRotationDegrees": 34
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [19.729, -29.842, -179.785],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012 via VizieR J/AJ/144/4",
+        "distanceKpc": 652,
+        "distanceLy": 2126540,
+        "galacticLongitudeDegrees": 128.9,
+        "galacticLatitudeDegrees": -29.2,
+        "morphology": "Sphéroïdale naine dSph",
+        "subgroup": "Sous-groupe d’Andromède",
+        "absoluteMagnitude": -12.4,
+        "halfLightRadiusPc": 1176,
+        "mapLabelRank": 16,
+        "keywords": "Andromeda II And II satellite M31",
+        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+      }
+    },
+    {
+      "id": "andromeda-i",
+      "name": "Andromède I",
+      "aliases": ["Andromeda I", "And I"],
+      "type": "galaxy",
+      "parentId": "andromeda",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "observed",
+      "description": "Galaxie sphéroïdale naine satellite d’Andromède, découverte sur des plaques photographiques profondes.",
+      "visual": {
+        "color": "#bbb7c0",
+        "visualRadius": 80,
+        "scaleMode": "adaptive",
+        "galaxyShape": "elliptical",
+        "galaxyAxisRatio": 0.78,
+        "galaxyRotationDegrees": 22
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [21.758, -24.25, -47.319],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012 via VizieR J/AJ/144/4",
+        "distanceKpc": 745,
+        "distanceLy": 2429865,
+        "galacticLongitudeDegrees": 121.7,
+        "galacticLatitudeDegrees": -24.8,
+        "morphology": "Sphéroïdale naine dSph",
+        "subgroup": "Sous-groupe d’Andromède",
+        "absoluteMagnitude": -11.7,
+        "halfLightRadiusPc": 672,
+        "mapLabelRank": 17,
+        "keywords": "Andromeda I And I satellite M31",
+        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+      }
+    },
+    {
+      "id": "pegasus-dwarf",
+      "name": "Galaxie naine de Pégase",
+      "aliases": ["Pegasus dIrr", "UGC 12613", "DDO 216"],
+      "type": "galaxy",
+      "parentId": "local-group",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "observed",
+      "description": "Galaxie naine transitionnelle et relativement isolée, située dans la direction de Pégase.",
+      "visual": {
+        "color": "#94aebc",
+        "secondaryColor": "#c3a48d",
+        "visualRadius": 84,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.54,
+        "galaxyRotationDegrees": 120
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-55.749, -634.45, 663.902],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012 via VizieR J/AJ/144/4",
+        "distanceKpc": 920,
+        "distanceLy": 3000639,
+        "galacticLongitudeDegrees": 94.8,
+        "galacticLatitudeDegrees": -43.6,
+        "morphology": "Naine transitionnelle dIrr/dSph",
+        "subgroup": "Galaxies isolées du Groupe local",
+        "absoluteMagnitude": -12.2,
+        "halfLightRadiusPc": 562,
+        "mapLabelRank": 18,
+        "keywords": "Pegasus dIrr Pégase UGC 12613 DDO 216 groupe local",
+        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+      }
+    },
+    {
+      "id": "leo-a",
+      "name": "Leo A",
+      "aliases": ["Leo III", "UGC 5364", "DDO 69"],
+      "type": "galaxy",
+      "parentId": "local-group",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "observed",
+      "description": "Petite galaxie naine irrégulière isolée, riche en gaz et dominée par une population stellaire jeune.",
+      "visual": {
+        "color": "#8dabc2",
+        "secondaryColor": "#c49c7e",
+        "visualRadius": 80,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.6,
+        "galaxyRotationDegrees": 114
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-465.869, 632.247, -141.542],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012 via VizieR J/AJ/144/4",
+        "distanceKpc": 798,
+        "distanceLy": 2602728,
+        "galacticLongitudeDegrees": 196.9,
+        "galacticLatitudeDegrees": 52.4,
+        "morphology": "Naine irrégulière dIrr",
+        "subgroup": "Galaxies isolées du Groupe local",
+        "absoluteMagnitude": -12.1,
+        "halfLightRadiusPc": 499,
+        "mapLabelRank": 19,
+        "keywords": "Leo A Leo III UGC 5364 DDO 69 groupe local",
+        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+      }
+    },
+    {
+      "id": "ugc-4879",
+      "name": "UGC 4879",
+      "aliases": ["VV 124"],
+      "type": "galaxy",
+      "parentId": "local-group",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "observed",
+      "description": "Galaxie naine isolée située vers la périphérie du Groupe local.",
+      "visual": {
+        "color": "#9aaebc",
+        "visualRadius": 74,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.56,
+        "galaxyRotationDegrees": 84
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-961.655, 926.461, 263.079],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012 via VizieR J/AJ/144/4",
+        "distanceKpc": 1361,
+        "distanceLy": 4438988,
+        "galacticLongitudeDegrees": 164.7,
+        "galacticLatitudeDegrees": 42.9,
+        "morphology": "Naine transitionnelle dIrr/dSph",
+        "subgroup": "Galaxies isolées du Groupe local",
+        "absoluteMagnitude": -12.5,
+        "halfLightRadiusPc": 162,
+        "mapLabelRank": 20,
+        "keywords": "UGC 4879 VV 124 périphérie groupe local",
+        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+      }
+    },
+    {
+      "id": "cetus-dwarf",
+      "name": "Galaxie naine de la Baleine",
+      "aliases": ["Cetus", "Cetus Dwarf"],
+      "type": "galaxy",
+      "parentId": "local-group",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "observed",
+      "description": "Galaxie sphéroïdale naine isolée, éloignée des deux grandes spirales du Groupe local.",
+      "visual": {
+        "color": "#b4b3ba",
+        "visualRadius": 82,
+        "scaleMode": "adaptive",
+        "galaxyShape": "elliptical",
+        "galaxyAxisRatio": 0.67,
+        "galaxyRotationDegrees": 63
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-44.26, -721.624, 217.544],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012 via VizieR J/AJ/144/4",
+        "distanceKpc": 755,
+        "distanceLy": 2462481,
+        "galacticLongitudeDegrees": 101.5,
+        "galacticLatitudeDegrees": -72.9,
+        "morphology": "Sphéroïdale naine dSph",
+        "subgroup": "Galaxies isolées du Groupe local",
+        "absoluteMagnitude": -11.2,
+        "halfLightRadiusPc": 703,
+        "mapLabelRank": 21,
+        "keywords": "Cetus Baleine galaxie naine groupe local",
+        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+      }
+    },
+    {
+      "id": "sagittarius-dwarf-irregular",
+      "name": "Galaxie naine irrégulière du Sagittaire",
+      "aliases": ["Sagittarius dIrr", "SagDIG", "UKS 1927-177"],
+      "type": "galaxy",
+      "parentId": "local-group",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "observed",
+      "description": "Galaxie naine irrégulière isolée, distincte de la naine sphéroïdale satellite de la Voie lactée.",
+      "visual": {
+        "color": "#88a9bc",
+        "secondaryColor": "#c29377",
+        "visualRadius": 76,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.5,
+        "galaxyRotationDegrees": 90
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [955.449, -299.471, 368.677],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012 via VizieR J/AJ/144/4",
+        "distanceKpc": 1067,
+        "distanceLy": 3480089,
+        "galacticLongitudeDegrees": 21.1,
+        "galacticLatitudeDegrees": -16.3,
+        "morphology": "Naine irrégulière dIrr",
+        "subgroup": "Galaxies isolées du Groupe local",
+        "absoluteMagnitude": -11.5,
+        "halfLightRadiusPc": 282,
+        "mapLabelRank": 22,
+        "keywords": "Sagittarius dIrr SagDIG UKS 1927-177 groupe local",
+        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+      }
+    },
+    {
+      "id": "aquarius-dwarf",
+      "name": "Galaxie naine du Verseau",
+      "aliases": ["Aquarius", "DDO 210"],
+      "type": "galaxy",
+      "parentId": "local-group",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "observed",
+      "description": "Galaxie naine transitionnelle isolée, aussi cataloguée DDO 210.",
+      "visual": {
+        "color": "#96aeb8",
+        "secondaryColor": "#b99b82",
+        "visualRadius": 72,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.5,
+        "galaxyRotationDegrees": 99
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [759.382, -556.924, 512.209],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012 via VizieR J/AJ/144/4",
+        "distanceKpc": 1072,
+        "distanceLy": 3496396,
+        "galacticLongitudeDegrees": 34,
+        "galacticLatitudeDegrees": -31.3,
+        "morphology": "Naine transitionnelle dIrr/dSph",
+        "subgroup": "Galaxies isolées du Groupe local",
+        "absoluteMagnitude": -10.6,
+        "halfLightRadiusPc": 458,
+        "mapLabelRank": 23,
+        "keywords": "Aquarius Verseau DDO 210 groupe local",
+        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+      }
+    },
+    {
+      "id": "phoenix-dwarf",
+      "name": "Galaxie naine du Phénix",
+      "aliases": ["Phoenix", "Phoenix Dwarf"],
+      "type": "galaxy",
+      "parentId": "local-group",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "observed",
+      "description": "Galaxie naine transitionnelle située entre les populations irrégulières riches en gaz et sphéroïdales.",
+      "visual": {
+        "color": "#a7aeb3",
+        "secondaryColor": "#c29b7c",
+        "visualRadius": 70,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.6,
+        "galaxyRotationDegrees": 5
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [5.735, -387.176, -149.289],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012 via VizieR J/AJ/144/4",
+        "distanceKpc": 415,
+        "distanceLy": 1353549,
+        "galacticLongitudeDegrees": 272.2,
+        "galacticLatitudeDegrees": -68.9,
+        "morphology": "Naine transitionnelle dIrr/dSph",
+        "subgroup": "Galaxies isolées du Groupe local",
+        "absoluteMagnitude": -9.9,
+        "halfLightRadiusPc": 454,
+        "mapLabelRank": 24,
+        "keywords": "Phoenix Phénix galaxie naine groupe local",
+        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+      }
+    },
+    {
+      "id": "sculptor-dwarf",
+      "name": "Galaxie naine du Sculpteur",
+      "aliases": ["Sculptor", "Sculptor Dwarf"],
+      "type": "galaxy",
+      "parentId": "milky-way",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "observed",
+      "description": "Galaxie sphéroïdale naine classique du halo de la Voie lactée.",
+      "visual": {
+        "color": "#b9b2b0",
+        "visualRadius": 72,
+        "scaleMode": "adaptive",
+        "galaxyShape": "elliptical",
+        "galaxyAxisRatio": 0.68,
+        "galaxyRotationDegrees": 99
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [3.062, -85.395, -9.711],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012 via VizieR J/AJ/144/4",
+        "distanceKpc": 86,
+        "distanceLy": 280494,
+        "galacticLongitudeDegrees": 287.5,
+        "galacticLatitudeDegrees": -83.2,
+        "morphology": "Sphéroïdale naine dSph",
+        "subgroup": "Sous-groupe de la Voie lactée",
+        "absoluteMagnitude": -11.1,
+        "halfLightRadiusPc": 283,
+        "mapLabelRank": 25,
+        "keywords": "Sculptor Sculpteur galaxie naine satellite Voie lactée",
+        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+      }
+    },
+    {
+      "id": "lgs-3",
+      "name": "LGS 3",
+      "aliases": ["Pisces I", "Local Group Suspect 3"],
+      "type": "galaxy",
+      "parentId": "andromeda",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "observed",
+      "description": "Galaxie naine transitionnelle du sous-groupe d’Andromède, située dans la direction des Poissons.",
+      "visual": {
+        "color": "#a2adb4",
+        "secondaryColor": "#bc9d84",
+        "visualRadius": 70,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.8,
+        "galaxyRotationDegrees": 0
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [28.948, -215.254, -157.292],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012 via VizieR J/AJ/144/4",
+        "distanceKpc": 769,
+        "distanceLy": 2508143,
+        "galacticLongitudeDegrees": 126.8,
+        "galacticLatitudeDegrees": -40.9,
+        "morphology": "Naine transitionnelle dIrr/dSph",
+        "subgroup": "Sous-groupe d’Andromède",
+        "absoluteMagnitude": -10.1,
+        "halfLightRadiusPc": 470,
+        "mapLabelRank": 26,
+        "keywords": "LGS 3 Pisces I Local Group Suspect 3 Andromède",
+        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+      }
+    },
+    {
+      "id": "tucana-dwarf",
+      "name": "Galaxie naine du Toucan",
+      "aliases": ["Tucana", "Tucana Dwarf"],
+      "type": "galaxy",
+      "parentId": "local-group",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "observed",
+      "description": "Galaxie sphéroïdale naine isolée proche de la périphérie du Groupe local.",
+      "visual": {
+        "color": "#b1afb8",
+        "visualRadius": 66,
+        "scaleMode": "adaptive",
+        "galaxyShape": "elliptical",
+        "galaxyAxisRatio": 0.52,
+        "galaxyRotationDegrees": 97
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [478.861, -652.918, -362.159],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012 via VizieR J/AJ/144/4",
+        "distanceKpc": 887,
+        "distanceLy": 2893007,
+        "galacticLongitudeDegrees": 322.9,
+        "galacticLatitudeDegrees": -47.4,
+        "morphology": "Sphéroïdale naine dSph",
+        "subgroup": "Galaxies isolées du Groupe local",
+        "absoluteMagnitude": -9.5,
+        "halfLightRadiusPc": 284,
+        "mapLabelRank": 27,
+        "keywords": "Tucana Toucan galaxie naine groupe local",
+        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+      }
+    },
+    {
+      "id": "draco-dwarf",
+      "name": "Galaxie naine du Dragon",
+      "aliases": ["Draco", "Draco Dwarf", "UGC 10822", "DDO 208"],
+      "type": "galaxy",
+      "parentId": "milky-way",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "observed",
+      "description": "Galaxie sphéroïdale naine satellite de la Voie lactée dans la direction du Dragon.",
+      "visual": {
+        "color": "#b4b1b7",
+        "visualRadius": 64,
+        "scaleMode": "adaptive",
+        "galaxyShape": "elliptical",
+        "galaxyAxisRatio": 0.69,
+        "galaxyRotationDegrees": 89
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [3.923, 43.265, 62.36],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012 via VizieR J/AJ/144/4",
+        "distanceKpc": 76,
+        "distanceLy": 247879,
+        "galacticLongitudeDegrees": 86.4,
+        "galacticLatitudeDegrees": 34.7,
+        "morphology": "Sphéroïdale naine dSph",
+        "subgroup": "Sous-groupe de la Voie lactée",
+        "absoluteMagnitude": -8.8,
+        "halfLightRadiusPc": 221,
+        "mapLabelRank": 28,
+        "keywords": "Draco Dragon UGC 10822 DDO 208 satellite Voie lactée",
+        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+      }
+    },
+    {
+      "id": "ursa-minor-dwarf",
+      "name": "Galaxie naine de la Petite Ourse",
+      "aliases": ["Ursa Minor", "Ursa Minor Dwarf", "UGC 9749", "DDO 199"],
+      "type": "galaxy",
+      "parentId": "milky-way",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "observed",
+      "description": "Galaxie sphéroïdale naine satellite de la Voie lactée dans la direction de la Petite Ourse.",
+      "visual": {
+        "color": "#b2afb8",
+        "visualRadius": 62,
+        "scaleMode": "adaptive",
+        "galaxyShape": "elliptical",
+        "galaxyAxisRatio": 0.44,
+        "galaxyRotationDegrees": 53
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-13.957, 53.552, 52.09],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012 via VizieR J/AJ/144/4",
+        "distanceKpc": 76,
+        "distanceLy": 247879,
+        "galacticLongitudeDegrees": 105,
+        "galacticLatitudeDegrees": 44.8,
+        "morphology": "Sphéroïdale naine dSph",
+        "subgroup": "Sous-groupe de la Voie lactée",
+        "absoluteMagnitude": -8.8,
+        "halfLightRadiusPc": 181,
+        "mapLabelRank": 29,
+        "keywords": "Ursa Minor Petite Ourse UGC 9749 DDO 199 satellite Voie lactée",
+        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+      }
+    },
+    {
+      "id": "leo-t",
+      "name": "Leo T",
+      "aliases": ["Leo T Dwarf"],
+      "type": "galaxy",
+      "parentId": "local-group",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "observed",
+      "description": "Très petite galaxie naine transitionnelle contenant encore du gaz et des étoiles jeunes.",
+      "visual": {
+        "color": "#9caeb5",
+        "secondaryColor": "#b99880",
+        "visualRadius": 58,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 1,
+        "galaxyRotationDegrees": 0
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-247.257, 288.098, -172.489],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012 via VizieR J/AJ/144/4",
+        "distanceKpc": 417,
+        "distanceLy": 1360072,
+        "galacticLongitudeDegrees": 214.9,
+        "galacticLatitudeDegrees": 43.7,
+        "morphology": "Naine transitionnelle dIrr/dSph",
+        "subgroup": "Galaxies isolées du Groupe local",
+        "absoluteMagnitude": -8,
+        "halfLightRadiusPc": 120,
+        "mapLabelRank": 30,
+        "keywords": "Leo T galaxie naine groupe local",
+        "visualAdaptation": "Silhouette et rayon visuel fortement exagérés pour la sélection"
       }
     }
   ]

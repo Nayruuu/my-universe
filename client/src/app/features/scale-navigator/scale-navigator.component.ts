@@ -18,7 +18,19 @@ export class ScaleNavigatorComponent {
   protected readonly navigationScales = NAVIGATION_SCALES;
 
   protected scaleLabel(): string {
-    return getNavigationScaleForLod(this.facade.lodLevel()).label;
+    const lodLevel = this.facade.lodLevel();
+    const defaultLabel = getNavigationScaleForLod(lodLevel).label;
+    const target = this.facade.objects().find((object) => object.id === this.facade.targetId());
+
+    if (target?.type === 'black-hole') {
+      return 'Trou noir';
+    }
+
+    if (lodLevel !== 3) {
+      return defaultLabel;
+    }
+
+    return target?.type === 'galaxy' ? target.name : defaultLabel;
   }
 
   protected toggleMenu(): void {

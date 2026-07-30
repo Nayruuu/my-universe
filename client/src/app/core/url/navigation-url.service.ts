@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import {
   GraphicQuality,
+  LabelDensity,
   NavigationState,
   TemporalMode,
 } from '../../../data/models/universe.models';
@@ -53,6 +54,7 @@ export function parseNavigationState(url: URL): Partial<NavigationState> {
   const params = url.searchParams;
   const mode = parseMode(params.get('mode'));
   const quality = parseQuality(params.get('quality'));
+  const labelDensity = parseLabelDensity(params.get('density'));
   const time = parseTime(params.get('time'));
   const zoom = parseFiniteNumber(params.get('zoom'));
 
@@ -63,7 +65,11 @@ export function parseNavigationState(url: URL): Partial<NavigationState> {
     ...(zoom !== null && zoom > 0 ? { zoom } : {}),
     ...(mode ? { mode } : {}),
     ...(quality ? { quality } : {}),
+    ...(labelDensity ? { labelDensity } : {}),
     ...(params.has('orbits') ? { showOrbits: params.get('orbits') !== '0' } : {}),
+    ...(params.has('constellations')
+      ? { showConstellations: params.get('constellations') !== '0' }
+      : {}),
     ...(params.has('labels') ? { showLabels: params.get('labels') !== '0' } : {}),
   };
 }
@@ -82,7 +88,9 @@ export function serializeNavigationState(state: NavigationState, baseUrl: URL): 
   params.set('zoom', state.zoom.toFixed(2));
   params.set('mode', state.mode);
   params.set('quality', state.quality);
+  params.set('density', state.labelDensity);
   params.set('orbits', state.showOrbits ? '1' : '0');
+  params.set('constellations', state.showConstellations ? '1' : '0');
   params.set('labels', state.showLabels ? '1' : '0');
 
   return url;
@@ -108,6 +116,10 @@ function parseMode(value: string | null): TemporalMode | null {
 
 function parseQuality(value: string | null): GraphicQuality | null {
   return value === 'low' || value === 'medium' || value === 'high' ? value : null;
+}
+
+function parseLabelDensity(value: string | null): LabelDensity | null {
+  return value === 'minimal' || value === 'balanced' || value === 'dense' ? value : null;
 }
 
 function parseFiniteNumber(value: string | null): number | null {

@@ -1,0 +1,89 @@
+{
+  "version": "2.0.0",
+  "objects": [
+    {
+      "id": "lv-agc238890",
+      "name": "AGC238890",
+      "aliases": [],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#9eb8c8",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 21.85,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.63,
+        "galaxyRotationDegrees": 40
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-5.661938, 2.887093, -2.418088],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 6.8,
+        "distanceLy": 22178634,
+        "rightAscensionDegrees": 203.12625,
+        "declinationDegrees": 25.12361111,
+        "angularDiameterArcmin": 0.83,
+        "diameterLy": 5355,
+        "apparentMagnitudeB": 16.6,
+        "morphologicalType": 9,
+        "morphology": "BCD",
+        "distanceMethod": "TF",
+        "nearbyUniverseLabelRank": 556,
+        "nearbyUniversePointBatch": true,
+        "keywords": "AGC238890 AGC238890 BCD Local Volume"
+      }
+    },
+    {
+      "id": "lv-agc732602",
+      "name": "AGC732602",
+      "aliases": [],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#9eb8c8",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 20.74,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.43,
+        "galaxyRotationDegrees": 30
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-6.163292, 2.944949, -2.276203],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 7.2,
+        "distanceLy": 23483259,
+        "rightAscensionDegrees": 200.27,
+        "declinationDegrees": 24.14333333,
+        "angularDiameterArcmin": 0.62,
+        "diameterLy": 4235,
+        "apparentMagnitudeB": 17.1,
+        "morphologicalType": 10,
+        "morphology": "Ir",
+        "distanceMethod": "TF",
+        "nearbyUniverseLabelRank": 622,
+        "nearbyUniversePointBatch": true,
+        "keywords": "AGC732602 AGC732602 Ir Local Volume"
+      }
+    }
+  ]
+}

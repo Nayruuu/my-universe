@@ -1,0 +1,153 @@
+{
+  "version": "1.0.0",
+  "objects": [
+    {
+      "id": "ngc-4945",
+      "name": "NGC 4945",
+      "aliases": ["Caldwell 83"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Grande spirale vue par la tranche, membre lumineux du groupe Centaurus A.",
+      "visual": {
+        "color": "#a8b5c1",
+        "secondaryColor": "#bd956e",
+        "visualRadius": 69,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.19,
+        "galaxyRotationDegrees": 42
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-2.3694, -2.8883, -0.6955],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "distanceMpc": 3.8,
+        "distanceLy": 12394236,
+        "rightAscensionDegrees": 196.35875,
+        "declinationDegrees": -49.471111,
+        "diameterLy": 112133,
+        "morphology": "Spirale SB(s)cd",
+        "absoluteMagnitude": -20.5,
+        "subgroup": "Groupe Centaurus A",
+        "nearbyUniverseLabelRank": 9,
+        "keywords": "NGC 4945 Caldwell 83 Centaurus"
+      }
+    },
+    {
+      "id": "ngc-5102",
+      "name": "NGC 5102",
+      "aliases": ["Caldwell 77A"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie lenticulaire voisine de Centaurus A, dominée par une population stellaire ancienne.",
+      "visual": {
+        "color": "#c5bea9",
+        "secondaryColor": "#a69a87",
+        "visualRadius": 27,
+        "scaleMode": "adaptive",
+        "galaxyShape": "elliptical",
+        "galaxyAxisRatio": 0.32,
+        "galaxyRotationDegrees": -21
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-2.5559, -2.0286, -0.9551],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "distanceMpc": 3.4,
+        "distanceLy": 11089290,
+        "rightAscensionDegrees": 200.490833,
+        "declinationDegrees": -36.629722,
+        "diameterLy": 43834,
+        "morphology": "Lenticulaire S0",
+        "absoluteMagnitude": -18.1,
+        "subgroup": "Groupe Centaurus A",
+        "nearbyUniverseLabelRank": 19,
+        "keywords": "NGC 5102 Centaurus"
+      }
+    },
+    {
+      "id": "centaurus-a",
+      "name": "Centaurus A",
+      "aliases": ["NGC 5128", "Caldwell 77"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Radiogalaxie elliptique traversée par une bande de poussière, dominante dans son groupe.",
+      "visual": {
+        "color": "#c7b99e",
+        "secondaryColor": "#765f4c",
+        "visualRadius": 85,
+        "scaleMode": "adaptive",
+        "galaxyShape": "elliptical",
+        "galaxyAxisRatio": 0.78,
+        "galaxyRotationDegrees": 24
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-2.5533, -2.5583, -0.9991],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "distanceMpc": 3.75,
+        "distanceLy": 12231158,
+        "rightAscensionDegrees": 201.370417,
+        "declinationDegrees": -43.016667,
+        "diameterLy": 139124,
+        "morphology": "Elliptique particulière S0 pec",
+        "absoluteMagnitude": -20.8,
+        "subgroup": "Groupe Centaurus A",
+        "nearbyUniverseLabelRank": 2,
+        "keywords": "Centaurus A NGC 5128 Caldwell 77 radiogalaxie"
+      }
+    },
+    {
+      "id": "southern-pinwheel",
+      "name": "M83",
+      "aliases": ["Messier 83", "NGC 5236", "Moulinet austral"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Grande spirale barrée presque vue de face, surnommée le Moulinet austral.",
+      "visual": {
+        "color": "#aebed2",
+        "secondaryColor": "#d6ad78",
+        "visualRadius": 56,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.89,
+        "galaxyRotationDegrees": -18
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-3.89, -2.4502, -1.7524],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "distanceMpc": 4.92,
+        "distanceLy": 16047150,
+        "rightAscensionDegrees": 204.250417,
+        "declinationDegrees": -29.867778,
+        "diameterLy": 91951,
+        "morphology": "Spirale barrée SAB(s)c",
+        "absoluteMagnitude": -20.6,
+        "subgroup": "Complexe Centaurus A / M83",
+        "nearbyUniverseLabelRank": 4,
+        "keywords": "M83 Messier 83 NGC 5236 Southern Pinwheel"
+      }
+    }
+  ]
+}
