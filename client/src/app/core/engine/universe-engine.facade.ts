@@ -3,6 +3,7 @@ import {
   DisplayOptions,
   EngineDebugStats,
   GraphicQuality,
+  LabelDensity,
   NavigationState,
   SolarEclipseState,
   SpaceObject,
@@ -84,8 +85,10 @@ export class UniverseEngineFacade {
   );
   public readonly displayOptions = signal<DisplayOptions>({
     showOrbits: true,
+    showConstellations: true,
     showLabels: true,
     quality: 'medium',
+    labelDensity: 'balanced',
     temporalMode: 'state',
   });
   public readonly selectedObject = computed(() => {
@@ -320,8 +323,18 @@ export class UniverseEngineFacade {
     this.updateDisplayOptions({ showLabels: !this.displayOptions().showLabels });
   }
 
+  public toggleConstellations(): void {
+    this.updateDisplayOptions({
+      showConstellations: !this.displayOptions().showConstellations,
+    });
+  }
+
   public setQuality(quality: GraphicQuality): void {
     this.updateDisplayOptions({ quality });
+  }
+
+  public setLabelDensity(labelDensity: LabelDensity): void {
+    this.updateDisplayOptions({ labelDensity });
   }
 
   public setTemporalMode(temporalMode: TemporalMode): void {
@@ -457,8 +470,10 @@ export class UniverseEngineFacade {
     this.unsubscribeEngine = this.engine.subscribe((event) => this.handleEngineEvent(event));
     const options: DisplayOptions = {
       showOrbits: this.initialNavigation.showOrbits ?? true,
+      showConstellations: this.initialNavigation.showConstellations ?? true,
       showLabels: this.initialNavigation.showLabels ?? true,
       quality: this.initialNavigation.quality ?? this.engine.recommendedQuality,
+      labelDensity: this.initialNavigation.labelDensity ?? 'balanced',
       temporalMode: this.initialNavigation.mode ?? 'state',
     };
 
@@ -478,6 +493,7 @@ export class UniverseEngineFacade {
       const target = this.engine.hasObject(requestedTarget) ? requestedTarget : 'earth';
 
       await this.engine.setTarget(target, this.initialNavigation.zoom);
+      this.engine.completeTargetTransition();
 
       if (
         this.initialNavigation.selectedId === null ||
@@ -517,6 +533,9 @@ export class UniverseEngineFacade {
       case 'data-ready':
         this.objects.set(event.objects);
         this.searchService.setData(event.objects, event.catalogEntries);
+        break;
+      case 'objects-changed':
+        this.objects.set(event.objects);
         break;
       case 'object-selected':
         this.selectedId.set(event.objectId);
@@ -579,7 +598,9 @@ export class UniverseEngineFacade {
       zoom: this.cameraDistance() || this.engine.cameraDistance || 24,
       mode: this.displayOptions().temporalMode,
       quality: this.displayOptions().quality,
+      labelDensity: this.displayOptions().labelDensity,
       showOrbits: this.displayOptions().showOrbits,
+      showConstellations: this.displayOptions().showConstellations,
       showLabels: this.displayOptions().showLabels,
     };
   }

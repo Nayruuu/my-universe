@@ -1,0 +1,153 @@
+{
+  "version": "1.0.0",
+  "objects": [
+    {
+      "id": "ngc-55",
+      "name": "NGC 55",
+      "aliases": ["Caldwell 72"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Grande galaxie vue presque par la tranche, située au premier plan du groupe du Sculpteur.",
+      "visual": {
+        "color": "#a9bdd2",
+        "secondaryColor": "#c5ae85",
+        "visualRadius": 43,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.17,
+        "galaxyRotationDegrees": 18
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [1.6466, -1.3468, 0.1089],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "distanceMpc": 2.13,
+        "distanceLy": 6948247,
+        "rightAscensionDegrees": 3.785417,
+        "declinationDegrees": -39.220278,
+        "diameterLy": 70817,
+        "morphology": "Magellanique SB(s)m",
+        "absoluteMagnitude": -18.4,
+        "subgroup": "Groupe du Sculpteur",
+        "nearbyUniverseLabelRank": 12,
+        "keywords": "NGC 55 Caldwell 72 Sculptor"
+      }
+    },
+    {
+      "id": "ngc-300",
+      "name": "NGC 300",
+      "aliases": ["Caldwell 70"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie spirale diffuse, proche en apparence et en distance de NGC 55.",
+      "visual": {
+        "color": "#9eb9d4",
+        "secondaryColor": "#d4bb91",
+        "visualRadius": 32,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.71,
+        "galaxyRotationDegrees": -28
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [1.653, -1.3143, 0.4036],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "distanceMpc": 2.15,
+        "distanceLy": 7013475,
+        "rightAscensionDegrees": 13.722917,
+        "declinationDegrees": -37.6825,
+        "diameterLy": 52349,
+        "morphology": "Spirale SA(s)d",
+        "absoluteMagnitude": -17.9,
+        "subgroup": "Groupe du Sculpteur",
+        "nearbyUniverseLabelRank": 13,
+        "keywords": "NGC 300 Caldwell 70 Sculptor"
+      }
+    },
+    {
+      "id": "ngc-247",
+      "name": "NGC 247",
+      "aliases": ["Caldwell 62"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Spirale intermédiaire du groupe du Sculpteur, reconnaissable à son disque incliné.",
+      "visual": {
+        "color": "#9caec2",
+        "secondaryColor": "#c8b28e",
+        "visualRadius": 52,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.32,
+        "galaxyRotationDegrees": 38
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [3.3411, -1.2938, 0.697],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "distanceMpc": 3.65,
+        "distanceLy": 11904923,
+        "rightAscensionDegrees": 11.784583,
+        "declinationDegrees": -20.76,
+        "diameterLy": 84510,
+        "morphology": "Spirale SAB(s)d",
+        "absoluteMagnitude": -18.5,
+        "subgroup": "Groupe du Sculpteur",
+        "nearbyUniverseLabelRank": 18,
+        "keywords": "NGC 247 Caldwell 62 Sculptor"
+      }
+    },
+    {
+      "id": "sculptor-galaxy",
+      "name": "Galaxie du Sculpteur",
+      "aliases": ["NGC 253", "Caldwell 65", "Silver Coin Galaxy"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "L’une des galaxies spirales les plus brillantes au-delà du Groupe local, siège d’une forte formation d’étoiles.",
+      "visual": {
+        "color": "#b2bfd0",
+        "secondaryColor": "#d1aa74",
+        "visualRadius": 82,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.22,
+        "galaxyRotationDegrees": -12
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [3.4858, -1.6833, 0.7341],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "distanceMpc": 3.94,
+        "distanceLy": 12850731,
+        "rightAscensionDegrees": 11.892917,
+        "declinationDegrees": -25.292222,
+        "diameterLy": 133164,
+        "morphology": "Spirale SAB(s)c",
+        "absoluteMagnitude": -21.3,
+        "subgroup": "Groupe du Sculpteur",
+        "nearbyUniverseLabelRank": 3,
+        "keywords": "NGC 253 Caldwell 65 Sculptor starburst"
+      }
+    }
+  ]
+}

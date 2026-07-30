@@ -1,0 +1,169 @@
+{
+  "version": "2.0.0",
+  "objects": [
+    {
+      "id": "lv-ngc3344",
+      "name": "NGC 3344",
+      "aliases": ["NGC3344"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 35.67,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.9,
+        "galaxyRotationDegrees": 77
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-5.869224, 2.886656, 2.035174],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 6.85,
+        "distanceLy": 22341712,
+        "rightAscensionDegrees": 160.87583333,
+        "declinationDegrees": 24.92361111,
+        "angularDiameterArcmin": 7.59,
+        "diameterLy": 49327,
+        "apparentMagnitudeB": 10.45,
+        "morphologicalType": 4,
+        "distanceMethod": "h",
+        "nearbyUniverseLabelRank": 123,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC3344 NGC 3344 Local Volume"
+      }
+    },
+    {
+      "id": "lv-ngc3351",
+      "name": "NGC 3351",
+      "aliases": ["NGC3351"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 35.35,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.68,
+        "galaxyRotationDegrees": 67
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-9.30437, 2.038633, 3.205492],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 10.05,
+        "distanceLy": 32778716,
+        "rightAscensionDegrees": 160.99041667,
+        "declinationDegrees": 11.70361111,
+        "angularDiameterArcmin": 7.24,
+        "diameterLy": 69033,
+        "apparentMagnitudeB": 10.58,
+        "morphologicalType": 3,
+        "distanceMethod": "Cep",
+        "nearbyUniverseLabelRank": 127,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC3351 NGC 3351 Local Volume"
+      }
+    },
+    {
+      "id": "lv-ngc3377",
+      "name": "NGC 3377",
+      "aliases": ["NGC3377"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#d0bea1",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 33.52,
+        "scaleMode": "adaptive",
+        "galaxyShape": "elliptical",
+        "galaxyAxisRatio": 0.58,
+        "galaxyRotationDegrees": 99
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-10.064251, 2.636699, 3.284321],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 10.91,
+        "distanceLy": 35583661,
+        "rightAscensionDegrees": 161.92666667,
+        "declinationDegrees": 13.98555556,
+        "angularDiameterArcmin": 5.25,
+        "diameterLy": 54342,
+        "apparentMagnitudeB": 11.24,
+        "morphologicalType": -2,
+        "distanceMethod": "SBF",
+        "nearbyUniverseLabelRank": 146,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC3377 NGC 3377 Local Volume"
+      }
+    },
+    {
+      "id": "lv-ngc3412",
+      "name": "NGC 3412",
+      "aliases": ["NGC3412"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#d0bea1",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 32.51,
+        "scaleMode": "adaptive",
+        "galaxyShape": "elliptical",
+        "galaxyAxisRatio": 0.56,
+        "galaxyRotationDegrees": 103
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-9.659858, 2.412336, 3.004627],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 10.4,
+        "distanceLy": 33920263,
+        "rightAscensionDegrees": 162.72208333,
+        "declinationDegrees": 13.41222222,
+        "angularDiameterArcmin": 3.98,
+        "diameterLy": 39271,
+        "apparentMagnitudeB": 11.44,
+        "morphologicalType": -1,
+        "distanceMethod": "mem",
+        "nearbyUniverseLabelRank": 152,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC3412 NGC 3412 Local Volume"
+      }
+    }
+  ]
+}

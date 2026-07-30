@@ -1,0 +1,39 @@
+{
+  "version": "2.0.0",
+  "sourceCatalog": "hyg-v41-bright-stars",
+  "referenceEpochJulianDay": 2451545,
+  "tiles": [
+    {
+      "id": "c-n3-p0-n1",
+      "parentId": "r-n2-p0-n1",
+      "version": "2.0.0",
+      "sourceCatalog": "hyg-v41-bright-stars",
+      "sourceStarCount": 1,
+      "referenceEpochJulianDay": 2451545,
+      "lodLevel": 3,
+      "cellSizeParsec": 40,
+      "clusterCount": 1,
+      "cellCoordinates": [-19, 2, -5],
+      "positionsParsec": [-738.9266967773438, 110.76300811767578, -182.8524932861328],
+      "starCounts": [1],
+      "apparentMagnitudes": [6.519999980926514],
+      "colorIndicesBv": [1.7200000286102295]
+    },
+    {
+      "id": "c-n3-p0-n2",
+      "parentId": "r-n2-p0-n1",
+      "version": "2.0.0",
+      "sourceCatalog": "hyg-v41-bright-stars",
+      "sourceStarCount": 1,
+      "referenceEpochJulianDay": 2451545,
+      "lodLevel": 3,
+      "cellSizeParsec": 40,
+      "clusterCount": 1,
+      "cellCoordinates": [-17, 7, -10],
+      "positionsParsec": [-642.0222778320312, 305.79400634765625, -394.0547180175781],
+      "starCounts": [1],
+      "apparentMagnitudes": [5.519999980926515],
+      "colorIndicesBv": [0.2770000100135803]
+    }
+  ]
+}

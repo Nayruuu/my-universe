@@ -23,6 +23,7 @@ const engineInstances: FakeUniverseEngine[] = [];
 class FakeUniverseEngine {
   public readonly dispose = vi.fn();
   public readonly setTarget = vi.fn(async () => undefined);
+  public readonly completeTargetTransition = vi.fn();
   public readonly clearSolarEclipsePresentation = vi.fn();
   public readonly viewOrbit = vi.fn();
   public readonly viewScale = vi.fn();
@@ -274,14 +275,20 @@ describe('UniverseEngineFacade', () => {
     expect(engine.subscribe).toHaveBeenCalledOnce();
     expect(engine.initialize).toHaveBeenCalledWith(container, {
       showOrbits: true,
+      showConstellations: true,
       showLabels: true,
       quality: 'high',
+      labelDensity: 'balanced',
       temporalMode: 'state',
     });
     expect(facade.currentTime()).toEqual(engine.currentTime);
     expect(engine.setTimeSpeed).toHaveBeenCalledWith(1);
     expect(engine.setTarget).toHaveBeenCalledWith('earth', undefined);
+    expect(engine.completeTargetTransition).toHaveBeenCalledOnce();
     expect(engine.start).toHaveBeenCalledOnce();
+    expect(engine.completeTargetTransition.mock.invocationCallOrder[0]).toBeLessThan(
+      engine.start.mock.invocationCallOrder[0]!,
+    );
     expect(facade.ready()).toBe(true);
     expect(urlService.scheduleWrite).toHaveBeenCalledOnce();
   });
@@ -294,7 +301,9 @@ describe('UniverseEngineFacade', () => {
       zoom: 12,
       mode: 'observable',
       quality: 'low',
+      labelDensity: 'dense',
       showOrbits: false,
+      showConstellations: false,
       showLabels: false,
     });
     engine.hasObject.mockReturnValue(false);
@@ -308,8 +317,10 @@ describe('UniverseEngineFacade', () => {
 
     expect(facade.displayOptions()).toEqual({
       showOrbits: false,
+      showConstellations: false,
       showLabels: false,
       quality: 'low',
+      labelDensity: 'dense',
       temporalMode: 'observable',
     });
     expect(engine.setTime).toHaveBeenCalledWith({ julianDay: 2_461_265 });
@@ -501,20 +512,24 @@ describe('UniverseEngineFacade', () => {
 
   it('met à jour toutes les options d’affichage et avertit le mode observable', () => {
     facade.toggleOrbits();
+    facade.toggleConstellations();
     facade.toggleLabels();
     facade.setQuality('low');
+    facade.setLabelDensity('dense');
     facade.setTemporalMode('state');
     expect(facade.performanceWarning()).toBeNull();
     facade.setTemporalMode('observable');
 
     expect(facade.displayOptions()).toEqual({
       showOrbits: false,
+      showConstellations: false,
       showLabels: false,
       quality: 'low',
+      labelDensity: 'dense',
       temporalMode: 'observable',
     });
     expect(facade.performanceWarning()).toContain('Vue observable');
-    expect(engine.setDisplayOptions).toHaveBeenCalledTimes(5);
+    expect(engine.setDisplayOptions).toHaveBeenCalledTimes(7);
   });
 
   it('rend les panneaux mutuellement exclusifs', async () => {
@@ -676,9 +691,11 @@ describe('UniverseEngineFacade', () => {
   it('réagit à chaque événement publié par le moteur', async () => {
     facade.ready.set(true);
     const objects = [spaceObject('earth', 'Terre')];
+    const updatedObjects = [...objects, spaceObject('mars', 'Mars')];
     const stats = debugStats();
     const events: readonly UniverseEngineEvent[] = [
       { type: 'data-ready', objects, catalogEntries: [] },
+      { type: 'objects-changed', objects: updatedObjects },
       { type: 'object-selected', objectId: 'earth', object: objects[0]! },
       { type: 'target-changed', objectId: 'earth' },
       { type: 'camera-changed', zoom: 12 },
@@ -699,8 +716,9 @@ describe('UniverseEngineFacade', () => {
       engine.emit(event);
     }
 
-    expect(facade.objects()).toEqual(objects);
+    expect(facade.objects()).toEqual(updatedObjects);
     expect(searchService.setData).toHaveBeenCalledWith(objects, []);
+    expect(searchService.setData).toHaveBeenCalledOnce();
     expect(facade.selectedId()).toBe('earth');
     expect(facade.targetId()).toBe('earth');
     expect(facade.cameraDistance()).toBe(12);
@@ -724,7 +742,7 @@ describe('UniverseEngineFacade', () => {
     facade.cameraDistance.set(15);
     access.scheduleUrlUpdate();
     expect(urlService.scheduleWrite).toHaveBeenLastCalledWith(
-      expect.objectContaining({ zoom: 15 }),
+      expect.objectContaining({ zoom: 15, labelDensity: 'balanced' }),
     );
 
     facade.cameraDistance.set(0);
@@ -817,13 +835,29 @@ function debugStats(): EngineDebugStats {
     textures: 2,
     visibleObjects: 5,
     catalogStars: 1_000,
+    cosmicGroups: 0,
+    batchedGalaxies: 0,
+    loadedTiles: 0,
+    indexedGalaxyTiles: 0,
+    cachedGalaxyTiles: 0,
+    activeStarTiles: 0,
+    cachedStarPacks: 0,
+    cachedStarTiles: 0,
+    activeStarClusters: 0,
+    cachedStarClusters: 0,
+    visibleStarClusters: 0,
     cameraPosition: { x: 1, y: 2, z: 3 },
+    cameraTarget: { x: 0, y: 0, z: 0 },
     cameraDistance: 4,
     floatingOrigin: { x: 0, y: 0, z: 0 },
     targetId: 'earth',
+    navigationOriginId: 'earth',
+    navigationReferenceFrame: 'solar-system',
     lodLevel: 0,
     julianDay: 2_451_545,
     quality: 'high',
+    pixelRatio: 2,
+    zoom: null,
   };
 }
 

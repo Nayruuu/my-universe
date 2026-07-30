@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "2.0.0",
   "objects": [
     {
       "id": "proxima-centauri",
@@ -23,12 +23,12 @@
         "scaleMode": "adaptive"
       },
       "positionProvider": {
-        "type": "static",
-        "position": [3.7, -1.5, 1.4],
-        "unit": "light-year"
+        "type": "catalog",
+        "catalogId": "hyg-v41-bright-stars",
+        "identifier": "HIP 70890"
       },
       "metadata": {
-        "source": "Catalogue stellaire simplifié",
+        "source": "HYG Database v4.1 · J2000",
         "distanceLy": 4.2465
       }
     },
@@ -52,12 +52,12 @@
         "scaleMode": "adaptive"
       },
       "positionProvider": {
-        "type": "static",
-        "position": [3.84, -1.2, 1.72],
-        "unit": "light-year"
+        "type": "catalog",
+        "catalogId": "hyg-v41-bright-stars",
+        "identifier": "HIP 71683"
       },
       "metadata": {
-        "source": "Catalogue stellaire simplifié",
+        "source": "HYG Database v4.1 · J2000",
         "distanceLy": 4.367
       }
     },
@@ -81,14 +81,12 @@
         "scaleMode": "adaptive"
       },
       "positionProvider": {
-        "type": "linear-motion",
-        "positionAtEpoch": [-4.9, 2.7, 2.1],
-        "velocityPerDay": [0.00000003, -0.00000002, 0.00000001],
-        "epochJulianDay": 2451545,
-        "unit": "light-year"
+        "type": "catalog",
+        "catalogId": "hyg-v41-bright-stars",
+        "identifier": "HIP 87937"
       },
       "metadata": {
-        "source": "Mouvement propre illustratif",
+        "source": "HYG Database v4.1 · J2000",
         "distanceLy": 5.963
       }
     },
@@ -112,12 +110,12 @@
         "scaleMode": "adaptive"
       },
       "positionProvider": {
-        "type": "static",
-        "position": [2.1, 6.7, -2.7],
-        "unit": "light-year"
+        "type": "catalog",
+        "catalogId": "hyg-v41-bright-stars",
+        "identifier": "Wolf 359"
       },
       "metadata": {
-        "source": "Catalogue stellaire simplifié",
+        "source": "HYG Database v4.1 · J2000",
         "distanceLy": 7.8558
       }
     },
@@ -141,12 +139,12 @@
         "scaleMode": "adaptive"
       },
       "positionProvider": {
-        "type": "static",
-        "position": [-4.2, -2.1, 7.2],
-        "unit": "light-year"
+        "type": "catalog",
+        "catalogId": "hyg-v41-bright-stars",
+        "identifier": "HIP 32349"
       },
       "metadata": {
-        "source": "Catalogue stellaire simplifié",
+        "source": "HYG Database v4.1 · J2000",
         "distanceLy": 8.611,
         "galacticLabel": true
       }
@@ -171,12 +169,12 @@
         "scaleMode": "adaptive"
       },
       "positionProvider": {
-        "type": "static",
-        "position": [7.5, -4.9, 5.2],
-        "unit": "light-year"
+        "type": "catalog",
+        "catalogId": "hyg-v41-bright-stars",
+        "identifier": "HIP 16537"
       },
       "metadata": {
-        "source": "Catalogue stellaire simplifié",
+        "source": "HYG Database v4.1 · J2000",
         "distanceLy": 10.475
       }
     },
@@ -200,12 +198,12 @@
         "scaleMode": "adaptive"
       },
       "positionProvider": {
-        "type": "static",
-        "position": [-7.8, 3.6, 7.5],
-        "unit": "light-year"
+        "type": "catalog",
+        "catalogId": "hyg-v41-bright-stars",
+        "identifier": "HIP 37279"
       },
       "metadata": {
-        "source": "Catalogue stellaire simplifié",
+        "source": "HYG Database v4.1 · J2000",
         "distanceLy": 11.46
       }
     },
@@ -229,12 +227,12 @@
         "scaleMode": "adaptive"
       },
       "positionProvider": {
-        "type": "static",
-        "position": [12.8, 5.2, 10.6],
-        "unit": "light-year"
+        "type": "catalog",
+        "catalogId": "hyg-v41-bright-stars",
+        "identifier": "HIP 97649"
       },
       "metadata": {
-        "source": "Catalogue stellaire simplifié",
+        "source": "HYG Database v4.1 · J2000",
         "distanceLy": 16.73
       }
     },
@@ -258,12 +256,12 @@
         "scaleMode": "adaptive"
       },
       "positionProvider": {
-        "type": "static",
-        "position": [13, 18, -12],
-        "unit": "light-year"
+        "type": "catalog",
+        "catalogId": "hyg-v41-bright-stars",
+        "identifier": "HIP 91262"
       },
       "metadata": {
-        "source": "Catalogue stellaire simplifié",
+        "source": "HYG Database v4.1 · J2000",
         "distanceLy": 25.05,
         "galacticLabel": true
       }
@@ -288,12 +286,12 @@
         "scaleMode": "adaptive"
       },
       "positionProvider": {
-        "type": "static",
-        "position": [10.8, -18.5, 12.1],
-        "unit": "light-year"
+        "type": "catalog",
+        "catalogId": "hyg-v41-bright-stars",
+        "identifier": "HIP 113368"
       },
       "metadata": {
-        "source": "Catalogue stellaire simplifié",
+        "source": "HYG Database v4.1 · J2000",
         "distanceLy": 25.13
       }
     },
@@ -317,12 +315,12 @@
         "scaleMode": "adaptive"
       },
       "positionProvider": {
-        "type": "static",
-        "position": [-20, 22, 21],
-        "unit": "light-year"
+        "type": "catalog",
+        "catalogId": "hyg-v41-bright-stars",
+        "identifier": "HIP 69673"
       },
       "metadata": {
-        "source": "Catalogue stellaire simplifié",
+        "source": "HYG Database v4.1 · J2000",
         "distanceLy": 36.66
       }
     },
@@ -346,12 +344,12 @@
         "scaleMode": "adaptive"
       },
       "positionProvider": {
-        "type": "static",
-        "position": [-28, 18, -28],
-        "unit": "light-year"
+        "type": "catalog",
+        "catalogId": "hyg-v41-bright-stars",
+        "identifier": "HIP 24608"
       },
       "metadata": {
-        "source": "Catalogue stellaire simplifié",
+        "source": "HYG Database v4.1 · J2000",
         "distanceLy": 42.92
       }
     },
@@ -375,12 +373,12 @@
         "scaleMode": "adaptive"
       },
       "positionProvider": {
-        "type": "static",
-        "position": [40, -22, 47],
-        "unit": "light-year"
+        "type": "catalog",
+        "catalogId": "hyg-v41-bright-stars",
+        "identifier": "HIP 21421"
       },
       "metadata": {
-        "source": "Catalogue stellaire simplifié",
+        "source": "HYG Database v4.1 · J2000",
         "distanceLy": 65.3
       }
     },
@@ -404,12 +402,12 @@
         "scaleMode": "adaptive"
       },
       "positionProvider": {
-        "type": "static",
-        "position": [-95, 412, 75],
-        "unit": "light-year"
+        "type": "catalog",
+        "catalogId": "hyg-v41-bright-stars",
+        "identifier": "HIP 11767"
       },
       "metadata": {
-        "source": "Catalogue stellaire simplifié",
+        "source": "HYG Database v4.1 · J2000",
         "distanceLy": 433
       }
     },
@@ -433,12 +431,12 @@
         "scaleMode": "adaptive"
       },
       "positionProvider": {
-        "type": "static",
-        "position": [310, 230, -390],
-        "unit": "light-year"
+        "type": "catalog",
+        "catalogId": "hyg-v41-bright-stars",
+        "identifier": "HIP 27989"
       },
       "metadata": {
-        "source": "Distance approximative",
+        "source": "HYG Database v4.1 · J2000",
         "distanceLy": 548,
         "galacticLabel": true
       }
@@ -463,12 +461,12 @@
         "scaleMode": "adaptive"
       },
       "positionProvider": {
-        "type": "static",
-        "position": [280, -330, 480],
-        "unit": "light-year"
+        "type": "catalog",
+        "catalogId": "hyg-v41-bright-stars",
+        "identifier": "HIP 24436"
       },
       "metadata": {
-        "source": "Distance approximative",
+        "source": "HYG Database v4.1 · J2000",
         "distanceLy": 860
       }
     }

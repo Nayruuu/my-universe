@@ -1,5 +1,11 @@
 export type NavigationScaleId =
-  'planetary' | 'solar-system' | 'stellar-neighborhood' | 'milky-way' | 'local-group';
+  | 'planetary'
+  | 'solar-system'
+  | 'stellar-neighborhood'
+  | 'milky-way'
+  | 'local-group'
+  | 'nearby-universe'
+  | 'cosmic-web';
 
 export interface NavigationScaleDefinition {
   id: NavigationScaleId;
@@ -44,7 +50,7 @@ export const NAVIGATION_SCALES: readonly NavigationScaleDefinition[] = [
     label: 'Voie lactée',
     description: 'Observer la structure galactique',
     targetId: 'milky-way',
-    distance: 5_200,
+    distance: 9_600,
     lodLevel: 3,
     direction: [1, 0.72, 1],
   },
@@ -56,6 +62,24 @@ export const NAVIGATION_SCALES: readonly NavigationScaleDefinition[] = [
     distance: 17_000,
     lodLevel: 4,
     direction: [1, 0.72, 1],
+  },
+  {
+    id: 'nearby-universe',
+    label: 'Univers proche',
+    description: 'Explorer le volume local et l’amas de la Vierge',
+    targetId: 'nearby-universe',
+    distance: 120_000,
+    lodLevel: 5,
+    direction: [1, 0.55, 1],
+  },
+  {
+    id: 'cosmic-web',
+    label: 'Réseau cosmique',
+    description: 'Parcourir les groupes de galaxies de Cosmicflows-4',
+    targetId: 'cosmic-web',
+    distance: 420_000,
+    lodLevel: 6,
+    direction: [1, 0.48, 1],
   },
 ];
 

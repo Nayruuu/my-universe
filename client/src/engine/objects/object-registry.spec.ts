@@ -53,6 +53,68 @@ describe('ObjectRegistry', () => {
     expect(registry.getPickables()).toHaveLength(0);
   });
 
+  it('expose la position galactocentrique indépendamment du floating origin', () => {
+    const root = new THREE.Group();
+    const sun: SpaceObject = {
+      ...staticObject('sun', 'Soleil', 'star'),
+      referenceFrame: 'galactic',
+      positionProvider: {
+        type: 'static',
+        position: [8.178, 0, 0],
+        unit: 'kiloparsec',
+      },
+    };
+    const registry = new ObjectRegistry(root, new CoordinateSystem(), [sun], 'low');
+
+    registry.updatePositions(ECLIPSE_TIME);
+    const galactocentric = registry.getSpacePosition('sun');
+
+    expect(galactocentric?.x).toBeGreaterThan(2_000);
+    expect(galactocentric?.y).toBe(0);
+    expect(galactocentric?.z).toBe(0);
+
+    root.position.set(-1_600, 25, -40);
+    root.updateMatrixWorld(true);
+    const world = registry.getWorldPosition('sun');
+
+    expect(registry.getSpacePosition('sun')).toEqual(galactocentric);
+    expect(world?.x).toBeCloseTo(galactocentric!.x - 1_600, 8);
+    expect(registry.getSpacePosition('unknown')).toBeNull();
+    registry.dispose();
+  });
+
+  it('laisse les étoiles liées à un catalogue au batch partagé', () => {
+    const root = new THREE.Group();
+    const linkedStar: SpaceObject = {
+      ...staticObject('sirius', 'Sirius', 'star'),
+      referenceFrame: 'stellar',
+      positionProvider: {
+        type: 'catalog',
+        catalogId: 'hyg-v41-bright-stars',
+        identifier: 'HIP 32349',
+      },
+    };
+    const resolvedLinkedStar: SpaceObject = {
+      ...staticObject('vega', 'Véga', 'star'),
+      referenceFrame: 'stellar',
+      metadata: { catalogPointRepresentation: true },
+    };
+    const ordinaryStar = staticObject('ordinary', 'Ordinaire', 'star');
+    const registry = new ObjectRegistry(
+      root,
+      new CoordinateSystem(),
+      [linkedStar, resolvedLinkedStar, ordinaryStar],
+      'low',
+    );
+
+    registry.updatePositions(ECLIPSE_TIME);
+
+    expect(registry.has('sirius')).toBe(false);
+    expect(registry.has('vega')).toBe(false);
+    expect(registry.has('ordinary')).toBe(true);
+    registry.dispose();
+  });
+
   it('synchronise la rotation terrestre et tolère un registre sans Terre', () => {
     const { registry } = createRegistry('low');
     const empty = new ObjectRegistry(new THREE.Group(), new CoordinateSystem(), [], 'low');
@@ -62,6 +124,63 @@ describe('ObjectRegistry', () => {
     expect(registry.synchronizeEarthRotation(ECLIPSE_TIME, Math.PI * 2)).toBe(true);
 
     empty.dispose();
+    registry.dispose();
+  });
+
+  it('diffère les géométries orbitales et les libère hors des échelles solaires', () => {
+    const { registry } = createRegistry('low');
+    const access = registry as unknown as RegistryAccess;
+    const camera = new THREE.PerspectiveCamera(48, 1, 0.01, 1_000_000);
+
+    camera.position.set(0, 0, 120);
+    expect(access.orbitVisuals.size).toBe(0);
+
+    registry.updateLod(camera, 900, 1, 2);
+    expect(access.orbitVisuals.size).toBeGreaterThan(0);
+    const orbit = access.orbitVisuals.get('mars')!;
+    const disposeGeometry = vi.spyOn(orbit.line.geometry, 'dispose');
+    const disposeMaterial = vi.spyOn(orbit.line.material, 'dispose');
+
+    registry.updateLod(camera, 900, 3, 2);
+
+    expect(access.orbitVisuals.size).toBe(0);
+    expect(disposeGeometry).toHaveBeenCalledOnce();
+    expect(disposeMaterial).toHaveBeenCalledOnce();
+
+    registry.setNavigationTarget(null);
+    registry.select(null);
+    access.currentLodLevel = 2;
+    access.applyOrbitVisibility();
+    expect(access.orbitVisuals.size).toBe(0);
+
+    access.disposeOrbitVisual('unknown');
+    registry.dispose();
+  });
+
+  it('incline les corps et leurs guides selon leur pôle IAU à la date simulée', () => {
+    const { registry } = createRegistry('low');
+    const access = registry as unknown as RegistryAccess;
+
+    registry.updateBodyRotations({ julianDay: 2_451_545 });
+    const uranus = access.entries.get('uranus')?.rotatingBody;
+
+    expect(uranus).not.toBeNull();
+    const north = new THREE.Vector3(0, 1, 0).applyQuaternion(uranus!.quaternion);
+
+    expect(north.x).toBeCloseTo(-0.21199958, 6);
+    expect(north.y).toBeCloseTo(0.134363, 6);
+    expect(north.z).toBeCloseTo(-0.96798903, 6);
+
+    registry.select('uranus');
+    registry.setNavigationTarget('sun');
+    access.currentLodLevel = 0;
+    access.applyRotationGuideVisibility();
+    access.rotationGuide.updateWorldMatrix(true, false);
+    const guideNorth = new THREE.Vector3(0, 1, 0).transformDirection(
+      access.rotationGuide.matrixWorld,
+    );
+
+    expect(guideNorth.dot(north)).toBeCloseTo(1, 10);
     registry.dispose();
   });
 
@@ -76,6 +195,15 @@ describe('ObjectRegistry', () => {
 
     registry.select('andromeda');
     expect(access.selectionMarker.scale.x).toBeCloseTo(6);
+    registry.select('test-black-hole');
+    expect(access.selectionMarker.scale.x).toBeCloseTo(10.4);
+    expect(access.selectionMarker.visible).toBe(false);
+    expect(registry.getLensingForeground('test-black-hole')).toBeInstanceOf(THREE.Group);
+    expect(registry.getLensingForeground('test-black-hole')?.name).toBe(
+      'test-black-hole-lensing-foreground',
+    );
+    expect(registry.getLensingForeground('earth')).toBeNull();
+    expect(registry.getLensingForeground('unknown')).toBeNull();
     registry.select('mars');
     registry.setNavigationTarget('sun');
     access.currentLodLevel = 0;
@@ -110,12 +238,12 @@ describe('ObjectRegistry', () => {
     expect(access.orbitVisuals.get('moon')?.line.visible).toBe(true);
     access.currentLodLevel = 3;
     access.applyOrbitVisibility();
-    expect(access.orbitVisuals.get('moon')?.line.visible).toBe(false);
+    expect(access.orbitVisuals.has('moon')).toBe(false);
 
     registry.setDisplayOptions(displayOptions(false));
     registry.setDisplayOptions(displayOptions(true));
     registry.setSolarObserverActive(true, 1.2);
-    expect(access.orbitVisuals.get('moon')?.line.visible).toBe(false);
+    expect(access.orbitVisuals.size).toBe(0);
     registry.setSolarObserverActive(false);
 
     registry.dispose();
@@ -154,6 +282,266 @@ describe('ObjectRegistry', () => {
     earth.lod.visibilityBlend = 0;
     registry.updateLod(camera, 600, 4, 0);
     expect(earth.pickTarget?.layers.isEnabled(1)).toBe(false);
+
+    registry.dispose();
+  });
+
+  it('demande les textures statiques seulement au premier passage en LOD proche', () => {
+    const { registry } = createRegistry('high');
+    const access = registry as unknown as RegistryAccess;
+    const camera = new THREE.PerspectiveCamera(48, 1, 0.01, 1_000_000);
+    const earth = access.entries.get('earth')!;
+    const mars = access.entries.get('mars')!;
+
+    registry.updatePositions(ECLIPSE_TIME);
+    expect(textureSources(earth)).toEqual([null, null, null]);
+    expect(textureSources(mars)).toEqual([null]);
+
+    camera.position.set(0, 0, 100_000);
+    registry.updateLod(camera, 900, 4, 2);
+    expect(textureSources(earth)).toEqual([null, null, null]);
+
+    camera.position.copy(earth.node.getWorldPosition(new THREE.Vector3())).addScalar(2);
+    registry.select('earth');
+    registry.updateLod(camera, 900, 4, 2);
+
+    expect(earth.lod.deferredTexturesRequested).toBe(true);
+    expect(textureSources(earth).every((source) => source?.includes('textures/earth-'))).toBe(true);
+    expect(mars.lod.deferredTexturesRequested).toBe(false);
+    expect(textureSources(mars)).toEqual([null]);
+
+    registry.updateLod(camera, 900, 4, 2);
+    expect(earth.lod.deferredTexturesRequested).toBe(true);
+    registry.dispose();
+  }, 10_000);
+
+  it('fond progressivement l’imposteur de la Voie lactée avec sa représentation galactique', () => {
+    const registry = new ObjectRegistry(
+      new THREE.Group(),
+      new CoordinateSystem(),
+      [
+        staticObject('milky-way', 'Voie lactée', 'galaxy', {
+          visualRadius: 360,
+          galaxyShape: 'spiral',
+        }),
+      ],
+      'low',
+    );
+    const access = registry as unknown as RegistryAccess;
+    const camera = new THREE.PerspectiveCamera(48, 1, 0.01, 40_000);
+    const sprite = access.entries.get('milky-way')!.lod.farSprite!;
+
+    camera.position.set(0, 0, 9_600);
+    registry.setNavigationTarget('milky-way');
+    registry.updateLod(camera, 900, 3, 2);
+    expect(sprite.visible).toBe(false);
+
+    camera.position.set(0, 0, 13_300);
+    registry.updateLod(camera, 900, 3, 2);
+    expect(sprite.visible).toBe(true);
+    const transitionOpacity = sprite.material.opacity;
+
+    camera.position.set(0, 0, 17_000);
+    registry.updateLod(camera, 900, 4, 2);
+    expect(sprite.visible).toBe(true);
+    expect(sprite.material.opacity).toBeGreaterThan(transitionOpacity);
+
+    registry.updateLod(camera, 900, 6, 2);
+    expect(sprite.visible).toBe(false);
+
+    registry.select('milky-way');
+    registry.setNavigationTarget('milky-way');
+    registry.updateLod(camera, 900, 0, 2);
+    expect(sprite.visible).toBe(false);
+    registry.dispose();
+  });
+
+  it('agrandit le seuil visuel des galaxies à l’échelle de l’univers proche', () => {
+    const galaxy = staticObject('m81', 'Galaxie de Bode', 'galaxy', {
+      visualRadius: 12,
+      galaxyShape: 'spiral',
+    });
+
+    galaxy.metadata = { nearbyUniverseLabelRank: 1 };
+    const registry = new ObjectRegistry(
+      new THREE.Group(),
+      new CoordinateSystem(),
+      [galaxy],
+      'high',
+    );
+    const access = registry as unknown as RegistryAccess;
+    const camera = new THREE.PerspectiveCamera(48, 1, 0.01, 500_000);
+    const sprite = access.entries.get('m81')!.lod.farSprite!;
+
+    camera.position.set(0, 0, 120_000);
+    registry.updateLod(camera, 900, 4, 10);
+    const localGroupScale = sprite.scale.x;
+
+    registry.updateLod(camera, 900, 5, 10);
+
+    expect(sprite.scale.x).toBeGreaterThan(localGroupScale * 1.4);
+    registry.dispose();
+  });
+
+  it('batch les galaxies du catalogue tout en restaurant leur imposteur au focus', () => {
+    const catalogGalaxy = staticObject('lv-ngc-test', 'NGC test', 'galaxy', {
+      color: '#9fb9dd',
+      visualRadius: 12,
+      galaxyShape: 'spiral',
+    });
+    const curatedGalaxy = staticObject('m81', 'Galaxie de Bode', 'galaxy', {
+      color: '#d7b07f',
+      visualRadius: 18,
+      galaxyShape: 'spiral',
+    });
+
+    catalogGalaxy.metadata = {
+      nearbyUniverseLabelRank: 100,
+      nearbyUniversePointBatch: true,
+    };
+    curatedGalaxy.metadata = { nearbyUniverseLabelRank: 1 };
+    const registry = new ObjectRegistry(
+      new THREE.Group(),
+      new CoordinateSystem(),
+      [catalogGalaxy, curatedGalaxy],
+      'high',
+    );
+    const access = registry as unknown as RegistryAccess;
+    const camera = new THREE.PerspectiveCamera(48, 1, 0.01, 500_000);
+    const catalogEntry = access.entries.get('lv-ngc-test')!;
+    const curatedEntry = access.entries.get('m81')!;
+    const batchIds = access.farObjectBatch.points.userData['objectIds'] as string[];
+    const catalogBatchIndex = batchIds.indexOf('lv-ngc-test');
+    const visibleIndices = access.farObjectBatch.points.userData['visibleIndices'] as Uint8Array;
+
+    expect(registry.batchedGalaxyCount).toBe(1);
+    expect(catalogBatchIndex).toBeGreaterThanOrEqual(0);
+    expect(batchIds).not.toContain('m81');
+
+    camera.position.set(0, 0, 120_000);
+    registry.updateLod(camera, 900, 5, 10);
+
+    expect(access.farObjectBatch.points.visible).toBe(true);
+    expect(visibleIndices[catalogBatchIndex]).toBe(1);
+    expect(catalogEntry.lod.farSprite?.visible).toBe(false);
+    expect(curatedEntry.lod.farSprite?.visible).toBe(true);
+
+    registry.select('lv-ngc-test');
+    registry.updateLod(camera, 900, 5, 10);
+
+    expect(visibleIndices[catalogBatchIndex]).toBe(0);
+    expect(catalogEntry.lod.farSprite?.visible).toBe(true);
+
+    registry.select(null);
+    registry.setNavigationTarget('lv-ngc-test');
+    registry.updateLod(camera, 900, 5, 10);
+
+    expect(visibleIndices[catalogBatchIndex]).toBe(0);
+    expect(catalogEntry.lod.farSprite?.visible).toBe(true);
+
+    registry.dispose();
+  });
+
+  it('conserve le sous-groupe galactique actif pendant le zoom contextuel', () => {
+    const localGroup = staticObject('local-group', 'Groupe local', 'region');
+    const milkyWay = {
+      ...staticObject('milky-way', 'Voie lactée', 'galaxy', {
+        visualRadius: 360,
+        galaxyShape: 'spiral',
+      }),
+      parentId: 'local-group',
+    };
+    const largeMagellanicCloud = {
+      ...staticObject('large-magellanic-cloud', 'Grand Nuage de Magellan', 'galaxy'),
+      parentId: 'milky-way',
+    };
+    const andromeda = {
+      ...staticObject('andromeda', 'Andromède', 'galaxy'),
+      parentId: 'local-group',
+    };
+    const m32 = {
+      ...staticObject('m32', 'M32', 'galaxy'),
+      parentId: 'andromeda',
+    };
+    const triangulum = {
+      ...staticObject('triangulum', 'Triangle', 'galaxy'),
+      parentId: 'andromeda',
+    };
+    const registry = new ObjectRegistry(
+      new THREE.Group(),
+      new CoordinateSystem(),
+      [localGroup, milkyWay, largeMagellanicCloud, andromeda, m32, triangulum],
+      'high',
+    );
+    const camera = new THREE.PerspectiveCamera(48, 1, 0.01, 40_000);
+
+    camera.position.set(0, 0, 2_800);
+    registry.setNavigationTarget('andromeda');
+    registry.updateLod(camera, 900, 3, 2);
+
+    expect(registry.isVisibleForLabels('andromeda')).toBe(true);
+    expect(registry.isVisibleForLabels('m32')).toBe(true);
+    expect(registry.isVisibleForLabels('triangulum')).toBe(true);
+    expect(registry.isVisibleForLabels('large-magellanic-cloud')).toBe(false);
+
+    registry.setNavigationTarget('m32');
+    registry.updateLod(camera, 900, 3, 2);
+    expect(registry.isVisibleForLabels('triangulum')).toBe(true);
+
+    registry.setNavigationTarget(null);
+    registry.select('m32');
+    registry.updateLod(camera, 900, 3, 2);
+    expect(registry.isVisibleForLabels('andromeda')).toBe(true);
+    expect(registry.isVisibleForLabels('triangulum')).toBe(true);
+
+    registry.select(null);
+    registry.updateLod(camera, 900, 3, 2);
+
+    registry.setNavigationTarget('milky-way');
+    registry.updateLod(camera, 900, 3, 2);
+    expect(registry.isVisibleForLabels('milky-way')).toBe(true);
+    expect(registry.isVisibleForLabels('large-magellanic-cloud')).toBe(true);
+    expect(registry.isVisibleForLabels('andromeda')).toBe(false);
+
+    registry.setNavigationTarget('local-group');
+    registry.updateLod(camera, 900, 4, 2);
+    expect(registry.isVisibleForLabels('andromeda')).toBe(true);
+    expect(registry.isVisibleForLabels('large-magellanic-cloud')).toBe(true);
+    expect(registry.isVisibleForLabels('unknown')).toBe(false);
+
+    registry.dispose();
+  });
+
+  it('adapte les satellites contextuels au budget de qualité', () => {
+    const localGroup = staticObject('local-group', 'Groupe local', 'region');
+    const milkyWay = {
+      ...staticObject('milky-way', 'Voie lactée', 'galaxy'),
+      parentId: 'local-group',
+    };
+    const majorSatellite = {
+      ...staticObject('large-magellanic-cloud', 'Grand Nuage de Magellan', 'galaxy'),
+      parentId: 'milky-way',
+      metadata: { mapLabelRank: 2 },
+    };
+    const faintSatellite = {
+      ...staticObject('ursa-minor-dwarf', 'Galaxie naine de la Petite Ourse', 'galaxy'),
+      parentId: 'milky-way',
+      metadata: { mapLabelRank: 29 },
+    };
+    const registry = new ObjectRegistry(
+      new THREE.Group(),
+      new CoordinateSystem(),
+      [localGroup, milkyWay, majorSatellite, faintSatellite],
+      'low',
+    );
+    const camera = new THREE.PerspectiveCamera(48, 1, 0.01, 40_000);
+
+    camera.position.set(0, 0, 2_800);
+    registry.setNavigationTarget('milky-way');
+    registry.updateLod(camera, 900, 3, 2);
+
+    expect(registry.isVisibleForLabels('large-magellanic-cloud')).toBe(true);
+    expect(registry.isVisibleForLabels('ursa-minor-dwarf')).toBe(false);
 
     registry.dispose();
   });
@@ -265,12 +653,25 @@ interface RegistryEntryAccess {
   readonly lod: {
     readonly nearRoot: THREE.Group | null;
     readonly farSprite: THREE.Sprite | null;
+    readonly deferredTextures: THREE.Texture[];
+    readonly deferredTexturesRequested: boolean;
     visibilityBlend: number;
   };
 }
 
+function textureSources(entry: RegistryEntryAccess): Array<string | null> {
+  return entry.lod.deferredTextures.map((texture) => {
+    const image = texture.image as HTMLImageElement;
+
+    return image.getAttribute('src');
+  });
+}
+
 interface RegistryAccess {
   readonly entries: Map<string, RegistryEntryAccess>;
+  readonly farObjectBatch: {
+    readonly points: THREE.Points;
+  };
   readonly orbitVisuals: Map<
     string,
     {
@@ -285,6 +686,7 @@ interface RegistryAccess {
   solarEclipsePathActive: boolean;
   solarEclipseActive: boolean;
   createOrbitLine(entry: RegistryEntryAccess): void;
+  disposeOrbitVisual(objectId: string): void;
   updateBodyRotation(entry: RegistryEntryAccess, time: { julianDay: number }): void;
   applyOrbitVisibility(): void;
   applyRotationGuideVisibility(): void;
@@ -331,6 +733,10 @@ function diverseObjects(): SpaceObject[] {
     }),
     staticObject('asteroid', 'Astéroïde', 'asteroid'),
     staticObject('sirius', 'Sirius', 'star', { color: '#dce8ff' }),
+    staticObject('test-black-hole', 'Trou noir', 'black-hole', {
+      visualRadius: 2,
+      blackHoleActivity: 'dormant',
+    }),
     staticObject('saturn', 'Saturne', 'planet', {
       color: '#d6bd8b',
       hasRings: true,
@@ -339,6 +745,7 @@ function diverseObjects(): SpaceObject[] {
     staticObject('uranus', 'Uranus', 'planet', {
       color: '#b8e1e8',
       hasRings: true,
+      rotationPeriodHours: -17.24,
     }),
     staticObject('andromeda', 'Andromède', 'galaxy', {
       visualRadius: 12,
@@ -434,8 +841,10 @@ function keplerianObject(
 function displayOptions(showOrbits: boolean) {
   return {
     showOrbits,
+    showConstellations: true,
     showLabels: true,
     quality: 'low' as const,
+    labelDensity: 'balanced' as const,
     temporalMode: 'state' as const,
   };
 }
@@ -452,6 +861,8 @@ function installCanvasContext(): void {
     scale: vi.fn(),
     restore: vi.fn(),
     beginPath: vi.fn(),
+    moveTo: vi.fn(),
+    lineTo: vi.fn(),
     arc: vi.fn(),
     fill: vi.fn(),
     clearRect: vi.fn(),

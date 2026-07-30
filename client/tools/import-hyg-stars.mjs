@@ -1,10 +1,15 @@
 import { createReadStream } from 'node:fs';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { basename, dirname, resolve } from 'node:path';
 import { createInterface } from 'node:readline';
+import {
+  extractFeaturedCatalogIdentifiers,
+  selectBrightestIncludingIdentifiers,
+} from './hyg-star-selection.mjs';
 
 const DEFAULT_INPUT = resolve('data-sources/hygdata_v41.csv');
 const DEFAULT_OUTPUT = resolve('public/data/stars/hyg-v41.bin');
+const DEFAULT_FEATURED_INPUT = resolve('public/data/stars/nearby-stars.json');
 const DEFAULT_LIMIT = 10_000;
 const HEADER_SIZE = 40;
 const RECORD_SIZE = 36;
@@ -44,7 +49,9 @@ const GREEK_SYMBOLS = new Map([
 ]);
 
 const options = parseArguments(process.argv.slice(2));
-const stars = await readBrightestStars(options.input, options.limit);
+const featuredDataset = JSON.parse(await readFile(options.featuredInput, 'utf8'));
+const featuredIdentifiers = extractFeaturedCatalogIdentifiers(featuredDataset);
+const stars = await readBrightestStars(options.input, options.limit, featuredIdentifiers);
 
 await mkdir(dirname(options.output), { recursive: true });
 await writeFile(options.output, encodeCatalog(stars));
@@ -61,6 +68,7 @@ function parseArguments(argumentsList) {
   const options = {
     input: DEFAULT_INPUT,
     output: DEFAULT_OUTPUT,
+    featuredInput: DEFAULT_FEATURED_INPUT,
     limit: DEFAULT_LIMIT,
   };
 
@@ -77,6 +85,9 @@ function parseArguments(argumentsList) {
     } else if (argument === '--limit' && value) {
       options.limit = Number.parseInt(value, 10);
       index += 1;
+    } else if (argument === '--featured-input' && value) {
+      options.featuredInput = resolve(value);
+      index += 1;
     } else {
       throw new Error(`Argument inconnu ou incomplet : ${argument}.`);
     }
@@ -89,7 +100,7 @@ function parseArguments(argumentsList) {
   return options;
 }
 
-async function readBrightestStars(input, limit) {
+async function readBrightestStars(input, limit, featuredIdentifiers) {
   const lines = createInterface({
     input: createReadStream(input, { encoding: 'utf8' }),
     crlfDelay: Number.POSITIVE_INFINITY,
@@ -112,9 +123,7 @@ async function readBrightestStars(input, limit) {
     }
   }
 
-  stars.sort((left, right) => left.magnitude - right.magnitude || left.id - right.id);
-
-  return stars.slice(0, limit);
+  return selectBrightestIncludingIdentifiers(stars, limit, featuredIdentifiers);
 }
 
 function indexColumns(header) {
@@ -155,6 +164,7 @@ function indexColumns(header) {
 
 function parseStar(values, columns) {
   const id = Number.parseInt(values[columns.id], 10);
+  const parsedHipId = Number.parseInt(values[columns.hip], 10);
   const properName = values[columns.proper];
   const distance = Number.parseFloat(values[columns.dist]);
   const magnitude = Number.parseFloat(values[columns.mag]);
@@ -181,6 +191,7 @@ function parseStar(values, columns) {
 
   return {
     id,
+    hipId: Number.isInteger(parsedHipId) && parsedHipId > 0 ? parsedHipId : null,
     x,
     y,
     z,
@@ -372,6 +383,7 @@ function createMetadata(options, stars) {
       license: 'CC BY-SA 4.0',
     },
     input: basename(options.input),
+    featuredInput: basename(options.featuredInput),
     format: {
       magic: 'UMSC',
       version: FORMAT_VERSION,
@@ -397,11 +409,12 @@ function createMetadata(options, stars) {
     distanceUnit: 'parsec',
     scientificConfidence: 'observed',
     selection: {
-      method: 'brightest-valid-apparent-magnitude',
+      method: 'brightest-valid-apparent-magnitude-plus-featured-identifiers',
       requestedCount: options.limit,
       emittedCount: stars.length,
       dimmestMagnitude,
       excludesUnknownDistanceAtParsecs: UNKNOWN_DISTANCE_PARSECS,
+      requiredFeaturedIdentifiers: [...featuredIdentifiers].sort(),
     },
   };
 }

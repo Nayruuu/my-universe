@@ -99,8 +99,11 @@ describe('ObjectDetailsComponent', () => {
       ['asteroid', 'Astéroïde'],
       ['comet', 'Comète'],
       ['nebula', 'Nébuleuse'],
+      ['black-hole', 'Trou noir'],
       ['region', 'Région cosmique'],
-      ['universe', 'Objet astronomique'],
+      ['galaxy-cluster', 'Groupe ou amas de galaxies'],
+      ['universe', 'Univers'],
+      ['artificial-object', 'Objet astronomique'],
     ];
     const confidences: readonly ScientificConfidence[] = [
       'observed',
@@ -114,6 +117,7 @@ describe('ObjectDetailsComponent', () => {
     for (const [type, label] of types) {
       expect(component.typeLabel(type)).toBe(label);
     }
+    expect(component.typeLabel('region', { constellationId: 'orion' })).toBe('Constellation');
     for (const confidence of confidences) {
       expect(component.confidenceLabel(confidence)).not.toBe('');
       expect(component.confidenceDescription(confidence)).toMatch(/\.$/);
@@ -130,12 +134,63 @@ describe('ObjectDetailsComponent', () => {
     expect(component.formatNumber(1_000_000_000)).toMatch(/1.*E9/i);
   });
 
+  it('présente la masse solaire et l’activité d’un trou noir sans ambiguïté', () => {
+    const component = createComponent();
+    const blackHole = object({
+      type: 'black-hole',
+      visual: {
+        visualRadius: 2,
+        scaleMode: 'adaptive',
+        blackHoleActivity: 'quiescent',
+      },
+      metadata: { massSolar: 4_000_000 },
+    });
+
+    expect(component.massSolarLabel(blackHole)).toMatch(/4.000.000 masses solaires/u);
+    expect(component.blackHoleActivityLabel(blackHole)).toBe('Quiescent');
+    expect(
+      component.blackHoleActivityLabel(
+        object({
+          type: 'black-hole',
+          visual: {
+            visualRadius: 1,
+            scaleMode: 'adaptive',
+            blackHoleActivity: 'active',
+          },
+        }),
+      ),
+    ).toBe('Actif');
+    expect(
+      component.blackHoleActivityLabel(
+        object({
+          type: 'black-hole',
+          visual: {
+            visualRadius: 1,
+            scaleMode: 'adaptive',
+            blackHoleActivity: 'dormant',
+          },
+        }),
+      ),
+    ).toBe('Dormant');
+    expect(component.massSolarLabel(object())).toBeNull();
+    expect(component.blackHoleActivityLabel(object())).toBeNull();
+    expect(component.blackHoleActivityLabel(object({ type: 'black-hole' }))).toBeNull();
+  });
+
   it('choisit la meilleure distance disponible', () => {
     const component = createComponent();
 
+    expect(
+      component.distanceLabel(
+        object({ metadata: { distanceMpc: 17.219, distanceLy: 56_000_000 } }),
+      ),
+    ).toBe('17,219 Mpc');
     expect(component.distanceLabel(object({ metadata: { distanceLy: 4.2465 } }))).toContain('a.l.');
     expect(component.distanceLabel(object({ metadata: { semiMajorAxisAu: 1.5237 } }))).toContain(
       'UA',
+    );
+    expect(component.distanceLabel(object({ metadata: { semiMajorAxisKm: 421_800 } }))).toMatch(
+      /421.800 km/u,
     );
     expect(component.distanceLabel(object({ id: 'sun' }))).toBe('1 UA depuis la Terre');
     expect(component.distanceLabel(object())).toBeNull();
@@ -150,6 +205,9 @@ describe('ObjectDetailsComponent', () => {
         hygId: 32_263,
         morphology: 'Sb',
         diameterLy: 120_000,
+        subgroup: 'Sous-groupe d’Andromède',
+        absoluteMagnitude: -21.5,
+        halfLightRadiusPc: 12_300,
       },
     });
     const missing = object({ metadata: { apparentMagnitude: 'inconnue' } });
@@ -159,11 +217,56 @@ describe('ObjectDetailsComponent', () => {
     expect(component.catalogIdentifierLabel(documented)).toBe('HYG 32263');
     expect(component.morphologyLabel(documented)).toBe('Sb');
     expect(component.diameterLabel(documented)).toContain('a.l.');
+    expect(component.subgroupLabel(documented)).toBe('Sous-groupe d’Andromède');
+    expect(component.absoluteMagnitudeLabel(documented)).toBe('−21,5');
+    expect(component.halfLightRadiusLabel(documented)).toMatch(/12.300 pc/u);
     expect(component.apparentMagnitudeLabel(missing)).toBeNull();
     expect(component.colorIndexLabel(missing)).toBeNull();
     expect(component.catalogIdentifierLabel(missing)).toBeNull();
     expect(component.morphologyLabel(missing)).toBeNull();
     expect(component.diameterLabel(missing)).toBeNull();
+    expect(component.subgroupLabel(missing)).toBeNull();
+    expect(component.absoluteMagnitudeLabel(missing)).toBeNull();
+    expect(component.halfLightRadiusLabel(missing)).toBeNull();
+  });
+
+  it('présente les mesures calculées d’un groupe Cosmicflows-4', () => {
+    const component = createComponent();
+    const group = object({
+      type: 'galaxy-cluster',
+      metadata: {
+        pgcId: 42,
+        distanceMpc: 12.1,
+        distanceModulusError: 0.12,
+        velocityCmbKmPerSecond: 810,
+      },
+    });
+
+    expect(component.catalogIdentifierLabel(group)).toBe('PGC 42');
+    expect(component.distanceUncertaintyLabel(group)).toBe('± 0,12 mag');
+    expect(component.cmbVelocityLabel(group)).toBe('810 km/s');
+    expect(component.distanceUncertaintyLabel(object())).toBeNull();
+    expect(component.cmbVelocityLabel(object())).toBeNull();
+  });
+
+  it('présente les métadonnées conventionnelles d’une constellation', () => {
+    const component = createComponent();
+    const constellation = object({
+      type: 'region',
+      metadata: {
+        constellationId: 'orion',
+        abbreviation: 'Ori',
+        starCount: 8,
+        segmentCount: 7,
+      },
+    });
+
+    expect(component.constellationAbbreviationLabel(constellation)).toBe('Ori');
+    expect(component.constellationStarCountLabel(constellation)).toBe('8');
+    expect(component.constellationSegmentCountLabel(constellation)).toBe('7');
+    expect(component.constellationAbbreviationLabel(object())).toBeNull();
+    expect(component.constellationStarCountLabel(object())).toBeNull();
+    expect(component.constellationSegmentCountLabel(object())).toBeNull();
   });
 
   it('rend une fiche complète puis une fiche minimale', () => {
@@ -201,13 +304,22 @@ describe('ObjectDetailsComponent', () => {
           hygId: 42,
           morphology: 'Sb',
           diameterLy: 120_000,
+          subgroup: 'Sous-groupe d’Andromède',
+          absoluteMagnitude: -21.5,
+          halfLightRadiusPc: 12_300,
           source: 'Catalogue de test',
+          visualSource: 'Mosaïque instrumentale de test',
         },
       }),
     );
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Objet documenté');
+    expect(fixture.nativeElement.textContent).toContain('Sous-groupe d’Andromède');
+    expect(fixture.nativeElement.textContent).toContain('−21,5');
+    expect(fixture.nativeElement.textContent).toMatch(/12.300 pc/u);
+    expect(fixture.nativeElement.textContent).toContain('Apparence');
+    expect(fixture.nativeElement.textContent).toContain('Mosaïque instrumentale de test');
     expect(fixture.nativeElement.querySelector('.approximation-note')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('.orbit-action')).not.toBeNull();
 
@@ -228,7 +340,7 @@ interface ObjectDetailsAccess {
   rotationPeriodLabel(object: SpaceObject): string | null;
   rotationDirectionLabel(object: SpaceObject): string;
   orbitActionLabel(object: SpaceObject): string;
-  typeLabel(type: SpaceObjectType): string;
+  typeLabel(type: SpaceObjectType, metadata?: SpaceObject['metadata']): string;
   parentName(object: SpaceObject): string | null;
   confidenceLabel(confidence: ScientificConfidence): string;
   confidenceDescription(confidence: ScientificConfidence): string;
@@ -238,8 +350,18 @@ interface ObjectDetailsAccess {
   apparentMagnitudeLabel(object: SpaceObject): string | null;
   colorIndexLabel(object: SpaceObject): string | null;
   catalogIdentifierLabel(object: SpaceObject): string | null;
+  distanceUncertaintyLabel(object: SpaceObject): string | null;
+  cmbVelocityLabel(object: SpaceObject): string | null;
   morphologyLabel(object: SpaceObject): string | null;
   diameterLabel(object: SpaceObject): string | null;
+  subgroupLabel(object: SpaceObject): string | null;
+  absoluteMagnitudeLabel(object: SpaceObject): string | null;
+  halfLightRadiusLabel(object: SpaceObject): string | null;
+  constellationAbbreviationLabel(object: SpaceObject): string | null;
+  constellationStarCountLabel(object: SpaceObject): string | null;
+  constellationSegmentCountLabel(object: SpaceObject): string | null;
+  massSolarLabel(object: SpaceObject): string | null;
+  blackHoleActivityLabel(object: SpaceObject): string | null;
 }
 
 function createComponent(): ObjectDetailsAccess {

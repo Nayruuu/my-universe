@@ -42,6 +42,59 @@ describe('PerformanceManager', () => {
     expect(manager.getParticleCount('medium')).toBe(5_000);
     expect(manager.getParticleCount('high')).toBe(10_000);
   });
+
+  it('réduit progressivement la résolution après deux mesures durablement basses', () => {
+    configureEnvironment({ narrow: false, reducedMotion: false, processors: 12, pixelRatio: 2 });
+    const manager = new PerformanceManager();
+
+    expect(manager.resetAdaptivePixelRatio('high')).toBe(2);
+    expect(manager.observeFrameRate('high', 44)).toBeNull();
+    expect(manager.observeFrameRate('high', 44)).toBe(1.75);
+    expect(manager.observeFrameRate('high', 29)).toBeNull();
+    expect(manager.observeFrameRate('high', 29)).toBe(1.25);
+    expect(manager.observeFrameRate('high', 29)).toBeNull();
+    expect(manager.observeFrameRate('high', 29)).toBe(1);
+    expect(manager.observeFrameRate('high', 20)).toBeNull();
+    expect(manager.adaptivePixelRatio).toBe(1);
+  });
+
+  it('ne remonte la résolution qu’après une longue période fluide', () => {
+    configureEnvironment({ narrow: false, reducedMotion: false, processors: 12, pixelRatio: 2 });
+    const manager = new PerformanceManager();
+
+    manager.resetAdaptivePixelRatio('high');
+    for (let index = 0; index < 4; index += 1) {
+      manager.observeFrameRate('high', 20);
+    }
+    expect(manager.adaptivePixelRatio).toBe(1);
+
+    expect(Array.from({ length: 7 }, () => manager.observeFrameRate('high', 60))).toEqual(
+      Array.from({ length: 7 }, () => null),
+    );
+    expect(manager.observeFrameRate('high', 60)).toBe(1.25);
+    for (const expectedRatio of [1.5, 1.75, 2]) {
+      for (let index = 0; index < 7; index += 1) {
+        expect(manager.observeFrameRate('high', 60)).toBeNull();
+      }
+      expect(manager.observeFrameRate('high', 60)).toBe(expectedRatio);
+    }
+    expect(manager.observeFrameRate('high', 60)).toBeNull();
+  });
+
+  it('réinitialise ses compteurs lors d’un changement de qualité ou d’un FPS neutre', () => {
+    configureEnvironment({ narrow: false, reducedMotion: false, processors: 8, pixelRatio: 2 });
+    const manager = new PerformanceManager();
+
+    expect(manager.observeFrameRate('medium', 20)).toBeNull();
+    expect(manager.adaptivePixelRatio).toBe(1.5);
+    expect(manager.observeFrameRate('medium', 44)).toBeNull();
+    expect(manager.observeFrameRate('medium', 50)).toBeNull();
+    expect(manager.observeFrameRate('medium', 44)).toBeNull();
+    expect(manager.observeFrameRate('medium', 44)).toBe(1.25);
+    expect(manager.observeFrameRate('low', 20)).toBeNull();
+    expect(manager.adaptivePixelRatio).toBe(1);
+    expect(manager.observeFrameRate('low', 60)).toBeNull();
+  });
 });
 
 interface EnvironmentOptions {

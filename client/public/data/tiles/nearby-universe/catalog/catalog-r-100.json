@@ -1,0 +1,170 @@
+{
+  "version": "2.0.0",
+  "objects": [
+    {
+      "id": "lv-ngc6744",
+      "name": "NGC 6744",
+      "aliases": ["NGC6744"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 40.61,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.65,
+        "galaxyRotationDegrees": 156
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [1.0961, -7.450936, -3.488856],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 8.3,
+        "distanceLy": 27070979,
+        "rightAscensionDegrees": 287.44125,
+        "declinationDegrees": -63.85777778,
+        "angularDiameterArcmin": 21.38,
+        "diameterLy": 168360,
+        "apparentMagnitudeB": 9.14,
+        "morphologicalType": 4,
+        "distanceMethod": "TF",
+        "nearbyUniverseLabelRank": 102,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC6744 NGC 6744 Local Volume"
+      }
+    },
+    {
+      "id": "lv-ngc7793",
+      "name": "NGC 7793",
+      "aliases": ["NGC7793"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 38.53,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.68,
+        "galaxyRotationDegrees": 49
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [3.294208, -2.106019, -0.031288],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 3.91,
+        "distanceLy": 12752714,
+        "rightAscensionDegrees": 359.45583333,
+        "declinationDegrees": -32.59,
+        "angularDiameterArcmin": 14.13,
+        "diameterLy": 52417,
+        "apparentMagnitudeB": 9.72,
+        "morphologicalType": 6,
+        "distanceMethod": "TRGB",
+        "nearbyUniverseLabelRank": 111,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC7793 NGC 7793 Local Volume"
+      }
+    },
+    {
+      "id": "lv-ic5332",
+      "name": "IC 5332",
+      "aliases": ["IC5332"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 35.13,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.87,
+        "galaxyRotationDegrees": 144
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [6.26309, -4.595915, -0.700904],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 7.8,
+        "distanceLy": 25440197,
+        "rightAscensionDegrees": 353.61458333,
+        "declinationDegrees": -36.10166667,
+        "angularDiameterArcmin": 8.32,
+        "diameterLy": 61570,
+        "apparentMagnitudeB": 11,
+        "morphologicalType": 7,
+        "distanceMethod": "mem",
+        "nearbyUniverseLabelRank": 136,
+        "nearbyUniversePointBatch": true,
+        "keywords": "IC5332 IC 5332 Local Volume"
+      }
+    },
+    {
+      "id": "lv-ic5152",
+      "name": "IC 5152",
+      "aliases": ["IC5152"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#9eb8c8",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 34.64,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.62,
+        "galaxyRotationDegrees": 100
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [1.073995, -1.537346, -0.603325],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 1.97,
+        "distanceLy": 6425281,
+        "rightAscensionDegrees": 330.67458333,
+        "declinationDegrees": -51.29527778,
+        "angularDiameterArcmin": 7.08,
+        "diameterLy": 13233,
+        "apparentMagnitudeB": 11.03,
+        "morphologicalType": 9,
+        "morphology": "BCD",
+        "distanceMethod": "TRGB",
+        "nearbyUniverseLabelRank": 140,
+        "nearbyUniversePointBatch": true,
+        "keywords": "IC5152 IC 5152 BCD Local Volume"
+      }
+    }
+  ]
+}

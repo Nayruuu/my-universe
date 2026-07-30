@@ -1,0 +1,169 @@
+{
+  "version": "2.0.0",
+  "objects": [
+    {
+      "id": "lv-ic0342",
+      "name": "IC 342",
+      "aliases": ["IC0342"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 40.28,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.91,
+        "galaxyRotationDegrees": 66
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [0.671729, 3.043214, 1.022756],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 3.28,
+        "distanceLy": 10697929,
+        "rightAscensionDegrees": 56.70375,
+        "declinationDegrees": 68.09583333,
+        "angularDiameterArcmin": 21.38,
+        "diameterLy": 66532,
+        "apparentMagnitudeB": 9.37,
+        "morphologicalType": 6,
+        "distanceMethod": "Cep",
+        "nearbyUniverseLabelRank": 105,
+        "nearbyUniversePointBatch": true,
+        "keywords": "IC0342 IC 342 Local Volume"
+      }
+    },
+    {
+      "id": "lv-ngc0628",
+      "name": "NGC 628",
+      "aliases": ["NGC0628"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 37.75,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.94,
+        "galaxyRotationDegrees": 31
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [6.417509, 1.988732, 2.880385],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 7.31,
+        "distanceLy": 23842031,
+        "rightAscensionDegrees": 24.17208333,
+        "declinationDegrees": 15.78666667,
+        "angularDiameterArcmin": 11.22,
+        "diameterLy": 77815,
+        "apparentMagnitudeB": 9.79,
+        "morphologicalType": 5,
+        "distanceMethod": "BS",
+        "nearbyUniverseLabelRank": 114,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC0628 NGC 628 Local Volume"
+      }
+    },
+    {
+      "id": "lv-ngc0925",
+      "name": "NGC 925",
+      "aliases": ["NGC0925"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 36.74,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.56,
+        "galaxyRotationDegrees": 169
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [6.196157, 5.138044, 4.638129],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 9.29,
+        "distanceLy": 30299927,
+        "rightAscensionDegrees": 36.81666667,
+        "declinationDegrees": 33.57805556,
+        "angularDiameterArcmin": 11.75,
+        "diameterLy": 103563,
+        "apparentMagnitudeB": 10.58,
+        "morphologicalType": 7,
+        "distanceMethod": "Cep",
+        "nearbyUniverseLabelRank": 126,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC0925 NGC 925 Local Volume"
+      }
+    },
+    {
+      "id": "lv-ngc0891",
+      "name": "NGC 891",
+      "aliases": ["NGC0891"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 36.89,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.29,
+        "galaxyRotationDegrees": 101
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [5.868578, 6.581216, 4.207172],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 9.77,
+        "distanceLy": 31865478,
+        "rightAscensionDegrees": 35.63666667,
+        "declinationDegrees": 42.34666667,
+        "angularDiameterArcmin": 13.18,
+        "diameterLy": 122169,
+        "apparentMagnitudeB": 10.71,
+        "morphologicalType": 3,
+        "distanceMethod": "SBF",
+        "nearbyUniverseLabelRank": 130,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC0891 NGC 891 Local Volume"
+      }
+    }
+  ]
+}

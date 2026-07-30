@@ -30,7 +30,7 @@ describe('validation des données statiques', () => {
     expect(dataset.objects[0]?.id).toBe('test-star');
   });
 
-  it('valide un manifest JSON et un catalogue binaire', () => {
+  it('valide tous les formats du manifest statique', () => {
     expect(
       parseManifest({
         version: '1.0.0',
@@ -42,6 +42,31 @@ describe('validation des données statiques', () => {
             type: 'binary',
             format: 'star-catalog-v2',
           },
+          {
+            id: 'nearby-universe',
+            url: '/tiles/index.json',
+            type: 'space-tile-index',
+            format: 'space-tiles-v2',
+          },
+          {
+            id: 'constellations',
+            url: '/stars/constellations.json',
+            type: 'constellation-lines',
+            format: 'constellation-lines-v1',
+          },
+          {
+            id: 'star-tiles',
+            url: '/stars/tiles/index.json',
+            type: 'star-tile-index',
+            format: 'star-tiles-v2',
+            starCatalogId: 'stars',
+          },
+          {
+            id: 'cosmicflows4-groups',
+            url: '/galaxies/cosmicflows4-groups.bin',
+            type: 'cosmic-group-catalog',
+            format: 'cosmicflows4-group-catalog-v1',
+          },
         ],
       }).datasets,
     ).toEqual([
@@ -51,6 +76,31 @@ describe('validation des données statiques', () => {
         url: '/stars.bin',
         type: 'binary',
         format: 'star-catalog-v2',
+      },
+      {
+        id: 'nearby-universe',
+        url: '/tiles/index.json',
+        type: 'space-tile-index',
+        format: 'space-tiles-v2',
+      },
+      {
+        id: 'constellations',
+        url: '/stars/constellations.json',
+        type: 'constellation-lines',
+        format: 'constellation-lines-v1',
+      },
+      {
+        id: 'star-tiles',
+        url: '/stars/tiles/index.json',
+        type: 'star-tile-index',
+        format: 'star-tiles-v2',
+        starCatalogId: 'stars',
+      },
+      {
+        id: 'cosmicflows4-groups',
+        url: '/galaxies/cosmicflows4-groups.bin',
+        type: 'cosmic-group-catalog',
+        format: 'cosmicflows4-group-catalog-v1',
       },
     ]);
   });
@@ -80,6 +130,77 @@ describe('validation des données statiques', () => {
         datasets: [{ id: 'x', url: '/x', type: 'binary', format: 'v1' }],
       }),
     ).toThrow('Format binaire invalide');
+  });
+
+  it('rejette un format de tuiles inconnu', () => {
+    expect(() =>
+      parseManifest({
+        version: '1',
+        datasets: [{ id: 'x', url: '/x', type: 'space-tile-index', format: 'space-tiles-v0' }],
+      }),
+    ).toThrow('Format de tuiles invalide');
+  });
+
+  it('rejette un format de constellations inconnu', () => {
+    expect(() =>
+      parseManifest({
+        version: '1',
+        datasets: [
+          {
+            id: 'x',
+            url: '/x',
+            type: 'constellation-lines',
+            format: 'constellation-lines-v0',
+          },
+        ],
+      }),
+    ).toThrow('Format de constellations invalide');
+  });
+
+  it('rejette un index stellaire sans format ou catalogue associé valide', () => {
+    expect(() =>
+      parseManifest({
+        version: '1',
+        datasets: [
+          {
+            id: 'x',
+            url: '/x',
+            type: 'star-tile-index',
+            format: 'star-tiles-v0',
+            starCatalogId: 'stars',
+          },
+        ],
+      }),
+    ).toThrow('Format de tuiles stellaires invalide');
+    expect(() =>
+      parseManifest({
+        version: '1',
+        datasets: [
+          {
+            id: 'x',
+            url: '/x',
+            type: 'star-tile-index',
+            format: 'star-tiles-v2',
+          },
+        ],
+      }),
+    ).toThrow('Catalogue stellaire manquant');
+  });
+
+  it('rejette un format de groupes cosmiques inconnu', () => {
+    expect(() =>
+      parseManifest({
+        version: '1',
+        datasets: [
+          {
+            id: 'cosmic-groups',
+            url: '/cosmic.bin',
+            type: 'cosmic-group-catalog',
+            format: 'cosmicflows4-group-catalog-v0',
+          },
+        ],
+      }),
+    ).toThrow('Format de groupes cosmiques invalide');
   });
 
   it('rejette une unité ou une échelle visuelle inconnue', () => {
@@ -172,6 +293,134 @@ describe('validation des données statiques', () => {
     );
 
     expect(dataset.objects[0]?.visual.galaxyShape).toBe('spiral');
+  });
+
+  it('valide un trou noir et son niveau d’activité visuelle', () => {
+    const dataset = parseUniverseDataset(
+      {
+        version: '1.0.0',
+        objects: [
+          {
+            id: 'sagittarius-a-star',
+            name: 'Sagittarius A*',
+            type: 'black-hole',
+            referenceFrame: 'galactic',
+            scientificConfidence: 'observed',
+            visual: {
+              visualRadius: 2,
+              scaleMode: 'adaptive',
+              blackHoleActivity: 'quiescent',
+              accretionDiskInclinationDegrees: 50,
+            },
+            positionProvider: {
+              type: 'static',
+              position: [0, 0, 0],
+              unit: 'kiloparsec',
+            },
+          },
+        ],
+      },
+      'test',
+    );
+
+    expect(dataset.objects[0]?.type).toBe('black-hole');
+    expect(dataset.objects[0]?.visual.blackHoleActivity).toBe('quiescent');
+  });
+
+  it.each([
+    [{}, 'Activité de trou noir invalide'],
+    [{ blackHoleActivity: 'unknown' }, 'Activité de trou noir invalide'],
+    [{ blackHoleActivity: 'active', accretionDiskInclinationDegrees: 'edge-on' }, 'Inclinaison'],
+    [{ blackHoleActivity: 'active', accretionDiskInclinationDegrees: -1 }, 'Inclinaison'],
+    [{ blackHoleActivity: 'active', accretionDiskInclinationDegrees: 91 }, 'Inclinaison'],
+  ])('rejette un profil visuel de trou noir incohérent', (visualOverrides, message) => {
+    expect(() =>
+      parseUniverseDataset(
+        {
+          version: '1.0.0',
+          objects: [
+            {
+              id: 'invalid-black-hole',
+              name: 'Invalide',
+              type: 'black-hole',
+              referenceFrame: 'galactic',
+              scientificConfidence: 'calculated',
+              visual: {
+                visualRadius: 1,
+                scaleMode: 'adaptive',
+                ...visualOverrides,
+              },
+              positionProvider: {
+                type: 'static',
+                position: [0, 0, 0],
+                unit: 'kiloparsec',
+              },
+            },
+          ],
+        },
+        'test',
+      ),
+    ).toThrow(message);
+  });
+
+  it('valide une galaxie du référentiel de l’Univers proche', () => {
+    const dataset = parseUniverseDataset(
+      {
+        version: '1.0.0',
+        objects: [
+          {
+            id: 'm81',
+            name: 'M81',
+            type: 'galaxy',
+            referenceFrame: 'nearby-universe',
+            scientificConfidence: 'observed',
+            visual: {
+              visualRadius: 80,
+              scaleMode: 'adaptive',
+              galaxyShape: 'spiral',
+            },
+            positionProvider: {
+              type: 'static',
+              position: [-1.11, 3.39, 0.67],
+              unit: 'megaparsec',
+            },
+          },
+        ],
+      },
+      'test',
+    );
+
+    expect(dataset.objects[0]?.referenceFrame).toBe('nearby-universe');
+  });
+
+  it('valide un groupe de galaxies du référentiel cosmique', () => {
+    const dataset = parseUniverseDataset(
+      {
+        version: '1.0.0',
+        objects: [
+          {
+            id: 'cf4-pgc-42',
+            name: 'Groupe PGC 42',
+            type: 'galaxy-cluster',
+            parentId: 'cosmic-web',
+            referenceFrame: 'cosmic-web',
+            scientificConfidence: 'calculated',
+            visual: {
+              visualRadius: 80,
+              scaleMode: 'adaptive',
+            },
+            positionProvider: {
+              type: 'static',
+              position: [120, -40, 10],
+              unit: 'megaparsec',
+            },
+          },
+        ],
+      },
+      'test',
+    );
+
+    expect(dataset.objects[0]?.referenceFrame).toBe('cosmic-web');
   });
 
   it('rejette une silhouette galactique incohérente', () => {
@@ -316,6 +565,11 @@ describe('validation des données statiques', () => {
   it('accepte tous les fournisseurs de position valides', () => {
     const providers = [
       staticProvider(),
+      {
+        type: 'catalog',
+        catalogId: 'hyg-v41-bright-stars',
+        identifier: 'HIP 32349',
+      },
       keplerianProvider(),
       ephemerisProvider(),
       {
@@ -331,6 +585,15 @@ describe('validation des données statiques', () => {
     for (const provider of providers) {
       expect(datasetWith({ ...baseObject(), positionProvider: provider }).objects).toHaveLength(1);
     }
+  });
+
+  it.each([
+    { catalogId: '', identifier: 'HIP 32349' },
+    { catalogId: 'hyg-v41-bright-stars', identifier: '' },
+    { catalogId: 42, identifier: 'HIP 32349' },
+    { catalogId: 'hyg-v41-bright-stars', identifier: 32_349 },
+  ])('rejette un lien de catalogue incomplet', (part) => {
+    expectInvalidProvider({ type: 'catalog', ...part });
   });
 
   it.each([
@@ -360,9 +623,11 @@ describe('validation des données statiques', () => {
   });
 
   it.each([
-    { body: 'pluto' },
+    { body: 'eris' },
     { origin: 'mars' },
     { body: 'moon', origin: 'sun' },
+    { body: 'io', origin: 'sun' },
+    { body: 'earth', origin: 'jupiter' },
     { orbitalPeriodDays: 'year' },
     { orbitalPeriodDays: Number.POSITIVE_INFINITY },
     { orbitalPeriodDays: 0 },
@@ -375,7 +640,7 @@ describe('validation des données statiques', () => {
     expectInvalidProvider({ ...ephemerisProvider(), ...part });
   });
 
-  it('accepte une distance d’éphéméride positive et l’origine terrestre de la Lune', () => {
+  it('accepte les origines solaires, terrestre et jovienne cohérentes', () => {
     expect(
       datasetWith({
         ...baseObject(),
@@ -392,6 +657,56 @@ describe('validation des données statiques', () => {
         },
       }).objects,
     ).toHaveLength(1);
+    expect(
+      datasetWith({
+        ...baseObject(),
+        positionProvider: {
+          ...ephemerisProvider(),
+          body: 'io',
+          origin: 'jupiter',
+        },
+      }).objects,
+    ).toHaveLength(1);
+    expect(
+      datasetWith({
+        ...baseObject(),
+        positionProvider: {
+          ...ephemerisProvider(),
+          body: 'pluto',
+          origin: 'sun',
+        },
+      }).objects,
+    ).toHaveLength(1);
+  });
+
+  it('accepte uniquement une exagération képlérienne positive et finie', () => {
+    expect(
+      datasetWith({
+        ...baseObject(),
+        positionProvider: { ...keplerianProvider(), distanceScale: 40 },
+      }).objects,
+    ).toHaveLength(1);
+
+    for (const distanceScale of [0, Number.POSITIVE_INFINITY, 'large']) {
+      expectInvalidProvider({ ...keplerianProvider(), distanceScale });
+    }
+  });
+
+  it.each([
+    { semiMajorAxis: 0 },
+    { semiMajorAxis: Number.POSITIVE_INFINITY },
+    { eccentricity: -0.01 },
+    { eccentricity: 1 },
+    { eccentricity: Number.NaN },
+    { inclination: Number.POSITIVE_INFINITY },
+    { longitudeOfAscendingNode: Number.NaN },
+    { argumentOfPeriapsis: Number.NEGATIVE_INFINITY },
+    { meanAnomalyAtEpoch: Number.NaN },
+    { epochJulianDay: Number.POSITIVE_INFINITY },
+    { orbitalPeriodDays: 0 },
+    { orbitalPeriodDays: Number.POSITIVE_INFINITY },
+  ])('rejette une valeur képlérienne physiquement impossible', (part) => {
+    expectInvalidProvider({ ...keplerianProvider(), ...part });
   });
 
   it.each([

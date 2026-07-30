@@ -1,0 +1,169 @@
+{
+  "version": "2.0.0",
+  "objects": [
+    {
+      "id": "lv-ngc2903",
+      "name": "NGC 2903",
+      "aliases": ["NGC2903"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 38.46,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.48,
+        "galaxyRotationDegrees": 175
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-6.594423, 3.250946, 4.96204],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 8.87,
+        "distanceLy": 28930071,
+        "rightAscensionDegrees": 143.04,
+        "declinationDegrees": 21.50055556,
+        "angularDiameterArcmin": 12.59,
+        "diameterLy": 105950,
+        "apparentMagnitudeB": 9.53,
+        "morphologicalType": 4,
+        "distanceMethod": "BS",
+        "nearbyUniverseLabelRank": 107,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC2903 NGC 2903 Local Volume"
+      }
+    },
+    {
+      "id": "lv-ngc3627",
+      "name": "NGC 3627",
+      "aliases": ["NGC3627"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 37.68,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.46,
+        "galaxyRotationDegrees": 165
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-9.866584, 2.310991, 1.72865],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 10.28,
+        "distanceLy": 33528876,
+        "rightAscensionDegrees": 170.0625,
+        "declinationDegrees": 12.99138889,
+        "angularDiameterArcmin": 10.23,
+        "diameterLy": 99775,
+        "apparentMagnitudeB": 9.65,
+        "morphologicalType": 4,
+        "distanceMethod": "Cep",
+        "nearbyUniverseLabelRank": 109,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC3627 NGC 3627 Local Volume"
+      }
+    },
+    {
+      "id": "lv-ngc3368",
+      "name": "NGC 3368",
+      "aliases": ["NGC3368"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 36.62,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.68,
+        "galaxyRotationDegrees": 139
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-9.682739, 2.13436, 3.203978],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 10.42,
+        "distanceLy": 33985495,
+        "rightAscensionDegrees": 161.69083333,
+        "declinationDegrees": 11.81972222,
+        "angularDiameterArcmin": 8.91,
+        "diameterLy": 88084,
+        "apparentMagnitudeB": 10.11,
+        "morphologicalType": 3,
+        "distanceMethod": "Cep",
+        "nearbyUniverseLabelRank": 118,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC3368 NGC 3368 Local Volume"
+      }
+    },
+    {
+      "id": "lv-ngc2683",
+      "name": "NGC 2683",
+      "aliases": ["NGC2683"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 37.49,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.24,
+        "galaxyRotationDegrees": 6
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-4.414334, 4.257156, 4.705654],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 7.73,
+        "distanceLy": 25211888,
+        "rightAscensionDegrees": 133.17041667,
+        "declinationDegrees": 33.41722222,
+        "angularDiameterArcmin": 13.49,
+        "diameterLy": 98934,
+        "apparentMagnitudeB": 10.34,
+        "morphologicalType": 3,
+        "distanceMethod": "SBF",
+        "nearbyUniverseLabelRank": 122,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC2683 NGC 2683 Local Volume"
+      }
+    }
+  ]
+}

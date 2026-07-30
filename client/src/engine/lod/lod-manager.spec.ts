@@ -1,7 +1,7 @@
 import { LodManager } from './lod-manager';
 
 describe('sélection du niveau de détail', () => {
-  it('passe progressivement des planètes au Groupe local', () => {
+  it('passe progressivement des planètes au réseau cosmique', () => {
     const lod = new LodManager();
 
     expect(lod.selectLevel(30)).toBe(0);
@@ -9,6 +9,8 @@ describe('sélection du niveau de détail', () => {
     expect(lod.selectLevel(1_200)).toBe(2);
     expect(lod.selectLevel(4_000)).toBe(3);
     expect(lod.selectLevel(17_000)).toBe(4);
+    expect(lod.selectLevel(80_000)).toBe(5);
+    expect(lod.selectLevel(420_000)).toBe(6);
   });
 
   it('utilise une hystérésis pour éviter les bascules au voisinage d’un seuil', () => {
@@ -24,8 +26,8 @@ describe('sélection du niveau de détail', () => {
   it('initialise directement le dernier niveau et expose le niveau courant', () => {
     const lod = new LodManager();
 
-    expect(lod.selectLevel(20_000)).toBe(4);
-    expect(lod.level).toBe(4);
+    expect(lod.selectLevel(420_000)).toBe(6);
+    expect(lod.level).toBe(6);
     expect(lod.selectLevel(20)).toBe(0);
   });
 });

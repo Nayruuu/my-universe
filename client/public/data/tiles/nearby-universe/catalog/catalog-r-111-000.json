@@ -1,0 +1,170 @@
+{
+  "version": "2.0.0",
+  "objects": [
+    {
+      "id": "lv-ngc0404",
+      "name": "NGC 404",
+      "aliases": ["NGC0404"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#d0bea1",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 32.5,
+        "scaleMode": "adaptive",
+        "galaxyShape": "elliptical",
+        "galaxyAxisRatio": 0.95,
+        "galaxyRotationDegrees": 67
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [2.363485, 1.780557, 0.738954],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 3.05,
+        "distanceLy": 9947770,
+        "rightAscensionDegrees": 17.36208333,
+        "declinationDegrees": 35.7175,
+        "angularDiameterArcmin": 3.47,
+        "diameterLy": 10041,
+        "apparentMagnitudeB": 11.21,
+        "morphologicalType": -1,
+        "morphology": "S0em",
+        "distanceMethod": "TRGB",
+        "nearbyUniverseLabelRank": 144,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC0404 NGC 404 S0em Local Volume"
+      }
+    },
+    {
+      "id": "lv-ngc1569",
+      "name": "NGC 1569",
+      "aliases": ["NGC1569"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 32,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.51,
+        "galaxyRotationDegrees": 132
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [0.49341, 2.769863, 1.203332],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 3.06,
+        "distanceLy": 9980385,
+        "rightAscensionDegrees": 67.70458333,
+        "declinationDegrees": 64.84805556,
+        "angularDiameterArcmin": 3.98,
+        "diameterLy": 11555,
+        "apparentMagnitudeB": 11.79,
+        "morphologicalType": 8,
+        "distanceMethod": "TRGB",
+        "nearbyUniverseLabelRank": 171,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC1569 NGC 1569 Local Volume"
+      }
+    },
+    {
+      "id": "lv-ngc1560",
+      "name": "NGC 1560",
+      "aliases": ["NGC1560"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 33.98,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.15,
+        "galaxyRotationDegrees": 123
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [0.398308, 3.278926, 0.996241],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 3.45,
+        "distanceLy": 11252395,
+        "rightAscensionDegrees": 68.20791667,
+        "declinationDegrees": 71.88111111,
+        "angularDiameterArcmin": 9.77,
+        "diameterLy": 31979,
+        "apparentMagnitudeB": 12.11,
+        "morphologicalType": 7,
+        "distanceMethod": "TRGB",
+        "nearbyUniverseLabelRank": 178,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC1560 NGC 1560 Local Volume"
+      }
+    },
+    {
+      "id": "lv-ugca105",
+      "name": "UGCA105",
+      "aliases": [],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 32.34,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.64,
+        "galaxyRotationDegrees": 103
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [0.287635, 2.796133, 1.421761],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 3.15,
+        "distanceLy": 10273926,
+        "rightAscensionDegrees": 78.56291667,
+        "declinationDegrees": 62.58083333,
+        "angularDiameterArcmin": 5.5,
+        "diameterLy": 16437,
+        "apparentMagnitudeB": 12.14,
+        "morphologicalType": 8,
+        "distanceMethod": "TRGB",
+        "nearbyUniverseLabelRank": 180,
+        "nearbyUniversePointBatch": true,
+        "keywords": "UGCA105 UGCA105 Local Volume"
+      }
+    }
+  ]
+}

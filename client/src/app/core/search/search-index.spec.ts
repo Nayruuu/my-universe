@@ -118,6 +118,33 @@ describe('recherche locale', () => {
     expect(index.search('supergéante')[0]?.id).toBe('betelgeuse');
   });
 
+  it('indexe une constellation illustrative comme une région recherchable', () => {
+    const index = new LocalSearchIndex();
+
+    index.build([
+      ...OBJECTS,
+      {
+        ...OBJECTS[0]!,
+        id: 'constellation-orion',
+        name: 'Orion',
+        aliases: ['Ori'],
+        type: 'region',
+        parentId: 'sun',
+        scientificConfidence: 'illustrative',
+        metadata: {
+          keywords: 'constellation figure céleste Ori',
+        },
+      },
+    ]);
+
+    expect(index.search('Orion')[0]).toMatchObject({
+      id: 'constellation-orion',
+      parentName: 'Soleil',
+      type: 'region',
+    });
+    expect(index.search('constellation')[0]?.id).toBe('constellation-orion');
+  });
+
   it('départage alphabétiquement deux résultats de même score', () => {
     const index = new LocalSearchIndex();
 

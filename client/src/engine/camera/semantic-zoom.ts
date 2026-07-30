@@ -26,10 +26,19 @@ export class SemanticZoomJourney {
         return { handled: false, distance: currentDistance };
       }
       this.start(currentDistance);
+      if (!this.distances) {
+        return { handled: false, distance: currentDistance };
+      }
     }
 
     const distances = this.distances!;
     const maximumProgress = distances.length - 1;
+
+    if (this.progress === maximumProgress && deltaY > 0) {
+      this.reset();
+
+      return { handled: false, distance: currentDistance };
+    }
 
     this.progress = Math.max(
       0,
@@ -56,7 +65,7 @@ export class SemanticZoomJourney {
     const tolerance = Math.max(1e-9, Math.abs(anchor) * 1e-9);
     const outerScales = SCALE_DISTANCES.filter((distance) => distance > anchor + tolerance);
 
-    this.distances = [anchor, ...outerScales];
+    this.distances = outerScales.length > 0 ? [anchor, ...outerScales] : null;
     this.progress = 0;
   }
 }

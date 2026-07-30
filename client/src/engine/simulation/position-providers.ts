@@ -1,6 +1,15 @@
-import { Body, GeoMoon, HelioVector, RotateVector, Rotation_EQJ_ECL } from 'astronomy-engine';
+import {
+  Body,
+  GeoMoon,
+  HelioVector,
+  JupiterMoons,
+  RotateVector,
+  Rotation_EQJ_ECL,
+  Vector,
+} from 'astronomy-engine';
 import {
   EphemerisBody,
+  JovianMoon,
   PositionProviderDefinition,
   ReferenceFrame,
   UniverseTime,
@@ -20,7 +29,13 @@ const EPHEMERIS_BODIES: Readonly<Record<EphemerisBody, Body>> = {
   saturn: Body.Saturn,
   uranus: Body.Uranus,
   neptune: Body.Neptune,
+  pluto: Body.Pluto,
+  io: Body.Jupiter,
+  europa: Body.Jupiter,
+  ganymede: Body.Jupiter,
+  callisto: Body.Jupiter,
 };
+const JOVIAN_MOONS = new Set<JovianMoon>(['io', 'europa', 'ganymede', 'callisto']);
 
 export interface TemporalPositionProvider {
   getPositionAt(time: UniverseTime): Vector3Like;
@@ -42,11 +57,9 @@ export class KeplerianOrbitProvider implements TemporalPositionProvider {
     coordinateSystem: CoordinateSystem,
     frame: ReferenceFrame,
   ) {
-    this.semiMajorAxisSceneUnits = coordinateSystem.toSceneDistance(
-      definition.semiMajorAxis,
-      definition.unit,
-      frame,
-    );
+    this.semiMajorAxisSceneUnits =
+      coordinateSystem.toSceneDistance(definition.semiMajorAxis, definition.unit, frame) *
+      (definition.distanceScale ?? 1);
   }
 
   public getPositionAt(time: UniverseTime): Vector3Like {
@@ -98,10 +111,7 @@ export class SolarSystemEphemerisProvider implements TemporalPositionProvider {
     if (frame !== 'solar-system') {
       throw new Error('Une éphéméride solaire exige le référentiel solar-system.');
     }
-    if (
-      (definition.body === 'moon' && definition.origin !== 'earth') ||
-      (definition.body !== 'moon' && definition.origin !== 'sun')
-    ) {
+    if (!isValidEphemerisOrigin(definition.body, definition.origin)) {
       throw new Error(`Origine d’éphéméride incohérente pour ${definition.body}.`);
     }
 
@@ -113,10 +123,7 @@ export class SolarSystemEphemerisProvider implements TemporalPositionProvider {
 
   public getPositionAt(time: UniverseTime): Vector3Like {
     const daysSinceJ2000 = time.julianDay - JULIAN_DAY_J2000;
-    const equatorialPosition =
-      this.definition.origin === 'earth'
-        ? GeoMoon(daysSinceJ2000)
-        : HelioVector(this.body, daysSinceJ2000);
+    const equatorialPosition = this.getEquatorialPosition(daysSinceJ2000);
     const eclipticPosition = RotateVector(EQUATORIAL_TO_ECLIPTIC, equatorialPosition);
     const scale = this.sceneUnitsPerAstronomicalUnit;
 
@@ -126,6 +133,21 @@ export class SolarSystemEphemerisProvider implements TemporalPositionProvider {
       y: eclipticPosition.z * scale,
       z: eclipticPosition.y * scale,
     };
+  }
+
+  private getEquatorialPosition(daysSinceJ2000: number): Vector {
+    if (this.definition.origin === 'earth') {
+      return GeoMoon(daysSinceJ2000);
+    }
+    if (this.definition.origin === 'jupiter') {
+      const body = this.definition.body as JovianMoon;
+
+      const state = JupiterMoons(daysSinceJ2000)[body];
+
+      return new Vector(state.x, state.y, state.z, state.t);
+    }
+
+    return HelioVector(this.body, daysSinceJ2000);
   }
 }
 
@@ -192,6 +214,10 @@ export class PositionProviderFactory {
         return new StaticPositionProvider(
           this.coordinateSystem.toRenderPosition(definition.position, definition.unit, frame),
         );
+      case 'catalog':
+        throw new Error(
+          `Le lien de catalogue ${definition.catalogId}:${definition.identifier} doit être résolu avant le rendu.`,
+        );
       case 'keplerian':
         return new KeplerianOrbitProvider(definition, this.coordinateSystem, frame);
       case 'ephemeris':
@@ -230,4 +256,18 @@ function normalizeRadians(value: number): number {
   const fullTurn = Math.PI * 2;
 
   return ((value % fullTurn) + fullTurn) % fullTurn;
+}
+
+function isValidEphemerisOrigin(
+  body: EphemerisBody,
+  origin: Extract<PositionProviderDefinition, { type: 'ephemeris' }>['origin'],
+): boolean {
+  if (body === 'moon') {
+    return origin === 'earth';
+  }
+  if (JOVIAN_MOONS.has(body as JovianMoon)) {
+    return origin === 'jupiter';
+  }
+
+  return origin === 'sun';
 }

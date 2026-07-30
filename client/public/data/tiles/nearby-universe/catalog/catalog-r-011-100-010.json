@@ -1,0 +1,131 @@
+{
+  "version": "2.0.0",
+  "objects": [
+    {
+      "id": "lv-ngc3738",
+      "name": "NGC 3738",
+      "aliases": ["NGC3738"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#9eb8c8",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 31.48,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.73,
+        "galaxyRotationDegrees": 66
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-2.828032, 3.990297, 0.299609],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 4.9,
+        "distanceLy": 15981663,
+        "rightAscensionDegrees": 173.9525,
+        "declinationDegrees": 54.52277778,
+        "angularDiameterArcmin": 3.39,
+        "diameterLy": 15760,
+        "apparentMagnitudeB": 11.87,
+        "morphologicalType": 9,
+        "morphology": "BCD",
+        "distanceMethod": "TRGB",
+        "nearbyUniverseLabelRank": 174,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC3738 NGC 3738 BCD Local Volume"
+      }
+    },
+    {
+      "id": "lv-lv-j1028-4240",
+      "name": "LV J1028+4240",
+      "aliases": [],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#9eb8c8",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 20.01,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.71,
+        "galaxyRotationDegrees": 109
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-5.115267, 5.117092, 2.156829],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 7.55,
+        "distanceLy": 24624807,
+        "rightAscensionDegrees": 157.1375,
+        "declinationDegrees": 42.66888889,
+        "angularDiameterArcmin": 0.48,
+        "diameterLy": 3438,
+        "apparentMagnitudeB": 17.4,
+        "morphologicalType": 10,
+        "morphology": "Ir",
+        "distanceMethod": "h",
+        "nearbyUniverseLabelRank": 654,
+        "nearbyUniversePointBatch": true,
+        "keywords": "LV J1028+4240 LV J1028+4240 Ir Local Volume"
+      }
+    },
+    {
+      "id": "lv-kk109",
+      "name": "KK109",
+      "aliases": [],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#9eb8c8",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 18.93,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.67,
+        "galaxyRotationDegrees": 113
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-3.25701, 3.114283, 0.182285],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 4.51,
+        "distanceLy": 14709653,
+        "rightAscensionDegrees": 176.79666667,
+        "declinationDegrees": 43.67194444,
+        "angularDiameterArcmin": 0.45,
+        "diameterLy": 1925,
+        "apparentMagnitudeB": 18.1,
+        "morphologicalType": 10,
+        "morphology": "Ir",
+        "distanceMethod": "TRGB",
+        "nearbyUniverseLabelRank": 729,
+        "nearbyUniversePointBatch": true,
+        "keywords": "KK109 KK109 Ir Local Volume"
+      }
+    }
+  ]
+}

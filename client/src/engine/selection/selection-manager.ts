@@ -6,7 +6,15 @@ export type NavigationIntentCallback = (objectId: string | null) => void;
 export type BackgroundObjectReader = (objectId: string) => boolean;
 export type LabelObjectReader = (clientX: number, clientY: number) => string | null;
 export type LabelHoverCallback = (objectId: string | null) => void;
-export type SemanticZoomCallback = (objectId: string | null, deltaY: number) => void;
+export interface ZoomPointer {
+  x: number;
+  y: number;
+}
+export type SemanticZoomCallback = (
+  objectId: string | null,
+  deltaY: number,
+  pointer: ZoomPointer,
+) => void;
 
 export class SelectionManager {
   private static readonly NAVIGATION_LOCK_RADIUS_PX = 28;
@@ -18,6 +26,7 @@ export class SelectionManager {
   private readonly activePointers = new Set<number>();
   private pointerStart: { x: number; y: number } | null = null;
   private navigationLock: { objectId: string; x: number; y: number } | null = null;
+  private lastWheelDirection: -1 | 1 | null = null;
   private lastHoverRaycastTime = Number.NEGATIVE_INFINITY;
 
   constructor(
@@ -31,8 +40,10 @@ export class SelectionManager {
     private readonly isBackgroundObject: BackgroundObjectReader,
     private readonly labelHoverCallback: LabelHoverCallback = () => undefined,
     private readonly semanticZoomCallback?: SemanticZoomCallback,
+    private readonly isWheelNavigationObject: BackgroundObjectReader = () => true,
   ) {
     this.raycaster.params.Points = { threshold: 3 };
+    this.raycaster.params.Line = { threshold: 1 };
     this.raycaster.layers.set(PICKING_LAYER);
     canvas.addEventListener('pointerdown', this.handlePointerDown);
     canvas.addEventListener('pointerup', this.handlePointerUp);
@@ -57,14 +68,21 @@ export class SelectionManager {
 
   public clearNavigationLock(): void {
     this.navigationLock = null;
+    this.lastWheelDirection = null;
   }
 
   private readonly handlePointerDown = (event: PointerEvent): void => {
     this.activePointers.add(event.pointerId);
-    if (event.button === 2 || this.activePointers.size > 1) {
+    if (event.button === 2) {
       this.pointerStart = null;
       this.navigationLock = null;
       this.navigationIntentCallback(null);
+
+      return;
+    }
+    if (this.activePointers.size > 1) {
+      this.pointerStart = null;
+      this.navigationLock = null;
 
       return;
     }
@@ -102,8 +120,8 @@ export class SelectionManager {
     }
     const labelObjectId = this.getLabelObjectAt(event.clientX, event.clientY);
 
-    this.labelHoverCallback(labelObjectId);
     if (labelObjectId) {
+      this.labelHoverCallback(labelObjectId);
       this.canvas.style.cursor = 'pointer';
 
       return;
@@ -112,7 +130,10 @@ export class SelectionManager {
       return;
     }
     this.lastHoverRaycastTime = event.timeStamp;
-    this.canvas.style.cursor = this.findRaycastObjectAt(event) ? 'pointer' : '';
+    const raycastObjectId = this.findRaycastObjectAt(event);
+
+    this.labelHoverCallback(raycastObjectId);
+    this.canvas.style.cursor = raycastObjectId ? 'pointer' : '';
   };
 
   private readonly handlePointerLeave = (): void => {
@@ -132,15 +153,34 @@ export class SelectionManager {
       return;
     }
 
+    const direction = event.deltaY === 0 ? null : event.deltaY < 0 ? -1 : 1;
+
+    if (
+      direction !== null &&
+      this.lastWheelDirection !== null &&
+      direction !== this.lastWheelDirection
+    ) {
+      this.navigationLock = null;
+    }
+    this.lastWheelDirection = direction ?? this.lastWheelDirection;
     const objectId = this.resolveWheelAnchor(event);
 
     if (this.semanticZoomCallback) {
-      this.semanticZoomCallback(objectId, event.deltaY);
+      this.semanticZoomCallback(objectId, event.deltaY, this.getZoomPointer(event));
 
       return;
     }
     this.navigationIntentCallback(objectId);
   };
+
+  private getZoomPointer(event: { clientX: number; clientY: number }): ZoomPointer {
+    const bounds = this.canvas.getBoundingClientRect();
+
+    return {
+      x: ((event.clientX - bounds.left) / bounds.width) * 2 - 1,
+      y: -((event.clientY - bounds.top) / bounds.height) * 2 + 1,
+    };
+  }
 
   private resolveWheelAnchor(event: WheelEvent): string | null {
     if (
@@ -151,7 +191,7 @@ export class SelectionManager {
       return this.navigationLock.objectId;
     }
 
-    const objectId = this.findObjectAt(event);
+    const objectId = this.findWheelObjectAt(event);
 
     if (objectId) {
       this.navigationLock = {
@@ -164,6 +204,15 @@ export class SelectionManager {
     }
 
     return objectId;
+  }
+
+  private findWheelObjectAt(event: { clientX: number; clientY: number }): string | null {
+    const labelObjectId = this.getLabelObjectAt(event.clientX, event.clientY);
+
+    return (
+      labelObjectId ??
+      this.findRaycastObjectAt(event, (objectId) => this.isWheelNavigationObject(objectId))
+    );
   }
 
   private pick(event: MouseEvent | PointerEvent, focusRequested: boolean): void {
@@ -185,13 +234,16 @@ export class SelectionManager {
     return this.getLabelObjectAt(event.clientX, event.clientY) ?? this.findRaycastObjectAt(event);
   }
 
-  private findRaycastObjectAt(event: { clientX: number; clientY: number }): string | null {
+  private findRaycastObjectAt(
+    event: { clientX: number; clientY: number },
+    acceptsObject: BackgroundObjectReader = () => true,
+  ): string | null {
     const bounds = this.canvas.getBoundingClientRect();
 
     this.pointer.x = ((event.clientX - bounds.left) / bounds.width) * 2 - 1;
     this.pointer.y = -((event.clientY - bounds.top) / bounds.height) * 2 + 1;
     this.raycaster.setFromCamera(this.pointer, this.camera);
-    this.updatePointThreshold(bounds.height);
+    this.updateRaycastThresholds(bounds.height);
 
     this.intersections.length = 0;
     this.raycaster.intersectObjects(
@@ -200,23 +252,29 @@ export class SelectionManager {
       this.intersections,
     );
     let backgroundObjectId: string | null = null;
+    let backgroundPriority = Number.NEGATIVE_INFINITY;
 
     for (const intersection of this.intersections) {
       const objectId = resolveObjectId(intersection);
 
-      if (!objectId) {
+      if (!objectId || !acceptsObject(objectId)) {
         continue;
       }
       if (!this.isBackgroundObject(objectId)) {
         return objectId;
       }
-      backgroundObjectId ??= objectId;
+      const pickingPriority = resolvePickingPriority(intersection);
+
+      if (pickingPriority > backgroundPriority) {
+        backgroundObjectId = objectId;
+        backgroundPriority = pickingPriority;
+      }
     }
 
     return backgroundObjectId;
   }
 
-  private updatePointThreshold(viewportHeight: number): void {
+  private updateRaycastThresholds(viewportHeight: number): void {
     if (!(this.camera instanceof THREE.PerspectiveCamera) || viewportHeight <= 0) {
       return;
     }
@@ -227,7 +285,16 @@ export class SelectionManager {
     this.raycaster.params.Points = {
       threshold: Math.max(0.5, worldUnitsPerPixel * 7),
     };
+    this.raycaster.params.Line = {
+      threshold: Math.max(0.2, worldUnitsPerPixel * 5),
+    };
   }
+}
+
+function resolvePickingPriority(intersection: THREE.Intersection): number {
+  const priority = intersection.object.userData['pickingPriority'];
+
+  return typeof priority === 'number' ? priority : 0;
 }
 
 export function resolveObjectId(intersection: THREE.Intersection): string | null {

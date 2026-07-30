@@ -20,8 +20,10 @@ describe('TimelineComponent', () => {
   const speed = signal(1);
   const displayOptions = signal({
     showOrbits: true,
+    showConstellations: true,
     showLabels: true,
     quality: 'high' as const,
+    labelDensity: 'balanced' as const,
     temporalMode: 'state' as TemporalMode,
   });
   const currentIsoDateTime = signal('2026-07-29T12:00');
@@ -66,8 +68,10 @@ describe('TimelineComponent', () => {
     earthRotationStabilized.set(false);
     displayOptions.set({
       showOrbits: true,
+      showConstellations: true,
       showLabels: true,
       quality: 'high',
+      labelDensity: 'balanced',
       temporalMode: 'state',
     });
     vi.clearAllMocks();

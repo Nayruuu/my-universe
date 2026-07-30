@@ -1,0 +1,185 @@
+{
+  "version": "1.0.0",
+  "objects": [
+    {
+      "id": "m49",
+      "name": "M49",
+      "aliases": ["Messier 49", "NGC 4472", "Virgo B"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Grande galaxie elliptique et membre le plus lumineux du sous-amas Virgo B.",
+      "visual": {
+        "color": "#d1c7ad",
+        "secondaryColor": "#a99e8a",
+        "visualRadius": 100,
+        "scaleMode": "adaptive",
+        "galaxyShape": "elliptical",
+        "galaxyAxisRatio": 0.82,
+        "galaxyRotationDegrees": 20
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-16.8297, 2.3855, -2.1992],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Mei et al. 2007, ApJ 655:144 · VizieR J/ApJ/655/144",
+        "distanceMpc": 17.14,
+        "distanceLy": 55899952,
+        "distanceModulus": 31.17,
+        "rightAscensionDegrees": 187.4449583,
+        "declinationDegrees": 8.0004167,
+        "morphology": "Elliptique E2/S0",
+        "subgroup": "Amas de la Vierge · Virgo B",
+        "nearbyUniverseLabelRank": 11,
+        "keywords": "M49 Messier 49 NGC 4472 Virgo B"
+      }
+    },
+    {
+      "id": "virgo-a",
+      "name": "M87",
+      "aliases": ["Messier 87", "NGC 4486", "Virgo A"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie elliptique géante au cœur de Virgo A, célèbre pour son jet relativiste et son trou noir imagé.",
+      "visual": {
+        "color": "#d2c8af",
+        "secondaryColor": "#a69a83",
+        "visualRadius": 115,
+        "scaleMode": "adaptive",
+        "galaxyShape": "elliptical",
+        "galaxyAxisRatio": 0.92,
+        "galaxyRotationDegrees": -8
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-16.6657, 3.6949, -2.255],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Mei et al. 2007, ApJ 655:144 · VizieR J/ApJ/655/144",
+        "distanceMpc": 17.219,
+        "distanceLy": 56157516,
+        "distanceModulus": 31.18,
+        "rightAscensionDegrees": 187.7059167,
+        "declinationDegrees": 12.3911111,
+        "morphology": "Elliptique géante E0",
+        "subgroup": "Amas de la Vierge · Virgo A",
+        "nearbyUniverseLabelRank": 6,
+        "keywords": "M87 Messier 87 NGC 4486 Virgo A"
+      }
+    },
+    {
+      "id": "m60",
+      "name": "M60",
+      "aliases": ["Messier 60", "NGC 4649"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie elliptique massive de la partie orientale de l’amas de la Vierge.",
+      "visual": {
+        "color": "#cbc2aa",
+        "secondaryColor": "#a49a88",
+        "visualRadius": 92,
+        "scaleMode": "adaptive",
+        "galaxyShape": "elliptical",
+        "galaxyAxisRatio": 0.78,
+        "galaxyRotationDegrees": 16
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-16.6411, 3.4643, -3.2092],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Mei et al. 2007, ApJ 655:144 · VizieR J/ApJ/655/144",
+        "distanceMpc": 17.298,
+        "distanceLy": 56415117,
+        "distanceModulus": 31.19,
+        "rightAscensionDegrees": 190.91525,
+        "declinationDegrees": 11.5526111,
+        "morphology": "Lenticulaire S0",
+        "subgroup": "Amas de la Vierge",
+        "nearbyUniverseLabelRank": 16,
+        "keywords": "M60 Messier 60 NGC 4649 Virgo"
+      }
+    },
+    {
+      "id": "m86",
+      "name": "M86",
+      "aliases": ["Messier 86", "NGC 4406"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Grande galaxie lenticulaire traversant rapidement le cœur de l’amas de la Vierge.",
+      "visual": {
+        "color": "#c5bdab",
+        "secondaryColor": "#9f978a",
+        "visualRadius": 82,
+        "scaleMode": "adaptive",
+        "galaxyShape": "elliptical",
+        "galaxyAxisRatio": 0.7,
+        "galaxyRotationDegrees": -24
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-16.292, 3.7698, -1.8703],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Mei et al. 2007, ApJ 655:144 · VizieR J/ApJ/655/144",
+        "distanceMpc": 16.827,
+        "distanceLy": 54878910,
+        "distanceModulus": 31.13,
+        "rightAscensionDegrees": 186.5489167,
+        "declinationDegrees": 12.9462222,
+        "morphology": "Lenticulaire S0/E3",
+        "subgroup": "Amas de la Vierge",
+        "nearbyUniverseLabelRank": 20,
+        "keywords": "M86 Messier 86 NGC 4406 Virgo"
+      }
+    },
+    {
+      "id": "m84",
+      "name": "M84",
+      "aliases": ["Messier 84", "NGC 4374"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie elliptique lumineuse située dans la chaîne de Markarian.",
+      "visual": {
+        "color": "#c9c1ae",
+        "secondaryColor": "#a69d8d",
+        "visualRadius": 78,
+        "scaleMode": "adaptive",
+        "galaxyShape": "elliptical",
+        "galaxyAxisRatio": 0.88,
+        "galaxyRotationDegrees": 6
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-17.878, 4.1149, -1.9629],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Mei et al. 2007, ApJ 655:144 · VizieR J/ApJ/655/144",
+        "distanceMpc": 18.45,
+        "distanceLy": 60175185,
+        "distanceModulus": 31.33,
+        "rightAscensionDegrees": 186.2655,
+        "declinationDegrees": 12.887,
+        "morphology": "Elliptique E1",
+        "subgroup": "Amas de la Vierge · chaîne de Markarian",
+        "nearbyUniverseLabelRank": 21,
+        "keywords": "M84 Messier 84 NGC 4374 Virgo"
+      }
+    }
+  ]
+}

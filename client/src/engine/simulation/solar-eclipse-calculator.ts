@@ -33,12 +33,6 @@ export interface SolarShadowGeometry {
   closestAxisPoint: Vector3Like;
 }
 
-export interface EarthTextureOrientation {
-  xAxis: Vector3Like;
-  yAxis: Vector3Like;
-  zAxis: Vector3Like;
-}
-
 export function calculateSolarEclipseAppearance(time: UniverseTime): SolarEclipseAppearance {
   const geometry = calculateSolarShadowGeometry(time);
 
@@ -78,25 +72,6 @@ export function createSolarEclipseAppearanceFromGeometry(
     ),
     centralLatitude: observer?.latitude ?? null,
     centralLongitude: observer?.longitude ?? null,
-  };
-}
-
-export function calculateEarthObserverDirection(
-  time: UniverseTime,
-  latitude: number,
-  longitude: number,
-): Vector3Like {
-  const astronomyTime = time.julianDay - JULIAN_DAY_J2000;
-  const observerVector = ObserverVector(astronomyTime, new Observer(latitude, longitude, 0), false);
-
-  return normalized(toEclipticSceneVector(observerVector));
-}
-
-export function calculateEarthTextureOrientation(time: UniverseTime): EarthTextureOrientation {
-  return {
-    xAxis: calculateEarthObserverDirection(time, 0, 0),
-    yAxis: calculateEarthObserverDirection(time, 90, 0),
-    zAxis: calculateEarthObserverDirection(time, 0, 90),
   };
 }
 

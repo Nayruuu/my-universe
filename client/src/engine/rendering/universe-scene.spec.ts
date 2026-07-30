@@ -1,14 +1,114 @@
 import * as THREE from 'three';
+import { type ConstellationCatalog, type StarClusterTile } from '../../data/models/universe.models';
 import { CoordinateSystem } from '../coordinates/coordinate-system';
+import { CosmicGroupCatalog } from '../loaders/cosmic-group-catalog';
 import { StarCatalog } from '../loaders/star-catalog';
+import { CosmicGroupCatalogRegistry } from '../objects/cosmic-group-catalog-registry';
 import { StarCatalogRegistry } from '../objects/star-catalog-registry';
 import { PerformanceManager } from '../performance/performance-manager';
+import { getNavigationScale } from '../camera/navigation-scales';
+import { getPhotographicProfile } from './photographic-profile';
 import { UniverseScene } from './universe-scene';
 
 describe('UniverseScene', () => {
+  it('sépare le voisinage solaire du centre galactique et réduit son échelle progressivement', () => {
+    const scene = new UniverseScene(new PerformanceManager());
+    const stellarRoot = scene.spaceRoot.getObjectByName('solar-neighborhood-reference');
+    const origin = new THREE.Vector3(2_620, 0, 0);
+
+    expect(stellarRoot).toBeInstanceOf(THREE.Group);
+    scene.setStellarOrigin(origin);
+    expect(stellarRoot?.position.toArray()).toEqual(origin.toArray());
+
+    scene.updateLod(2, 10, 1_400);
+    expect(stellarRoot?.scale.x).toBeCloseTo(1, 4);
+
+    scene.updateLod(3, 10, 9_600);
+    expect(stellarRoot?.scale.x).toBeGreaterThanOrEqual(0.14);
+    expect(stellarRoot?.scale.x).toBeLessThanOrEqual(0.2);
+    expect(scene.spaceRoot.getObjectByName('illustrative-milky-way')?.position.length()).toBe(0);
+
+    scene.dispose();
+  });
+
+  it('affiche un disque à quatre bras centré sur le centre galactique, jamais sur le Soleil', () => {
+    const scene = new UniverseScene(new PerformanceManager());
+    const milkyWay = scene.spaceRoot.getObjectByName('illustrative-milky-way') as THREE.Points<
+      THREE.BufferGeometry,
+      THREE.PointsMaterial
+    >;
+
+    expect(milkyWay.visible).toBe(false);
+    expect(milkyWay.material.opacity).toBe(0);
+    expect(milkyWay.userData['scientificConfidence']).toBe('illustrative');
+    expect(milkyWay.userData['visualStructure']).toBe('illustrative-galactocentric-four-arm-disk');
+    expect(milkyWay.userData['structureOrigin']).toBe('galactic-center');
+    expect(milkyWay.userData['spiralArmCount']).toBe(4);
+    expect(milkyWay.userData['spiralPitchDegrees']).toBeCloseTo(13, 6);
+    expect(milkyWay.position.length()).toBe(0);
+    expect(scene.spaceRoot.getObjectByName('illustrative-milky-way-aura')).toBeUndefined();
+
+    scene.updateLod(3, 1, 9_600);
+    expect(milkyWay.visible).toBe(true);
+    expect(milkyWay.material.opacity).toBeGreaterThan(0.08);
+    expect(milkyWay.material.opacity).toBeLessThan(0.14);
+    const detailedScale = milkyWay.scale.x;
+
+    scene.updateLod(3, 10, 13_300);
+    expect(milkyWay.material.opacity).toBeGreaterThan(0);
+    expect(milkyWay.material.opacity).toBeLessThan(0.24);
+    expect(milkyWay.scale.x).toBeLessThan(detailedScale);
+
+    scene.updateLod(4, 10, 17_000);
+    expect(milkyWay.visible).toBe(false);
+    expect(milkyWay.material.opacity).toBeLessThan(0.004);
+
+    scene.dispose();
+  });
+
+  it('superpose un atlas différé sur plusieurs profondeurs au disque galactique', async () => {
+    const texture = new THREE.Texture(document.createElement('img'));
+    const loadAsync = vi
+      .spyOn(THREE.TextureLoader.prototype, 'loadAsync')
+      .mockResolvedValue(texture);
+    const scene = new UniverseScene(new PerformanceManager());
+    const volume = scene.spaceRoot.getObjectByName('illustrative-milky-way-volume');
+
+    expect(volume).toBeInstanceOf(THREE.Group);
+    expect(volume?.userData['scientificConfidence']).toBe('illustrative');
+    expect(scene.milkyWayAtlasStatus).toBe('idle');
+
+    scene.setQuality('high');
+    await expect(scene.ensureMilkyWayAtlas()).resolves.toBe(true);
+    scene.updateLod(3, 10, 9_600);
+
+    expect(loadAsync).toHaveBeenCalledOnce();
+    expect(scene.milkyWayAtlasStatus).toBe('ready');
+    expect(scene.milkyWayVolumeDrawMeshCount).toBe(4);
+    expect(volume?.visible).toBe(true);
+    expect(volume?.scale.x).toBeCloseTo(1, 4);
+
+    scene.updateLod(4, 10, 17_000);
+    expect(scene.milkyWayVolumeDrawMeshCount).toBe(0);
+    expect(volume?.visible).toBe(false);
+
+    scene.dispose();
+  });
+
   it('fonctionne sans catalogue dense et adapte la Voie lactée', () => {
     const scene = new UniverseScene(new PerformanceManager());
     const target = new THREE.Vector3();
+    const milkyWay = scene.spaceRoot.getObjectByName('illustrative-milky-way') as THREE.Points<
+      THREE.BufferGeometry,
+      THREE.PointsMaterial
+    >;
+
+    milkyWay.geometry.computeBoundingSphere();
+    expect(milkyWay.material.sizeAttenuation).toBe(false);
+    expect(milkyWay.material.size).toBeLessThanOrEqual(2);
+    expect(getNavigationScale('milky-way').distance).toBeGreaterThan(
+      milkyWay.geometry.boundingSphere!.radius * 1.4,
+    );
 
     scene.setQuality('low');
     scene.setQuality('medium');
@@ -21,9 +121,117 @@ describe('UniverseScene', () => {
     expect(scene.getCatalogPickables()).toEqual([]);
     expect(scene.visibleCatalogStarCount).toBe(0);
     expect(scene.catalogStarCount).toBe(0);
+    expect(scene.visibleCosmicGroupCount).toBe(0);
+    expect(scene.cosmicGroupCount).toBe(0);
+    expect(scene.visibleStarClusterCount).toBe(0);
+    expect(scene.starClusterRepresentationCount).toBe(0);
 
     scene.dispose();
     expect(scene.scene.children).toHaveLength(0);
+  });
+
+  it('installe, sélectionne, remplace et détruit le batch Cosmicflows-4', async () => {
+    const scene = new UniverseScene(new PerformanceManager());
+    const first = cosmicGroupRegistry(42);
+    const second = cosmicGroupRegistry(84);
+
+    await scene.setCosmicGroupCatalog(first);
+    const firstPoints = scene.spaceRoot.getObjectByName('calculated-cosmicflows4-groups');
+
+    expect(firstPoints).toBeInstanceOf(THREE.Points);
+    const firstGeometryDispose = vi.spyOn((firstPoints as THREE.Points).geometry, 'dispose');
+
+    await scene.setCosmicGroupCatalog(second);
+    expect(firstGeometryDispose).toHaveBeenCalledOnce();
+    const activePoints = scene.spaceRoot.getObjectByName('calculated-cosmicflows4-groups');
+
+    scene.setQuality('high');
+    scene.setPixelRatio(1.25);
+    scene.updateLod(6, 10, 420_000);
+    scene.selectCatalogObject('cf4-pgc-84');
+
+    expect(scene.cosmicGroupCount).toBe(1);
+    expect(scene.visibleCosmicGroupCount).toBe(1);
+    expect(
+      (activePoints as THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial>).material.uniforms[
+        'pixelRatio'
+      ]!.value,
+    ).toBe(1.25);
+    expect(
+      (activePoints as THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial>).material.uniforms[
+        'radiance'
+      ]!.value,
+    ).toBe(getPhotographicProfile(6, 'high').galaxyRadiance);
+    expect(scene.getCatalogWorldPosition('cf4-pgc-84')).toBeInstanceOf(THREE.Vector3);
+    expect(scene.getCatalogPickables()).toHaveLength(2);
+
+    scene.updateLod(5, 10, 120_000);
+    expect(scene.visibleCosmicGroupCount).toBe(1);
+
+    scene.updateLod(4, 10, 17_000);
+    expect(scene.visibleCosmicGroupCount).toBe(0);
+    scene.selectCatalogObject(null);
+    scene.dispose();
+    expect(scene.cosmicGroupCount).toBe(0);
+  });
+
+  it('estompe le fond procédural avant les échelles galactiques', () => {
+    const scene = new UniverseScene(new PerformanceManager());
+    const backdrop = scene.spaceRoot.getObjectByName('distant-star-field') as THREE.Points<
+      THREE.BufferGeometry,
+      THREE.PointsMaterial
+    >;
+
+    expect(backdrop).toBeDefined();
+    expect(backdrop.userData['scientificConfidence']).toBe('procedural');
+    expect(backdrop.userData['visualRole']).toBe('decorative');
+
+    scene.updateLod(0, 10);
+    expect(backdrop.visible).toBe(true);
+    expect(backdrop.material.opacity).toBeGreaterThan(0.25);
+    expect(backdrop.material.opacity).toBeLessThan(0.35);
+
+    scene.updateLod(2, 1);
+    expect(backdrop.visible).toBe(true);
+    expect(backdrop.material.opacity).toBeGreaterThan(0.04);
+    expect(backdrop.material.opacity).toBeLessThan(0.08);
+
+    scene.updateLod(4, 1);
+    expect(backdrop.visible).toBe(false);
+    expect(backdrop.material.opacity).toBeLessThan(0.004);
+    expect(backdrop.scale.toArray()).toEqual([1, 1, 1]);
+
+    scene.updateLod(99, 1);
+    expect(backdrop.visible).toBe(false);
+
+    scene.updateLod(1, 1);
+    expect(backdrop.visible).toBe(true);
+    expect(backdrop.material.opacity).toBeGreaterThan(0.18);
+    expect(backdrop.material.opacity).toBeLessThan(0.24);
+    scene.dispose();
+  });
+
+  it('intègre un fond cosmique illustratif piloté par la distance plutôt que le LOD', () => {
+    const scene = new UniverseScene(new PerformanceManager());
+    const background = scene.scene.getObjectByName('scale-aware-cosmic-background') as THREE.Mesh<
+      THREE.BufferGeometry,
+      THREE.ShaderMaterial
+    >;
+
+    expect(background).toBeInstanceOf(THREE.Mesh);
+    scene.updateLod(2, 10, 2_399);
+    const before = (background.material.uniforms['upperColor']!.value as THREE.Color).clone();
+
+    scene.updateLod(3, 1 / 60, 2_401);
+    const after = background.material.uniforms['upperColor']!.value as THREE.Color;
+
+    const backgroundDelta = Math.hypot(after.r - before.r, after.g - before.g, after.b - before.b);
+
+    expect(backgroundDelta).toBeGreaterThan(0);
+    expect(backgroundDelta).toBeLessThan(0.01);
+    expect((scene.scene.fog as THREE.FogExp2).color.getHex()).not.toBe(0x02030a);
+
+    scene.dispose();
   });
 
   it('installe, remplace, sélectionne et détruit un catalogue stellaire', async () => {
@@ -32,20 +240,176 @@ describe('UniverseScene', () => {
     const second = catalogRegistry(6_960);
 
     await scene.setStarCatalog(first);
+    await scene.setStarClusterTiles(
+      [
+        {
+          ...starClusterTile(),
+          sourceStarCount: 1,
+          clusterCount: 1,
+          cellCoordinates: Int32Array.from([0, 0, 0]),
+          positionsParsec: Float32Array.from([1, 2, 3]),
+          starCounts: Uint32Array.from([1]),
+          apparentMagnitudes: Float32Array.from([0.5]),
+          colorIndicesBv: Float32Array.from([0.2]),
+        },
+      ],
+      first,
+    );
     await scene.setStarCatalog(second);
+    expect(scene.activeStarTileCount).toBe(0);
     scene.setQuality('high');
     scene.updateLod(1, 1);
     scene.selectCatalogObject('hyg-6960');
+    const points = scene.spaceRoot.getObjectByName('observed-hyg-star-catalog') as THREE.Points<
+      THREE.BufferGeometry,
+      THREE.ShaderMaterial
+    >;
+    const stellarRoot = scene.spaceRoot.getObjectByName('solar-neighborhood-reference');
 
     expect(scene.catalogStarCount).toBe(1);
     expect(scene.visibleCatalogStarCount).toBe(1);
     expect(scene.getCatalogWorldPosition('hyg-6960')).toBeInstanceOf(THREE.Vector3);
     expect(scene.getCatalogWorldPosition('unknown')).toBeNull();
     expect(scene.getCatalogPickables()).toHaveLength(2);
+    expect(points.material.uniforms['radiance']!.value).toBe(
+      getPhotographicProfile(1, 'high').starRadiance,
+    );
+    expect(points.parent?.parent).toBe(stellarRoot);
 
     scene.selectCatalogObject(null);
     scene.dispose();
     expect(scene.catalogStarCount).toBe(0);
+  });
+
+  it('garde les cellules stellaires masquées tout en adaptant leur cache à la qualité', async () => {
+    const scene = new UniverseScene(new PerformanceManager());
+    const registry = constellationRegistry();
+
+    await scene.setStarCatalog(registry);
+    await scene.setStarClusterTiles([starClusterTile()], registry);
+    scene.setQuality('low');
+    scene.updateLod(3, 10);
+    const clusterPoints = scene.spaceRoot.getObjectByName(
+      'calculated-hyg-star-clusters-lod-3',
+    ) as THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial>;
+
+    expect(scene.activeStarTileCount).toBe(1);
+    expect(scene.visibleStarClusterCount).toBe(0);
+    expect(clusterPoints.geometry.drawRange.count).toBe(1);
+
+    scene.setQuality('high');
+    expect(scene.visibleStarClusterCount).toBe(0);
+    expect(clusterPoints.geometry.drawRange.count).toBe(2);
+    scene.updateLod(3, 10);
+
+    expect(clusterPoints.material.uniforms['radiance']!.value).toBe(
+      getPhotographicProfile(3, 'high').starRadiance,
+    );
+    scene.updateLod(4, 10);
+    expect(scene.visibleStarClusterCount).toBe(0);
+    scene.updateLod(2, 10);
+    expect(scene.visibleStarClusterCount).toBe(0);
+
+    scene.dispose();
+    expect(scene.activeStarTileCount).toBe(0);
+  });
+
+  it('partage le batch lorsque deux niveaux terminent leur chargement simultanément', async () => {
+    const scene = new UniverseScene(new PerformanceManager());
+    const registry = constellationRegistry();
+
+    await scene.setStarCatalog(registry);
+    await Promise.all([
+      scene.setStarClusterTiles([starClusterTile()], registry),
+      scene.setStarClusterTiles(
+        [
+          {
+            ...starClusterTile(),
+            id: 'overview',
+            parentId: undefined,
+            lodLevel: 4,
+            cellSizeParsec: 160,
+          },
+        ],
+        registry,
+      ),
+    ]);
+    await scene.setStarClusterTiles(
+      [
+        starClusterTile(),
+        {
+          ...starClusterTile(),
+          id: 'overview',
+          parentId: undefined,
+          lodLevel: 4,
+          cellSizeParsec: 160,
+        },
+      ],
+      registry,
+    );
+
+    expect(scene.activeStarTileCount).toBe(2);
+    expect(scene.starClusterRepresentationCount).toBe(2);
+    const stellarRoot = scene.spaceRoot.getObjectByName('solar-neighborhood-reference');
+
+    expect(
+      stellarRoot?.children.filter((child) => child.name === 'hyg-star-cluster-root'),
+    ).toHaveLength(1);
+    scene.dispose();
+  });
+
+  it('installe, masque, remplace et détruit la couche groupée des constellations', async () => {
+    const scene = new UniverseScene(new PerformanceManager());
+    const registry = constellationRegistry();
+
+    await scene.setStarCatalog(registry);
+    await scene.setConstellationCatalog(constellationCatalog(), registry);
+    scene.setConstellationsEnabled(true);
+    scene.updateLod(2, 10);
+
+    const firstLines = scene.spaceRoot.getObjectByName(
+      'illustrative-constellation-lines',
+    ) as THREE.LineSegments<THREE.BufferGeometry, THREE.LineBasicMaterial>;
+
+    expect(firstLines).toBeInstanceOf(THREE.LineSegments);
+    expect(firstLines.visible).toBe(true);
+    expect(firstLines.userData['segmentCount']).toBe(1);
+    expect(scene.getCatalogPickables()).toContain(firstLines);
+    expect(scene.constellationDefinitions).toHaveLength(1);
+    expect(scene.hasConstellation('constellation-orion')).toBe(true);
+    expect(scene.getConstellationDefinition('constellation-orion')?.name).toBe('Orion');
+    expect(scene.getConstellationWorldPosition('constellation-orion')).toBeInstanceOf(
+      THREE.Vector3,
+    );
+    expect(scene.getConstellationFocusRadius('constellation-orion')).toBeGreaterThan(0);
+
+    scene.selectConstellation('constellation-orion');
+    scene.hoverConstellation('constellation-orion');
+    const highlight = scene.spaceRoot.getObjectByName(
+      'highlighted-constellation-lines',
+    ) as THREE.LineSegments<THREE.BufferGeometry, THREE.LineBasicMaterial>;
+
+    expect(highlight.userData['objectId']).toBe('constellation-orion');
+
+    scene.setConstellationsEnabled(false);
+    scene.updateLod(2, 10);
+    expect(firstLines.visible).toBe(false);
+    expect(scene.getCatalogPickables()).not.toContain(firstLines);
+
+    const firstGeometryDispose = vi.spyOn(firstLines.geometry, 'dispose');
+
+    await scene.setConstellationCatalog(constellationCatalog(), registry);
+    expect(firstGeometryDispose).toHaveBeenCalledOnce();
+
+    scene.setConstellationsEnabled(true);
+    scene.updateLod(4, 10);
+    expect(scene.spaceRoot.getObjectByName('illustrative-constellation-lines')?.visible).toBe(
+      false,
+    );
+    expect(scene.getConstellationDefinition('unknown')).toBeUndefined();
+    expect(scene.getConstellationWorldPosition('unknown')).toBeNull();
+    expect(scene.getConstellationFocusRadius('unknown')).toBeNull();
+    scene.dispose();
   });
 
   it('libère tous les types de ressources Three.js ajoutés à la scène', () => {
@@ -90,4 +454,78 @@ function catalogRegistry(id: number): StarCatalogRegistry {
   };
 
   return new StarCatalogRegistry(catalog, new CoordinateSystem());
+}
+
+function cosmicGroupRegistry(pgcId: number): CosmicGroupCatalogRegistry {
+  const catalog: CosmicGroupCatalog = {
+    count: 1,
+    referenceEpochJulianDay: 2_451_545,
+    minimumDistanceMpc: 12.1,
+    maximumDistanceMpc: 12.1,
+    positionsMpc: new Float32Array([12.1, 0, 0]),
+    distancesMpc: new Float32Array([12.1]),
+    distanceModulusErrors: new Float32Array([0.1]),
+    velocitiesCmbKmPerSecond: new Int32Array([810]),
+    pgcIds: new Uint32Array([pgcId]),
+    distanceModuli: new Float32Array([30.413]),
+  };
+
+  return new CosmicGroupCatalogRegistry(catalog, new CoordinateSystem());
+}
+
+function starClusterTile(): StarClusterTile {
+  return {
+    id: 'detail',
+    parentId: 'root',
+    version: '2.0.0',
+    sourceCatalog: 'hyg-v41-bright-stars',
+    sourceStarCount: 2,
+    referenceEpochJulianDay: 2_451_545,
+    lodLevel: 3,
+    cellSizeParsec: 40,
+    clusterCount: 2,
+    cellCoordinates: Int32Array.from([0, 0, 0, 1, 1, 1]),
+    positionsParsec: Float32Array.from([1, 2, 3, 4, 5, 6]),
+    starCounts: Uint32Array.from([1, 1]),
+    apparentMagnitudes: Float32Array.from([0.5, 1]),
+    colorIndicesBv: Float32Array.from([0.2, 0.6]),
+  };
+}
+
+function constellationRegistry(): StarCatalogRegistry {
+  const catalog: StarCatalog = {
+    count: 2,
+    referenceEpochJulianDay: 2_451_545,
+    catalogIds: new Uint32Array([3_229, 6_960]),
+    positionsParsec: new Float32Array([1, 2, 3, -2, 1, 4]),
+    apparentMagnitudes: new Float32Array([0.5, 1.2]),
+    colorIndicesBv: new Float32Array([0.2, 0.6]),
+    names: ['Alpha', 'Beta'],
+    aliases: [[], []],
+    spectralTypes: ['A0', 'G0'],
+  };
+
+  return new StarCatalogRegistry(catalog, new CoordinateSystem());
+}
+
+function constellationCatalog(): ConstellationCatalog {
+  return {
+    version: '1.0.0',
+    source: {
+      name: 'Stellarium Modern sky culture',
+      url: 'https://github.com/Stellarium/stellarium/tree/master/skycultures/modern',
+      license: 'CC BY-SA 4.0',
+    },
+    referenceFrame: 'equatorial-j2000',
+    scientificConfidence: 'illustrative',
+    starCatalog: 'HYG v4.1',
+    figures: [
+      {
+        id: 'orion',
+        name: 'Orion',
+        abbreviation: 'Ori',
+        segments: [[3_229, 6_960]],
+      },
+    ],
+  };
 }

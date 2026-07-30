@@ -1,0 +1,190 @@
+{
+  "version": "1.0.0",
+  "objects": [
+    {
+      "id": "ngc-4244",
+      "name": "NGC 4244",
+      "aliases": ["Caldwell 26", "Silver Needle Galaxy"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Fine galaxie spirale vue par la tranche dans la constellation des Chiens de chasse.",
+      "visual": {
+        "color": "#a6b7c9",
+        "secondaryColor": "#b99c78",
+        "visualRadius": 48,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.11,
+        "galaxyRotationDegrees": 44
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-3.5371, 2.7524, -0.2706],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "distanceMpc": 4.49,
+        "distanceLy": 14644684,
+        "rightAscensionDegrees": 184.374583,
+        "declinationDegrees": 37.8075,
+        "diameterLy": 77490,
+        "morphology": "Spirale SA(s)cd",
+        "absoluteMagnitude": -18.2,
+        "subgroup": "Nuage de Canes Venatici",
+        "nearbyUniverseLabelRank": 15,
+        "keywords": "NGC 4244 Caldwell 26 Silver Needle"
+      }
+    },
+    {
+      "id": "m106",
+      "name": "M106",
+      "aliases": ["Messier 106", "NGC 4258"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Grande spirale active dont les masers ont permis une mesure géométrique précise de la distance.",
+      "visual": {
+        "color": "#afc1d5",
+        "secondaryColor": "#d0ad7e",
+        "visualRadius": 83,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.39,
+        "galaxyRotationDegrees": -27
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-5.2914, 5.7547, -0.4387],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "distanceMpc": 7.83,
+        "distanceLy": 25538396,
+        "rightAscensionDegrees": 184.739583,
+        "declinationDegrees": 47.303889,
+        "diameterLy": 135335,
+        "morphology": "Spirale SAB(s)bc",
+        "absoluteMagnitude": -21.2,
+        "subgroup": "Groupe M106",
+        "nearbyUniverseLabelRank": 8,
+        "keywords": "M106 Messier 106 NGC 4258 maser"
+      }
+    },
+    {
+      "id": "ngc-4449",
+      "name": "NGC 4449",
+      "aliases": ["Caldwell 21"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie irrégulière riche en régions de formation stellaire.",
+      "visual": {
+        "color": "#a9b7c2",
+        "secondaryColor": "#c7866b",
+        "visualRadius": 24,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.71,
+        "galaxyRotationDegrees": 12
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-3.0008, 2.9295, -0.3709],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "distanceMpc": 4.21,
+        "distanceLy": 13731451,
+        "rightAscensionDegrees": 187.046667,
+        "declinationDegrees": 44.094444,
+        "diameterLy": 27074,
+        "morphology": "Irrégulière IBm",
+        "absoluteMagnitude": -18.3,
+        "subgroup": "Nuage de Canes Venatici",
+        "nearbyUniverseLabelRank": 14,
+        "keywords": "NGC 4449 Caldwell 21"
+      }
+    },
+    {
+      "id": "m94",
+      "name": "M94",
+      "aliases": ["Messier 94", "NGC 4736"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Spirale presque vue de face, entourée d’un anneau brillant de formation stellaire.",
+      "visual": {
+        "color": "#bbc8d3",
+        "secondaryColor": "#d3b176",
+        "visualRadius": 41,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.81,
+        "galaxyRotationDegrees": 8
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-3.4244, 3.0646, -0.7732],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "distanceMpc": 4.66,
+        "distanceLy": 15199279,
+        "rightAscensionDegrees": 192.722917,
+        "declinationDegrees": 41.119444,
+        "diameterLy": 67452,
+        "morphology": "Spirale (R)SA(r)ab",
+        "absoluteMagnitude": -19.9,
+        "subgroup": "Groupe M94",
+        "nearbyUniverseLabelRank": 7,
+        "keywords": "M94 Messier 94 NGC 4736"
+      }
+    },
+    {
+      "id": "pinwheel-galaxy",
+      "name": "Galaxie du Moulinet",
+      "aliases": ["M101", "Messier 101", "NGC 5457"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Très grande spirale vue de face, aux bras asymétriques riches en régions H II.",
+      "visual": {
+        "color": "#a9c0d8",
+        "secondaryColor": "#d0b986",
+        "visualRadius": 130,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.93,
+        "galaxyRotationDegrees": -14
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-3.6945, 5.997, -2.2026],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "distanceMpc": 7.38,
+        "distanceLy": 24070349,
+        "rightAscensionDegrees": 210.803333,
+        "declinationDegrees": 54.350556,
+        "diameterLy": 212666,
+        "morphology": "Spirale SAB(rs)cd",
+        "absoluteMagnitude": -21.1,
+        "subgroup": "Groupe M101",
+        "nearbyUniverseLabelRank": 5,
+        "keywords": "M101 Messier 101 NGC 5457 Pinwheel"
+      }
+    }
+  ]
+}

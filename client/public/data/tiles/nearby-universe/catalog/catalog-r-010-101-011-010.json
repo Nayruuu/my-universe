@@ -1,0 +1,88 @@
+{
+  "version": "2.0.0",
+  "objects": [
+    {
+      "id": "lv-ngc5023",
+      "name": "NGC 5023",
+      "aliases": ["NGC5023"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 32.06,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.12,
+        "galaxyRotationDegrees": 125
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-4.517902, 4.594895, -1.472279],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 6.61,
+        "distanceLy": 21558937,
+        "rightAscensionDegrees": 198.04958333,
+        "declinationDegrees": 44.03861111,
+        "angularDiameterArcmin": 7.24,
+        "diameterLy": 45404,
+        "apparentMagnitudeB": 12.85,
+        "morphologicalType": 7,
+        "distanceMethod": "TRGB",
+        "nearbyUniverseLabelRank": 200,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC5023 NGC 5023 Local Volume"
+      }
+    },
+    {
+      "id": "lv-mcg-08-25-028",
+      "name": "MCG +08-25-028",
+      "aliases": [],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#9eb8c8",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 23.06,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.52,
+        "galaxyRotationDegrees": 140
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-5.027366, 5.434584, -2.257982],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 7.74,
+        "distanceLy": 25244504,
+        "rightAscensionDegrees": 204.18666667,
+        "declinationDegrees": 44.59916667,
+        "angularDiameterArcmin": 0.95,
+        "diameterLy": 6976,
+        "apparentMagnitudeB": 15.9,
+        "morphologicalType": 10,
+        "morphology": "Ir",
+        "distanceMethod": "h",
+        "nearbyUniverseLabelRank": 466,
+        "nearbyUniversePointBatch": true,
+        "keywords": "MCG +08-25-028 MCG +08-25-028 Ir Local Volume"
+      }
+    }
+  ]
+}

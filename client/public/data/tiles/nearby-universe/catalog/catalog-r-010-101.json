@@ -1,0 +1,169 @@
+{
+  "version": "2.0.0",
+  "objects": [
+    {
+      "id": "lv-ngc4490",
+      "name": "NGC 4490",
+      "aliases": ["NGC4490"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 36.16,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.49,
+        "galaxyRotationDegrees": 170
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-4.295704, 3.854072, -0.577112],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 5.8,
+        "distanceLy": 18917070,
+        "rightAscensionDegrees": 187.65166667,
+        "declinationDegrees": 41.64361111,
+        "angularDiameterArcmin": 6.31,
+        "diameterLy": 34722,
+        "apparentMagnitudeB": 9.76,
+        "morphologicalType": 7,
+        "distanceMethod": "TF",
+        "nearbyUniverseLabelRank": 113,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC4490 NGC 4490 Local Volume"
+      }
+    },
+    {
+      "id": "lv-ngc4236",
+      "name": "NGC 4236",
+      "aliases": ["NGC4236"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 39.36,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.32,
+        "galaxyRotationDegrees": 164
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-1.556775, 4.167254, -0.113787],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 4.45,
+        "distanceLy": 14513959,
+        "rightAscensionDegrees": 184.18041667,
+        "declinationDegrees": 69.46555556,
+        "angularDiameterArcmin": 21.88,
+        "diameterLy": 92376,
+        "apparentMagnitudeB": 10.05,
+        "morphologicalType": 8,
+        "distanceMethod": "TRGB",
+        "nearbyUniverseLabelRank": 117,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC4236 NGC 4236 Local Volume"
+      }
+    },
+    {
+      "id": "lv-ngc4214",
+      "name": "NGC 4214",
+      "aliases": ["NGC4214"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 36.3,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.78,
+        "galaxyRotationDegrees": 28
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-2.363074, 1.741656, -0.161599],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 2.94,
+        "distanceLy": 9588998,
+        "rightAscensionDegrees": 183.91208333,
+        "declinationDegrees": 36.3275,
+        "angularDiameterArcmin": 8.51,
+        "diameterLy": 23737,
+        "apparentMagnitudeB": 10.24,
+        "morphologicalType": 8,
+        "distanceMethod": "TRGB",
+        "nearbyUniverseLabelRank": 120,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC4214 NGC 4214 Local Volume"
+      }
+    },
+    {
+      "id": "lv-ngc4395",
+      "name": "NGC 4395",
+      "aliases": ["NGC4395"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 36.99,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.83,
+        "galaxyRotationDegrees": 108
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-3.817788, 2.547522, -0.432114],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 4.61,
+        "distanceLy": 15035809,
+        "rightAscensionDegrees": 186.4575,
+        "declinationDegrees": 33.54611111,
+        "angularDiameterArcmin": 13.18,
+        "diameterLy": 57646,
+        "apparentMagnitudeB": 10.64,
+        "morphologicalType": 8,
+        "distanceMethod": "TRGB",
+        "nearbyUniverseLabelRank": 128,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC4395 NGC 4395 Local Volume"
+      }
+    }
+  ]
+}

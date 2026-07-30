@@ -15,7 +15,9 @@ describe('URL partageable', () => {
     zoom: 4.2,
     mode: 'state',
     quality: 'medium',
+    labelDensity: 'dense',
     showOrbits: true,
+    showConstellations: false,
     showLabels: false,
   };
 
@@ -32,6 +34,8 @@ describe('URL partageable', () => {
     expect(url.searchParams.get('selected')).toBe('moon');
     expect(url.searchParams.get('zoom')).toBe('4.20');
     expect(url.searchParams.get('labels')).toBe('0');
+    expect(url.searchParams.get('density')).toBe('dense');
+    expect(url.searchParams.get('constellations')).toBe('0');
     expect(url.searchParams.get('debug')).toBe('true');
   });
 
@@ -43,6 +47,7 @@ describe('URL partageable', () => {
     expect(parsed.selectedId).toBe(state.selectedId);
     expect(parsed.julianDay).toBeCloseTo(state.julianDay, 6);
     expect(parsed.quality).toBe('medium');
+    expect(parsed.labelDensity).toBe('dense');
   });
 
   it('accepte directement un jour julien', () => {
@@ -55,10 +60,14 @@ describe('URL partageable', () => {
   });
 
   it('lit l’URL courante et crée une URL de partage', () => {
-    window.history.replaceState(null, '', '/?target=mars&quality=high');
+    window.history.replaceState(null, '', '/?target=mars&quality=high&density=minimal');
     const service = TestBed.inject(NavigationUrlService);
 
-    expect(service.read()).toMatchObject({ targetId: 'mars', quality: 'high' });
+    expect(service.read()).toMatchObject({
+      targetId: 'mars',
+      quality: 'high',
+      labelDensity: 'minimal',
+    });
     expect(new URL(service.createShareUrl(state)).searchParams.get('target')).toBe('earth');
   });
 
@@ -67,13 +76,14 @@ describe('URL partageable', () => {
     expect(
       parseNavigationState(
         new URL(
-          'https://example.test/?target=&selected=&time=incorrect&zoom=0&mode=other&quality=ultra&orbits=0&labels=1',
+          'https://example.test/?target=&selected=&time=incorrect&zoom=0&mode=other&quality=ultra&density=packed&orbits=0&constellations=1&labels=1',
         ),
       ),
     ).toEqual({
       targetId: null,
       selectedId: null,
       showOrbits: false,
+      showConstellations: true,
       showLabels: true,
     });
     expect(
@@ -84,8 +94,15 @@ describe('URL partageable', () => {
       ),
     ).toMatchObject({ mode: 'state', quality: 'low' });
     expect(
-      parseNavigationState(new URL('https://example.test/?quality=high&orbits=1&labels=0')),
-    ).toMatchObject({ quality: 'high', showOrbits: true, showLabels: false });
+      parseNavigationState(
+        new URL('https://example.test/?quality=high&density=balanced&orbits=1&labels=0'),
+      ),
+    ).toMatchObject({
+      quality: 'high',
+      labelDensity: 'balanced',
+      showOrbits: true,
+      showLabels: false,
+    });
   });
 
   it('supprime les cibles nulles et sérialise un temps hors domaine Date', () => {
@@ -96,6 +113,7 @@ describe('URL partageable', () => {
         selectedId: null,
         julianDay: Number.NaN,
         showOrbits: false,
+        showConstellations: true,
         showLabels: true,
       },
       new URL('https://example.test/?target=earth&selected=moon'),
@@ -105,6 +123,7 @@ describe('URL partageable', () => {
     expect(url.searchParams.has('selected')).toBe(false);
     expect(url.searchParams.get('time')).toBe('NaN');
     expect(url.searchParams.get('orbits')).toBe('0');
+    expect(url.searchParams.get('constellations')).toBe('1');
     expect(url.searchParams.get('labels')).toBe('1');
   });
 

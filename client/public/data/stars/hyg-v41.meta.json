@@ -5,7 +5,8 @@
     "url": "https://github.com/astronexus/HYG-Database/blob/main/hyg/CURRENT/hygdata_v41.csv",
     "license": "CC BY-SA 4.0"
   },
-  "input": "hygdata_v41.csv",
+  "input": "universe-map-hygdata-v41.csv",
+  "featuredInput": "nearby-stars.json",
   "format": {
     "magic": "UMSC",
     "version": 2,
@@ -31,10 +32,28 @@
   "distanceUnit": "parsec",
   "scientificConfidence": "observed",
   "selection": {
-    "method": "brightest-valid-apparent-magnitude",
+    "method": "brightest-valid-apparent-magnitude-plus-featured-identifiers",
     "requestedCount": 10000,
     "emittedCount": 10000,
-    "dimmestMagnitude": 6.63,
-    "excludesUnknownDistanceAtParsecs": 100000
+    "dimmestMagnitude": 13.45,
+    "excludesUnknownDistanceAtParsecs": 100000,
+    "requiredFeaturedIdentifiers": [
+      "HIP 113368",
+      "HIP 11767",
+      "HIP 16537",
+      "HIP 21421",
+      "HIP 24436",
+      "HIP 24608",
+      "HIP 27989",
+      "HIP 32349",
+      "HIP 37279",
+      "HIP 69673",
+      "HIP 70890",
+      "HIP 71683",
+      "HIP 87937",
+      "HIP 91262",
+      "HIP 97649",
+      "WOLF 359"
+    ]
   }
 }

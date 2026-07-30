@@ -77,7 +77,7 @@ describe('SelectionManager', () => {
     expect(labelHovered).toHaveBeenLastCalledWith(null);
   });
 
-  it('ne transforme pas un geste multi-touch en sélection', () => {
+  it('ne transforme pas un geste multi-touch en sélection et conserve la cible active', () => {
     dispatchPointer(canvas, 'pointerdown', {
       pointerId: 1,
       pointerType: 'touch',
@@ -96,7 +96,7 @@ describe('SelectionManager', () => {
     });
 
     expect(selected).not.toHaveBeenCalled();
-    expect(navigationIntent).toHaveBeenCalledWith(null);
+    expect(navigationIntent).not.toHaveBeenCalled();
   });
 
   it('ignore les activations secondaires, les glissements et annule proprement un pointeur', () => {
@@ -152,6 +152,7 @@ describe('SelectionManager', () => {
     getLabelObjectAt.mockReturnValue(null);
     dispatchPointer(canvas, 'pointermove', { timeStamp: 100 });
     expect(canvas.style.cursor).toBe('pointer');
+    expect(labelHovered).toHaveBeenLastCalledWith('earth');
     dispatchPointer(canvas, 'pointermove', { timeStamp: 120 });
     expect(findRaycast).toHaveBeenCalledOnce();
 
@@ -159,6 +160,7 @@ describe('SelectionManager', () => {
     findRaycast.mockReturnValue(null);
     dispatchPointer(canvas, 'pointermove', { timeStamp: 300 });
     expect(canvas.style.cursor).toBe('');
+    expect(labelHovered).toHaveBeenLastCalledWith(null);
 
     dispatchPointer(canvas, 'pointerdown', { button: 0 });
     dispatchPointer(canvas, 'pointermove', { timeStamp: 500 });
@@ -166,26 +168,47 @@ describe('SelectionManager', () => {
     expect(findRaycast).toHaveBeenCalledTimes(2);
   });
 
-  it('verrouille l’ancre sous le curseur pendant un aller-retour sémantique', () => {
+  it('recherche une nouvelle ancre sous le curseur lorsque le sens du zoom change', () => {
     const access = manager as unknown as SelectionManagerAccess;
 
     const outward = dispatchWheel(canvas, 1, 120, 90);
 
     expect(outward.defaultPrevented).toBe(true);
-    expect(semanticZoom).toHaveBeenLastCalledWith('sirius', 1);
+    expect(semanticZoom).toHaveBeenLastCalledWith('sirius', 1, {
+      x: -0.7,
+      y: 0.7,
+    });
     expect(access.navigationLock?.objectId).toBe('sirius');
 
-    getLabelObjectAt.mockReturnValue(null);
-    dispatchWheel(canvas, -1, 122, 92);
-    expect(semanticZoom).toHaveBeenLastCalledWith('sirius', -1);
+    dispatchWheel(canvas, 1, 121, 91);
+    expect(semanticZoom).toHaveBeenLastCalledWith('sirius', 1, {
+      x: -0.6975,
+      y: 0.6966666666666667,
+    });
+
+    dispatchWheel(canvas, 0, 121, 91);
+    expect(semanticZoom).toHaveBeenLastCalledWith('sirius', 0, {
+      x: -0.6975,
+      y: 0.6966666666666667,
+    });
+
+    getLabelObjectAt.mockReturnValue('earth');
+    dispatchWheel(canvas, -1, 100, 75);
+    expect(semanticZoom).toHaveBeenLastCalledWith('earth', -1, {
+      x: -0.75,
+      y: 0.75,
+    });
     expect(navigationIntent).not.toHaveBeenCalled();
 
-    vi.spyOn(access, 'findObjectAt').mockReturnValueOnce(null).mockReturnValueOnce('earth');
+    vi.spyOn(access, 'findWheelObjectAt').mockReturnValueOnce(null).mockReturnValueOnce('earth');
     dispatchWheel(canvas, -1, 500, 400);
     expect(access.navigationLock).toBeNull();
     dispatchWheel(canvas, -1, 500, 400);
     expect(access.navigationLock?.objectId).toBe('earth');
-    expect(semanticZoom).toHaveBeenLastCalledWith('earth', -1);
+    expect(semanticZoom).toHaveBeenLastCalledWith('earth', -1, {
+      x: 0.25,
+      y: -0.33333333333333326,
+    });
   });
 
   it('conserve le comportement historique sans gestionnaire de zoom sémantique', () => {
@@ -252,20 +275,132 @@ describe('SelectionManager', () => {
     expect(access.findRaycastObjectAt({ clientX: 100, clientY: 100 })).toBeNull();
   });
 
+  it('préfère une étoile ponctuelle à une ligne de constellation superposée', () => {
+    manager.dispose();
+    const constellation = new THREE.LineSegments();
+    const catalogStar = new THREE.Points();
+    const distantGalaxy = new THREE.Points();
+
+    constellation.userData['objectId'] = 'constellation-centaurus';
+    catalogStar.userData['objectId'] = 'hyg-68483';
+    catalogStar.userData['pickingPriority'] = 20;
+    distantGalaxy.userData['objectId'] = 'milky-way';
+    manager = new SelectionManager(
+      canvas,
+      new THREE.PerspectiveCamera(48, 4 / 3, 0.1, 1_000),
+      () => [catalogStar, constellation, distantGalaxy],
+      () => null,
+      selected,
+      navigationIntent,
+      () => 10,
+      () => true,
+      labelHovered,
+    );
+    const access = manager as unknown as SelectionManagerAccess;
+
+    vi.spyOn(access.raycaster, 'intersectObjects').mockImplementation(
+      (_objects, _recursive, optionalTarget) => {
+        const target = optionalTarget ?? [];
+
+        target.push(
+          intersection(constellation),
+          intersection(catalogStar),
+          intersection(distantGalaxy),
+        );
+
+        return target;
+      },
+    );
+
+    expect(access.findRaycastObjectAt({ clientX: 100, clientY: 100 })).toBe('hyg-68483');
+  });
+
+  it('ignore une étoile dense non libellée pour ancrer la molette sur la galaxie', () => {
+    manager.dispose();
+    const catalogStar = new THREE.Points();
+    const galaxy = new THREE.Points();
+
+    catalogStar.userData['objectId'] = 'hyg-98417';
+    galaxy.userData['objectId'] = 'milky-way';
+    manager = new SelectionManager(
+      canvas,
+      new THREE.PerspectiveCamera(48, 4 / 3, 0.1, 1_000),
+      () => [catalogStar, galaxy],
+      () => null,
+      selected,
+      navigationIntent,
+      () => 10,
+      () => true,
+      labelHovered,
+      semanticZoom,
+      (objectId) => objectId === 'milky-way',
+    );
+    const access = manager as unknown as SelectionManagerAccess;
+
+    vi.spyOn(access.raycaster, 'intersectObjects').mockImplementation(
+      (_objects, _recursive, optionalTarget) => {
+        const target = optionalTarget ?? [];
+
+        target.push(intersection(catalogStar), intersection(galaxy));
+
+        return target;
+      },
+    );
+
+    dispatchWheel(canvas, -120, 400, 300);
+    expect(semanticZoom).toHaveBeenLastCalledWith('milky-way', -120, { x: 0, y: 0 });
+  });
+
+  it('accepte tous les objets de navigation par défaut', () => {
+    manager.dispose();
+    const catalogStar = new THREE.Points();
+
+    catalogStar.userData['objectId'] = 'hyg-98417';
+    manager = new SelectionManager(
+      canvas,
+      new THREE.PerspectiveCamera(48, 4 / 3, 0.1, 1_000),
+      () => [catalogStar],
+      () => null,
+      selected,
+      navigationIntent,
+      () => 10,
+      () => false,
+      labelHovered,
+      semanticZoom,
+    );
+    const access = manager as unknown as SelectionManagerAccess;
+
+    vi.spyOn(access.raycaster, 'intersectObjects').mockImplementation(
+      (_objects, _recursive, optionalTarget) => {
+        const target = optionalTarget ?? [];
+
+        target.push(intersection(catalogStar));
+
+        return target;
+      },
+    );
+
+    dispatchWheel(canvas, -120, 400, 300);
+    expect(semanticZoom).toHaveBeenLastCalledWith('hyg-98417', -120, { x: 0, y: 0 });
+  });
+
   it('adapte le seuil des points à la caméra et au viewport', () => {
     const access = manager as unknown as SelectionManagerAccess;
 
-    access.updatePointThreshold(600);
+    access.updateRaycastThresholds(600);
     expect(access.raycaster.params.Points?.threshold).toBe(0.5);
+    expect(access.raycaster.params.Line?.threshold).toBe(0.2);
     access.getReferenceDistance = () => 1_000;
-    access.updatePointThreshold(600);
+    access.updateRaycastThresholds(600);
     expect(access.raycaster.params.Points?.threshold).toBeGreaterThan(0.5);
+    expect(access.raycaster.params.Line?.threshold).toBeGreaterThan(0.2);
     access.getReferenceDistance = () => -10;
-    access.updatePointThreshold(10_000);
+    access.updateRaycastThresholds(10_000);
     expect(access.raycaster.params.Points?.threshold).toBe(0.5);
-    access.updatePointThreshold(0);
+    expect(access.raycaster.params.Line?.threshold).toBe(0.2);
+    access.updateRaycastThresholds(0);
     access.camera = new THREE.OrthographicCamera();
-    access.updatePointThreshold(600);
+    access.updateRaycastThresholds(600);
   });
 
   it('exécute le callback de survol par défaut lors de la destruction', () => {
@@ -305,6 +440,21 @@ describe('résolution des objets batchés', () => {
     marker.userData['objectId'] = 'hyg-32263';
 
     expect(resolveObjectId({ object: marker } as unknown as THREE.Intersection)).toBe('hyg-32263');
+  });
+
+  it('retrouve une constellation par l’index de vertex du segment groupé', () => {
+    const lines = new THREE.LineSegments();
+
+    lines.userData['objectIds'] = [
+      'constellation-orion',
+      'constellation-orion',
+      'constellation-lyra',
+      'constellation-lyra',
+    ];
+    lines.userData['visibleIndices'] = new Uint8Array([1, 1, 1, 1]);
+
+    expect(resolveObjectId(intersection(lines, 0))).toBe('constellation-orion');
+    expect(resolveObjectId(intersection(lines, 2))).toBe('constellation-lyra');
   });
 
   it('rejette toutes les métadonnées batchées incomplètes ou invalides', () => {
@@ -378,8 +528,9 @@ interface SelectionManagerAccess {
   lastHoverRaycastTime: number;
   readonly raycaster: THREE.Raycaster;
   findObjectAt(event: { clientX: number; clientY: number }): string | null;
+  findWheelObjectAt(event: { clientX: number; clientY: number }): string | null;
   findRaycastObjectAt(event: { clientX: number; clientY: number }): string | null;
-  updatePointThreshold(viewportHeight: number): void;
+  updateRaycastThresholds(viewportHeight: number): void;
 }
 
 function intersection(object: THREE.Object3D, index?: number): THREE.Intersection {

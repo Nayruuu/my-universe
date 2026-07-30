@@ -1,0 +1,153 @@
+{
+  "version": "1.0.0",
+  "objects": [
+    {
+      "id": "ngc-2403",
+      "name": "NGC 2403",
+      "aliases": ["Caldwell 7"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Spirale du complexe M81, proche par sa morphologie de la galaxie du Triangle.",
+      "visual": {
+        "color": "#a0b8d0",
+        "secondaryColor": "#c9b388",
+        "visualRadius": 53,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.56,
+        "galaxyRotationDegrees": 26
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-0.5388, 2.896, 1.1981],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "distanceMpc": 3.18,
+        "distanceLy": 10371669,
+        "rightAscensionDegrees": 114.214167,
+        "declinationDegrees": 65.599444,
+        "diameterLy": 86299,
+        "morphology": "Spirale SAB(s)cd",
+        "absoluteMagnitude": -19.2,
+        "subgroup": "Complexe M81",
+        "nearbyUniverseLabelRank": 10,
+        "keywords": "NGC 2403 Caldwell 7 M81"
+      }
+    },
+    {
+      "id": "bodes-galaxy",
+      "name": "Galaxie de Bode",
+      "aliases": ["M81", "Messier 81", "NGC 3031"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Grande spirale dominante du groupe M81, en interaction gravitationnelle avec M82 et NGC 3077.",
+      "visual": {
+        "color": "#b8c8d9",
+        "secondaryColor": "#d7b77d",
+        "visualRadius": 63,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.52,
+        "galaxyRotationDegrees": -32
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-1.1104, 3.3904, 0.6701],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "distanceMpc": 3.63,
+        "distanceLy": 11839778,
+        "rightAscensionDegrees": 148.889583,
+        "declinationDegrees": 69.066667,
+        "diameterLy": 102248,
+        "morphology": "Spirale SA(s)ab",
+        "absoluteMagnitude": -20.9,
+        "subgroup": "Groupe M81",
+        "nearbyUniverseLabelRank": 0,
+        "keywords": "M81 Messier 81 NGC 3031 Bode"
+      }
+    },
+    {
+      "id": "cigar-galaxy",
+      "name": "Galaxie du Cigare",
+      "aliases": ["M82", "Messier 82", "NGC 3034"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie irrégulière vue par la tranche, célèbre pour son intense sursaut de formation stellaire.",
+      "visual": {
+        "color": "#b6a790",
+        "secondaryColor": "#d07c5e",
+        "visualRadius": 32,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.38,
+        "galaxyRotationDegrees": 34
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-1.0503, 3.3104, 0.6317],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "distanceMpc": 3.53,
+        "distanceLy": 11513622,
+        "rightAscensionDegrees": 148.974583,
+        "declinationDegrees": 69.6825,
+        "diameterLy": 42921,
+        "morphology": "Irrégulière I0",
+        "absoluteMagnitude": -19.6,
+        "subgroup": "Groupe M81",
+        "nearbyUniverseLabelRank": 1,
+        "keywords": "M82 Messier 82 NGC 3034 Cigar starburst"
+      }
+    },
+    {
+      "id": "ngc-3077",
+      "name": "NGC 3077",
+      "aliases": [],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Petite galaxie perturbée par ses interactions avec M81 et M82.",
+      "visual": {
+        "color": "#c0b8aa",
+        "secondaryColor": "#b98d71",
+        "visualRadius": 22,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.83,
+        "galaxyRotationDegrees": -8
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-1.2099, 3.5599, 0.6751],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "distanceMpc": 3.82,
+        "distanceLy": 12459467,
+        "rightAscensionDegrees": 150.8375,
+        "declinationDegrees": 68.733889,
+        "diameterLy": 24722,
+        "morphology": "Irrégulière perturbée",
+        "absoluteMagnitude": -17.6,
+        "subgroup": "Groupe M81",
+        "nearbyUniverseLabelRank": 17,
+        "keywords": "NGC 3077 M81"
+      }
+    }
+  ]
+}

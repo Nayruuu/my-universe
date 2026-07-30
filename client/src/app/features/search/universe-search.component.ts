@@ -19,6 +19,7 @@ export class UniverseSearchComponent {
 
   protected updateQuery(event: Event): void {
     this.query.set((event.target as HTMLInputElement).value);
+    this.active.set(true);
   }
 
   protected choose(result: SearchEntry): void {
@@ -31,15 +32,21 @@ export class UniverseSearchComponent {
     this.query.set('');
   }
 
-  protected typeLabel(type: SpaceObjectType): string {
+  protected typeLabel(type: SpaceObjectType, keywords?: readonly string[]): string {
+    if (type === 'region' && keywords?.includes('constellation')) {
+      return 'Constellation';
+    }
     const labels: Partial<Record<SpaceObjectType, string>> = {
       star: 'Étoile',
       planet: 'Planète',
       moon: 'Lune',
       galaxy: 'Galaxie',
+      'black-hole': 'Trou noir',
+      'galaxy-cluster': 'Groupe de galaxies',
       'dwarf-planet': 'Planète naine',
       asteroid: 'Astéroïde',
       comet: 'Comète',
+      universe: 'Univers',
     };
 
     return labels[type] ?? 'Objet';

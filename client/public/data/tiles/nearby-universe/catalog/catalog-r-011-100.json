@@ -1,0 +1,171 @@
+{
+  "version": "2.0.0",
+  "objects": [
+    {
+      "id": "lv-ic2574",
+      "name": "IC 2574",
+      "aliases": ["IC2574"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 36.76,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.41,
+        "galaxyRotationDegrees": 15
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-1.362191, 3.738117, 0.575599],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 4.02,
+        "distanceLy": 13111486,
+        "rightAscensionDegrees": 157.09333333,
+        "declinationDegrees": 68.41611111,
+        "angularDiameterArcmin": 13.18,
+        "diameterLy": 50268,
+        "apparentMagnitudeB": 10.8,
+        "morphologicalType": 8,
+        "distanceMethod": "TRGB",
+        "nearbyUniverseLabelRank": 131,
+        "nearbyUniversePointBatch": true,
+        "keywords": "IC2574 IC 2574 Local Volume"
+      }
+    },
+    {
+      "id": "lv-ngc2976",
+      "name": "NGC 2976",
+      "aliases": ["NGC2976"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 34.1,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.46,
+        "galaxyRotationDegrees": 123
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-1.120263, 3.29876, 0.732661],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 3.56,
+        "distanceLy": 11611167,
+        "rightAscensionDegrees": 146.815,
+        "declinationDegrees": 67.91361111,
+        "angularDiameterArcmin": 5.75,
+        "diameterLy": 19421,
+        "apparentMagnitudeB": 11.01,
+        "morphologicalType": 7,
+        "distanceMethod": "TRGB",
+        "nearbyUniverseLabelRank": 139,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC2976 NGC 2976 Local Volume"
+      }
+    },
+    {
+      "id": "lv-holmii",
+      "name": "HolmII",
+      "aliases": [],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#9eb8c8",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 35.18,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.86,
+        "galaxyRotationDegrees": 145
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-0.638466, 3.199762, 0.919774],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 3.39,
+        "distanceLy": 11056701,
+        "rightAscensionDegrees": 124.76666667,
+        "declinationDegrees": 70.71416667,
+        "angularDiameterArcmin": 8.91,
+        "diameterLy": 28657,
+        "apparentMagnitudeB": 11.1,
+        "morphologicalType": 9,
+        "morphology": "Im",
+        "distanceMethod": "TRGB",
+        "nearbyUniverseLabelRank": 142,
+        "nearbyUniversePointBatch": true,
+        "keywords": "HolmII HolmII Im Local Volume"
+      }
+    },
+    {
+      "id": "lv-ngc2366",
+      "name": "NGC 2366",
+      "aliases": ["NGC2366"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#9eb8c8",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 33.76,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.36,
+        "galaxyRotationDegrees": 16
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-0.428414, 2.982198, 1.048358],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 3.19,
+        "distanceLy": 10404388,
+        "rightAscensionDegrees": 112.2275,
+        "declinationDegrees": 69.20527778,
+        "angularDiameterArcmin": 7.24,
+        "diameterLy": 21912,
+        "apparentMagnitudeB": 11.68,
+        "morphologicalType": 10,
+        "morphology": "Ir",
+        "distanceMethod": "TRGB",
+        "nearbyUniverseLabelRank": 163,
+        "nearbyUniversePointBatch": true,
+        "keywords": "NGC2366 NGC 2366 Ir Local Volume"
+      }
+    }
+  ]
+}

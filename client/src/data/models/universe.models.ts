@@ -5,6 +5,7 @@ export type SpaceObjectType =
   | 'universe'
   | 'galaxy-cluster'
   | 'galaxy'
+  | 'black-hole'
   | 'nebula'
   | 'star'
   | 'planet'
@@ -24,13 +25,27 @@ export type DistanceUnit =
   | 'kiloparsec'
   | 'megaparsec';
 
-export type ReferenceFrame = 'solar-system' | 'stellar' | 'galactic' | 'local-group';
+export type ReferenceFrame =
+  'solar-system' | 'stellar' | 'galactic' | 'local-group' | 'nearby-universe' | 'cosmic-web';
 export type TemporalMode = 'state' | 'observable';
 export type GraphicQuality = 'low' | 'medium' | 'high';
+export type LabelDensity = 'minimal' | 'balanced' | 'dense';
 export type GalaxyVisualShape = 'spiral' | 'elliptical' | 'irregular';
+export type BlackHoleActivity = 'dormant' | 'quiescent' | 'active';
+export type JovianMoon = 'io' | 'europa' | 'ganymede' | 'callisto';
 export type EphemerisBody =
-  'mercury' | 'venus' | 'earth' | 'moon' | 'mars' | 'jupiter' | 'saturn' | 'uranus' | 'neptune';
-export type EphemerisOrigin = 'sun' | 'earth';
+  | 'mercury'
+  | 'venus'
+  | 'earth'
+  | 'moon'
+  | 'mars'
+  | 'jupiter'
+  | 'saturn'
+  | 'uranus'
+  | 'neptune'
+  | 'pluto'
+  | JovianMoon;
+export type EphemerisOrigin = 'sun' | 'earth' | 'jupiter';
 
 export interface UniverseTime {
   julianDay: number;
@@ -78,6 +93,8 @@ export interface VisualDefinition {
   galaxyShape?: GalaxyVisualShape;
   galaxyAxisRatio?: number;
   galaxyRotationDegrees?: number;
+  blackHoleActivity?: BlackHoleActivity;
+  accretionDiskInclinationDegrees?: number;
 }
 
 export type PositionProviderDefinition =
@@ -85,6 +102,11 @@ export type PositionProviderDefinition =
       type: 'static';
       position: [number, number, number];
       unit: DistanceUnit;
+    }
+  | {
+      type: 'catalog';
+      catalogId: string;
+      identifier: string;
     }
   | {
       type: 'keplerian';
@@ -97,6 +119,7 @@ export type PositionProviderDefinition =
       epochJulianDay: number;
       orbitalPeriodDays: number;
       unit: DistanceUnit;
+      distanceScale?: number;
     }
   | {
       type: 'ephemeris';
@@ -161,6 +184,111 @@ export interface UniverseDataset {
   objects: SpaceObject[];
 }
 
+export interface SpaceTileBounds {
+  min: [number, number, number];
+  max: [number, number, number];
+  unit: DistanceUnit;
+}
+
+export interface SpaceTileIndexEntry {
+  id: string;
+  level: number;
+  parentId?: string;
+  childIds?: readonly string[];
+  referenceFrame: ReferenceFrame;
+  url: string;
+  bounds: SpaceTileBounds;
+  objectIds: string[];
+}
+
+export interface SpaceTileIndex {
+  version: string;
+  tiles: SpaceTileIndexEntry[];
+  searchEntries: SearchEntry[];
+}
+
+export interface StarTileBounds {
+  min: [number, number, number];
+  max: [number, number, number];
+}
+
+export interface StarTileIndexNode {
+  id: string;
+  lodLevel: number;
+  parentId?: string;
+  childIds: readonly string[];
+  boundsParsec: StarTileBounds;
+  sourceStarCount: number;
+  clusterCount: number;
+  cellSizeParsec: number;
+  url: string;
+}
+
+export interface StarTileIndex {
+  version: string;
+  sourceCatalog: string;
+  sourceStarCount: number;
+  referenceEpochJulianDay: number;
+  referenceFrame: 'equatorial-j2000';
+  distanceUnit: 'parsec';
+  scientificConfidence: 'calculated';
+  representation: 'illustrative-aggregation';
+  rootIds: readonly string[];
+  nodes: readonly StarTileIndexNode[];
+}
+
+export interface StarClusterTile {
+  id: string;
+  parentId?: string;
+  version: string;
+  sourceCatalog: string;
+  sourceStarCount: number;
+  referenceEpochJulianDay: number;
+  lodLevel: number;
+  cellSizeParsec: number;
+  clusterCount: number;
+  cellCoordinates: Int32Array;
+  positionsParsec: Float32Array;
+  starCounts: Uint32Array;
+  apparentMagnitudes: Float32Array;
+  colorIndicesBv: Float32Array;
+}
+
+export interface StarClusterTilePack {
+  version: string;
+  sourceCatalog: string;
+  referenceEpochJulianDay: number;
+  tiles: readonly StarClusterTile[];
+}
+
+export interface StarTileSource {
+  id: string;
+  url: string;
+  starCatalogId: string;
+}
+
+export type ConstellationSegment = readonly [number, number];
+
+export interface ConstellationFigure {
+  id: string;
+  name: string;
+  abbreviation: string;
+  segments: readonly ConstellationSegment[];
+}
+
+export interface ConstellationCatalog {
+  version: string;
+  source: {
+    name: string;
+    url: string;
+    license: string;
+  };
+  referenceFrame: 'equatorial-j2000';
+  scientificConfidence: 'illustrative';
+  starCatalog: string;
+  figures: readonly ConstellationFigure[];
+}
+
 export type DatasetManifestEntry =
   | {
       id: string;
@@ -172,6 +300,31 @@ export type DatasetManifestEntry =
       url: string;
       type: 'binary';
       format: 'star-catalog-v2';
+    }
+  | {
+      id: string;
+      url: string;
+      type: 'space-tile-index';
+      format: 'space-tiles-v1' | 'space-tiles-v2';
+    }
+  | {
+      id: string;
+      url: string;
+      type: 'constellation-lines';
+      format: 'constellation-lines-v1';
+    }
+  | {
+      id: string;
+      url: string;
+      type: 'star-tile-index';
+      format: 'star-tiles-v2';
+      starCatalogId: string;
+    }
+  | {
+      id: string;
+      url: string;
+      type: 'cosmic-group-catalog';
+      format: 'cosmicflows4-group-catalog-v1';
     };
 
 export interface DatasetManifest {
@@ -181,9 +334,25 @@ export interface DatasetManifest {
 
 export interface DisplayOptions {
   showOrbits: boolean;
+  showConstellations: boolean;
   showLabels: boolean;
   quality: GraphicQuality;
+  labelDensity: LabelDensity;
   temporalMode: TemporalMode;
+}
+
+export type ZoomDebugStatus = 'applied' | 'minimum' | 'maximum' | 'ignored' | 'unchanged';
+
+export interface ZoomDebugStats {
+  anchorType: 'object' | 'pointer' | 'target';
+  anchorObjectId: string | null;
+  deltaY: number;
+  beforeDistance: number;
+  requestedDistance: number;
+  appliedDistance: number;
+  minimumDistance: number;
+  maximumDistance: number;
+  status: ZoomDebugStatus;
 }
 
 export interface EngineDebugStats {
@@ -194,13 +363,29 @@ export interface EngineDebugStats {
   textures: number;
   visibleObjects: number;
   catalogStars: number;
+  cosmicGroups: number;
+  batchedGalaxies: number;
+  loadedTiles: number;
+  indexedGalaxyTiles: number;
+  cachedGalaxyTiles: number;
+  activeStarTiles: number;
+  cachedStarPacks: number;
+  cachedStarTiles: number;
+  activeStarClusters: number;
+  cachedStarClusters: number;
+  visibleStarClusters: number;
   cameraPosition: Vector3Like;
+  cameraTarget: Vector3Like;
   cameraDistance: number;
   floatingOrigin: Vector3Like;
   targetId: string | null;
+  navigationOriginId: string | null;
+  navigationReferenceFrame: ReferenceFrame;
   lodLevel: number;
   julianDay: number;
   quality: GraphicQuality;
+  pixelRatio: number;
+  zoom: ZoomDebugStats | null;
 }
 
 export interface SolarEclipseState {
@@ -215,6 +400,7 @@ export type UniverseEngineEvent =
       objects: readonly SpaceObject[];
       catalogEntries: readonly SearchEntry[];
     }
+  | { type: 'objects-changed'; objects: readonly SpaceObject[] }
   | {
       type: 'object-selected';
       objectId: string | null;
@@ -237,7 +423,9 @@ export interface NavigationState {
   zoom: number;
   mode: TemporalMode;
   quality: GraphicQuality;
+  labelDensity: LabelDensity;
   showOrbits: boolean;
+  showConstellations: boolean;
   showLabels: boolean;
 }
 

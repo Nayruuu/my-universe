@@ -11,6 +11,12 @@ const planet = {
   id: 'earth',
   type: 'planet',
 } as SpaceObject;
+const blackHole = {
+  ...planet,
+  id: 'sagittarius-a-star',
+  type: 'black-hole',
+  referenceFrame: 'galactic',
+} as SpaceObject;
 
 const nearbyStar = {
   id: 'sirius',
@@ -60,7 +66,15 @@ describe('LOD en espace écran', () => {
     expect(shouldDisplayObjectAtLevel(galaxy, 3, true)).toBe(true);
     expect(shouldDisplayObjectAtLevel(neighboringGalaxy, 3, false)).toBe(false);
     expect(shouldDisplayObjectAtLevel(neighboringGalaxy, 4, false)).toBe(true);
+    expect(shouldDisplayObjectAtLevel(neighboringGalaxy, 6, false)).toBe(false);
+    expect(shouldDisplayObjectAtLevel(galaxy, 6, false)).toBe(false);
+    expect(shouldDisplayObjectAtLevel(galaxy, 6, true)).toBe(true);
     expect(shouldDisplayObjectAtLevel(neighboringGalaxy, 3, true)).toBe(true);
+    expect(shouldDisplayObjectAtLevel(blackHole, 0, false)).toBe(false);
+    expect(shouldDisplayObjectAtLevel(blackHole, 1, false)).toBe(true);
+    expect(shouldDisplayObjectAtLevel(blackHole, 3, false)).toBe(true);
+    expect(shouldDisplayObjectAtLevel(blackHole, 4, false)).toBe(false);
+    expect(shouldDisplayObjectAtLevel(blackHole, 4, true)).toBe(true);
     expect(dampValue(0, 1, 8, 0.2)).toBeGreaterThan(0);
   });
 
@@ -80,7 +94,13 @@ describe('LOD en espace écran', () => {
     expect(shouldDisplayObjectAtLevel({ ...planet, type: 'moon' }, 2, false)).toBe(false);
     expect(shouldDisplayObjectAtLevel({ ...planet, type: 'asteroid' }, 1, false)).toBe(true);
     expect(shouldDisplayObjectAtLevel({ ...planet, type: 'comet' }, 2, false)).toBe(false);
-    expect(shouldDisplayObjectAtLevel({ ...nearbyStar, id: 'sun' }, 0, false)).toBe(true);
+    const sun = { ...nearbyStar, id: 'sun' };
+
+    expect(shouldDisplayObjectAtLevel(sun, 0, false)).toBe(true);
+    expect(shouldDisplayObjectAtLevel(sun, 2, false)).toBe(true);
+    expect(shouldDisplayObjectAtLevel(sun, 3, false)).toBe(true);
+    expect(shouldDisplayObjectAtLevel(galaxy, 2, false)).toBe(false);
+    expect(shouldDisplayObjectAtLevel(galaxy, 5, false)).toBe(true);
     expect(shouldDisplayObjectAtLevel({ ...planet, type: 'region' }, 4, false)).toBe(true);
   });
 });

@@ -1,0 +1,73 @@
+{
+  "version": "2.0.0",
+  "sourceCatalog": "hyg-v41-bright-stars",
+  "referenceEpochJulianDay": 2451545,
+  "tiles": [
+    {
+      "id": "c-n1-p0-n3",
+      "parentId": "r-n1-p0-n2",
+      "version": "2.0.0",
+      "sourceCatalog": "hyg-v41-bright-stars",
+      "sourceStarCount": 3,
+      "referenceEpochJulianDay": 2451545,
+      "lodLevel": 3,
+      "cellSizeParsec": 40,
+      "clusterCount": 3,
+      "cellCoordinates": [-7, 1, -18, -6, 1, -24, -7, 2, -18],
+      "positionsParsec": [
+        -276.81622314453125, 52.15813446044922, -691.0641479492188, -238.04100036621094,
+        66.8396987915039, -929.2068481445312, -257.24932861328125, 85.07550048828125,
+        -713.6536865234375
+      ],
+      "starCounts": [1, 1, 1],
+      "apparentMagnitudes": [6.059999942779541, 6.159999847412109, 6.3400001525878915],
+      "colorIndicesBv": [1.753000020980835, 1.531000018119812, 0.18000000715255737]
+    },
+    {
+      "id": "c-n1-p1-n3",
+      "parentId": "r-n1-p0-n2",
+      "version": "2.0.0",
+      "sourceCatalog": "hyg-v41-bright-stars",
+      "sourceStarCount": 1,
+      "referenceEpochJulianDay": 2451545,
+      "lodLevel": 3,
+      "cellSizeParsec": 40,
+      "clusterCount": 1,
+      "cellCoordinates": [-7, 14, -19],
+      "positionsParsec": [-264.4522705078125, 578.2572631835938, -721.2766723632812],
+      "starCounts": [1],
+      "apparentMagnitudes": [5.679999828338623],
+      "colorIndicesBv": [0.6830000281333923]
+    },
+    {
+      "id": "c-n2-p0-n3",
+      "parentId": "r-n1-p0-n2",
+      "version": "2.0.0",
+      "sourceCatalog": "hyg-v41-bright-stars",
+      "sourceStarCount": 6,
+      "referenceEpochJulianDay": 2451545,
+      "lodLevel": 3,
+      "cellSizeParsec": 40,
+      "clusterCount": 6,
+      "cellCoordinates": [
+        -9, 3, -19, -9, 4, -17, -11, 6, -17, -11, 2, -18, -10, 3, -17, -10, 6, -17
+      ],
+      "positionsParsec": [
+        -326.570068359375, 137.14956665039062, -731.795166015625, -334.0398864746094,
+        168.33502197265625, -645.7535400390625, -427.6780700683594, 253.981201171875,
+        -651.4964599609375, -432.62347412109375, 107.8575210571289, -712.2981567382812,
+        -393.228271484375, 128.4509735107422, -648.5275268554688, -392.8425598144531,
+        243.09469604492188, -669.0004272460938
+      ],
+      "starCounts": [1, 1, 1, 1, 1, 1],
+      "apparentMagnitudes": [
+        5.269999980926514, 6.070000171661377, 6.130000114440919, 6.159999847412109,
+        6.289999961853027, 6.5
+      ],
+      "colorIndicesBv": [
+        1.8559999465942383, -0.07199999690055847, -0.11500000208616255, -0.16699999570846558,
+        1.6729999780654907, -0.14499999582767487
+      ]
+    }
+  ]
+}

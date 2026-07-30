@@ -1,0 +1,87 @@
+{
+  "version": "2.0.0",
+  "objects": [
+    {
+      "id": "lv-ugc03303",
+      "name": "UGC 3303",
+      "aliases": ["UGC03303"],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 29.77,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.78,
+        "galaxyRotationDegrees": 137
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [1.083061, 0.560819, 7.035059],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 7.14,
+        "distanceLy": 23287565,
+        "rightAscensionDegrees": 81.24791667,
+        "declinationDegrees": 4.505,
+        "angularDiameterArcmin": 5.62,
+        "diameterLy": 38070,
+        "apparentMagnitudeB": 13.95,
+        "morphologicalType": 8,
+        "distanceMethod": "BS",
+        "nearbyUniverseLabelRank": 265,
+        "nearbyUniversePointBatch": true,
+        "keywords": "UGC03303 UGC 3303 Local Volume"
+      }
+    },
+    {
+      "id": "lv-orion",
+      "name": "Orion",
+      "aliases": [],
+      "type": "galaxy",
+      "parentId": "nearby-universe",
+      "referenceFrame": "nearby-universe",
+      "scientificConfidence": "observed",
+      "description": "Galaxie du Volume local issue du catalogue astronomique de Karachentsev et al. Sa position 3D combine ses coordonnées équatoriales J2000 et sa distance cataloguée.",
+      "referenceEpoch": 2451545,
+      "visual": {
+        "color": "#a8bed5",
+        "secondaryColor": "#c7b28d",
+        "visualRadius": 26.14,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.48,
+        "galaxyRotationDegrees": 6
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [0.419918, 0.570701, 6.421026],
+        "unit": "megaparsec"
+      },
+      "metadata": {
+        "source": "Karachentsev et al. 2013, AJ 145:101 · VizieR J/AJ/145/101",
+        "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/145/101",
+        "distanceMpc": 6.46,
+        "distanceLy": 21069702,
+        "rightAscensionDegrees": 86.25833333,
+        "declinationDegrees": 5.06833333,
+        "angularDiameterArcmin": 3.09,
+        "diameterLy": 18938,
+        "apparentMagnitudeB": 15.4,
+        "morphologicalType": 8,
+        "distanceMethod": "BS",
+        "nearbyUniverseLabelRank": 404,
+        "nearbyUniversePointBatch": true,
+        "keywords": "Orion Orion Local Volume"
+      }
+    }
+  ]
+}

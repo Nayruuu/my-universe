@@ -4,8 +4,11 @@ import { PICKING_LAYER } from '../selection/selection-layers';
 import {
   createCelestialVisual,
   createCelestialVisualAssets,
+  createPhotonRingTexture,
   createSelectionMarker,
   createSharedGlowTexture,
+  getGalaxyTextureResolution,
+  requestCelestialLodTextures,
   type CelestialVisualAssets,
 } from './celestial-visual-factory';
 
@@ -15,6 +18,7 @@ describe('imposteurs galactiques', () => {
   beforeEach(() => {
     assets = {
       glowTexture: new THREE.Texture(),
+      photonRingTexture: new THREE.Texture(),
       galaxyTextures: {
         spiral: new THREE.Texture(),
         elliptical: new THREE.Texture(),
@@ -30,6 +34,7 @@ describe('imposteurs galactiques', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     assets.glowTexture.dispose();
+    assets.photonRingTexture.dispose();
     Object.values(assets.galaxyTextures).forEach((texture) => texture.dispose());
     assets.sphereGeometry.dispose();
     assets.selectionGeometry.dispose();
@@ -51,28 +56,42 @@ describe('imposteurs galactiques', () => {
     expect(sprite.material.rotation).toBeCloseTo(THREE.MathUtils.degToRad(35));
     expect(sprite.layers.mask & (1 << PICKING_LAYER)).not.toBe(0);
     expect(sprite.userData['objectId']).toBe('andromeda');
+    expect(sprite.material.userData['visualStyle']).toBe('photographic-multilayer-galaxy');
+    expect(sprite.material.userData['layers']).toEqual(['stellar-halo', 'dust', 'warm-core']);
+    expect(sprite.material.color.r).toBeGreaterThan(0.8);
+    expect(sprite.material.color.g).toBeGreaterThan(0.8);
+    expect(sprite.material.color.b).toBeGreaterThan(0.8);
     expect(visual.pickables).toEqual([sprite]);
     expect(visual.lod.farAspectRatio).toBe(0.35);
 
     sprite.material.dispose();
   });
 
-  it('ne crée aucune géométrie pour la région de navigation', () => {
-    const visual = createCelestialVisual(
-      {
-        ...createGalaxy(),
-        id: 'local-group',
-        name: 'Groupe local',
-        type: 'region',
-      },
-      'medium',
-      assets,
-    );
-
-    expect(visual.root.children).toHaveLength(0);
-    expect(visual.pickables).toHaveLength(0);
-    expect(visual.lod.farSprite).toBeNull();
+  it('augmente la résolution des imposteurs galactiques avec la qualité', () => {
+    expect(getGalaxyTextureResolution('low')).toBe(256);
+    expect(getGalaxyTextureResolution('medium')).toBe(384);
+    expect(getGalaxyTextureResolution('high')).toBe(512);
   });
+
+  it.each(['region', 'universe'] as const)(
+    'ne crée aucune géométrie pour le référentiel %s',
+    (type) => {
+      const visual = createCelestialVisual(
+        {
+          ...createGalaxy(),
+          id: type === 'region' ? 'local-group' : 'cosmic-web',
+          name: type === 'region' ? 'Groupe local' : 'Réseau cosmique',
+          type,
+        },
+        'medium',
+        assets,
+      );
+
+      expect(visual.root.children).toHaveLength(0);
+      expect(visual.pickables).toHaveLength(0);
+      expect(visual.lod.farSprite).toBeNull();
+    },
+  );
 
   it('applique les valeurs galactiques par défaut', () => {
     const galaxy = createGalaxy();
@@ -88,12 +107,25 @@ describe('imposteurs galactiques', () => {
     visual.lod.farSprite?.material.dispose();
   });
 
+  it('renforce uniquement les galaxies du catalogue de l’univers proche', () => {
+    const nearbyGalaxy = createGalaxy();
+
+    nearbyGalaxy.metadata = { nearbyUniverseLabelRank: 3 };
+    const nearbyVisual = createCelestialVisual(nearbyGalaxy, 'medium', assets);
+    const localVisual = createCelestialVisual(createGalaxy(), 'medium', assets);
+
+    expect(nearbyVisual.lod.farBaseOpacity).toBeGreaterThan(localVisual.lod.farBaseOpacity);
+    nearbyVisual.lod.farSprite?.material.dispose();
+    localVisual.lod.farSprite?.material.dispose();
+  });
+
   it('signale chaque contexte Canvas 2D indispensable', () => {
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
     expect(() => createSharedGlowTexture()).toThrow('halo stellaire');
+    expect(() => createPhotonRingTexture()).toThrow('anneau photonique');
     expect(() => createSelectionMarker()).toThrow('marqueur de sélection');
-    expect(() => createCelestialVisual(createPlanet('mars'), 'medium', assets)).toThrow(
-      'texture de mars',
+    expect(() => createCelestialVisual(createPlanet('saturn'), 'medium', assets)).toThrow(
+      'texture de saturn',
     );
   });
 
@@ -102,12 +134,13 @@ describe('imposteurs galactiques', () => {
 
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext')
       .mockReturnValueOnce(context)
+      .mockReturnValueOnce(context)
       .mockReturnValueOnce(null);
 
     expect(() => createCelestialVisualAssets('low')).toThrow('imposteurs galactiques');
   });
 
-  it('active une texture statique après le chargement de son image', () => {
+  it('diffère et déduplique les textures statiques jusqu’au premier LOD proche', () => {
     const visual = createCelestialVisual(createPlanet('earth'), 'high', assets);
     const body = visual.rotatingBody as THREE.Mesh<
       THREE.BufferGeometry,
@@ -116,12 +149,228 @@ describe('imposteurs galactiques', () => {
     const texture = body.material.map!;
     const image = texture.image as HTMLImageElement;
     const initialVersion = texture.version;
+    const textureWithoutSource = new THREE.Texture();
+
+    expect(image.getAttribute('src')).toBeNull();
+    expect(visual.lod.deferredTextures).toHaveLength(3);
+    visual.lod.deferredTextures.push(textureWithoutSource);
+    expect(requestCelestialLodTextures(visual.lod)).toBe(3);
+    expect(image.src).toContain('textures/earth-blue-marble-2048.jpg');
+    expect(requestCelestialLodTextures(visual.lod)).toBe(0);
 
     image.onload?.(new Event('load'));
 
     expect(texture.version).toBe(initialVersion + 1);
     body.material.dispose();
     texture.dispose();
+    textureWithoutSource.dispose();
+  });
+
+  it('compose la Terre haute qualité avec surface, lumières nocturnes et nuages NASA', () => {
+    const visual = createCelestialVisual(createPlanet('earth'), 'high', assets);
+
+    requestCelestialLodTextures(visual.lod);
+    const body = visual.rotatingBody as THREE.Mesh<
+      THREE.BufferGeometry,
+      THREE.MeshStandardMaterial
+    >;
+    const clouds = visual.root.getObjectByName('earth-cloud-layer') as THREE.Mesh<
+      THREE.BufferGeometry,
+      THREE.MeshStandardMaterial
+    >;
+    const atmosphere = visual.root.getObjectByName('earth-atmosphere') as THREE.Mesh<
+      THREE.BufferGeometry,
+      THREE.ShaderMaterial
+    >;
+
+    expect((body.material.map?.image as HTMLImageElement).src).toContain(
+      'textures/earth-blue-marble-2048.jpg',
+    );
+    expect((body.material.emissiveMap?.image as HTMLImageElement).src).toContain(
+      'textures/earth-night-lights-2048.jpg',
+    );
+    expect(body.material.emissiveIntensity).toBeGreaterThan(0.7);
+    expect(body.material.userData['visualStyle']).toBe('nasa-surface-and-night-lights');
+    expect(clouds.parent).toBe(body);
+    expect(clouds.scale.toArray()).toEqual([1.012, 1.012, 1.012]);
+    expect(clouds.material.map).toBe(clouds.material.alphaMap);
+    expect((clouds.material.map?.image as HTMLImageElement).src).toContain(
+      'textures/earth-clouds-2048.jpg',
+    );
+    expect(clouds.material.userData['scientificConfidence']).toBe('observed');
+    expect(atmosphere.material.userData['visualStyle']).toBe('fresnel-atmospheric-scattering');
+    expect(atmosphere.material.uniforms['intensity']!.value).toBe(1);
+    atmosphere.material.opacity = 0.21;
+    (atmosphere.material.onBeforeRender as () => void)();
+    expect(atmosphere.material.uniforms['layerOpacity']!.value).toBe(0.21);
+  });
+
+  it('conserve une Terre légère sans nuages ni lumières nocturnes en qualité faible', () => {
+    const visual = createCelestialVisual(createPlanet('earth'), 'low', assets);
+    const body = visual.rotatingBody as THREE.Mesh<
+      THREE.BufferGeometry,
+      THREE.MeshStandardMaterial
+    >;
+    const atmosphere = visual.root.getObjectByName('earth-atmosphere') as THREE.Mesh<
+      THREE.BufferGeometry,
+      THREE.ShaderMaterial
+    >;
+
+    expect(body.material.map).toBeInstanceOf(THREE.Texture);
+    expect(body.material.emissiveMap).toBeNull();
+    expect(visual.root.getObjectByName('earth-cloud-layer')).toBeUndefined();
+    expect(atmosphere.material.uniforms['intensity']!.value).toBe(0.72);
+  });
+
+  it('utilise la carte globale Hubble observée pour Jupiter', () => {
+    const jupiter = createPlanet('jupiter');
+
+    jupiter.visual.color = '#d2b28e';
+    jupiter.visual.secondaryColor = '#8d6247';
+    const visual = createCelestialVisual(jupiter, 'high', assets);
+
+    requestCelestialLodTextures(visual.lod);
+    const body = visual.rotatingBody as THREE.Mesh<
+      THREE.BufferGeometry,
+      THREE.MeshStandardMaterial
+    >;
+    const texture = body.material.map!;
+
+    expect((texture.image as HTMLImageElement).src).toContain('textures/jupiter-hubble-2048.jpg');
+    expect(texture.userData['visualStyle']).toBe('observed-hubble-global-map');
+    expect(texture.userData['scientificConfidence']).toBe('observed');
+    expect(texture.userData['polarTreatment']).toBe('illustrative-stretch');
+    expect(body.material.emissiveMap).toBe(texture);
+    expect(body.material.userData['shadowFill']).toBe('illustrative');
+  });
+
+  it('utilise les cartes LRO et LOLA pour la couleur et le relief lunaire', () => {
+    const visual = createCelestialVisual(createPlanet('moon'), 'high', assets);
+
+    requestCelestialLodTextures(visual.lod);
+    const body = visual.rotatingBody as THREE.Mesh<
+      THREE.BufferGeometry,
+      THREE.MeshStandardMaterial
+    >;
+    const colorTexture = body.material.map!;
+    const reliefTexture = body.material.bumpMap!;
+
+    expect((colorTexture.image as HTMLImageElement).src).toContain('textures/moon-lroc-2048.jpg');
+    expect(colorTexture.userData['visualStyle']).toBe('observed-lro-color-mosaic');
+    expect(colorTexture.userData['scientificConfidence']).toBe('observed');
+    expect(colorTexture.userData['visualTreatment']).toBe('aesthetic-processing');
+    expect((reliefTexture.image as HTMLImageElement).src).toContain(
+      'textures/moon-lola-relief-1024.jpg',
+    );
+    expect(reliefTexture.userData['visualStyle']).toBe('observed-lola-elevation');
+    expect(body.material.bumpScale).toBeCloseTo(0.018);
+    expect(body.material.userData['reliefScale']).toBe('visually-exaggerated');
+  });
+
+  it('utilise la mosaïque Viking contrôlée pour la surface de Mars', () => {
+    const visual = createCelestialVisual(createPlanet('mars'), 'high', assets);
+
+    requestCelestialLodTextures(visual.lod);
+    const body = visual.rotatingBody as THREE.Mesh<
+      THREE.BufferGeometry,
+      THREE.MeshStandardMaterial
+    >;
+    const texture = body.material.map!;
+
+    expect((texture.image as HTMLImageElement).src).toContain('textures/mars-viking-2048.jpg');
+    expect(texture.userData['visualStyle']).toBe('observed-viking-colorized-mosaic');
+    expect(texture.userData['scientificConfidence']).toBe('observed');
+    expect(texture.userData['colorConfidence']).toBe('illustrative');
+    expect(body.material.userData['visualStyle']).toBe('observed-planetary-surface');
+  });
+
+  it('distingue les observations radar de la couleur simulée sur Vénus', () => {
+    const visual = createCelestialVisual(createPlanet('venus'), 'medium', assets);
+
+    requestCelestialLodTextures(visual.lod);
+    const body = visual.rotatingBody as THREE.Mesh<
+      THREE.BufferGeometry,
+      THREE.MeshStandardMaterial
+    >;
+    const texture = body.material.map!;
+
+    expect((texture.image as HTMLImageElement).src).toContain('textures/venus-magellan-1024.jpg');
+    expect(texture.userData['visualStyle']).toBe('observed-magellan-radar-simulated-color');
+    expect(texture.userData['scientificConfidence']).toBe('observed');
+    expect(texture.userData['colorConfidence']).toBe('simulated');
+    expect(body.material.userData['visualStyle']).toBe('radar-derived-planetary-surface');
+  });
+
+  it('conserve les trois corps rocheux sans texture coûteuse en qualité faible', () => {
+    for (const id of ['moon', 'mars', 'venus']) {
+      const visual = createCelestialVisual(createPlanet(id), 'low', assets);
+      const body = visual.rotatingBody as THREE.Mesh<
+        THREE.BufferGeometry,
+        THREE.MeshStandardMaterial
+      >;
+
+      expect(body.material.map).toBeNull();
+      expect(body.material.bumpMap).toBeNull();
+    }
+  });
+
+  it('donne à Saturne des bandes atmosphériques et une tempête identifiable', () => {
+    const context = proceduralCanvasContext();
+
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context);
+    const saturn = createPlanet('saturn');
+
+    saturn.visual.color = '#d7c193';
+    saturn.visual.secondaryColor = '#9b835f';
+    const visual = createCelestialVisual(saturn, 'high', assets);
+    const body = visual.rotatingBody as THREE.Mesh<
+      THREE.BufferGeometry,
+      THREE.MeshStandardMaterial
+    >;
+    const texture = body.material.map as THREE.CanvasTexture;
+
+    expect(texture.image.width).toBe(768);
+    expect(texture.image.height).toBe(384);
+    expect(texture.anisotropy).toBe(4);
+    expect(texture.userData['visualStyle']).toBe('procedural-atmospheric-bands-and-storms');
+    expect(texture.userData['storm']).toBe('representative-polar-storm');
+    const image = vi.mocked(context.putImageData).mock.calls[0]![0];
+
+    expect(brightestColorChannel(image.data)).toBeGreaterThan(180);
+    expect(body.material.emissiveMap).toBe(texture);
+    expect(body.material.emissiveIntensity).toBeGreaterThan(0.1);
+    expect(body.material.userData['shadowFill']).toBe('illustrative');
+  });
+
+  it('conserve un remplissage illustratif sur Neptune sans texture supplémentaire', () => {
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(proceduralCanvasContext());
+    const neptune = createPlanet('neptune');
+
+    neptune.visual.color = '#356bc4';
+    neptune.visual.secondaryColor = '#173477';
+    const visual = createCelestialVisual(neptune, 'medium', assets);
+    const body = visual.rotatingBody as THREE.Mesh<
+      THREE.BufferGeometry,
+      THREE.MeshStandardMaterial
+    >;
+
+    expect(body.material.emissiveMap).toBe(body.material.map);
+    expect(body.material.userData['shadowFill']).toBe('illustrative');
+  });
+
+  it('place les anneaux dans le repère équatorial du corps en rotation', () => {
+    const saturn = createPlanet('saturn');
+
+    saturn.visual.hasRings = true;
+    saturn.visual.rotationPeriodHours = 10.7;
+    const visual = createCelestialVisual(saturn, 'low', assets);
+    const rings = visual.root.getObjectByName('saturn-rings');
+
+    expect(rings).toBeInstanceOf(THREE.Mesh);
+    expect(rings?.parent).toBe(visual.rotatingBody);
+    expect(rings?.scale.toArray()).toEqual([1, 1, 1]);
+    expect(rings?.rotation.x).toBeCloseTo(Math.PI / 2);
+    expect(rings?.rotation.z).toBeCloseTo(0);
   });
 });
 
@@ -158,6 +407,7 @@ function createPlanet(id: string): SpaceObject {
     visual: {
       visualRadius: 1,
       scaleMode: 'adaptive',
+      atmosphereColor: id === 'earth' ? '#5ca9e6' : undefined,
     },
     positionProvider: {
       type: 'static',
@@ -175,4 +425,38 @@ function visualCanvasContext(): CanvasRenderingContext2D {
     fillRect: vi.fn(),
     fillStyle: '',
   } as unknown as CanvasRenderingContext2D;
+}
+
+function proceduralCanvasContext(): CanvasRenderingContext2D {
+  return {
+    createImageData: vi.fn((width: number, height: number) => ({
+      data: new Uint8ClampedArray(width * height * 4),
+      width,
+      height,
+      colorSpace: 'srgb',
+    })),
+    putImageData: vi.fn(),
+    createRadialGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
+    save: vi.fn(),
+    translate: vi.fn(),
+    scale: vi.fn(),
+    restore: vi.fn(),
+    beginPath: vi.fn(),
+    arc: vi.fn(),
+    fill: vi.fn(),
+    fillStyle: '',
+    globalAlpha: 1,
+  } as unknown as CanvasRenderingContext2D;
+}
+
+function brightestColorChannel(data: Uint8ClampedArray): number {
+  let brightest = 0;
+
+  for (let index = 0; index < data.length; index += 1) {
+    if (index % 4 !== 3) {
+      brightest = Math.max(brightest, data[index]!);
+    }
+  }
+
+  return brightest;
 }
