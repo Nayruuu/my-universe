@@ -1,0 +1,1544 @@
+import * as THREE from 'three';
+import { SpaceObject, UniverseEngineEvent } from '../../data/models/universe.models';
+import { NAVIGATION_SCALES } from '../camera/navigation-scales';
+import { FloatingOriginManager } from '../coordinates/floating-origin-manager';
+import { LodManager } from '../lod/lod-manager';
+import {
+  STAR_CATALOG_HEADER_BYTES,
+  STAR_CATALOG_MAGIC,
+  STAR_CATALOG_RECORD_BYTES,
+  STAR_CATALOG_VERSION,
+} from '../loaders/star-catalog';
+import { EarthRotationPlayback } from '../simulation/earth-rotation-playback';
+import { EarthEclipseEvent, SolarEclipseAppearance } from '../simulation/earth-eclipse';
+import { TimeController } from '../simulation/time-controller';
+import { dateToJulianDay } from '../simulation/time-utils';
+import { UniverseEngine, type WebGlRendererConstructor } from './universe-engine';
+
+const rendererHarness = vi.hoisted(() => {
+  class FakeWebGLRenderer {
+    public readonly domElement = document.createElement('canvas');
+    public readonly setPixelRatio = vi.fn();
+    public readonly setSize = vi.fn();
+    public readonly render = vi.fn();
+    public readonly dispose = vi.fn();
+    public readonly renderLists = { dispose: vi.fn() };
+    public readonly info = {
+      render: { calls: 3, triangles: 120 },
+      memory: { geometries: 4, textures: 2 },
+    };
+    public outputColorSpace = '';
+    public toneMapping = 0;
+    public toneMappingExposure = 0;
+
+    constructor(public readonly options: Record<string, unknown>) {
+      rendererHarness.instances.push(this);
+    }
+  }
+
+  return {
+    FakeWebGLRenderer,
+    instances: [] as FakeWebGLRenderer[],
+  };
+});
+
+describe('UniverseEngine', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.unstubAllGlobals();
+    rendererHarness.instances.length = 0;
+    installCanvasContext();
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn(() => ({
+        matches: false,
+        media: '',
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    );
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('initialise la scène statique, publie ses états et ignore une seconde initialisation', async () => {
+    installAssets([]);
+    const container = sizedContainer(960, 540);
+    const engine = createTestEngine();
+    const events: UniverseEngineEvent[] = [];
+    const unsubscribe = engine.subscribe((event) => events.push(event));
+
+    await engine.initialize(container, {
+      quality: 'low',
+      showLabels: false,
+    });
+    await engine.initialize(container);
+
+    const renderer = rendererHarness.instances[0]!;
+
+    expect(renderer.options).toMatchObject({
+      antialias: false,
+      alpha: false,
+      logarithmicDepthBuffer: true,
+    });
+    expect(renderer.domElement.className).toBe('universe-canvas');
+    expect(renderer.setPixelRatio).toHaveBeenCalled();
+    expect(renderer.setSize).toHaveBeenCalledWith(960, 540, false);
+    expect(container.contains(renderer.domElement)).toBe(true);
+    expect(engine.allObjects).toEqual([]);
+    expect(events).toContainEqual({ type: 'loading-state', loading: true });
+    expect(events).toContainEqual({
+      type: 'data-ready',
+      objects: [],
+      catalogEntries: [],
+    });
+    expect(events.at(-1)).toEqual({ type: 'loading-state', loading: false });
+    expect(rendererHarness.instances).toHaveLength(1);
+
+    unsubscribe();
+    engine.dispose();
+    expect(renderer.dispose).toHaveBeenCalledOnce();
+    expect(container.contains(renderer.domElement)).toBe(false);
+  });
+
+  it('choisit la qualité recommandée et transmet les avertissements de données', async () => {
+    vi.spyOn(navigator, 'hardwareConcurrency', 'get').mockReturnValue(8);
+    vi.spyOn(window, 'devicePixelRatio', 'get').mockReturnValue(1);
+    installAssets([], {
+      binaryStatus: 503,
+    });
+    const engine = createTestEngine();
+    const events: UniverseEngineEvent[] = [];
+
+    engine.subscribe((event) => events.push(event));
+    await engine.initialize(sizedContainer(640, 360));
+
+    expect(engine.recommendedQuality).toBe('medium');
+    expect(rendererHarness.instances[0]?.options['antialias']).toBe(true);
+    expect(events.some((event) => event.type === 'performance-warning')).toBe(true);
+
+    engine.dispose();
+  });
+
+  it('branche le catalogue dense et tous les adaptateurs entre contrôles et moteur', async () => {
+    installAssets([object('milky-way', 'Voie lactée', 'galaxy')], {
+      binaryBuffer: starCatalogBuffer(),
+    });
+    const engine = createTestEngine();
+    const access = engine as unknown as EngineAccess;
+    const events: UniverseEngineEvent[] = [];
+
+    engine.subscribe((event) => events.push(event));
+    await engine.initialize(sizedContainer(960, 540), { quality: 'low' });
+
+    const selection = access.selectionManager as unknown as {
+      getPickables(): readonly THREE.Object3D[];
+      getLabelObjectAt(clientX: number, clientY: number): string | null;
+      callback(objectId: string | null, focusRequested: boolean): void;
+      navigationIntentCallback(objectId: string | null): void;
+      getReferenceDistance(): number;
+      isBackgroundObject(objectId: string): boolean;
+      labelHoverCallback(objectId: string | null): void;
+    };
+    const controller = access.cameraController as unknown as {
+      onCameraSettled(distance: number): void;
+      distanceToTarget: number;
+    };
+    const loop = access.renderLoop as unknown as {
+      callback(deltaSeconds: number, elapsedSeconds: number): void;
+    };
+    const initializedServices = {
+      registry: access.objectRegistry,
+      scene: access.universeScene,
+      labels: access.labelManager,
+      controller: access.cameraController,
+      catalog: access.starCatalogRegistry,
+    };
+    const handlePick = vi.spyOn(access, 'handlePick').mockImplementation(() => undefined);
+    const handleNavigation = vi
+      .spyOn(access, 'handleNavigationIntent')
+      .mockImplementation(() => undefined);
+    const renderFrame = vi.spyOn(access, 'renderFrame').mockImplementation(() => undefined);
+    const labelManager = access.labelManager as unknown as {
+      hitTest(clientX: number, clientY: number): string | null;
+      setHoveredObject(objectId: string | null): void;
+    };
+    const hover = vi.spyOn(labelManager, 'setHoveredObject');
+
+    expect(selection.getPickables().length).toBeGreaterThan(0);
+    expect(selection.getLabelObjectAt(10, 20)).toBeNull();
+    selection.callback('hyg-3229', true);
+    selection.navigationIntentCallback('hyg-3229');
+    expect(selection.getReferenceDistance()).toBeGreaterThan(0);
+    expect(selection.isBackgroundObject('hyg-3229')).toBe(true);
+    expect(selection.isBackgroundObject('milky-way')).toBe(true);
+    expect(selection.isBackgroundObject('unknown')).toBe(false);
+    selection.labelHoverCallback('hyg-3229');
+    controller.onCameraSettled(42);
+    loop.callback(0.02, 0.02);
+
+    expect(handlePick).toHaveBeenCalledWith('hyg-3229', true);
+    expect(handleNavigation).toHaveBeenCalledWith('hyg-3229');
+    expect(hover).toHaveBeenCalledWith('hyg-3229');
+    expect(renderFrame).toHaveBeenCalledWith(0.02);
+    expect(events).toContainEqual({ type: 'camera-changed', zoom: 42 });
+    expect(events.find((event) => event.type === 'data-ready')).toMatchObject({
+      catalogEntries: [expect.objectContaining({ id: 'hyg-3229', name: 'Sirius' })],
+    });
+
+    access.objectRegistry = null;
+    access.universeScene = null;
+    access.labelManager = null;
+    access.cameraController = null;
+    access.starCatalogRegistry = null;
+    expect(selection.getPickables()).toEqual([]);
+    expect(selection.getLabelObjectAt(10, 20)).toBeNull();
+    expect(selection.getReferenceDistance()).toBe(1);
+    expect(selection.isBackgroundObject('unknown')).toBe(false);
+    selection.labelHoverCallback(null);
+
+    access.objectRegistry = initializedServices.registry;
+    access.universeScene = initializedServices.scene;
+    access.labelManager = initializedServices.labels;
+    access.cameraController = initializedServices.controller;
+    access.starCatalogRegistry = initializedServices.catalog;
+    engine.dispose();
+  });
+
+  it.each([
+    [() => Promise.resolve(failedResponse(503)), 'Impossible de charger le manifest (503).'],
+    [() => Promise.reject('échec brut'), 'Erreur inconnue du moteur 3D.'],
+  ])('publie puis relaie une erreur d’initialisation', async (manifestResponse, expected) => {
+    const fetchMock = vi.fn(manifestResponse);
+
+    vi.stubGlobal('fetch', fetchMock);
+    const engine = createTestEngine();
+    const events: UniverseEngineEvent[] = [];
+
+    engine.subscribe((event) => events.push(event));
+
+    await expect(engine.initialize(sizedContainer(320, 180))).rejects.toBeDefined();
+    expect(events).toContainEqual({ type: 'error', message: expected });
+    expect(events.at(-1)).toEqual({ type: 'loading-state', loading: false });
+  });
+
+  it('expose ses valeurs temporelles, sa qualité recommandée et ses collections initiales', () => {
+    const engine = new UniverseEngine();
+
+    expect(Number.isFinite(engine.currentTime.julianDay)).toBe(true);
+    expect(engine.isPlaying).toBe(false);
+    expect(engine.timeSpeed).toBe(1);
+    expect(engine.cameraDistance).toBe(0);
+    expect(engine.allObjects).toEqual([]);
+    expect(engine.hasObject('earth')).toBe(false);
+    expect(['low', 'medium', 'high']).toContain(engine.recommendedQuality);
+  });
+
+  it('protège le démarrage puis délègue start, stop et resize', () => {
+    const uninitialized = createTestEngine();
+
+    expect(() => uninitialized.start()).toThrow('doit être initialisé');
+    uninitialized.stop();
+    uninitialized.resize(100, 100);
+
+    const runtime = createRuntime();
+
+    runtime.engine.start();
+    runtime.engine.stop();
+    runtime.engine.resize(0, 100);
+    runtime.engine.resize(100, 0);
+    runtime.engine.resize(800, 400);
+
+    expect(runtime.loop.start).toHaveBeenCalledOnce();
+    expect(runtime.loop.stop).toHaveBeenCalledOnce();
+    expect(runtime.camera.aspect).toBe(2);
+    expect(runtime.renderer.setSize).toHaveBeenCalledWith(800, 400, false);
+    expect(runtime.labels.resize).toHaveBeenCalledWith(800, 400);
+  });
+
+  it('libère aussi bien une instance vide qu’une instance complètement équipée', () => {
+    const empty = createTestEngine();
+
+    empty.dispose();
+
+    const runtime = createRuntime();
+    const listener = vi.fn();
+
+    runtime.engine.subscribe(listener);
+    runtime.engine.dispose();
+
+    expect(runtime.loop.stop).toHaveBeenCalledOnce();
+    expect(runtime.selection.dispose).toHaveBeenCalledOnce();
+    expect(runtime.controller.dispose).toHaveBeenCalledOnce();
+    expect(runtime.labels.dispose).toHaveBeenCalledOnce();
+    expect(runtime.registry.dispose).toHaveBeenCalledOnce();
+    expect(runtime.scene.dispose).toHaveBeenCalledOnce();
+    expect(runtime.renderer.renderLists.dispose).toHaveBeenCalledOnce();
+    expect(runtime.renderer.dispose).toHaveBeenCalledOnce();
+    expect(runtime.engine.allObjects).toEqual([]);
+    expect(runtime.engine.cameraDistance).toBe(0);
+  });
+
+  it('met à jour le temps, les rotations et la cible suivie', () => {
+    const runtime = createRuntime();
+    const events: UniverseEngineEvent[] = [];
+    const time = { julianDay: 2_451_545 };
+
+    runtime.access.targetId = 'earth';
+    runtime.engine.subscribe((event) => events.push(event));
+    runtime.engine.setTime(time);
+    runtime.engine.setPlaying(true);
+    runtime.engine.setTimeSpeed(30);
+
+    expect(runtime.registry.updatePositions).toHaveBeenCalledWith(time);
+    expect(runtime.registry.updateBodyRotations).toHaveBeenCalledWith(time);
+    expect(runtime.controller.follow).toHaveBeenCalled();
+    expect(events).toContainEqual({ type: 'time-changed', time });
+    expect(runtime.engine.isPlaying).toBe(true);
+    expect(runtime.engine.timeSpeed).toBe(30);
+
+    runtime.registry.updatePositions.mockReturnValueOnce(undefined);
+    runtime.engine.setTime({ julianDay: time.julianDay + 1 });
+  });
+
+  it('centre un objet de registre avec un zoom explicite', async () => {
+    const runtime = createRuntime();
+    const events: UniverseEngineEvent[] = [];
+
+    runtime.engine.subscribe((event) => events.push(event));
+    await runtime.engine.setTarget('earth', 12);
+
+    expect(runtime.selection.clearNavigationLock).toHaveBeenCalledOnce();
+    expect(runtime.registry.setNavigationTarget).toHaveBeenCalledWith('earth');
+    expect(runtime.registry.select).toHaveBeenCalledWith('earth');
+    expect(runtime.controller.focusOn).toHaveBeenCalledWith(
+      expect.any(THREE.Vector3),
+      runtime.definitions.get('earth'),
+      12,
+    );
+    expect(events).toContainEqual({ type: 'target-changed', objectId: 'earth' });
+  });
+
+  it('centre un objet de catalogue avec sa distance dédiée', async () => {
+    const runtime = createRuntime();
+    const catalogObject = object('hyg-1', 'Sirius', 'star');
+    const catalogPosition = new THREE.Vector3(30, 2, -4);
+
+    runtime.catalog.has.mockImplementation((id: string) => id === 'hyg-1');
+    runtime.catalog.getDefinition.mockImplementation((id: string) =>
+      id === 'hyg-1' ? catalogObject : undefined,
+    );
+    runtime.scene.getCatalogWorldPosition.mockImplementation((id: string, target: THREE.Vector3) =>
+      id === 'hyg-1' ? target.copy(catalogPosition) : null,
+    );
+
+    await runtime.engine.setTarget('hyg-1');
+
+    expect(runtime.registry.setNavigationTarget).toHaveBeenCalledWith(null);
+    expect(runtime.scene.selectCatalogObject).toHaveBeenCalledWith('hyg-1');
+    expect(runtime.labels.setTransientObject).toHaveBeenCalledWith(catalogObject);
+    expect(runtime.controller.focusOn).toHaveBeenCalledWith(
+      expect.any(THREE.Vector3),
+      catalogObject,
+      800,
+    );
+  });
+
+  it('rejette une cible sans services, sans objet ou sans position', async () => {
+    const empty = createTestEngine();
+
+    await expect(empty.setTarget('earth')).rejects.toThrow('introuvable');
+
+    const missingController = createRuntime();
+
+    missingController.access.cameraController = null;
+    await expect(missingController.engine.setTarget('earth')).rejects.toThrow('introuvable');
+
+    const unknown = createRuntime();
+
+    unknown.registry.has.mockReturnValue(false);
+    unknown.catalog.has.mockReturnValue(false);
+    await expect(unknown.engine.setTarget('unknown')).rejects.toThrow('introuvable');
+
+    const noPosition = createRuntime();
+
+    noPosition.registry.getWorldPosition.mockReturnValue(null);
+    noPosition.scene.getCatalogWorldPosition.mockReturnValue(null);
+    await expect(noPosition.engine.setTarget('earth')).rejects.toThrow('Position indisponible');
+
+    const noDefinition = createRuntime();
+
+    noDefinition.registry.getDefinition.mockReturnValue(undefined);
+    noDefinition.catalog.getDefinition.mockReturnValue(undefined);
+    await expect(noDefinition.engine.setTarget('earth')).rejects.toThrow('Position indisponible');
+  });
+
+  it('cadre une orbite complète autour de son parent', () => {
+    const runtime = createRuntime();
+    const events: UniverseEngineEvent[] = [];
+
+    runtime.engine.subscribe((event) => events.push(event));
+    runtime.engine.viewOrbit('earth');
+
+    expect(runtime.registry.setNavigationTarget).toHaveBeenCalledWith('sun');
+    expect(runtime.registry.select).toHaveBeenCalledWith('earth');
+    expect(runtime.controller.focusOnFromDirection).toHaveBeenCalledWith(
+      expect.any(THREE.Vector3),
+      runtime.definitions.get('sun'),
+      expect.any(THREE.Vector3),
+      expect.any(Number),
+    );
+    expect(events).toContainEqual({ type: 'target-changed', objectId: 'sun' });
+  });
+
+  it.each([
+    ['registre', (runtime: Runtime) => (runtime.access.objectRegistry = null)],
+    ['contrôleur', (runtime: Runtime) => (runtime.access.cameraController = null)],
+    ['caméra', (runtime: Runtime) => (runtime.access.camera = null)],
+    ['objet', (runtime: Runtime) => runtime.registry.getDefinition.mockReturnValue(undefined)],
+    [
+      'parent déclaré',
+      (runtime: Runtime) =>
+        runtime.registry.getDefinition.mockImplementation((id: string) =>
+          id === 'earth' ? object('earth', 'Terre', 'planet') : runtime.definitions.get(id),
+        ),
+    ],
+    [
+      'parent résolu',
+      (runtime: Runtime) =>
+        runtime.registry.getDefinition.mockImplementation((id: string) =>
+          id === 'sun' ? undefined : runtime.definitions.get(id),
+        ),
+    ],
+    [
+      'position du parent',
+      (runtime: Runtime) =>
+        runtime.registry.getWorldPosition.mockImplementation((id: string) =>
+          id === 'sun' ? null : runtime.positions.get(id),
+        ),
+    ],
+    [
+      'rayon numérique',
+      (runtime: Runtime) => runtime.registry.getOrbitRadius.mockReturnValue(null),
+    ],
+    ['rayon positif', (runtime: Runtime) => runtime.registry.getOrbitRadius.mockReturnValue(0)],
+  ])('refuse une orbite sans %s', (_label, mutate) => {
+    const runtime = createRuntime();
+
+    mutate(runtime);
+
+    expect(() => runtime.engine.viewOrbit('earth')).toThrow('Orbite indisponible');
+  });
+
+  it('cadre une échelle et efface la sélection', () => {
+    const runtime = createRuntime();
+    const scale = NAVIGATION_SCALES[1]!;
+
+    runtime.engine.viewScale(scale);
+
+    expect(runtime.registry.setNavigationTarget).toHaveBeenCalledWith('sun');
+    expect(runtime.registry.select).toHaveBeenCalledWith(null);
+    expect(runtime.controller.focusOnFromDirection).toHaveBeenCalledWith(
+      expect.any(THREE.Vector3),
+      runtime.definitions.get('sun'),
+      expect.any(THREE.Vector3),
+      scale.distance,
+    );
+  });
+
+  it.each([
+    ['registre', (runtime: Runtime) => (runtime.access.objectRegistry = null)],
+    ['contrôleur', (runtime: Runtime) => (runtime.access.cameraController = null)],
+    ['cible', (runtime: Runtime) => runtime.registry.getDefinition.mockReturnValue(undefined)],
+    ['position', (runtime: Runtime) => runtime.registry.getWorldPosition.mockReturnValue(null)],
+  ])('refuse une échelle sans %s', (_label, mutate) => {
+    const runtime = createRuntime();
+
+    mutate(runtime);
+
+    expect(() => runtime.engine.viewScale(NAVIGATION_SCALES[1]!)).toThrow('Cadrage indisponible');
+  });
+
+  it('cadre l’ombre d’une éclipse solaire totale', () => {
+    const runtime = createRuntime();
+    const events: UniverseEngineEvent[] = [];
+
+    runtime.engine.subscribe((event) => events.push(event));
+    runtime.engine.viewSolarEclipse(solarEvent());
+
+    expect(runtime.registry.setSolarObserverActive).toHaveBeenCalledWith(false);
+    expect(runtime.registry.setNavigationTarget).toHaveBeenCalledWith('earth');
+    expect(runtime.registry.clearSolarEclipsePath).toHaveBeenCalled();
+    expect(runtime.controller.focusOnFromDirection).toHaveBeenCalled();
+    expect(events).toContainEqual({ type: 'target-changed', objectId: 'earth' });
+  });
+
+  it.each([
+    ['registre', (runtime: Runtime) => (runtime.access.objectRegistry = null), solarEvent()],
+    ['contrôleur', (runtime: Runtime) => (runtime.access.cameraController = null), solarEvent()],
+    [
+      'position terrestre',
+      (runtime: Runtime) =>
+        runtime.registry.getWorldPosition.mockImplementation((id: string) =>
+          id === 'earth' ? null : runtime.positions.get(id),
+        ),
+      solarEvent(),
+    ],
+    [
+      'définition terrestre',
+      (runtime: Runtime) =>
+        runtime.registry.getDefinition.mockImplementation((id: string) =>
+          id === 'earth' ? undefined : runtime.definitions.get(id),
+        ),
+      solarEvent(),
+    ],
+    [
+      'alignement',
+      () => undefined,
+      solarEvent({
+        peak: {
+          julianDay: dateToJulianDay(new Date('2026-07-28T12:00:00.000Z')),
+        },
+      }),
+    ],
+  ])('refuse une vue solaire sans %s', (_label, mutate, event) => {
+    const runtime = createRuntime();
+
+    mutate(runtime);
+
+    expect(() => runtime.engine.viewSolarEclipse(event)).toThrow('ne peut pas être affichée');
+  });
+
+  it('place la caméra sur le géoïde pour observer une éclipse', () => {
+    const runtime = createRuntime();
+
+    runtime.engine.observeSolarEclipse(solarEvent());
+
+    expect(runtime.registry.setSolarObserverActive).toHaveBeenCalledWith(true, expect.any(Number));
+    expect(runtime.registry.setNavigationTarget).toHaveBeenCalledWith('sun');
+    expect(runtime.labels.clear).toHaveBeenCalledOnce();
+    expect(runtime.controller.observeFrom).toHaveBeenCalledWith(
+      expect.any(THREE.Vector3),
+      expect.any(THREE.Vector3),
+    );
+  });
+
+  it('utilise le point central calculé lorsque l’événement ne fournit pas de coordonnées', () => {
+    const runtime = createRuntime();
+
+    runtime.engine.observeSolarEclipse(
+      solarEvent({
+        latitude: null,
+        longitude: null,
+      }),
+    );
+
+    expect(runtime.controller.observeFrom).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    ['registre', (runtime: Runtime) => (runtime.access.objectRegistry = null), solarEvent()],
+    ['contrôleur', (runtime: Runtime) => (runtime.access.cameraController = null), solarEvent()],
+    ['Terre', (runtime: Runtime) => runtime.positions.delete('earth'), solarEvent()],
+    ['Lune', (runtime: Runtime) => runtime.positions.delete('moon'), solarEvent()],
+    ['Soleil', (runtime: Runtime) => runtime.positions.delete('sun'), solarEvent()],
+    ['définition lunaire', (runtime: Runtime) => runtime.definitions.delete('moon'), solarEvent()],
+    ['définition solaire', (runtime: Runtime) => runtime.definitions.delete('sun'), solarEvent()],
+    [
+      'coordonnées',
+      () => undefined,
+      solarEvent({
+        latitude: null,
+        longitude: null,
+        peak: {
+          julianDay: dateToJulianDay(new Date('2026-07-28T12:00:00.000Z')),
+        },
+      }),
+    ],
+  ])('refuse un observateur sans %s', (_label, mutate, event) => {
+    const runtime = createRuntime();
+
+    mutate(runtime);
+
+    expect(() => runtime.engine.observeSolarEclipse(event)).toThrow(
+      'point d’observation terrestre',
+    );
+  });
+
+  it('active et retire la trajectoire solaire ainsi que la présentation complète', () => {
+    const runtime = createRuntime();
+    const event = solarEvent();
+
+    runtime.engine.setSolarEclipsePathVisible(event, true);
+    expect(runtime.registry.showSolarEclipsePath).toHaveBeenCalledWith(event.peak, event.kind);
+    runtime.engine.setSolarEclipsePathVisible(event, false);
+    expect(runtime.registry.clearSolarEclipsePath).toHaveBeenCalled();
+
+    runtime.engine.clearSolarEclipsePresentation();
+    expect(runtime.registry.setSolarObserverActive).toHaveBeenCalledWith(false);
+    expect(runtime.access.activeSolarEclipse).toBeNull();
+
+    runtime.access.objectRegistry = null;
+    runtime.engine.setSolarEclipsePathVisible(event, true);
+    runtime.engine.setSolarEclipsePathVisible(event, false);
+    runtime.engine.clearSolarEclipsePresentation();
+  });
+
+  it('sélectionne les objets locaux, du catalogue et ignore un identifiant inconnu', () => {
+    const runtime = createRuntime();
+    const events: UniverseEngineEvent[] = [];
+    const catalogObject = object('hyg-1', 'Sirius', 'star');
+
+    runtime.engine.subscribe((event) => events.push(event));
+    runtime.engine.selectObject('unknown');
+    expect(events).toEqual([]);
+
+    runtime.engine.selectObject('earth');
+    expect(runtime.registry.select).toHaveBeenLastCalledWith('earth');
+    expect(runtime.scene.selectCatalogObject).toHaveBeenLastCalledWith(null);
+
+    runtime.catalog.has.mockImplementation((id: string) => id === 'hyg-1');
+    runtime.catalog.getDefinition.mockImplementation((id: string) =>
+      id === 'hyg-1' ? catalogObject : undefined,
+    );
+    runtime.engine.selectObject('hyg-1');
+    expect(runtime.registry.select).toHaveBeenLastCalledWith(null);
+    expect(runtime.scene.selectCatalogObject).toHaveBeenLastCalledWith('hyg-1');
+    expect(runtime.labels.setTransientObject).toHaveBeenLastCalledWith(catalogObject);
+
+    runtime.engine.selectObject(null);
+    expect(events.at(-1)).toMatchObject({
+      type: 'object-selected',
+      objectId: null,
+      object: null,
+    });
+  });
+
+  it('centre la sélection seulement lorsqu’elle existe', async () => {
+    const runtime = createRuntime();
+
+    runtime.engine.focusSelected();
+    expect(runtime.controller.focusOn).not.toHaveBeenCalled();
+
+    runtime.engine.selectObject('earth');
+    runtime.engine.focusSelected();
+    await Promise.resolve();
+
+    expect(runtime.controller.focusOn).toHaveBeenCalled();
+  });
+
+  it('applique les options visuelles sans reconstruire lorsque la qualité reste identique', () => {
+    const runtime = createRuntime();
+    const rebuild = vi
+      .spyOn(runtime.access, 'rebuildObjectRegistry')
+      .mockImplementation(() => undefined);
+    const options = {
+      showOrbits: false,
+      showLabels: false,
+      quality: 'medium' as const,
+      temporalMode: 'observable' as const,
+    };
+
+    runtime.engine.setDisplayOptions(options);
+
+    expect(runtime.scene.setQuality).toHaveBeenCalledWith('medium');
+    expect(runtime.labels.setEnabled).toHaveBeenCalledWith(false);
+    expect(runtime.registry.setDisplayOptions).toHaveBeenCalledWith(options);
+    expect(rebuild).not.toHaveBeenCalled();
+    expect(runtime.labels.setQuality).not.toHaveBeenCalled();
+  });
+
+  it('reconfigure le rendu et reconstruit le registre lors d’un changement de qualité', () => {
+    const runtime = createRuntime();
+    const rebuild = vi
+      .spyOn(runtime.access, 'rebuildObjectRegistry')
+      .mockImplementation(() => undefined);
+
+    runtime.engine.setDisplayOptions({
+      showOrbits: true,
+      showLabels: true,
+      quality: 'high',
+      temporalMode: 'state',
+    });
+
+    expect(rebuild).toHaveBeenCalledOnce();
+    expect(runtime.labels.setQuality).toHaveBeenCalledWith('high');
+    expect(runtime.renderer.setPixelRatio).toHaveBeenCalled();
+    expect(runtime.renderer.setSize).toHaveBeenCalledWith(800, 450, false);
+
+    const noServices = createRuntime();
+
+    noServices.access.objectRegistry = null;
+    noServices.access.universeScene = null;
+    noServices.access.renderer = null;
+    noServices.engine.setDisplayOptions({
+      showOrbits: false,
+      showLabels: false,
+      quality: 'low',
+      temporalMode: 'state',
+    });
+
+    const noContainer = createRuntime();
+
+    noContainer.access.container = null;
+    vi.spyOn(noContainer.access, 'rebuildObjectRegistry').mockImplementation(() => undefined);
+    noContainer.engine.setDisplayOptions({
+      showOrbits: true,
+      showLabels: true,
+      quality: 'high',
+      temporalMode: 'state',
+    });
+    expect(noContainer.renderer.setPixelRatio).toHaveBeenCalled();
+    expect(noContainer.renderer.setSize).not.toHaveBeenCalled();
+  });
+
+  it('délègue le zoom lorsque la caméra est disponible', () => {
+    const runtime = createRuntime();
+
+    runtime.engine.zoomBy(0.8);
+    expect(runtime.controller.zoomBy).toHaveBeenCalledWith(0.8);
+
+    runtime.access.cameraController = null;
+    runtime.engine.zoomBy(1.2);
+  });
+
+  it.each([
+    ['renderer', (runtime: Runtime) => (runtime.access.renderer = null)],
+    ['caméra', (runtime: Runtime) => (runtime.access.camera = null)],
+    ['scène', (runtime: Runtime) => (runtime.access.universeScene = null)],
+    ['registre', (runtime: Runtime) => (runtime.access.objectRegistry = null)],
+    ['contrôleur', (runtime: Runtime) => (runtime.access.cameraController = null)],
+  ])('ignore une frame incomplète sans %s', (_label, mutate) => {
+    const runtime = createRuntime();
+
+    mutate(runtime);
+    runtime.access.renderFrame(0.5);
+
+    expect(runtime.renderer.render).not.toHaveBeenCalled();
+  });
+
+  it('rend une frame avancée, publie le LOD, le temps et les statistiques', () => {
+    const runtime = createRuntime();
+    const events: UniverseEngineEvent[] = [];
+    const internals = runtimeInternals(runtime);
+    const currentTime = { julianDay: 2_460_000 };
+
+    vi.spyOn(internals.timeController, 'update').mockReturnValue(true);
+    vi.spyOn(internals.timeController, 'currentTime', 'get').mockReturnValue(currentTime);
+    vi.spyOn(internals.earthRotationPlayback, 'update').mockReturnValue({
+      mode: 'stabilized',
+      time: { julianDay: currentTime.julianDay - 0.01 },
+    });
+    vi.spyOn(internals.lodManager, 'selectLevel').mockReturnValue(2);
+    vi.spyOn(internals.lodManager, 'level', 'get').mockReturnValue(2);
+    const originUpdate = vi.spyOn(internals.floatingOriginManager, 'update');
+
+    runtime.access.targetId = 'earth';
+    runtime.access.selectedId = 'mars';
+    runtime.access.simulationAccumulator = 1;
+    runtime.access.timeEventAccumulator = 1;
+    runtime.access.statsAccumulator = 1;
+    runtime.access.statsFrames = 5;
+    runtime.labels.render.mockImplementation(
+      (
+        _camera: THREE.Camera,
+        getPosition: (objectId: string, target: THREE.Vector3) => THREE.Vector3 | null,
+      ) => {
+        expect(getPosition('earth', new THREE.Vector3())).toEqual(runtime.positions.get('earth'));
+      },
+    );
+    runtime.engine.subscribe((event) => events.push(event));
+
+    runtime.access.renderFrame(0.25);
+
+    expect(runtime.registry.updateBodyRotations).toHaveBeenCalledWith(
+      currentTime,
+      expect.objectContaining({ julianDay: currentTime.julianDay - 0.01 }),
+    );
+    expect(runtime.registry.updatePositions).toHaveBeenCalledWith(currentTime);
+    expect(runtime.controller.follow).toHaveBeenCalled();
+    expect(runtime.controller.update).toHaveBeenCalledWith(0.25);
+    expect(originUpdate).toHaveBeenCalled();
+    expect(runtime.registry.updateLod).toHaveBeenCalledWith(runtime.camera, 450, 2, 0.25);
+    expect(runtime.scene.updateLod).toHaveBeenCalledWith(2, 0.25);
+    expect(runtime.renderer.render).toHaveBeenCalledWith(runtime.scene.scene, runtime.camera);
+    expect(runtime.labels.render).toHaveBeenCalledWith(
+      runtime.camera,
+      expect.any(Function),
+      2,
+      'mars',
+    );
+    expect(events).toContainEqual({ type: 'lod-changed', level: 2 });
+    expect(events).toContainEqual({ type: 'time-changed', time: currentTime });
+    expect(events.some((event) => event.type === 'debug-stats')).toBe(true);
+  });
+
+  it('gère les frames stables, la synchronisation terrestre et la vue sans labels', () => {
+    const runtime = createRuntime();
+    const internals = runtimeInternals(runtime);
+    const currentTime = { julianDay: 2_460_100 };
+    const updateTime = vi
+      .spyOn(internals.timeController, 'update')
+      .mockReturnValueOnce(false)
+      .mockReturnValueOnce(false)
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(false);
+    const updatePlayback = vi
+      .spyOn(internals.earthRotationPlayback, 'update')
+      .mockReturnValueOnce({ mode: 'synchronize', time: currentTime })
+      .mockReturnValueOnce({ mode: 'synchronize', time: currentTime })
+      .mockReturnValueOnce({ mode: 'exact', time: currentTime })
+      .mockReturnValueOnce({ mode: 'exact', time: currentTime });
+    const synchronized = runtime.registry.synchronizeEarthRotation
+      .mockReturnValueOnce(false)
+      .mockReturnValueOnce(true);
+    const markSynchronized = vi.spyOn(internals.earthRotationPlayback, 'markSynchronized');
+
+    vi.spyOn(internals.timeController, 'currentTime', 'get').mockReturnValue(currentTime);
+    vi.spyOn(internals.lodManager, 'selectLevel').mockReturnValue(1);
+    runtime.access.lastEmittedLodLevel = 1;
+    runtime.access.container = null;
+    runtime.access.targetId = 'earth';
+    runtime.access.selectedId = null;
+    runtime.access.activeSolarEclipse = solarEvent();
+
+    runtime.access.renderFrame(0.01);
+    runtime.access.renderFrame(0.01);
+    runtime.access.renderFrame(0.01);
+    runtime.access.activeSolarEclipse = null;
+    runtime.access.renderFrame(0.01);
+
+    expect(updateTime).toHaveBeenCalledTimes(4);
+    expect(updatePlayback).toHaveBeenCalledTimes(4);
+    expect(synchronized).toHaveBeenCalledTimes(2);
+    expect(markSynchronized).toHaveBeenCalledOnce();
+    expect(runtime.registry.updateBodyRotations).toHaveBeenCalledWith(currentTime, null);
+    expect(runtime.registry.updateBodyRotations).toHaveBeenCalledWith(currentTime, currentTime);
+    expect(runtime.registry.updatePositions).not.toHaveBeenCalled();
+    expect(runtime.labels.clear).toHaveBeenCalledTimes(3);
+    expect(runtime.labels.render).toHaveBeenLastCalledWith(
+      runtime.camera,
+      expect.any(Function),
+      1,
+      'earth',
+    );
+    expect(runtime.registry.updateLod).toHaveBeenCalledWith(runtime.camera, 450, 1, 0.01);
+  });
+
+  it.each([
+    ['renderer', (runtime: Runtime) => (runtime.access.renderer = null)],
+    ['caméra', (runtime: Runtime) => (runtime.access.camera = null)],
+    ['registre', (runtime: Runtime) => (runtime.access.objectRegistry = null)],
+    ['scène', (runtime: Runtime) => (runtime.access.universeScene = null)],
+  ])('ignore les statistiques sans %s', (_label, mutate) => {
+    const runtime = createRuntime();
+
+    mutate(runtime);
+    runtime.access.updateDebugStats(2);
+  });
+
+  it('attend une seconde avant de publier les statistiques et accepte une caméra sans contrôleur', () => {
+    const runtime = createRuntime();
+    const events: UniverseEngineEvent[] = [];
+
+    runtime.engine.subscribe((event) => events.push(event));
+    runtime.access.updateDebugStats(0.25);
+    expect(events.some((event) => event.type === 'debug-stats')).toBe(false);
+
+    runtime.access.cameraController = null;
+    runtime.access.updateDebugStats(1);
+
+    const debugEvent = events.find((event) => event.type === 'debug-stats');
+
+    expect(debugEvent).toMatchObject({
+      type: 'debug-stats',
+      stats: {
+        cameraDistance: 0,
+        drawCalls: 3,
+        triangles: 120,
+        geometries: 4,
+        textures: 2,
+      },
+    });
+  });
+
+  it('suit uniquement une cible résolue avec les services nécessaires', () => {
+    const runtime = createRuntime();
+
+    runtime.access.followCurrentTarget();
+    runtime.access.targetId = 'unknown';
+    runtime.access.followCurrentTarget();
+    runtime.access.targetId = 'earth';
+    runtime.access.followCurrentTarget();
+    expect(runtime.controller.follow).toHaveBeenCalledOnce();
+
+    runtime.access.objectRegistry = null;
+    runtime.access.followCurrentTarget();
+    runtime.access.objectRegistry = runtime.registry;
+    runtime.access.cameraController = null;
+    runtime.access.followCurrentTarget();
+  });
+
+  it('traite un clic simple, un clic de focus et une désélection', async () => {
+    const runtime = createRuntime();
+
+    runtime.access.handlePick('earth', false);
+    expect(runtime.registry.select).toHaveBeenCalledWith('earth');
+
+    runtime.access.handlePick(null, true);
+    expect(runtime.registry.select).toHaveBeenCalledWith(null);
+
+    runtime.access.handlePick('earth', true);
+    await Promise.resolve();
+    expect(runtime.controller.focusOn).toHaveBeenCalled();
+  });
+
+  it('adopte ou libère la cible suggérée par la navigation', () => {
+    const runtime = createRuntime();
+    const events: UniverseEngineEvent[] = [];
+    const catalogObject = object('hyg-1', 'Sirius', 'star');
+
+    runtime.engine.subscribe((event) => events.push(event));
+    runtime.access.handleNavigationIntent('earth');
+    expect(runtime.registry.setNavigationTarget).toHaveBeenCalledWith('earth');
+    expect(runtime.controller.adoptZoomTarget).toHaveBeenCalled();
+    expect(events).toContainEqual({ type: 'target-changed', objectId: 'earth' });
+
+    events.length = 0;
+    runtime.access.handleNavigationIntent('earth');
+    expect(events).toEqual([]);
+
+    runtime.catalog.has.mockImplementation((id: string) => id === 'hyg-1');
+    runtime.catalog.getDefinition.mockImplementation((id: string) =>
+      id === 'hyg-1' ? catalogObject : undefined,
+    );
+    runtime.scene.getCatalogWorldPosition.mockImplementation((id: string, target: THREE.Vector3) =>
+      id === 'hyg-1' ? target.set(4, 2, 1) : null,
+    );
+    runtime.access.handleNavigationIntent('hyg-1');
+    expect(runtime.registry.setNavigationTarget).toHaveBeenLastCalledWith(null);
+
+    runtime.access.handleNavigationIntent(null);
+    expect(runtime.controller.releaseTarget).toHaveBeenCalled();
+    expect(runtime.registry.setNavigationTarget).toHaveBeenLastCalledWith(null);
+    expect(events.at(-1)).toEqual({ type: 'target-changed', objectId: null });
+  });
+
+  it('préserve l’ancre pendant un aller-retour sémantique', () => {
+    const runtime = createRuntime();
+
+    runtime.access.targetId = 'earth';
+    runtime.controller.semanticZoomActive = false;
+    runtime.access.handleSemanticZoomIntent('mars', 480);
+
+    expect(runtime.controller.zoomSemantically).toHaveBeenLastCalledWith(480);
+    expect(runtime.access.targetId).toBe('earth');
+    expect(runtime.controller.adoptZoomTarget).not.toHaveBeenCalled();
+
+    runtime.controller.semanticZoomActive = true;
+    runtime.access.handleSemanticZoomIntent('mars', -480);
+    expect(runtime.access.targetId).toBe('earth');
+
+    runtime.controller.semanticZoomActive = false;
+    runtime.access.handleSemanticZoomIntent('mars', -120);
+    expect(runtime.access.targetId).toBe('mars');
+    expect(runtime.controller.adoptZoomTarget).toHaveBeenCalled();
+
+    runtime.access.handleSemanticZoomIntent(null, -120);
+    expect(runtime.controller.releaseTarget).toHaveBeenCalled();
+
+    runtime.access.cameraController = null;
+    runtime.access.handleSemanticZoomIntent('earth', 480);
+  });
+
+  it.each([
+    ['registre', (runtime: Runtime) => (runtime.access.objectRegistry = null)],
+    ['contrôleur', (runtime: Runtime) => (runtime.access.cameraController = null)],
+    ['position', (runtime: Runtime) => runtime.positions.delete('earth')],
+    ['définition', (runtime: Runtime) => runtime.definitions.delete('earth')],
+  ])('ignore une intention de navigation sans %s', (_label, mutate) => {
+    const runtime = createRuntime();
+
+    mutate(runtime);
+    runtime.access.handleNavigationIntent('earth');
+
+    expect(runtime.controller.adoptZoomTarget).not.toHaveBeenCalled();
+  });
+
+  it('libère une cible absente sans événement et tolère les services déjà détruits', () => {
+    const runtime = createRuntime();
+    const events: UniverseEngineEvent[] = [];
+
+    runtime.engine.subscribe((event) => events.push(event));
+    runtime.access.releaseNavigationTarget();
+    expect(events).toEqual([]);
+
+    runtime.access.cameraController = null;
+    runtime.access.objectRegistry = null;
+    runtime.access.targetId = 'earth';
+    runtime.access.releaseNavigationTarget();
+    expect(events).toContainEqual({ type: 'target-changed', objectId: null });
+  });
+
+  it('n’émet un nouvel état d’éclipse que lorsque sa phase change ou est forcée', () => {
+    const runtime = createRuntime();
+    const events: UniverseEngineEvent[] = [];
+
+    runtime.engine.subscribe((event) => events.push(event));
+    runtime.access.emitSolarEclipseState(appearance('partial'), true);
+    runtime.access.emitSolarEclipseState(appearance('partial'), false);
+    runtime.access.emitSolarEclipseState(appearance('total'), false);
+
+    expect(events.filter((event) => event.type === 'solar-eclipse-state')).toHaveLength(2);
+  });
+
+  it('résout hasObject via le catalogue lorsque le registre local ne connaît pas l’objet', () => {
+    const runtime = createRuntime();
+
+    runtime.registry.has.mockReturnValue(false);
+    runtime.catalog.has.mockImplementation((id: string) => id === 'hyg-1');
+
+    expect(runtime.engine.hasObject('hyg-1')).toBe(true);
+    runtime.access.objectRegistry = null;
+    expect(runtime.engine.hasObject('unknown')).toBe(false);
+  });
+
+  it('reconstruit le registre en conservant cible, sélection et présentation d’éclipse', () => {
+    const earlyReturn = createRuntime();
+
+    earlyReturn.access.universeScene = null;
+    earlyReturn.access.rebuildObjectRegistry();
+    expect(earlyReturn.registry.dispose).not.toHaveBeenCalled();
+
+    const runtime = createRuntime();
+    const event = solarEvent();
+
+    runtime.catalog.has.mockImplementation((id: string) => id === 'hyg-1');
+    runtime.access.targetId = 'earth';
+    runtime.access.selectedId = 'hyg-1';
+    runtime.access.activeSolarEclipse = event;
+    runtime.access.solarEclipsePathVisible = true;
+    runtime.access.solarObserverActive = false;
+    runtime.access.rebuildObjectRegistry();
+
+    expect(runtime.registry.dispose).toHaveBeenCalledOnce();
+    expect(runtime.scene.selectCatalogObject).toHaveBeenLastCalledWith('hyg-1');
+    expect(runtime.access.objectRegistry).not.toBe(runtime.registry);
+
+    runtime.access.targetId = 'unknown';
+    runtime.access.selectedId = 'earth';
+    runtime.access.activeSolarEclipse = event;
+    runtime.access.solarEclipsePathVisible = true;
+    runtime.access.solarObserverActive = true;
+    runtime.access.rebuildObjectRegistry();
+    expect(runtime.scene.selectCatalogObject).toHaveBeenLastCalledWith(null);
+
+    runtime.access.targetId = null;
+    runtime.access.selectedId = null;
+    runtime.access.activeSolarEclipse = event;
+    runtime.access.solarEclipsePathVisible = false;
+    runtime.access.solarObserverActive = false;
+    runtime.access.rebuildObjectRegistry();
+
+    runtime.access.activeSolarEclipse = null;
+    runtime.access.solarEclipsePathVisible = false;
+    runtime.access.rebuildObjectRegistry();
+
+    runtime.engine.dispose();
+  });
+});
+
+interface AssetOptions {
+  readonly binaryStatus?: number;
+  readonly binaryBuffer?: ArrayBuffer;
+}
+
+function installAssets(objects: readonly SpaceObject[], options: AssetOptions = {}): void {
+  const datasets: object[] = [
+    {
+      id: 'objects',
+      url: '/data/objects.json',
+      type: 'json',
+    },
+  ];
+  const responses: Record<string, Response> = {
+    '/data/manifest.json': jsonResponse({
+      version: '1.0.0',
+      datasets,
+    }),
+    '/data/objects.json': jsonResponse({
+      version: '1.0.0',
+      objects,
+    }),
+  };
+
+  if (options.binaryStatus !== undefined || options.binaryBuffer !== undefined) {
+    datasets.push({
+      id: 'stars',
+      url: '/data/stars.bin',
+      type: 'binary',
+      format: 'star-catalog-v2',
+    });
+    responses['/data/stars.bin'] =
+      options.binaryBuffer !== undefined
+        ? successfulBinaryResponse(options.binaryBuffer)
+        : failedResponse(options.binaryStatus!);
+  }
+
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: RequestInfo | URL): Promise<Response> => {
+      const key =
+        typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+
+      return responses[key] ?? failedResponse(404);
+    }),
+  );
+}
+
+function createTestEngine(): UniverseEngine {
+  return new UniverseEngine(
+    rendererHarness.FakeWebGLRenderer as unknown as WebGlRendererConstructor,
+  );
+}
+
+function sizedContainer(width: number, height: number): HTMLDivElement {
+  const container = document.createElement('div');
+
+  Object.defineProperties(container, {
+    clientWidth: { configurable: true, value: width },
+    clientHeight: { configurable: true, value: height },
+  });
+
+  return container;
+}
+
+function installCanvasContext(): void {
+  const gradient = {
+    addColorStop: vi.fn(),
+  };
+  const context = {
+    createRadialGradient: vi.fn(() => gradient),
+    fillRect: vi.fn(),
+    save: vi.fn(),
+    translate: vi.fn(),
+    scale: vi.fn(),
+    restore: vi.fn(),
+    beginPath: vi.fn(),
+    arc: vi.fn(),
+    fill: vi.fn(),
+    clearRect: vi.fn(),
+    setTransform: vi.fn(),
+    measureText: vi.fn(() => ({ width: 80 })),
+    roundRect: vi.fn(),
+    moveTo: vi.fn(),
+    lineTo: vi.fn(),
+    fillText: vi.fn(),
+    setLineDash: vi.fn(),
+    stroke: vi.fn(),
+    createImageData: vi.fn((width: number, height: number) => ({
+      data: new Uint8ClampedArray(width * height * 4),
+      width,
+      height,
+    })),
+    putImageData: vi.fn(),
+  };
+
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
+    context as unknown as CanvasRenderingContext2D,
+  );
+}
+
+function jsonResponse(body: unknown): Response {
+  return {
+    ok: true,
+    status: 200,
+    json: async () => body,
+  } as Response;
+}
+
+function failedResponse(status: number): Response {
+  return {
+    ok: false,
+    status,
+    json: async () => null,
+    arrayBuffer: async () => new ArrayBuffer(0),
+  } as Response;
+}
+
+function successfulBinaryResponse(buffer: ArrayBuffer): Response {
+  return {
+    ok: true,
+    status: 200,
+    arrayBuffer: async () => buffer,
+  } as Response;
+}
+
+interface EngineAccess {
+  initialized: boolean;
+  renderer: FakeRenderer | null;
+  camera: THREE.PerspectiveCamera | null;
+  universeScene: FakeUniverseScene | null;
+  cameraController: FakeCameraController | null;
+  objectRegistry: FakeRegistry | null;
+  labelManager: FakeLabelManager | null;
+  starCatalogRegistry: FakeStarCatalogRegistry | null;
+  selectionManager: FakeSelectionManager | null;
+  renderLoop: FakeRenderLoop | null;
+  container: HTMLElement | null;
+  objects: SpaceObject[];
+  targetId: string | null;
+  selectedId: string | null;
+  activeSolarEclipse: EarthEclipseEvent | null;
+  solarEclipsePathVisible: boolean;
+  solarObserverActive: boolean;
+  solarObserverMoonScale: number;
+  simulationAccumulator: number;
+  timeEventAccumulator: number;
+  statsAccumulator: number;
+  statsFrames: number;
+  lastEmittedLodLevel: number;
+  lastSolarEclipsePhase: string | null;
+  renderFrame(deltaSeconds: number): void;
+  updateDebugStats(deltaSeconds: number): void;
+  followCurrentTarget(): void;
+  handlePick(objectId: string | null, focusRequested: boolean): void;
+  handleNavigationIntent(objectId: string | null): void;
+  handleSemanticZoomIntent(objectId: string | null, deltaY: number): void;
+  releaseNavigationTarget(): void;
+  rebuildObjectRegistry(): void;
+  getDefinition(objectId: string): SpaceObject | undefined;
+  getWorldPosition(objectId: string, target?: THREE.Vector3): THREE.Vector3 | null;
+  emitSolarEclipseState(appearance: SolarEclipseAppearance, force: boolean): void;
+}
+
+interface Runtime {
+  engine: UniverseEngine;
+  access: EngineAccess;
+  renderer: FakeRenderer;
+  camera: THREE.PerspectiveCamera;
+  scene: FakeUniverseScene;
+  controller: FakeCameraController;
+  registry: FakeRegistry;
+  labels: FakeLabelManager;
+  catalog: FakeStarCatalogRegistry;
+  selection: FakeSelectionManager;
+  loop: FakeRenderLoop;
+  definitions: Map<string, SpaceObject>;
+  positions: Map<string, THREE.Vector3>;
+}
+
+interface RuntimeInternals {
+  readonly timeController: TimeController;
+  readonly earthRotationPlayback: EarthRotationPlayback;
+  readonly floatingOriginManager: FloatingOriginManager;
+  readonly lodManager: LodManager;
+}
+
+type FakeRenderer = InstanceType<typeof rendererHarness.FakeWebGLRenderer>;
+
+interface FakeUniverseScene {
+  readonly scene: THREE.Scene;
+  readonly spaceRoot: THREE.Group;
+  readonly setQuality: ReturnType<typeof vi.fn>;
+  readonly selectCatalogObject: ReturnType<typeof vi.fn>;
+  readonly getCatalogWorldPosition: ReturnType<typeof vi.fn>;
+  readonly getCatalogPickables: ReturnType<typeof vi.fn>;
+  readonly updateLod: ReturnType<typeof vi.fn>;
+  readonly dispose: ReturnType<typeof vi.fn>;
+  visibleCatalogStarCount: number;
+}
+
+interface FakeCameraController {
+  readonly controls: { target: THREE.Vector3 };
+  readonly focusOn: ReturnType<typeof vi.fn>;
+  readonly focusOnFromDirection: ReturnType<typeof vi.fn>;
+  readonly observeFrom: ReturnType<typeof vi.fn>;
+  readonly follow: ReturnType<typeof vi.fn>;
+  readonly zoomBy: ReturnType<typeof vi.fn>;
+  readonly zoomSemantically: ReturnType<typeof vi.fn>;
+  readonly update: ReturnType<typeof vi.fn>;
+  readonly adoptZoomTarget: ReturnType<typeof vi.fn>;
+  readonly releaseTarget: ReturnType<typeof vi.fn>;
+  readonly dispose: ReturnType<typeof vi.fn>;
+  distanceToTarget: number;
+  isTransitioning: boolean;
+  semanticZoomActive: boolean;
+}
+
+interface FakeRegistry {
+  readonly has: ReturnType<typeof vi.fn>;
+  readonly getDefinition: ReturnType<typeof vi.fn>;
+  readonly getWorldPosition: ReturnType<typeof vi.fn>;
+  readonly getOrbitRadius: ReturnType<typeof vi.fn>;
+  readonly setNavigationTarget: ReturnType<typeof vi.fn>;
+  readonly select: ReturnType<typeof vi.fn>;
+  readonly setSolarObserverActive: ReturnType<typeof vi.fn>;
+  readonly clearSolarEclipsePath: ReturnType<typeof vi.fn>;
+  readonly showSolarEclipsePath: ReturnType<typeof vi.fn>;
+  readonly updatePositions: ReturnType<typeof vi.fn>;
+  readonly updateBodyRotations: ReturnType<typeof vi.fn>;
+  readonly synchronizeEarthRotation: ReturnType<typeof vi.fn>;
+  readonly setDisplayOptions: ReturnType<typeof vi.fn>;
+  readonly updateLod: ReturnType<typeof vi.fn>;
+  readonly dispose: ReturnType<typeof vi.fn>;
+  visibleObjectCount: number;
+}
+
+interface FakeLabelManager {
+  readonly resize: ReturnType<typeof vi.fn>;
+  readonly render: ReturnType<typeof vi.fn>;
+  readonly clear: ReturnType<typeof vi.fn>;
+  readonly setEnabled: ReturnType<typeof vi.fn>;
+  readonly setQuality: ReturnType<typeof vi.fn>;
+  readonly setTransientObject: ReturnType<typeof vi.fn>;
+  readonly dispose: ReturnType<typeof vi.fn>;
+}
+
+interface FakeStarCatalogRegistry {
+  readonly has: ReturnType<typeof vi.fn>;
+  readonly getDefinition: ReturnType<typeof vi.fn>;
+}
+
+interface FakeSelectionManager {
+  readonly clearNavigationLock: ReturnType<typeof vi.fn>;
+  readonly dispose: ReturnType<typeof vi.fn>;
+}
+
+interface FakeRenderLoop {
+  readonly start: ReturnType<typeof vi.fn>;
+  readonly stop: ReturnType<typeof vi.fn>;
+}
+
+function createRuntime(): Runtime {
+  const definitions = new Map<string, SpaceObject>([
+    ['sun', object('sun', 'Soleil', 'star')],
+    ['earth', object('earth', 'Terre', 'planet', 'sun')],
+    ['moon', object('moon', 'Lune', 'moon', 'earth')],
+    ['mars', object('mars', 'Mars', 'planet', 'sun')],
+  ]);
+  const positions = new Map<string, THREE.Vector3>([
+    ['sun', new THREE.Vector3(100, 0, 0)],
+    ['earth', new THREE.Vector3(0, 0, 0)],
+    ['moon', new THREE.Vector3(10, 0, 0)],
+    ['mars', new THREE.Vector3(20, 0, 0)],
+  ]);
+  const registry: FakeRegistry = {
+    has: vi.fn((id: string) => definitions.has(id)),
+    getDefinition: vi.fn((id: string) => definitions.get(id)),
+    getWorldPosition: vi.fn((id: string, target = new THREE.Vector3()) => {
+      const position = positions.get(id);
+
+      return position ? target.copy(position) : null;
+    }),
+    getOrbitRadius: vi.fn(() => 18),
+    setNavigationTarget: vi.fn(),
+    select: vi.fn(),
+    setSolarObserverActive: vi.fn(),
+    clearSolarEclipsePath: vi.fn(),
+    showSolarEclipsePath: vi.fn(),
+    updatePositions: vi.fn(() => appearance('partial')),
+    updateBodyRotations: vi.fn(),
+    synchronizeEarthRotation: vi.fn(() => true),
+    setDisplayOptions: vi.fn(),
+    updateLod: vi.fn(),
+    dispose: vi.fn(),
+    visibleObjectCount: 4,
+  };
+  const controller: FakeCameraController = {
+    controls: { target: new THREE.Vector3() },
+    focusOn: vi.fn(),
+    focusOnFromDirection: vi.fn(),
+    observeFrom: vi.fn(),
+    follow: vi.fn(),
+    zoomBy: vi.fn(),
+    zoomSemantically: vi.fn(),
+    update: vi.fn(),
+    adoptZoomTarget: vi.fn(),
+    releaseTarget: vi.fn(),
+    dispose: vi.fn(),
+    distanceToTarget: 24,
+    isTransitioning: false,
+    semanticZoomActive: false,
+  };
+  const scene: FakeUniverseScene = {
+    scene: new THREE.Scene(),
+    spaceRoot: new THREE.Group(),
+    setQuality: vi.fn(),
+    selectCatalogObject: vi.fn(),
+    getCatalogWorldPosition: vi.fn(() => null),
+    getCatalogPickables: vi.fn(() => []),
+    updateLod: vi.fn(),
+    dispose: vi.fn(),
+    visibleCatalogStarCount: 2,
+  };
+  const labels: FakeLabelManager = {
+    resize: vi.fn(),
+    render: vi.fn(),
+    clear: vi.fn(),
+    setEnabled: vi.fn(),
+    setQuality: vi.fn(),
+    setTransientObject: vi.fn(),
+    dispose: vi.fn(),
+  };
+  const catalog: FakeStarCatalogRegistry = {
+    has: vi.fn(() => false),
+    getDefinition: vi.fn(() => undefined),
+  };
+  const selection: FakeSelectionManager = {
+    clearNavigationLock: vi.fn(),
+    dispose: vi.fn(),
+  };
+  const loop: FakeRenderLoop = {
+    start: vi.fn(),
+    stop: vi.fn(),
+  };
+  const renderer = new rendererHarness.FakeWebGLRenderer({});
+  const camera = new THREE.PerspectiveCamera(48, 1, 0.025, 100_000);
+  const container = sizedContainer(800, 450);
+  const engine = createTestEngine();
+  const access = engine as unknown as EngineAccess;
+
+  Object.defineProperty(renderer.domElement, 'clientHeight', {
+    configurable: true,
+    value: 450,
+  });
+  Object.assign(access, {
+    initialized: true,
+    renderer,
+    camera,
+    universeScene: scene,
+    cameraController: controller,
+    objectRegistry: registry,
+    labelManager: labels,
+    starCatalogRegistry: catalog,
+    selectionManager: selection,
+    renderLoop: loop,
+    container,
+    objects: [...definitions.values()],
+  });
+
+  return {
+    engine,
+    access,
+    renderer,
+    camera,
+    scene,
+    controller,
+    registry,
+    labels,
+    catalog,
+    selection,
+    loop,
+    definitions,
+    positions,
+  };
+}
+
+function runtimeInternals(runtime: Runtime): RuntimeInternals {
+  return runtime.access as unknown as RuntimeInternals;
+}
+
+function object(
+  id: string,
+  name: string,
+  type: SpaceObject['type'],
+  parentId?: string,
+): SpaceObject {
+  return {
+    id,
+    name,
+    type,
+    ...(parentId ? { parentId } : {}),
+    referenceFrame: 'solar-system',
+    scientificConfidence: 'calculated',
+    visual: {
+      visualRadius: id === 'sun' ? 5 : id === 'earth' ? 2 : 1,
+      scaleMode: 'adaptive',
+    },
+    positionProvider: {
+      type: 'static',
+      position: [0, 0, 0],
+      unit: 'astronomical-unit',
+    },
+  };
+}
+
+function appearance(phase: SolarEclipseAppearance['phase']): SolarEclipseAppearance {
+  return {
+    phase,
+    sunPositionInEarthRadii: { x: 10, y: 0, z: 0 },
+    moonPositionInEarthRadii: { x: 2, y: 0, z: 0 },
+    shadowDirection: { x: 1, y: 0, z: 0 },
+    centralLatitude: phase === 'none' ? null : 43,
+    centralLongitude: phase === 'none' ? null : -1,
+  };
+}
+
+function solarEvent(overrides: Partial<EarthEclipseEvent> = {}): EarthEclipseEvent {
+  return {
+    id: 'solar-total',
+    family: 'solar',
+    kind: 'total',
+    scope: 'global',
+    peak: {
+      julianDay: dateToJulianDay(new Date('2026-08-12T17:45:53.800Z')),
+    },
+    obscuration: 1,
+    durationMinutes: 4,
+    latitude: 65.2,
+    longitude: -25.2,
+    observerName: null,
+    observerTimeZone: null,
+    sunAltitudeDegrees: null,
+    ...overrides,
+  };
+}
+
+function starCatalogBuffer(): ArrayBuffer {
+  const encoder = new TextEncoder();
+  const name = encoder.encode('Sirius');
+  const aliases = encoder.encode('HIP 32349\u001fα CMa');
+  const spectralType = encoder.encode('A0m');
+  const stringTableOffset = STAR_CATALOG_HEADER_BYTES + STAR_CATALOG_RECORD_BYTES;
+  const stringTableBytes = 1 + name.length + 1 + aliases.length + 1 + spectralType.length + 1;
+  const buffer = new ArrayBuffer(stringTableOffset + stringTableBytes);
+  const view = new DataView(buffer);
+  const strings = new Uint8Array(buffer, stringTableOffset);
+  const nameOffset = 1;
+  const aliasesOffset = nameOffset + name.length + 1;
+  const spectralTypeOffset = aliasesOffset + aliases.length + 1;
+
+  for (let index = 0; index < STAR_CATALOG_MAGIC.length; index += 1) {
+    view.setUint8(index, STAR_CATALOG_MAGIC.charCodeAt(index));
+  }
+  view.setUint16(4, STAR_CATALOG_VERSION, true);
+  view.setUint16(6, STAR_CATALOG_HEADER_BYTES, true);
+  view.setUint16(8, STAR_CATALOG_RECORD_BYTES, true);
+  view.setUint32(12, 1, true);
+  view.setFloat64(16, 2_451_545, true);
+  view.setUint32(24, 1, true);
+  view.setUint32(28, stringTableOffset, true);
+  view.setUint32(32, stringTableBytes, true);
+  view.setFloat32(STAR_CATALOG_HEADER_BYTES, -1.612, true);
+  view.setFloat32(STAR_CATALOG_HEADER_BYTES + 4, 2.628, true);
+  view.setFloat32(STAR_CATALOG_HEADER_BYTES + 8, -2.551, true);
+  view.setFloat32(STAR_CATALOG_HEADER_BYTES + 12, -1.44, true);
+  view.setFloat32(STAR_CATALOG_HEADER_BYTES + 16, 0.009, true);
+  view.setUint32(STAR_CATALOG_HEADER_BYTES + 20, 3_229, true);
+  view.setUint32(STAR_CATALOG_HEADER_BYTES + 24, nameOffset, true);
+  view.setUint32(STAR_CATALOG_HEADER_BYTES + 28, aliasesOffset, true);
+  view.setUint32(STAR_CATALOG_HEADER_BYTES + 32, spectralTypeOffset, true);
+  strings.set(name, nameOffset);
+  strings.set(aliases, aliasesOffset);
+  strings.set(spectralType, spectralTypeOffset);
+
+  return buffer;
+}

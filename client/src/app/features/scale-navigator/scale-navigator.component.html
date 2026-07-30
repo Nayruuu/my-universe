@@ -1,0 +1,34 @@
+<div class="scale-switcher" (keydown.escape)="menuOpen.set(false)">
+  <button
+    type="button"
+    class="scale-indicator"
+    aria-haspopup="true"
+    aria-label="Changer d’échelle"
+    [attr.aria-expanded]="menuOpen()"
+    (click)="toggleMenu()"
+  >
+    <span class="scale-indicator__dot" aria-hidden="true"></span>
+    <span aria-live="polite">{{ scaleLabel() }}</span>
+    <span class="scale-indicator__chevron" aria-hidden="true"></span>
+  </button>
+
+  @if (menuOpen()) {
+    <nav class="scale-menu" aria-label="Échelles de navigation">
+      @for (scale of navigationScales; track scale.id) {
+        <button
+          type="button"
+          [class.active]="facade.lodLevel() === scale.lodLevel"
+          [attr.aria-current]="facade.lodLevel() === scale.lodLevel ? 'true' : null"
+          [attr.aria-label]="'Afficher l’échelle ' + scale.label"
+          (click)="viewScale(scale)"
+        >
+          <span class="scale-menu__marker" aria-hidden="true"></span>
+          <span>
+            <strong>{{ scale.label }}</strong>
+            <small>{{ scale.description }}</small>
+          </span>
+        </button>
+      }
+    </nav>
+  }
+</div>

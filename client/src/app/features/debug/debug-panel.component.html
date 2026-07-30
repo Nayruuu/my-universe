@@ -1,0 +1,67 @@
+@if (facade.debugEnabled() && facade.debugStats(); as stats) {
+  <aside class="debug-panel" aria-label="Statistiques de débogage">
+    <header>
+      <span>DEBUG</span><strong>{{ stats.fps }} FPS</strong>
+    </header>
+    <dl>
+      <div>
+        <dt>Draw calls</dt>
+        <dd>{{ stats.drawCalls }}</dd>
+      </div>
+      <div>
+        <dt>Triangles</dt>
+        <dd>{{ stats.triangles }}</dd>
+      </div>
+      <div>
+        <dt>Géométries</dt>
+        <dd>{{ stats.geometries }}</dd>
+      </div>
+      <div>
+        <dt>Textures</dt>
+        <dd>{{ stats.textures }}</dd>
+      </div>
+      <div>
+        <dt>Objets visibles</dt>
+        <dd>{{ stats.visibleObjects }}</dd>
+      </div>
+      <div>
+        <dt>Étoiles HYG</dt>
+        <dd>{{ stats.catalogStars }}</dd>
+      </div>
+      <div>
+        <dt>Référentiel LOD</dt>
+        <dd>{{ stats.lodLevel }}</dd>
+      </div>
+      <div>
+        <dt>Distance caméra</dt>
+        <dd>{{ format(stats.cameraDistance) }}</dd>
+      </div>
+      <div>
+        <dt>Cible</dt>
+        <dd>{{ stats.targetId ?? 'libre' }}</dd>
+      </div>
+      <div>
+        <dt>Qualité</dt>
+        <dd>{{ stats.quality }}</dd>
+      </div>
+      <div class="wide">
+        <dt>Caméra</dt>
+        <dd>
+          {{ format(stats.cameraPosition.x) }}, {{ format(stats.cameraPosition.y) }},
+          {{ format(stats.cameraPosition.z) }}
+        </dd>
+      </div>
+      <div class="wide">
+        <dt>Floating origin</dt>
+        <dd>
+          {{ format(stats.floatingOrigin.x) }}, {{ format(stats.floatingOrigin.y) }},
+          {{ format(stats.floatingOrigin.z) }}
+        </dd>
+      </div>
+      <div class="wide">
+        <dt>Jour julien</dt>
+        <dd>{{ stats.julianDay.toFixed(4) }}</dd>
+      </div>
+    </dl>
+  </aside>
+}

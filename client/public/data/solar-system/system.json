@@ -1,0 +1,380 @@
+{
+  "version": "1.1.0",
+  "objects": [
+    {
+      "id": "milky-way",
+      "name": "Voie lactée",
+      "aliases": ["Milky Way", "Galaxie"],
+      "type": "galaxy",
+      "parentId": "local-group",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "illustrative",
+      "description": "Notre galaxie, représentée ici par un disque de particules volontairement simplifié. Sa structure sert de transition visuelle entre les échelles stellaire et galactique.",
+      "physical": {
+        "radiusKm": 500000000000000000
+      },
+      "visual": {
+        "color": "#93a8cb",
+        "secondaryColor": "#cfb98f",
+        "visualRadius": 360,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.34,
+        "galaxyRotationDegrees": 18
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [0, 0, 0],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012, AJ 144:4 · représentation procédurale éducative",
+        "diameterLy": 100000,
+        "morphology": "Galaxie spirale barrée",
+        "visualAdaptation": "Disque détaillé à l’échelle galactique, imposteur au Groupe local"
+      }
+    },
+    {
+      "id": "sun",
+      "name": "Soleil",
+      "aliases": ["Sol", "Sun"],
+      "type": "star",
+      "parentId": "milky-way",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "observed",
+      "description": "Étoile de type G2V au centre du Système solaire. Les tailles visuelles sont exagérées pour préserver la lisibilité.",
+      "physical": {
+        "radiusKm": 696340,
+        "massKg": 1.98847e30,
+        "temperatureK": 5772,
+        "luminositySolar": 1,
+        "spectralType": "G2V"
+      },
+      "visual": {
+        "color": "#fff0c2",
+        "secondaryColor": "#f6a84b",
+        "emissiveColor": "#ffb347",
+        "emissiveIntensity": 1.6,
+        "visualRadius": 2.35,
+        "scaleMode": "exaggerated",
+        "rotationPeriodHours": 609.12
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [0, 0, 0],
+        "unit": "astronomical-unit"
+      },
+      "metadata": {
+        "source": "NASA Planetary Fact Sheet",
+        "distanceFromEarthAu": 1
+      }
+    },
+    {
+      "id": "mercury",
+      "name": "Mercure",
+      "aliases": ["Mercury"],
+      "type": "planet",
+      "parentId": "sun",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "calculated",
+      "description": "La planète la plus proche du Soleil. Sa position est calculée localement à partir d’une éphéméride analytique.",
+      "physical": {
+        "radiusKm": 2439.7,
+        "massKg": 3.3011e23,
+        "temperatureK": 440
+      },
+      "visual": {
+        "color": "#aaa39a",
+        "secondaryColor": "#665f58",
+        "visualRadius": 0.34,
+        "scaleMode": "exaggerated",
+        "rotationPeriodHours": 1407.6
+      },
+      "positionProvider": {
+        "type": "ephemeris",
+        "body": "mercury",
+        "origin": "sun",
+        "orbitalPeriodDays": 87.969,
+        "orbitEpochJulianDay": 2461249
+      },
+      "metadata": {
+        "source": "Astronomy Engine — modèle VSOP87 vérifié contre JPL Horizons",
+        "semiMajorAxisAu": 0.387
+      }
+    },
+    {
+      "id": "venus",
+      "name": "Vénus",
+      "aliases": ["Venus", "Étoile du berger"],
+      "type": "planet",
+      "parentId": "sun",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "calculated",
+      "description": "Monde rocheux enveloppé d’une atmosphère dense. Sa position est calculée localement à partir d’une éphéméride analytique.",
+      "physical": {
+        "radiusKm": 6051.8,
+        "massKg": 4.8675e24,
+        "temperatureK": 737
+      },
+      "visual": {
+        "color": "#d7bc86",
+        "secondaryColor": "#8f7045",
+        "atmosphereColor": "#d9a85f",
+        "visualRadius": 0.56,
+        "scaleMode": "exaggerated",
+        "rotationPeriodHours": -5832.5
+      },
+      "positionProvider": {
+        "type": "ephemeris",
+        "body": "venus",
+        "origin": "sun",
+        "orbitalPeriodDays": 224.701,
+        "orbitEpochJulianDay": 2461249
+      },
+      "metadata": {
+        "source": "Astronomy Engine — modèle VSOP87 vérifié contre JPL Horizons",
+        "semiMajorAxisAu": 0.723
+      }
+    },
+    {
+      "id": "earth",
+      "name": "Terre",
+      "aliases": ["Earth", "Gaïa", "Monde"],
+      "type": "planet",
+      "parentId": "sun",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "calculated",
+      "description": "Troisième planète du Système solaire. Sa position et son orientation sont calculées localement ; sa surface utilise la mosaïque satellitaire NASA Blue Marble sans couverture nuageuse.",
+      "physical": {
+        "radiusKm": 6371,
+        "massKg": 5.97237e24,
+        "temperatureK": 288
+      },
+      "visual": {
+        "color": "#3076ac",
+        "secondaryColor": "#77a86b",
+        "atmosphereColor": "#5ca9e6",
+        "visualRadius": 0.62,
+        "scaleMode": "exaggerated",
+        "rotationPeriodHours": 23.934
+      },
+      "positionProvider": {
+        "type": "ephemeris",
+        "body": "earth",
+        "origin": "sun",
+        "orbitalPeriodDays": 365.256,
+        "orbitEpochJulianDay": 2461249
+      },
+      "metadata": {
+        "source": "Astronomy Engine — modèle VSOP87 vérifié contre JPL Horizons",
+        "textureSource": "NASA Visible Earth — Blue Marble, MODIS",
+        "textureReference": "Composite satellitaire sans nuages publié en 2002",
+        "semiMajorAxisAu": 1
+      }
+    },
+    {
+      "id": "moon",
+      "name": "Lune",
+      "aliases": ["Moon", "Luna"],
+      "type": "moon",
+      "parentId": "earth",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "calculated",
+      "description": "Satellite naturel de la Terre. Sa direction et sa phase orbitale proviennent d’une théorie lunaire analytique ; seule sa distance visuelle est amplifiée.",
+      "physical": {
+        "radiusKm": 1737.4,
+        "massKg": 7.342e22,
+        "temperatureK": 220
+      },
+      "visual": {
+        "color": "#b9b7b1",
+        "secondaryColor": "#6d6a65",
+        "visualRadius": 0.2,
+        "scaleMode": "exaggerated",
+        "rotationPeriodHours": 655.7
+      },
+      "positionProvider": {
+        "type": "ephemeris",
+        "body": "moon",
+        "origin": "earth",
+        "orbitalPeriodDays": 27.321661,
+        "orbitEpochJulianDay": 2461249,
+        "distanceScale": 31.2175
+      },
+      "metadata": {
+        "source": "Astronomy Engine — théorie lunaire de Brown",
+        "physicalMeanDistanceKm": 384400,
+        "visualDistanceExaggerated": true
+      }
+    },
+    {
+      "id": "mars",
+      "name": "Mars",
+      "aliases": ["Planète rouge"],
+      "type": "planet",
+      "parentId": "sun",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "calculated",
+      "description": "Planète rocheuse froide, reconnaissable à ses oxydes de fer. Sa position est calculée localement à partir d’une éphéméride analytique.",
+      "physical": {
+        "radiusKm": 3389.5,
+        "massKg": 6.4171e23,
+        "temperatureK": 210
+      },
+      "visual": {
+        "color": "#b75d3f",
+        "secondaryColor": "#603026",
+        "atmosphereColor": "#b76045",
+        "visualRadius": 0.46,
+        "scaleMode": "exaggerated",
+        "rotationPeriodHours": 24.623
+      },
+      "positionProvider": {
+        "type": "ephemeris",
+        "body": "mars",
+        "origin": "sun",
+        "orbitalPeriodDays": 686.98,
+        "orbitEpochJulianDay": 2461249
+      },
+      "metadata": {
+        "source": "Astronomy Engine — modèle VSOP87 vérifié contre JPL Horizons",
+        "semiMajorAxisAu": 1.524
+      }
+    },
+    {
+      "id": "jupiter",
+      "name": "Jupiter",
+      "aliases": ["Jove"],
+      "type": "planet",
+      "parentId": "sun",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "calculated",
+      "description": "La plus grande planète du Système solaire, géante gazeuse marquée par des bandes nuageuses.",
+      "physical": {
+        "radiusKm": 69911,
+        "massKg": 1.8982e27,
+        "temperatureK": 165
+      },
+      "visual": {
+        "color": "#d2b28e",
+        "secondaryColor": "#8d6247",
+        "visualRadius": 1.25,
+        "scaleMode": "exaggerated",
+        "rotationPeriodHours": 9.925
+      },
+      "positionProvider": {
+        "type": "ephemeris",
+        "body": "jupiter",
+        "origin": "sun",
+        "orbitalPeriodDays": 4332.59,
+        "orbitEpochJulianDay": 2461249
+      },
+      "metadata": {
+        "source": "Astronomy Engine — modèle VSOP87 vérifié contre JPL Horizons",
+        "semiMajorAxisAu": 5.204
+      }
+    },
+    {
+      "id": "saturn",
+      "name": "Saturne",
+      "aliases": ["Saturn"],
+      "type": "planet",
+      "parentId": "sun",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "calculated",
+      "description": "Géante gazeuse entourée d’un système d’anneaux rendu ici de manière illustrative.",
+      "physical": {
+        "radiusKm": 58232,
+        "massKg": 5.6834e26,
+        "temperatureK": 134
+      },
+      "visual": {
+        "color": "#d7c193",
+        "secondaryColor": "#9b835f",
+        "visualRadius": 1.08,
+        "scaleMode": "exaggerated",
+        "hasRings": true,
+        "rotationPeriodHours": 10.7
+      },
+      "positionProvider": {
+        "type": "ephemeris",
+        "body": "saturn",
+        "origin": "sun",
+        "orbitalPeriodDays": 10759.22,
+        "orbitEpochJulianDay": 2461249
+      },
+      "metadata": {
+        "source": "Astronomy Engine — modèle VSOP87 vérifié contre JPL Horizons",
+        "semiMajorAxisAu": 9.583
+      }
+    },
+    {
+      "id": "uranus",
+      "name": "Uranus",
+      "aliases": [],
+      "type": "planet",
+      "parentId": "sun",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "calculated",
+      "description": "Géante de glace dont l’axe de rotation est fortement incliné.",
+      "physical": {
+        "radiusKm": 25362,
+        "massKg": 8.681e25,
+        "temperatureK": 76
+      },
+      "visual": {
+        "color": "#92c9cf",
+        "secondaryColor": "#5e9ca8",
+        "visualRadius": 0.86,
+        "scaleMode": "exaggerated",
+        "hasRings": true,
+        "rotationPeriodHours": -17.24
+      },
+      "positionProvider": {
+        "type": "ephemeris",
+        "body": "uranus",
+        "origin": "sun",
+        "orbitalPeriodDays": 30688.5,
+        "orbitEpochJulianDay": 2461249
+      },
+      "metadata": {
+        "source": "Astronomy Engine — modèle VSOP87 vérifié contre JPL Horizons",
+        "semiMajorAxisAu": 19.218
+      }
+    },
+    {
+      "id": "neptune",
+      "name": "Neptune",
+      "aliases": [],
+      "type": "planet",
+      "parentId": "sun",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "calculated",
+      "description": "La planète majeure la plus éloignée du Soleil, une géante de glace aux vents rapides.",
+      "physical": {
+        "radiusKm": 24622,
+        "massKg": 1.02413e26,
+        "temperatureK": 72
+      },
+      "visual": {
+        "color": "#315aa8",
+        "secondaryColor": "#17366f",
+        "atmosphereColor": "#356bc4",
+        "visualRadius": 0.84,
+        "scaleMode": "exaggerated",
+        "rotationPeriodHours": 16.11
+      },
+      "positionProvider": {
+        "type": "ephemeris",
+        "body": "neptune",
+        "origin": "sun",
+        "orbitalPeriodDays": 60182,
+        "orbitEpochJulianDay": 2461249
+      },
+      "metadata": {
+        "source": "Astronomy Engine — modèle VSOP87 vérifié contre JPL Horizons",
+        "semiMajorAxisAu": 30.11
+      }
+    }
+  ]
+}

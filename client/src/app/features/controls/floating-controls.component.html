@@ -1,0 +1,181 @@
+<nav
+  class="controls"
+  [class.controls--details]="facade.selectedId()"
+  aria-label="Contrôles de la carte"
+>
+  <div class="control-group">
+    <button type="button" title="Zoomer" aria-label="Zoomer" (click)="facade.zoomIn()">
+      <span class="text-icon">+</span>
+    </button>
+    <span class="separator"></span>
+    <button type="button" title="Dézoomer" aria-label="Dézoomer" (click)="facade.zoomOut()">
+      <span class="text-icon">−</span>
+    </button>
+  </div>
+
+  <div class="control-group">
+    <button
+      type="button"
+      title="Retour à la Terre"
+      aria-label="Retour à la Terre"
+      (click)="focus('earth')"
+    >
+      <span class="planet-icon planet-icon--earth" aria-hidden="true"></span>
+    </button>
+    <span class="separator"></span>
+    <button
+      type="button"
+      title="Retour au Soleil"
+      aria-label="Retour au Soleil"
+      (click)="focus('sun')"
+    >
+      <span class="sun-icon" aria-hidden="true"></span>
+    </button>
+  </div>
+
+  <div class="control-group">
+    <button
+      type="button"
+      title="Afficher ou masquer les orbites"
+      aria-label="Afficher ou masquer les orbites"
+      [class.active]="facade.displayOptions().showOrbits"
+      (click)="facade.toggleOrbits()"
+    >
+      <span class="orbit-icon" aria-hidden="true"></span>
+    </button>
+    <span class="separator"></span>
+    <button
+      type="button"
+      title="Afficher ou masquer les noms"
+      aria-label="Afficher ou masquer les noms"
+      [class.active]="facade.displayOptions().showLabels"
+      (click)="facade.toggleLabels()"
+    >
+      <span class="label-icon" aria-hidden="true">Aa</span>
+    </button>
+  </div>
+
+  <button
+    type="button"
+    class="standalone-button"
+    title="Copier le lien de cette vue"
+    aria-label="Copier le lien de cette vue"
+    (click)="facade.copyShareUrl()"
+  >
+    <span class="share-icon" aria-hidden="true">↗</span>
+  </button>
+</nav>
+
+@if (facade.settingsOpen()) {
+  <section class="popover settings-popover" aria-label="Paramètres visuels">
+    <header>
+      <div>
+        <span class="popover__eyebrow">Rendu</span>
+        <h2>Paramètres visuels</h2>
+      </div>
+      <button type="button" aria-label="Fermer les paramètres" (click)="facade.toggleSettings()">
+        ×
+      </button>
+    </header>
+
+    <div class="setting-row setting-row--stacked">
+      <div>
+        <strong>Qualité graphique</strong>
+        <small>Adapte les particules et la résolution.</small>
+      </div>
+      <div class="segmented-control">
+        @for (quality of ['low', 'medium', 'high']; track quality) {
+          <button
+            type="button"
+            [class.active]="facade.displayOptions().quality === quality"
+            (click)="setQuality(quality)"
+          >
+            {{ quality === 'low' ? 'Faible' : quality === 'medium' ? 'Moyen' : 'Élevé' }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <label class="setting-row">
+      <span>
+        <strong>Mode temporel</strong>
+        <small>La vue observable reste expérimentale.</small>
+      </span>
+      <select [value]="facade.displayOptions().temporalMode" (change)="changeMode($event)">
+        <option value="state">État simultané</option>
+        <option value="observable">Observable</option>
+      </select>
+    </label>
+
+    <label class="toggle-row">
+      <span>
+        <strong>Orbites</strong>
+        <small>Trajectoires calculées et illustratives</small>
+      </span>
+      <input
+        type="checkbox"
+        [checked]="facade.displayOptions().showOrbits"
+        (change)="facade.toggleOrbits()"
+      />
+    </label>
+
+    <label class="toggle-row">
+      <span>
+        <strong>Noms astronomiques</strong>
+        <small>Affichés selon le niveau de zoom</small>
+      </span>
+      <input
+        type="checkbox"
+        [checked]="facade.displayOptions().showLabels"
+        (change)="facade.toggleLabels()"
+      />
+    </label>
+  </section>
+}
+
+@if (facade.helpOpen()) {
+  <section class="popover help-popover" aria-label="Aide à la navigation">
+    <header>
+      <div>
+        <span class="popover__eyebrow">Navigation</span>
+        <h2>Explorer Universe Map</h2>
+      </div>
+      <button type="button" aria-label="Fermer l’aide" (click)="facade.toggleHelp()">×</button>
+    </header>
+
+    <div class="gesture-list">
+      <div>
+        <span class="gesture">Glisser</span>
+        <p>Tourner autour de la cible</p>
+      </div>
+      <div>
+        <span class="gesture">Clic droit</span>
+        <p>Déplacer latéralement</p>
+      </div>
+      <div>
+        <span class="gesture">Nom</span>
+        <p>Cliquer pour sélectionner et centrer</p>
+      </div>
+      <div>
+        <span class="gesture">Molette</span>
+        <p>Zoomer vers l’astre pointé</p>
+      </div>
+      <div>
+        <span class="gesture">Double-clic</span>
+        <p>Centrer un objet</p>
+      </div>
+      <div>
+        <span class="gesture">Espace</span>
+        <p>Lecture ou pause du temps</p>
+      </div>
+      <div>
+        <span class="gesture">F</span>
+        <p>Centrer la sélection</p>
+      </div>
+    </div>
+
+    <p class="touch-help">
+      Sur écran tactile : un doigt pour tourner, deux doigts pour zoomer ou translater.
+    </p>
+  </section>
+}

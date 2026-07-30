@@ -1,0 +1,412 @@
+{
+  "version": "1.0.0",
+  "objects": [
+    {
+      "id": "local-group",
+      "name": "Groupe local",
+      "aliases": ["Local Group", "Amas local"],
+      "type": "region",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "illustrative",
+      "description": "Ensemble gravitationnel qui réunit la Voie lactée, Andromède, la galaxie du Triangle et plusieurs dizaines de galaxies naines. Sa limite et son centre sont représentés de manière simplifiée.",
+      "visual": {
+        "color": "#9bb9d8",
+        "visualRadius": 1,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [0, 0, 0],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012, AJ 144:4, doi:10.1088/0004-6256/144/1/4",
+        "diameterLy": 6915000,
+        "keywords": "galaxies groupe local local group",
+        "visualAdaptation": "Centre placé sur la Voie lactée pour la navigation"
+      }
+    },
+    {
+      "id": "andromeda",
+      "name": "Andromède",
+      "aliases": ["M31", "Messier 31", "NGC 224", "Andromeda Galaxy"],
+      "type": "galaxy",
+      "parentId": "local-group",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "observed",
+      "description": "La plus grande galaxie du Groupe local et la grande voisine spirale de la Voie lactée. Sa position est issue de coordonnées galactiques J2000 et d’une distance mesurée.",
+      "visual": {
+        "color": "#b7c9e5",
+        "secondaryColor": "#dfc79e",
+        "visualRadius": 520,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.35,
+        "galaxyRotationDegrees": 35
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-377.131, -288.242, 622.718],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012, AJ 144:4 · SIMBAD/CDS",
+        "distanceKpc": 783,
+        "distanceLy": 2553801,
+        "diameterLy": 260000,
+        "galacticLongitudeDegrees": 121.2,
+        "galacticLatitudeDegrees": -21.6,
+        "morphology": "Galaxie spirale SA(s)b",
+        "keywords": "M31 Messier NGC 224 groupe local",
+        "visualAdaptation": "Taille, inclinaison et luminosité adaptées au rendu"
+      }
+    },
+    {
+      "id": "m32",
+      "name": "M32",
+      "aliases": ["Messier 32", "NGC 221"],
+      "type": "galaxy",
+      "parentId": "andromeda",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "observed",
+      "description": "Galaxie elliptique compacte, satellite proche d’Andromède.",
+      "visual": {
+        "color": "#e1d0ad",
+        "visualRadius": 72,
+        "scaleMode": "adaptive",
+        "galaxyShape": "elliptical",
+        "galaxyAxisRatio": 0.72,
+        "galaxyRotationDegrees": 24
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-9.515, -13.317, 15.711],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012, AJ 144:4",
+        "distanceKpc": 805,
+        "distanceLy": 2625556,
+        "morphology": "Elliptique compacte cE",
+        "keywords": "M32 Messier 32 NGC 221 Andromède",
+        "visualAdaptation": "Rayon visuel exagéré pour rester sélectionnable"
+      }
+    },
+    {
+      "id": "ngc-205",
+      "name": "NGC 205",
+      "aliases": ["M110", "Messier 110"],
+      "type": "galaxy",
+      "parentId": "andromeda",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "observed",
+      "description": "Galaxie elliptique naine et satellite lumineux d’Andromède.",
+      "visual": {
+        "color": "#c9c3b9",
+        "visualRadius": 95,
+        "scaleMode": "adaptive",
+        "galaxyShape": "elliptical",
+        "galaxyAxisRatio": 0.58,
+        "galaxyRotationDegrees": 48
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-15.35, -8.396, 38.297],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012, AJ 144:4",
+        "distanceKpc": 824,
+        "distanceLy": 2687525,
+        "morphology": "Elliptique naine dE/dSph",
+        "keywords": "M110 Messier 110 Andromède",
+        "visualAdaptation": "Rayon visuel exagéré pour rester sélectionnable"
+      }
+    },
+    {
+      "id": "ngc-147",
+      "name": "NGC 147",
+      "aliases": ["Caldwell 17"],
+      "type": "galaxy",
+      "parentId": "andromeda",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "observed",
+      "description": "Galaxie sphéroïdale naine du sous-groupe d’Andromède.",
+      "visual": {
+        "color": "#b6b5bd",
+        "visualRadius": 76,
+        "scaleMode": "adaptive",
+        "galaxyShape": "elliptical",
+        "galaxyAxisRatio": 0.68,
+        "galaxyRotationDegrees": 28
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [51.586, 121.27, -54.284],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012, AJ 144:4",
+        "distanceKpc": 676,
+        "distanceLy": 2204815,
+        "morphology": "Elliptique naine dE/dSph",
+        "keywords": "NGC 147 Andromède",
+        "visualAdaptation": "Rayon visuel exagéré pour rester sélectionnable"
+      }
+    },
+    {
+      "id": "ngc-185",
+      "name": "NGC 185",
+      "aliases": ["Caldwell 18"],
+      "type": "galaxy",
+      "parentId": "andromeda",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "observed",
+      "description": "Galaxie elliptique naine du sous-groupe d’Andromède, proche de NGC 147.",
+      "visual": {
+        "color": "#c4bda9",
+        "visualRadius": 82,
+        "scaleMode": "adaptive",
+        "galaxyShape": "elliptical",
+        "galaxyAxisRatio": 0.73,
+        "galaxyRotationDegrees": 42
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [71.264, 133.757, -109.621],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012, AJ 144:4",
+        "distanceKpc": 617,
+        "distanceLy": 2012383,
+        "morphology": "Elliptique naine dE/dSph",
+        "keywords": "NGC 185 Andromède",
+        "visualAdaptation": "Rayon visuel exagéré pour rester sélectionnable"
+      }
+    },
+    {
+      "id": "triangulum",
+      "name": "Galaxie du Triangle",
+      "aliases": ["M33", "Messier 33", "NGC 598", "Triangulum Galaxy"],
+      "type": "galaxy",
+      "parentId": "andromeda",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "observed",
+      "description": "Troisième grande galaxie du Groupe local, une spirale diffuse située dans le sous-groupe d’Andromède.",
+      "visual": {
+        "color": "#9ebee4",
+        "secondaryColor": "#d6c49f",
+        "visualRadius": 220,
+        "scaleMode": "adaptive",
+        "galaxyShape": "spiral",
+        "galaxyAxisRatio": 0.59,
+        "galaxyRotationDegrees": 22
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-99.573, -132.049, -122.129],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012, AJ 144:4 · SIMBAD/CDS",
+        "distanceKpc": 809,
+        "distanceLy": 2638602,
+        "diameterLy": 60000,
+        "morphology": "Galaxie spirale SA(s)cd",
+        "keywords": "M33 Messier 33 NGC 598 Triangle",
+        "visualAdaptation": "Taille, inclinaison et luminosité adaptées au rendu"
+      }
+    },
+    {
+      "id": "ic-10",
+      "name": "IC 10",
+      "aliases": ["UGC 192"],
+      "type": "galaxy",
+      "parentId": "andromeda",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "observed",
+      "description": "Galaxie naine irrégulière à formation stellaire active dans le sous-groupe d’Andromède.",
+      "visual": {
+        "color": "#8eb6c8",
+        "secondaryColor": "#cf9c72",
+        "visualRadius": 88,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.66,
+        "galaxyRotationDegrees": 14
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-7.169, 242.536, 70.579],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012, AJ 144:4",
+        "distanceKpc": 794,
+        "distanceLy": 2589679,
+        "morphology": "Naine irrégulière dIrr",
+        "keywords": "IC 10 UGC 192 Andromède",
+        "visualAdaptation": "Rayon visuel exagéré pour rester sélectionnable"
+      }
+    },
+    {
+      "id": "large-magellanic-cloud",
+      "name": "Grand Nuage de Magellan",
+      "aliases": ["LMC", "Large Magellanic Cloud", "Nubecula Major"],
+      "type": "galaxy",
+      "parentId": "milky-way",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "observed",
+      "description": "Galaxie satellite irrégulière de la Voie lactée, visible à l’œil nu depuis l’hémisphère sud.",
+      "visual": {
+        "color": "#a9c7dc",
+        "secondaryColor": "#d9a87f",
+        "visualRadius": 150,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.85,
+        "galaxyRotationDegrees": 170
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [7.803, -27.702, -42.104],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012, AJ 144:4 · SIMBAD/CDS",
+        "distanceKpc": 51,
+        "distanceLy": 166340,
+        "morphology": "Irrégulière barrée SB(s)m",
+        "keywords": "LMC Nuage Magellan satellite Voie lactée",
+        "visualAdaptation": "Rayon visuel exagéré pour rester lisible"
+      }
+    },
+    {
+      "id": "small-magellanic-cloud",
+      "name": "Petit Nuage de Magellan",
+      "aliases": ["SMC", "Small Magellanic Cloud", "NGC 292", "Nubecula Minor"],
+      "type": "galaxy",
+      "parentId": "milky-way",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "observed",
+      "description": "Galaxie naine irrégulière satellite de la Voie lactée, voisine du Grand Nuage de Magellan.",
+      "visual": {
+        "color": "#9eb3d0",
+        "secondaryColor": "#c39a82",
+        "visualRadius": 112,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.62,
+        "galaxyRotationDegrees": 46
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [24.813, -44.699, -38.502],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012, AJ 144:4",
+        "distanceKpc": 64,
+        "distanceLy": 208740,
+        "morphology": "Naine irrégulière dIrr",
+        "keywords": "SMC Nuage Magellan NGC 292 satellite Voie lactée",
+        "visualAdaptation": "Rayon visuel exagéré pour rester lisible"
+      }
+    },
+    {
+      "id": "ic-1613",
+      "name": "IC 1613",
+      "aliases": ["UGC 668"],
+      "type": "galaxy",
+      "parentId": "local-group",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "observed",
+      "description": "Galaxie naine irrégulière relativement isolée du Groupe local.",
+      "visual": {
+        "color": "#89abc5",
+        "visualRadius": 104,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.78,
+        "galaxyRotationDegrees": 62
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-236.748, -657.766, 285.164],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012, AJ 144:4",
+        "distanceKpc": 755,
+        "distanceLy": 2462478,
+        "morphology": "Naine irrégulière dIrr",
+        "keywords": "IC 1613 UGC 668 groupe local",
+        "visualAdaptation": "Rayon visuel exagéré pour rester sélectionnable"
+      }
+    },
+    {
+      "id": "ngc-6822",
+      "name": "Galaxie de Barnard",
+      "aliases": ["NGC 6822", "IC 4895", "Barnard's Galaxy"],
+      "type": "galaxy",
+      "parentId": "local-group",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "observed",
+      "description": "Galaxie naine irrégulière isolée, l’une des voisines les mieux étudiées de la Voie lactée.",
+      "visual": {
+        "color": "#9cb8c2",
+        "secondaryColor": "#d19a75",
+        "visualRadius": 120,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.88,
+        "galaxyRotationDegrees": 12
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [393.433, -144.883, 186.816],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012, AJ 144:4 · SIMBAD/CDS",
+        "distanceKpc": 459,
+        "distanceLy": 1497056,
+        "morphology": "Naine irrégulière IBm",
+        "keywords": "NGC 6822 IC 4895 Barnard groupe local",
+        "visualAdaptation": "Rayon visuel exagéré pour rester sélectionnable"
+      }
+    },
+    {
+      "id": "wolf-lundmark-melotte",
+      "name": "Wolf–Lundmark–Melotte",
+      "aliases": ["WLM", "DDO 221"],
+      "type": "galaxy",
+      "parentId": "local-group",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "observed",
+      "description": "Galaxie naine irrégulière isolée située près de la périphérie du Groupe local.",
+      "visual": {
+        "color": "#91acc6",
+        "visualRadius": 92,
+        "scaleMode": "adaptive",
+        "galaxyShape": "irregular",
+        "galaxyAxisRatio": 0.54,
+        "galaxyRotationDegrees": 4
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [64.174, -895.04, 255.488],
+        "unit": "kiloparsec"
+      },
+      "metadata": {
+        "source": "McConnachie 2012, AJ 144:4",
+        "distanceKpc": 933,
+        "distanceLy": 3043035,
+        "morphology": "Naine irrégulière dIrr",
+        "keywords": "WLM Wolf Lundmark Melotte DDO 221 groupe local",
+        "visualAdaptation": "Rayon visuel exagéré pour rester sélectionnable"
+      }
+    }
+  ]
+}

@@ -1,0 +1,158 @@
+@if (object(); as selected) {
+  <aside class="details" aria-label="Informations sur l’objet sélectionné">
+    <div class="details__hero">
+      <div
+        class="object-orb"
+        [style.--object-color]="selected.visual.color ?? '#9cb9d6'"
+        [style.--object-color-secondary]="selected.visual.secondaryColor ?? selected.visual.color"
+      >
+        <span></span>
+      </div>
+      <button
+        type="button"
+        class="close-button"
+        aria-label="Fermer la fiche"
+        (click)="facade.closeDetails()"
+      >
+        ×
+      </button>
+      <div class="details__heading">
+        <span class="eyebrow">
+          {{ typeLabel(selected.type) }}
+          @if (parentName(selected); as parent) {
+            · {{ parent }}
+          }
+        </span>
+        <h2>{{ selected.name }}</h2>
+        @if (selected.aliases?.length) {
+          <p class="aliases">{{ selected.aliases?.slice(0, 2)?.join(' · ') }}</p>
+        }
+      </div>
+    </div>
+
+    <div class="details__body">
+      <div
+        class="confidence"
+        [attr.data-confidence]="selected.scientificConfidence"
+        [title]="confidenceDescription(selected.scientificConfidence)"
+      >
+        <span class="confidence__dot"></span>
+        <span>{{ confidenceLabel(selected.scientificConfidence) }}</span>
+      </div>
+
+      <p class="description">
+        {{ selected.description ?? 'Aucune description disponible pour cet objet.' }}
+      </p>
+
+      @if (isApproximate(selected.scientificConfidence)) {
+        <div class="approximation-note">
+          Cette vue est une reconstruction approximative. La position ou l’apparence peut être
+          extrapolée ou simulée.
+        </div>
+      }
+
+      <dl class="facts">
+        @if (distanceLabel(selected); as distance) {
+          <div>
+            <dt>Distance</dt>
+            <dd>{{ distance }}</dd>
+          </div>
+        }
+        @if (apparentMagnitudeLabel(selected); as magnitude) {
+          <div>
+            <dt>Magnitude apparente</dt>
+            <dd>{{ magnitude }}</dd>
+          </div>
+        }
+        @if (colorIndexLabel(selected); as colorIndex) {
+          <div>
+            <dt>Indice B−V</dt>
+            <dd>{{ colorIndex }}</dd>
+          </div>
+        }
+        @if (catalogIdentifierLabel(selected); as catalogIdentifier) {
+          <div>
+            <dt>Identifiant</dt>
+            <dd>{{ catalogIdentifier }}</dd>
+          </div>
+        }
+        @if (morphologyLabel(selected); as morphology) {
+          <div>
+            <dt>Morphologie</dt>
+            <dd>{{ morphology }}</dd>
+          </div>
+        }
+        @if (diameterLabel(selected); as diameter) {
+          <div>
+            <dt>Diamètre</dt>
+            <dd>{{ diameter }}</dd>
+          </div>
+        }
+        @if (selected.physical?.radiusKm; as radius) {
+          <div>
+            <dt>Rayon</dt>
+            <dd>{{ formatNumber(radius) }} km</dd>
+          </div>
+        }
+        @if (selected.physical?.temperatureK; as temperature) {
+          <div>
+            <dt>Température</dt>
+            <dd>{{ formatNumber(temperature, 0) }} K</dd>
+          </div>
+        }
+        @if (selected.physical?.massKg; as mass) {
+          <div>
+            <dt>Masse</dt>
+            <dd>{{ formatNumber(mass, 2) }} kg</dd>
+          </div>
+        }
+        @if (orbitPeriodLabel(selected); as period) {
+          <div>
+            <dt>Période orbitale</dt>
+            <dd>{{ period }}</dd>
+          </div>
+        }
+        @if (rotationPeriodLabel(selected); as rotation) {
+          <div>
+            <dt>Rotation axiale</dt>
+            <dd>{{ rotation }} · {{ rotationDirectionLabel(selected) }}</dd>
+          </div>
+        }
+        @if (selected.physical?.spectralType; as spectralType) {
+          <div>
+            <dt>Type spectral</dt>
+            <dd>{{ spectralType }}</dd>
+          </div>
+        }
+        <div>
+          <dt>Échelle visuelle</dt>
+          <dd>{{ selected.visual.scaleMode === 'physical' ? 'Physique' : 'Adaptative' }}</dd>
+        </div>
+      </dl>
+
+      <div class="details__source">
+        <span>Source</span>
+        <strong>{{ selected.metadata?.['source'] ?? 'Données statiques du prototype' }}</strong>
+      </div>
+    </div>
+
+    <div class="details__actions">
+      <button type="button" class="primary-action" (click)="focus(selected)">
+        <span aria-hidden="true">{{ selected.visual.rotationPeriodHours ? '↻' : '◎' }}</span>
+        {{ selected.visual.rotationPeriodHours ? 'Voir la rotation' : 'Centrer la vue' }}
+      </button>
+      @if (hasOrbit(selected)) {
+        <button
+          type="button"
+          class="orbit-action"
+          title="Afficher l’orbite complète autour du corps parent"
+          (click)="viewOrbit(selected)"
+        >
+          <span aria-hidden="true">↗</span>
+          {{ orbitActionLabel(selected) }}
+        </button>
+      }
+      <button type="button" class="secondary-action" (click)="facade.closeDetails()">Fermer</button>
+    </div>
+  </aside>
+}

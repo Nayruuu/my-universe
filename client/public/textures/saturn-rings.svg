@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <radialGradient id="rings">
+      <stop offset="59.5%" stop-opacity="0" />
+      <stop offset="61%" stop-color="#9f8f70" stop-opacity=".22" />
+      <stop offset="65%" stop-color="#e0d1ae" stop-opacity=".82" />
+      <stop offset="69%" stop-color="#97825e" stop-opacity=".52" />
+      <stop offset="73.5%" stop-color="#dccba6" stop-opacity=".86" />
+      <stop offset="77.5%" stop-color="#b89f75" stop-opacity=".58" />
+      <stop offset="79.2%" stop-color="#1c1916" stop-opacity=".12" />
+      <stop offset="81.2%" stop-color="#dacaac" stop-opacity=".9" />
+      <stop offset="86.5%" stop-color="#ab9775" stop-opacity=".68" />
+      <stop offset="92.5%" stop-color="#ded3ba" stop-opacity=".78" />
+      <stop offset="97.5%" stop-color="#918673" stop-opacity=".28" />
+      <stop offset="100%" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect width="256" height="256" fill="url(#rings)" />
+</svg>

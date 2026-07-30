@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "moduleResolution": "bundler",
+    "types": [
+      "node",
+      "@playwright/test"
+    ]
+  },
+  "include": [
+    "e2e/**/*.ts",
+    "playwright.config.ts"
+  ]
+}
