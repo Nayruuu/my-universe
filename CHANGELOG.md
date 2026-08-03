@@ -6,6 +6,20 @@ All notable changes to Universe Map are documented in this file.
 
 ### Added
 
+- Added a single-draw-call overview of all 720 observed Local Volume galaxies directly from the
+  static tile index. It fades in at the outer Milky Way boundary, remains behind streamed galaxy
+  detail, and fades out before the Cosmicflows map dominates, removing the empty visual gap without
+  inventing a decorative star field. Local Group galaxy impostors also receive a larger adaptive
+  screen-space floor for readable continuous-scale navigation.
+- Added a deterministic large-scale structure scaffold derived from the 37,730 Cosmicflows-4 group
+  positions. A 20 Mpc spatial hash connects at most two nearby groups within 52 Mpc, producing 49,939
+  illustrative edges in one GPU `LineSegments` batch. Low, medium, and high quality draw 28%, 62%,
+  or 100% of a spatially distributed edge order; distance and radiance fades remain independent
+  from the calculated group points. A continuously damped camera-distance LOD emphasizes the
+  shortest, best-constrained links in the overview and progressively strengthens secondary
+  connections while zooming in without adding draw calls. A compact scale-specific legend, debug
+  counts, metadata, and the object card explicitly distinguish this visual interpretation from
+  observed filaments.
 - Added a validated static catalogue of Sagittarius A*, Cygnus X-1, and Gaia BH1 with searchable
   aliases, galactocentric positions, masses, Schwarzschild radii, activity states, scientific
   sources, object cards, direct focus, and shareable URL restoration.

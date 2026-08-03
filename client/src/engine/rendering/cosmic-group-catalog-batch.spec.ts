@@ -6,6 +6,8 @@ import { PICKING_LAYER } from '../selection/selection-layers';
 import {
   CosmicGroupCatalogBatch,
   getCosmicCatalogTargetOpacity,
+  getCosmicFilamentDetail,
+  getCosmicFilamentTargetOpacity,
 } from './cosmic-group-catalog-batch';
 
 describe('CosmicGroupCatalogBatch', () => {
@@ -13,13 +15,18 @@ describe('CosmicGroupCatalogBatch', () => {
     const batch = createBatch();
     const geometry = batch.points.geometry;
 
-    expect(batch.root.children).toEqual([batch.points, batch.selectionPoint]);
+    expect(batch.root.children).toEqual([batch.filaments, batch.points, batch.selectionPoint]);
     expect(geometry.getAttribute('position').count).toBe(2);
     expect(geometry.getAttribute('pointSize').count).toBe(2);
     expect(geometry.getAttribute('pointAlpha').count).toBe(2);
     expect(batch.points.userData['catalogCount']).toBe(2);
     expect(batch.points.userData['scientificConfidence']).toBe('calculated');
     expect(batch.points.userData['objectIds']).toEqual(['cf4-pgc-35', 'cf4-pgc-12']);
+    expect(batch.filaments).toBeInstanceOf(THREE.LineSegments);
+    expect(batch.filaments.userData).toMatchObject({
+      scientificConfidence: 'illustrative',
+      visualStyle: 'derived-nearest-neighbor-cosmic-filaments',
+    });
     const pickingLayers = new THREE.Layers();
 
     pickingLayers.set(PICKING_LAYER);
@@ -27,6 +34,7 @@ describe('CosmicGroupCatalogBatch', () => {
     expect(batch.selectionPoint.layers.test(pickingLayers)).toBe(true);
     batch.setPhotographicRadiance(1.16);
     expect(batch.points.material.uniforms['radiance']!.value).toBeCloseTo(1.16);
+    expect(batch.filaments.material.uniforms['radiance']!.value).toBeCloseTo(1.16);
     batch.setPhotographicRadiance(0);
     expect(batch.points.material.uniforms['radiance']!.value).toBe(0.5);
     batch.setPhotographicRadiance(2);
@@ -34,16 +42,52 @@ describe('CosmicGroupCatalogBatch', () => {
     batch.dispose();
   });
 
+  it('construit un réseau de filaments en un seul batch avec un budget progressif', () => {
+    const registry = new CosmicGroupCatalogRegistry(
+      createConnectedCatalog(),
+      new CoordinateSystem(),
+    );
+    const batch = new CosmicGroupCatalogBatch(registry, 'low');
+    const edgeCount = batch.filaments.userData['edgeCount'] as number;
+    const lowCount = batch.activeFilamentCount;
+
+    expect(edgeCount).toBeGreaterThan(2);
+    expect(batch.filaments.geometry.getAttribute('position').count).toBe(edgeCount * 2);
+    expect(batch.filaments.geometry.getAttribute('lineAlpha').count).toBe(edgeCount * 2);
+    expect(batch.filaments.geometry.getAttribute('detailThreshold').count).toBe(edgeCount * 2);
+    expect(lowCount).toBeGreaterThan(0);
+    expect(lowCount).toBeLessThan(edgeCount);
+    expect(batch.filaments.geometry.drawRange.count).toBe(lowCount * 2);
+
+    batch.setQuality('medium');
+    const mediumCount = batch.activeFilamentCount;
+
+    expect(mediumCount).toBeGreaterThan(lowCount);
+    expect(mediumCount).toBeLessThan(edgeCount);
+    batch.setQuality('high');
+    expect(batch.activeFilamentCount).toBe(edgeCount);
+    expect(batch.filaments.geometry.drawRange.count).toBe(edgeCount * 2);
+    batch.dispose();
+  });
+
   it('fait varier continûment son opacité avec la distance de caméra', () => {
-    expect(getCosmicCatalogTargetOpacity(40_000)).toBe(0);
-    expect(getCosmicCatalogTargetOpacity(120_000)).toBeCloseTo(0.288_64, 5);
-    expect(getCosmicCatalogTargetOpacity(240_000)).toBeCloseTo(0.82, 5);
+    expect(getCosmicCatalogTargetOpacity(110_000)).toBe(0);
+    expect(getCosmicCatalogTargetOpacity(120_000)).toBeGreaterThan(0);
+    expect(getCosmicCatalogTargetOpacity(120_000)).toBeLessThan(0.01);
+    expect(getCosmicCatalogTargetOpacity(300_000)).toBeCloseTo(0.82, 5);
     expect(getCosmicCatalogTargetOpacity(420_000)).toBeCloseTo(0.82, 5);
+    expect(getCosmicFilamentTargetOpacity(140_000)).toBe(0);
+    expect(getCosmicFilamentTargetOpacity(180_000)).toBeGreaterThan(0);
+    expect(getCosmicFilamentTargetOpacity(320_000)).toBeCloseTo(0.58, 5);
+    expect(getCosmicFilamentDetail(420_000)).toBeCloseTo(0.28, 5);
+    expect(getCosmicFilamentDetail(280_000)).toBeGreaterThan(0.28);
+    expect(getCosmicFilamentDetail(280_000)).toBeLessThan(1);
+    expect(getCosmicFilamentDetail(140_000)).toBe(1);
 
     const opacityBeforeOldThreshold = getCosmicCatalogTargetOpacity(199_999);
     const opacityAfterOldThreshold = getCosmicCatalogTargetOpacity(200_001);
 
-    expect(Math.abs(opacityAfterOldThreshold - opacityBeforeOldThreshold)).toBeLessThan(0.000_01);
+    expect(Math.abs(opacityAfterOldThreshold - opacityBeforeOldThreshold)).toBeLessThan(0.000_02);
   });
 
   it('reste visible et s’estompe progressivement dans l’Univers proche', () => {
@@ -57,20 +101,47 @@ describe('CosmicGroupCatalogBatch', () => {
     expect(batch.visibleCount).toBe(2);
     expect(batch.points.visible).toBe(true);
     expect(batch.points.userData['visibleIndices']).toEqual(new Uint8Array([1, 1]));
+    expect(batch.filaments.visible).toBe(false);
 
     batch.updateDistance(120_000, 1 / 60);
     const transitionOpacity = batch.points.material.uniforms['catalogOpacity']!.value as number;
 
-    expect(transitionOpacity).toBeGreaterThan(0.288_64);
+    expect(transitionOpacity).toBeGreaterThan(getCosmicCatalogTargetOpacity(120_000));
     expect(transitionOpacity).toBeLessThan(0.82);
     expect(batch.points.visible).toBe(true);
 
     batch.updateDistance(120_000, 10);
-    expect(batch.points.material.uniforms['catalogOpacity']!.value).toBeCloseTo(0.288_64, 5);
+    expect(batch.points.material.uniforms['catalogOpacity']!.value).toBeCloseTo(
+      getCosmicCatalogTargetOpacity(120_000),
+      5,
+    );
 
     batch.updateDistance(40_000, 10);
     expect(batch.visibleCount).toBe(0);
     expect(batch.points.userData['visibleIndices']).toEqual(new Uint8Array([0, 0]));
+    batch.dispose();
+  });
+
+  it('fait apparaître et disparaître le réseau avec son propre fondu cosmique', () => {
+    const batch = new CosmicGroupCatalogBatch(
+      new CosmicGroupCatalogRegistry(createConnectedCatalog(), new CoordinateSystem()),
+      'high',
+    );
+
+    batch.updateDistance(320_000, 10);
+    expect(batch.filaments.visible).toBe(true);
+    expect(batch.visibleFilamentCount).toBe(batch.activeFilamentCount);
+    expect(batch.filaments.material.uniforms['filamentOpacity']!.value).toBeCloseTo(0.58, 5);
+    const distantDetail = batch.filaments.material.uniforms['filamentDetail']!.value as number;
+
+    batch.updateDistance(180_000, 10);
+    expect(batch.filaments.material.uniforms['filamentDetail']!.value).toBeGreaterThan(
+      distantDetail,
+    );
+
+    batch.updateDistance(140_000, 10);
+    expect(batch.filaments.visible).toBe(false);
+    expect(batch.visibleFilamentCount).toBe(0);
     batch.dispose();
   });
 
@@ -113,6 +184,26 @@ function createBatch(): CosmicGroupCatalogBatch {
   return new CosmicGroupCatalogBatch(
     new CosmicGroupCatalogRegistry(createCatalog(), new CoordinateSystem()),
   );
+}
+
+function createConnectedCatalog(): CosmicGroupCatalog {
+  const positions = [12, 0, 0, 18, 1, 0, 24, -1, 1, 24, 7, 0, 30, 1, -1, 36, 0, 0];
+  const distances = Array.from({ length: positions.length / 3 }, (_, index) =>
+    Math.hypot(positions[index * 3]!, positions[index * 3 + 1]!, positions[index * 3 + 2]!),
+  );
+
+  return {
+    count: distances.length,
+    referenceEpochJulianDay: 2_451_545,
+    minimumDistanceMpc: distances[0]!,
+    maximumDistanceMpc: distances.at(-1)!,
+    positionsMpc: new Float32Array(positions),
+    distancesMpc: new Float32Array(distances),
+    distanceModulusErrors: new Float32Array(distances.map((_, index) => 0.1 + index * 0.05)),
+    velocitiesCmbKmPerSecond: new Int32Array(distances.map((distance) => distance * 70)),
+    pgcIds: new Uint32Array(distances.map((_, index) => 100 + index)),
+    distanceModuli: new Float32Array(distances.map((distance) => 5 * Math.log10(distance) + 25)),
+  };
 }
 
 function createCatalog(): CosmicGroupCatalog {

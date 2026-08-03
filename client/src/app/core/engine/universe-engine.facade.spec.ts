@@ -836,6 +836,7 @@ function debugStats(): EngineDebugStats {
     visibleObjects: 5,
     catalogStars: 1_000,
     cosmicGroups: 0,
+    cosmicFilaments: 0,
     batchedGalaxies: 0,
     loadedTiles: 0,
     indexedGalaxyTiles: 0,

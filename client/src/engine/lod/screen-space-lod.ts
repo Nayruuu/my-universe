@@ -41,6 +41,23 @@ export function calculateWorldDiameterForPixels(
   return visibleHeight * (pixelDiameter / viewportHeight);
 }
 
+export function getMinimumVisualDiameterPixels(
+  object: Pick<SpaceObject, 'type'>,
+  lodLevel: number,
+  qualityMinimumPixelDiameter: number,
+): number {
+  const scale =
+    object.type === 'galaxy' && lodLevel === 4
+      ? 4
+      : object.type === 'galaxy' && lodLevel === 5
+        ? 2.2
+        : lodLevel >= 5
+          ? 1.6
+          : 1;
+
+  return qualityMinimumPixelDiameter * scale;
+}
+
 export function shouldDisplayObjectAtLevel(
   object: SpaceObject,
   lodLevel: number,

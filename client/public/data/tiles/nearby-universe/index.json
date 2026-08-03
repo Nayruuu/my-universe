@@ -7496,5 +7496,5047 @@
       "parentName": "Univers proche",
       "keywords": ["galaxie", "galaxy", "Volume local", "LV J1354+5438", "HIcld"]
     }
+  ],
+  "overviewEntries": [
+    {
+      "id": "ngc-55",
+      "position": [1.6466, -1.3468, 0.1089],
+      "unit": "megaparsec",
+      "color": "#a9bdd2",
+      "visualRadius": 43
+    },
+    {
+      "id": "ngc-300",
+      "position": [1.653, -1.3143, 0.4036],
+      "unit": "megaparsec",
+      "color": "#9eb9d4",
+      "visualRadius": 32
+    },
+    {
+      "id": "ngc-247",
+      "position": [3.3411, -1.2938, 0.697],
+      "unit": "megaparsec",
+      "color": "#9caec2",
+      "visualRadius": 52
+    },
+    {
+      "id": "sculptor-galaxy",
+      "position": [3.4858, -1.6833, 0.7341],
+      "unit": "megaparsec",
+      "color": "#b2bfd0",
+      "visualRadius": 82
+    },
+    {
+      "id": "ngc-2403",
+      "position": [-0.5388, 2.896, 1.1981],
+      "unit": "megaparsec",
+      "color": "#a0b8d0",
+      "visualRadius": 53
+    },
+    {
+      "id": "bodes-galaxy",
+      "position": [-1.1104, 3.3904, 0.6701],
+      "unit": "megaparsec",
+      "color": "#b8c8d9",
+      "visualRadius": 63
+    },
+    {
+      "id": "cigar-galaxy",
+      "position": [-1.0503, 3.3104, 0.6317],
+      "unit": "megaparsec",
+      "color": "#b6a790",
+      "visualRadius": 32
+    },
+    {
+      "id": "ngc-3077",
+      "position": [-1.2099, 3.5599, 0.6751],
+      "unit": "megaparsec",
+      "color": "#c0b8aa",
+      "visualRadius": 22
+    },
+    {
+      "id": "ngc-4945",
+      "position": [-2.3694, -2.8883, -0.6955],
+      "unit": "megaparsec",
+      "color": "#a8b5c1",
+      "visualRadius": 69
+    },
+    {
+      "id": "ngc-5102",
+      "position": [-2.5559, -2.0286, -0.9551],
+      "unit": "megaparsec",
+      "color": "#c5bea9",
+      "visualRadius": 27
+    },
+    {
+      "id": "centaurus-a",
+      "position": [-2.5533, -2.5583, -0.9991],
+      "unit": "megaparsec",
+      "color": "#c7b99e",
+      "visualRadius": 85
+    },
+    {
+      "id": "southern-pinwheel",
+      "position": [-3.89, -2.4502, -1.7524],
+      "unit": "megaparsec",
+      "color": "#aebed2",
+      "visualRadius": 56
+    },
+    {
+      "id": "ngc-4244",
+      "position": [-3.5371, 2.7524, -0.2706],
+      "unit": "megaparsec",
+      "color": "#a6b7c9",
+      "visualRadius": 48
+    },
+    {
+      "id": "m106",
+      "position": [-5.2914, 5.7547, -0.4387],
+      "unit": "megaparsec",
+      "color": "#afc1d5",
+      "visualRadius": 83
+    },
+    {
+      "id": "ngc-4449",
+      "position": [-3.0008, 2.9295, -0.3709],
+      "unit": "megaparsec",
+      "color": "#a9b7c2",
+      "visualRadius": 24
+    },
+    {
+      "id": "m94",
+      "position": [-3.4244, 3.0646, -0.7732],
+      "unit": "megaparsec",
+      "color": "#bbc8d3",
+      "visualRadius": 41
+    },
+    {
+      "id": "pinwheel-galaxy",
+      "position": [-3.6945, 5.997, -2.2026],
+      "unit": "megaparsec",
+      "color": "#a9c0d8",
+      "visualRadius": 130
+    },
+    {
+      "id": "m49",
+      "position": [-16.8297, 2.3855, -2.1992],
+      "unit": "megaparsec",
+      "color": "#d1c7ad",
+      "visualRadius": 100
+    },
+    {
+      "id": "virgo-a",
+      "position": [-16.6657, 3.6949, -2.255],
+      "unit": "megaparsec",
+      "color": "#d2c8af",
+      "visualRadius": 115
+    },
+    {
+      "id": "m60",
+      "position": [-16.6411, 3.4643, -3.2092],
+      "unit": "megaparsec",
+      "color": "#cbc2aa",
+      "visualRadius": 92
+    },
+    {
+      "id": "m86",
+      "position": [-16.292, 3.7698, -1.8703],
+      "unit": "megaparsec",
+      "color": "#c5bdab",
+      "visualRadius": 82
+    },
+    {
+      "id": "m84",
+      "position": [-17.878, 4.1149, -1.9629],
+      "unit": "megaparsec",
+      "color": "#c9c1ae",
+      "visualRadius": 78
+    },
+    {
+      "id": "lv-ngc5194",
+      "position": [-5.270598, 6.166761, -2.179876],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 40.48
+    },
+    {
+      "id": "lv-ngc4594",
+      "position": [-8.971009, -1.87369, -1.581226],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 39.06
+    },
+    {
+      "id": "lv-ngc6744",
+      "position": [1.0961, -7.450936, -3.488856],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 40.61
+    },
+    {
+      "id": "lv-ngc4826",
+      "position": [-3.936941, 1.614711, -0.995042],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 39.07
+    },
+    {
+      "id": "lv-ngc5055",
+      "position": [-6.315682, 6.018884, -2.169168],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 39.52
+    },
+    {
+      "id": "lv-ic0342",
+      "position": [0.671729, 3.043214, 1.022756],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 40.28
+    },
+    {
+      "id": "lv-ngc1291",
+      "position": [4.321354, -5.785834, 5.028918],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 39.03
+    },
+    {
+      "id": "lv-ngc2903",
+      "position": [-6.594423, 3.250946, 4.96204],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 38.46
+    },
+    {
+      "id": "lv-ngc6946",
+      "position": [1.833267, 5.108795, -2.287235],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 38.82
+    },
+    {
+      "id": "lv-ngc3627",
+      "position": [-9.866584, 2.310991, 1.72865],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 37.68
+    },
+    {
+      "id": "lv-ngc1313",
+      "position": [1.052718, -3.732364, 1.235373],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 38.27
+    },
+    {
+      "id": "lv-ngc7793",
+      "position": [3.294208, -2.106019, -0.031288],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 38.53
+    },
+    {
+      "id": "lv-ngc4631",
+      "position": [-6.116525, 3.969766, -1.137312],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 38.97
+    },
+    {
+      "id": "lv-ngc4490",
+      "position": [-4.295704, 3.854072, -0.577112],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 36.16
+    },
+    {
+      "id": "lv-ngc0628",
+      "position": [6.417509, 1.988732, 2.880385],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 37.75
+    },
+    {
+      "id": "lv-ngc3521",
+      "position": [-10.402282, -0.006692, 2.50649],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 37.62
+    },
+    {
+      "id": "lv-ngc3115",
+      "position": [-8.414515, -1.300102, 4.605222],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 36.84
+    },
+    {
+      "id": "lv-ngc4236",
+      "position": [-1.556775, 4.167254, -0.113787],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 39.36
+    },
+    {
+      "id": "lv-ngc3368",
+      "position": [-9.682739, 2.13436, 3.203978],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 36.62
+    },
+    {
+      "id": "lv-ngc3621",
+      "position": [-5.537962, -3.630592, 1.019695],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 37.45
+    },
+    {
+      "id": "lv-ngc4214",
+      "position": [-2.363074, 1.741656, -0.161599],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 36.3
+    },
+    {
+      "id": "lv-ngc4559",
+      "position": [-7.06665, 3.797691, -1.118036],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 36.97
+    },
+    {
+      "id": "lv-ngc2683",
+      "position": [-4.414334, 4.257156, 4.705654],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 37.49
+    },
+    {
+      "id": "lv-ngc3344",
+      "position": [-5.869224, 2.886656, 2.035174],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 35.67
+    },
+    {
+      "id": "lv-ngc5195",
+      "position": [-4.802367, 5.626549, -1.988674],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 35.42
+    },
+    {
+      "id": "lv-ngc5068",
+      "position": [-4.788046, -1.956583, -1.717237],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 36.36
+    },
+    {
+      "id": "lv-ngc0925",
+      "position": [6.196157, 5.138044, 4.638129],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 36.74
+    },
+    {
+      "id": "lv-ngc3351",
+      "position": [-9.30437, 2.038633, 3.205492],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 35.35
+    },
+    {
+      "id": "lv-ngc4395",
+      "position": [-3.817788, 2.547522, -0.432114],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 36.99
+    },
+    {
+      "id": "lv-ngc3556",
+      "position": [-5.45818, 8.17583, 1.172209],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 34.19
+    },
+    {
+      "id": "lv-ngc0891",
+      "position": [5.868578, 6.581216, 4.207172],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 36.89
+    },
+    {
+      "id": "lv-ic2574",
+      "position": [-1.362191, 3.738117, 0.575599],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 36.76
+    },
+    {
+      "id": "lv-ngc6503",
+      "position": [-0.082289, 4.956717, -1.788039],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 34.88
+    },
+    {
+      "id": "lv-ngc5253",
+      "position": [-2.747269, -1.867506, -1.280051],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 34.81
+    },
+    {
+      "id": "lv-ngc4605",
+      "position": [-2.561463, 4.812043, -0.451713],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 34.46
+    },
+    {
+      "id": "lv-ngc4656",
+      "position": [-4.487106, 2.875161, -0.871392],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 36.46
+    },
+    {
+      "id": "lv-ic5332",
+      "position": [6.26309, -4.595915, -0.700904],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 35.13
+    },
+    {
+      "id": "lv-eso383-087",
+      "position": [-2.477662, -2.030848, -1.280369],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 34.05
+    },
+    {
+      "id": "lv-ngc2835",
+      "position": [-7.240344, -3.917591, 6.190307],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 35.32
+    },
+    {
+      "id": "lv-ngc2976",
+      "position": [-1.120263, 3.29876, 0.732661],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 34.1
+    },
+    {
+      "id": "lv-ic5152",
+      "position": [1.073995, -1.537346, -0.603325],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 34.64
+    },
+    {
+      "id": "lv-ngc4517",
+      "position": [-9.601061, 0.019469, -1.381752],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 36.07
+    },
+    {
+      "id": "lv-holmii",
+      "position": [-0.638466, 3.199762, 0.919774],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 35.18
+    },
+    {
+      "id": "lv-ngc5585",
+      "position": [-2.562941, 4.765755, -1.791343],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 33.89
+    },
+    {
+      "id": "lv-ngc0404",
+      "position": [2.363485, 1.780557, 0.738954],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 32.5
+    },
+    {
+      "id": "lv-ngc2784",
+      "position": [-6.666292, -4.021014, 5.985348],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 33.64
+    },
+    {
+      "id": "lv-ngc3377",
+      "position": [-10.064251, 2.636699, 3.284321],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 33.52
+    },
+    {
+      "id": "lv-ic5201",
+      "position": [5.547561, -6.333834, -2.558732],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 34.83
+    },
+    {
+      "id": "lv-ngc0672",
+      "position": [5.695256, 3.317188, 2.898331],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 34.29
+    },
+    {
+      "id": "lv-ngc4618",
+      "position": [-5.851065, 5.198544, -1.072464],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 32.81
+    },
+    {
+      "id": "lv-ngc6684",
+      "position": [0.77452, -7.895965, -3.569854],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 32.7
+    },
+    {
+      "id": "lv-ngc7090",
+      "position": [3.147985, -5.458457, -2.277156],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 35.25
+    },
+    {
+      "id": "lv-ngc3412",
+      "position": [-9.659858, 2.412336, 3.004627],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 32.51
+    },
+    {
+      "id": "lv-ngc1637",
+      "position": [3.117426, -0.463216, 8.739061],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 32.7
+    },
+    {
+      "id": "lv-ngc5474",
+      "position": [-3.646917, 5.799934, -2.213766],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 32.93
+    },
+    {
+      "id": "lv-ngc7713",
+      "position": [6.118601, -4.795601, -0.636344],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 33.84
+    },
+    {
+      "id": "lv-ngc0045",
+      "position": [8.441248, -3.621642, 0.518692],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 34.4
+    },
+    {
+      "id": "lv-ngc0625",
+      "position": [2.668893, -2.574356, 1.1755],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 33.83
+    },
+    {
+      "id": "lv-ngc4242",
+      "position": [-5.509318, 5.64621, -0.421581],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 33.14
+    },
+    {
+      "id": "lv-ngc7640",
+      "position": [5.894668, 5.166776, -0.983521],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 34.91
+    },
+    {
+      "id": "lv-ngc5206",
+      "position": [-2.124141, -2.584827, -0.920647],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 32.08
+    },
+    {
+      "id": "lv-ngc3432",
+      "position": [-7.066326, 5.487703, 2.142929],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 32.96
+    },
+    {
+      "id": "lv-ic5052",
+      "position": [1.460805, -5.637144, -1.565106],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 34.08
+    },
+    {
+      "id": "lv-ngc2366",
+      "position": [-0.428414, 2.982198, 1.048358],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 33.76
+    },
+    {
+      "id": "lv-ngc4136",
+      "position": [-6.840963, 3.94134, -0.277602],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 32.15
+    },
+    {
+      "id": "lv-eso274-001",
+      "position": [-1.399726, -2.252974, -1.585236],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 35.52
+    },
+    {
+      "id": "lv-eso270-017",
+      "position": [-2.308569, -2.569793, -1.013251],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 35.98
+    },
+    {
+      "id": "lv-ngc1744",
+      "position": [2.326858, -4.387894, 8.679408],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 33.59
+    },
+    {
+      "id": "lv-ngc5204",
+      "position": [-2.256367, 3.969805, -0.930084],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 32.75
+    },
+    {
+      "id": "lv-ngc3239",
+      "position": [-6.91002, 2.3313, 3.037543],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 32.68
+    },
+    {
+      "id": "lv-ic4662",
+      "position": [-0.058769, -2.204873, -1.043398],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 31.23
+    },
+    {
+      "id": "lv-ngc1569",
+      "position": [0.49341, 2.769863, 1.203332],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 32
+    },
+    {
+      "id": "lv-ngc2787",
+      "position": [-2.029307, 6.992651, 1.713228],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 31.5
+    },
+    {
+      "id": "lv-ngc3593",
+      "position": [-10.324872, 2.396145, 2.072563],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 32.94
+    },
+    {
+      "id": "lv-ngc3738",
+      "position": [-2.828032, 3.990297, 0.299609],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 31.48
+    },
+    {
+      "id": "lv-ic4182",
+      "position": [-3.570958, 2.868061, -1.054744],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 33.01
+    },
+    {
+      "id": "lv-ngc4144",
+      "position": [-4.982871, 5.247988, -0.217303],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 32.78
+    },
+    {
+      "id": "lv-ic1727",
+      "position": [5.705401, 3.30575, 2.891438],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 33.07
+    },
+    {
+      "id": "lv-ngc1560",
+      "position": [0.398308, 3.278926, 0.996241],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 33.98
+    },
+    {
+      "id": "lv-circinus",
+      "position": [-1.464885, -3.816933, -0.961838],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 32.99
+    },
+    {
+      "id": "lv-ugca105",
+      "position": [0.287635, 2.796133, 1.421761],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 32.34
+    },
+    {
+      "id": "lv-ngc2188",
+      "position": [-0.271494, -4.149382, 6.121186],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 31.91
+    },
+    {
+      "id": "lv-ngc5408",
+      "position": [-3.099005, -3.179423, -1.850281],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 30.56
+    },
+    {
+      "id": "lv-ngc0784",
+      "position": [3.757957, 2.39763, 2.197733],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 32.72
+    },
+    {
+      "id": "lv-eso137-018",
+      "position": [-1.320065, -5.569589, -2.863059],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 31.02
+    },
+    {
+      "id": "lv-ngc4460",
+      "position": [-6.743717, 6.765092, -0.850833],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 31.5
+    },
+    {
+      "id": "lv-ngc1156",
+      "position": [4.995356, 3.325697, 4.982585],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 30.77
+    },
+    {
+      "id": "lv-ngc4485",
+      "position": [-4.29216, 3.858336, -0.574984],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 29.96
+    },
+    {
+      "id": "lv-ngc0024",
+      "position": [8.966683, -4.178178, 0.389142],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 32.74
+    },
+    {
+      "id": "lv-eso495-021",
+      "position": [-4.492724, -3.540471, 5.53553],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 29.53
+    },
+    {
+      "id": "lv-ic4710",
+      "position": [0.386879, -7.307846, -3.080474],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 30.79
+    },
+    {
+      "id": "lv-ngc7462",
+      "position": [7.404737, -6.604217, -1.887903],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 31.77
+    },
+    {
+      "id": "lv-ngc4597",
+      "position": [-9.894012, -1.020522, -1.754153],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 31.73
+    },
+    {
+      "id": "lv-ngc5264",
+      "position": [-3.546819, -2.259101, -1.684469],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 30.48
+    },
+    {
+      "id": "lv-ngc4700",
+      "position": [-6.991925, -1.444321, -1.522143],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 30.84
+    },
+    {
+      "id": "lv-eso245-005",
+      "position": [2.876962, -3.054906, 1.419697],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 30.56
+    },
+    {
+      "id": "lv-eso154-023",
+      "position": [2.306009, -4.522447, 2.243279],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 32.66
+    },
+    {
+      "id": "lv-ngc1705",
+      "position": [0.863184, -4.100343, 2.924756],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 29.21
+    },
+    {
+      "id": "lv-ngc5398",
+      "position": [-5.858416, -4.419214, -3.429214],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 30.28
+    },
+    {
+      "id": "lv-ddo217",
+      "position": [7.259034, 6.36253, -0.956368],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 31.2
+    },
+    {
+      "id": "lv-ngc5023",
+      "position": [-4.517902, 4.594895, -1.472279],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 32.06
+    },
+    {
+      "id": "lv-ugc01281",
+      "position": [3.695659, 2.660983, 1.914386],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 31.34
+    },
+    {
+      "id": "lv-ngc4204",
+      "position": [-7.469049, 2.822392, -0.497403],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 30.69
+    },
+    {
+      "id": "lv-eso273-014",
+      "position": [-4.742087, -7.322186, -4.68062],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 30.27
+    },
+    {
+      "id": "lv-ngc4861",
+      "position": [-5.792386, 4.172513, -1.525909],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 30.16
+    },
+    {
+      "id": "lv-eso324-024",
+      "position": [-2.59268, -2.470625, -1.042557],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 29.92
+    },
+    {
+      "id": "lv-ngc2283",
+      "position": [-1.888886, -3.125053, 9.309466],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 30.12
+    },
+    {
+      "id": "lv-ngc4455",
+      "position": [-7.681596, 3.258172, -0.968198],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 29.84
+    },
+    {
+      "id": "lv-ddo125",
+      "position": [-1.97323, 1.88588, -0.239632],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 30.26
+    },
+    {
+      "id": "lv-ddo168",
+      "position": [-2.854591, 3.110509, -0.961739],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 30.23
+    },
+    {
+      "id": "lv-ngc0059",
+      "position": [4.921954, -1.937626, 0.331626],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 28.97
+    },
+    {
+      "id": "lv-ngc4627",
+      "position": [-6.048727, 3.930194, -1.120929],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 28.43
+    },
+    {
+      "id": "lv-ngc4625",
+      "position": [-5.838514, 5.211308, -1.078899],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 28.21
+    },
+    {
+      "id": "lv-eso300-014",
+      "position": [5.003245, -6.433322, 5.442418],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 31.69
+    },
+    {
+      "id": "lv-ddo190",
+      "position": [-1.576726, 1.921372, -1.153197],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 28.89
+    },
+    {
+      "id": "lv-ngc1800",
+      "position": [1.572236, -4.233926, 6.603177],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 28.45
+    },
+    {
+      "id": "lv-ngc4248",
+      "position": [-4.99286, 5.44792, -0.389257],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 29.58
+    },
+    {
+      "id": "lv-ngc4068",
+      "position": [-2.618064, 3.423407, -0.046156],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 29.23
+    },
+    {
+      "id": "lv-ic1959",
+      "position": [2.304222, -4.662316, 3.091258],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 30.01
+    },
+    {
+      "id": "lv-eso501-023",
+      "position": [-5.928456, -2.93108, 2.293943],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 29.61
+    },
+    {
+      "id": "lv-ngc4534",
+      "position": [-7.888423, 5.693442, -1.182159],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 29.28
+    },
+    {
+      "id": "lv-ngc2915",
+      "position": [-0.6847, -3.677496, 0.5437],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 28.35
+    },
+    {
+      "id": "lv-ngc3274",
+      "position": [-6.556133, 3.705568, 2.639371],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 28.73
+    },
+    {
+      "id": "lv-ngc5237",
+      "position": [-2.269904, -2.312168, -1.030251],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 28.3
+    },
+    {
+      "id": "lv-eso269-058",
+      "position": [-2.470199, -2.778729, -0.785353],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 30.24
+    },
+    {
+      "id": "lv-ngc0855",
+      "position": [7.170848, 4.549538, 4.749056],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 29.19
+    },
+    {
+      "id": "lv-ngc3299",
+      "position": [-9.477695, 2.287729, 3.619338],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 28.6
+    },
+    {
+      "id": "lv-ngc4288",
+      "position": [-5.539919, 5.819077, -0.500151],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 28.54
+    },
+    {
+      "id": "lv-ddo165",
+      "position": [-1.661446, 4.228335, -0.495667],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 29.85
+    },
+    {
+      "id": "lv-ic3583",
+      "position": [-7.302624, 1.743142, -1.180315],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 29
+    },
+    {
+      "id": "lv-eso115-021",
+      "position": [1.848291, -4.378678, 1.520231],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 31.35
+    },
+    {
+      "id": "lv-ngc4765",
+      "position": [-9.410822, 0.754818, -2.226358],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 27.95
+    },
+    {
+      "id": "lv-ngc1311",
+      "position": [2.048016, -4.107972, 2.443399],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 30.08
+    },
+    {
+      "id": "lv-ngc4707",
+      "position": [-3.556341, 4.517922, -0.762116],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 28.11
+    },
+    {
+      "id": "lv-ngc3990",
+      "position": [-5.839793, 8.484283, 0.061326],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 27.67
+    },
+    {
+      "id": "lv-maffei1",
+      "position": [1.179307, 2.597627, 0.960036],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 28.61
+    },
+    {
+      "id": "lv-ngc2337",
+      "position": [-1.69449, 5.511936, 5.35576],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 28.65
+    },
+    {
+      "id": "lv-ddo082",
+      "position": [-1.227613, 3.773341, 0.504837],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 29.13
+    },
+    {
+      "id": "lv-ddo161",
+      "position": [-6.701258, -2.185801, -1.898792],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 31.38
+    },
+    {
+      "id": "lv-ugca086",
+      "position": [0.576063, 2.727217, 0.996013],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 29.82
+    },
+    {
+      "id": "lv-ngc4190",
+      "position": [-2.258899, 1.682671, -0.135621],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 28.06
+    },
+    {
+      "id": "lv-ddo133",
+      "position": [-4.091096, 2.536944, -0.591055],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 29.19
+    },
+    {
+      "id": "lv-ddo120",
+      "position": [-4.899842, 5.062367, -0.455623],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 28.24
+    },
+    {
+      "id": "lv-ngc5238",
+      "position": [-2.564765, 3.535136, -1.124674],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 27.93
+    },
+    {
+      "id": "lv-ugca442",
+      "position": [3.613693, -2.260174, -0.256391],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 30.59
+    },
+    {
+      "id": "lv-kksg18",
+      "position": [-8.43581, -1.346859, 4.594897],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 27.19
+    },
+    {
+      "id": "lv-ddo047",
+      "position": [-3.315161, 2.326781, 6.956889],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 29.76
+    },
+    {
+      "id": "lv-ngc4163",
+      "position": [-2.370055, 1.735115, -0.125748],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 27.92
+    },
+    {
+      "id": "lv-holmi",
+      "position": [-1.016074, 3.634839, 0.707912],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 29.67
+    },
+    {
+      "id": "lv-ngc3037",
+      "position": [-6.109855, -3.678723, 3.840139],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 26.85
+    },
+    {
+      "id": "lv-ic3104",
+      "position": [-0.403506, -2.233604, -0.033118],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 29.13
+    },
+    {
+      "id": "lv-eso364-029",
+      "position": [-0.159725, -4.142879, 6.357605],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 28.99
+    },
+    {
+      "id": "lv-ddo129",
+      "position": [-6.434337, 6.095205, -0.811039],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 28.43
+    },
+    {
+      "id": "lv-ddo024",
+      "position": [5.835268, 6.368239, 4.629815],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 28.25
+    },
+    {
+      "id": "lv-ddo099",
+      "position": [-2.053499, 1.657125, 0.081729],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 29.41
+    },
+    {
+      "id": "lv-cgmw1-260",
+      "position": [-1.721668, -2.799393, 10.287821],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 28.66
+    },
+    {
+      "id": "lv-ddo148",
+      "position": [-8.76046, -0.824123, -1.890811],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 27.96
+    },
+    {
+      "id": "lv-ngc4600",
+      "position": [-7.225481, 0.399756, -1.286512],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 27.19
+    },
+    {
+      "id": "lv-ddo084",
+      "position": [-6.310932, 4.587591, 2.2132],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 29.48
+    },
+    {
+      "id": "lv-holmiv",
+      "position": [-3.726219, 5.825957, -2.039024],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 29.2
+    },
+    {
+      "id": "lv-ngc6789",
+      "position": [0.523153, 3.261866, -1.504474],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 26.84
+    },
+    {
+      "id": "lv-ic3687",
+      "position": [-3.515817, 2.845013, -0.655612],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 29.76
+    },
+    {
+      "id": "lv-eso223-009",
+      "position": [-3.038025, -4.845117, -3.068444],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 28.05
+    },
+    {
+      "id": "lv-ugc05456",
+      "position": [-4.856263, 1.007275, 2.600405],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 26.99
+    },
+    {
+      "id": "lv-ugca438",
+      "position": [1.821148, -1.167799, -0.26845],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 27.49
+    },
+    {
+      "id": "lv-ugc03303",
+      "position": [1.083061, 0.560819, 7.035059],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 29.77
+    },
+    {
+      "id": "lv-ddo025",
+      "position": [6.084506, 5.131811, 4.809709],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 27.8
+    },
+    {
+      "id": "lv-ic4951",
+      "position": [2.476136, -8.640857, -3.904401],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 28.33
+    },
+    {
+      "id": "lv-eso059-001",
+      "position": [-0.658902, -4.242769, 1.56514],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 27.36
+    },
+    {
+      "id": "lv-ic3718",
+      "position": [-6.516288, 1.454565, -1.289275],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 27.74
+    },
+    {
+      "id": "lv-eso490-017",
+      "position": [-0.626569, -1.854292, 3.749922],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 26.84
+    },
+    {
+      "id": "lv-eso325-011",
+      "position": [-2.271075, -2.268814, -1.120134],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 28.2
+    },
+    {
+      "id": "lv-eso483-013",
+      "position": [3.070679, -2.910289, 6.071338],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 26.62
+    },
+    {
+      "id": "lv-ugc03755",
+      "position": [-2.307571, 1.353156, 6.910296],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 26.93
+    },
+    {
+      "id": "lv-hipass-j0607-34",
+      "position": [-0.195661, -4.159892, 6.116945],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.8
+    },
+    {
+      "id": "lv-ugca127",
+      "position": [-0.766612, -1.255728, 8.371706],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 29.37
+    },
+    {
+      "id": "lv-ddo154",
+      "position": [-3.495252, 1.843452, -0.840534],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 27.19
+    },
+    {
+      "id": "lv-ngc4509",
+      "position": [-8.467554, 5.365881, -1.232012],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.61
+    },
+    {
+      "id": "lv-ugc12588",
+      "position": [5.860429, 5.218989, -0.909686],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 26.88
+    },
+    {
+      "id": "lv-ddo126",
+      "position": [-3.862891, 2.946541, -0.458656],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 27.83
+    },
+    {
+      "id": "lv-ugc08508",
+      "position": [-1.426751, 2.201093, -0.596384],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 27.16
+    },
+    {
+      "id": "lv-ugc07639",
+      "position": [-4.780033, 5.266685, -0.626828],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 27.14
+    },
+    {
+      "id": "lv-ngc5477",
+      "position": [-3.820726, 6.265631, -2.331075],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 26.95
+    },
+    {
+      "id": "lv-lv-j1228-4358",
+      "position": [-2.906097, 2.825811, -0.36646],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 28.51
+    },
+    {
+      "id": "lv-eso174-001",
+      "position": [-1.914825, -2.88831, -0.975249],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 27.34
+    },
+    {
+      "id": "lv-ngc5011c",
+      "position": [-2.488892, -2.467371, -0.823102],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 25.85
+    },
+    {
+      "id": "lv-ddo181",
+      "position": [-2.067398, 1.964376, -0.962909],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 27.27
+    },
+    {
+      "id": "lv-ugc00685",
+      "position": [4.134821, 1.294781, 1.251756],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 27.27
+    },
+    {
+      "id": "lv-ugc06456",
+      "position": [-0.822582, 4.269953, 0.11557],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 26.19
+    },
+    {
+      "id": "lv-eso572-034",
+      "position": [-8.035376, -2.771537, 0.036171],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.98
+    },
+    {
+      "id": "lv-ugc05797",
+      "position": [-6.568812, 0.209936, 2.409696],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.84
+    },
+    {
+      "id": "lv-kk208",
+      "position": [-3.71422, -2.309576, -1.66518],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 29.39
+    },
+    {
+      "id": "lv-ngc5229",
+      "position": [-4.916669, 5.937237, -2.139062],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 27.92
+    },
+    {
+      "id": "lv-ugc09660",
+      "position": [-3.700655, 5.204942, -3.738145],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.7
+    },
+    {
+      "id": "lv-ugc7257",
+      "position": [-7.107731, 5.167366, -0.467423],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 25.89
+    },
+    {
+      "id": "lv-ddo013",
+      "position": [7.876816, 2.477308, 3.679717],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 28.61
+    },
+    {
+      "id": "lv-eso486-021",
+      "position": [2.210621, -4.292986, 8.756907],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 26.08
+    },
+    {
+      "id": "lv-ddo187",
+      "position": [-1.678493, 0.861562, -1.131536],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 26.3
+    },
+    {
+      "id": "lv-ngc3741",
+      "position": [-2.120264, 2.153175, 0.221851],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 26.03
+    },
+    {
+      "id": "lv-ic3591",
+      "position": [-9.601626, 1.181869, -1.565874],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.76
+    },
+    {
+      "id": "lv-ddo088",
+      "position": [-7.124725, 1.879255, 2.336578],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 26.75
+    },
+    {
+      "id": "lv-ddo046",
+      "position": [-2.243573, 4.41339, 4.734012],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 26.37
+    },
+    {
+      "id": "lv-agc200499",
+      "position": [-9.584024, 1.873977, 3.576966],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.07
+    },
+    {
+      "id": "lv-ic4247",
+      "position": [-3.98485, -2.512182, -1.584556],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 26.21
+    },
+    {
+      "id": "lv-ugc05423",
+      "position": [-2.569196, 8.203506, 1.40208],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.4
+    },
+    {
+      "id": "lv-eso558-011",
+      "position": [-2.242194, -3.152207, 7.456283],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 26.37
+    },
+    {
+      "id": "lv-eso381-020",
+      "position": [-4.435947, -3.034818, -0.902638],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 27.32
+    },
+    {
+      "id": "lv-ugc06541",
+      "position": [-2.522871, 2.946398, 0.293189],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 26.26
+    },
+    {
+      "id": "lv-ddo183",
+      "position": [-2.24568, 1.983365, -1.179654],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 26.93
+    },
+    {
+      "id": "lv-ngc1592",
+      "position": [3.101923, -4.189032, 7.459228],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.84
+    },
+    {
+      "id": "lv-ddo169",
+      "position": [-2.819288, 3.251205, -0.964044],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 27.39
+    },
+    {
+      "id": "lv-ddo064",
+      "position": [-5.118851, 3.713642, 3.249357],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 26.71
+    },
+    {
+      "id": "lv-hipass-j0457-42",
+      "position": [1.434371, -4.892336, 5.084056],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.82
+    },
+    {
+      "id": "lv-ugc08638",
+      "position": [-3.518546, 1.789425, -1.628095],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 26.12
+    },
+    {
+      "id": "lv-ugc01104",
+      "position": [6.589079, 2.372624, 2.82085],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 26.25
+    },
+    {
+      "id": "lv-ddo123",
+      "position": [-5.478131, 8.935683, -0.627423],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 27.2
+    },
+    {
+      "id": "lv-ugc7678",
+      "position": [-5.247105, 4.419712, -0.737588],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 26.22
+    },
+    {
+      "id": "lv-ic4870",
+      "position": [1.235933, -6.659101, -2.723757],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 26.17
+    },
+    {
+      "id": "lv-ugc1561",
+      "position": [5.627671, 2.952337, 3.384232],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 26.79
+    },
+    {
+      "id": "lv-ddo194",
+      "position": [-3.378144, 6.745638, -2.721198],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 26.58
+    },
+    {
+      "id": "lv-holmix",
+      "position": [-1.111197, 3.371197, 0.657553],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 27.02
+    },
+    {
+      "id": "lv-ddo053",
+      "position": [-0.895587, 3.256734, 1.124815],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 26.39
+    },
+    {
+      "id": "lv-ic4316",
+      "position": [-3.497108, -2.130901, -1.636336],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 26.42
+    },
+    {
+      "id": "lv-ddo153",
+      "position": [-7.606223, -1.678124, -1.82463],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 26.86
+    },
+    {
+      "id": "lv-eso269-066",
+      "position": [-2.56963, -2.695957, -0.849244],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 26.48
+    },
+    {
+      "id": "lv-ugc02172",
+      "position": [5.138513, 6.384638, 4.395689],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.62
+    },
+    {
+      "id": "lv-ugc07950",
+      "position": [-5.411112, 6.976131, -1.124035],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.58
+    },
+    {
+      "id": "lv-ugc07242",
+      "position": [-2.192371, 4.954958, -0.135275],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.38
+    },
+    {
+      "id": "lv-eso553-046",
+      "position": [0.678695, -1.790301, 4.694582],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.21
+    },
+    {
+      "id": "lv-ugc05288",
+      "position": [-5.743786, 0.932876, 3.614023],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.65
+    },
+    {
+      "id": "lv-whi-b0619-07",
+      "position": [-0.805895, -1.145498, 8.282413],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 25.99
+    },
+    {
+      "id": "lv-ugc02716",
+      "position": [3.833347, 1.951575, 4.738861],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 25.78
+    },
+    {
+      "id": "lv-ugca193",
+      "position": [-8.408494, -1.015937, 4.728119],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 28
+    },
+    {
+      "id": "lv-eso347-017",
+      "position": [5.979052, -4.610464, -0.868653],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 26.09
+    },
+    {
+      "id": "lv-eso238-005",
+      "position": [4.716574, -5.833277, -2.13701],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 27.16
+    },
+    {
+      "id": "lv-mcg-02-33-075",
+      "position": [-8.275349, -1.596936, -2.158331],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 27.05
+    },
+    {
+      "id": "lv-ugc08245",
+      "position": [-0.364895, 1.953019, -0.112553],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 26.24
+    },
+    {
+      "id": "lv-ugc07605",
+      "position": [-3.568648, 2.586221, -0.448452],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.48
+    },
+    {
+      "id": "lv-maffei2",
+      "position": [1.077685, 2.415114, 0.919685],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 27.56
+    },
+    {
+      "id": "lv-ddo068",
+      "position": [-7.374075, 4.724933, 4.397503],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 26.07
+    },
+    {
+      "id": "lv-gr8",
+      "position": [-1.997464, 0.523135, -0.522845],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.66
+    },
+    {
+      "id": "lv-eso272-025",
+      "position": [-3.160891, -4.136346, -2.733828],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.56
+    },
+    {
+      "id": "lv-mcg-03-34-002",
+      "position": [-7.237122, -2.268717, -2.210654],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.1
+    },
+    {
+      "id": "lv-vcc1675",
+      "position": [-7.331603, 1.050891, -1.180349],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.33
+    },
+    {
+      "id": "lv-cgcg-262-028",
+      "position": [-2.012082, 5.532631, 3.968819],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.74
+    },
+    {
+      "id": "lv-ugc01056",
+      "position": [6.474342, 2.096274, 2.641691],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.73
+    },
+    {
+      "id": "lv-ugca294",
+      "position": [-8.538032, 4.719695, -1.684189],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.87
+    },
+    {
+      "id": "lv-eso496-010",
+      "position": [-4.703034, -3.458396, 5.1731],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.77
+    },
+    {
+      "id": "lv-cama",
+      "position": [0.466684, 3.754362, 1.063894],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 27.41
+    },
+    {
+      "id": "lv-ugc05427",
+      "position": [-5.428406, 3.486691, 2.987891],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 25.16
+    },
+    {
+      "id": "lv-vcc1725",
+      "position": [-8.291948, 1.26506, -1.375945],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.87
+    },
+    {
+      "id": "lv-ddo226",
+      "position": [4.473501, -1.862973, 0.850601],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 26.13
+    },
+    {
+      "id": "lv-eso410-005",
+      "position": [1.621322, -1.022555, 0.109986],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.45
+    },
+    {
+      "id": "lv-ugc07596",
+      "position": [-4.512523, 0.691016, -0.565364],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.4
+    },
+    {
+      "id": "lv-ugc07636",
+      "position": [-5.106171, 0.717358, -0.672618],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.42
+    },
+    {
+      "id": "lv-cgcg-217-018",
+      "position": [-6.012885, 5.414661, -1.978778],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.55
+    },
+    {
+      "id": "lv-fg202",
+      "position": [-0.719065, -4.178855, 2.455629],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.76
+    },
+    {
+      "id": "lv-ugc04483",
+      "position": [-0.702305, 3.012084, 0.859196],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.99
+    },
+    {
+      "id": "lv-eso104-044",
+      "position": [1.106309, -7.473854, -3.436217],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.55
+    },
+    {
+      "id": "lv-eso318-013",
+      "position": [-4.812037, -4.077712, 1.570531],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 25.54
+    },
+    {
+      "id": "lv-ddo127",
+      "position": [-5.44338, 4.16888, -0.679818],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.34
+    },
+    {
+      "id": "lv-ic0559",
+      "position": [-7.69998, 1.570098, 5.158013],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.95
+    },
+    {
+      "id": "lv-ugc04998",
+      "position": [-2.369098, 7.660461, 1.897977],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.5
+    },
+    {
+      "id": "lv-ugc02773",
+      "position": [2.181731, 3.99994, 2.898367],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.75
+    },
+    {
+      "id": "lv-ugc06014",
+      "position": [-9.82467, 1.757309, 2.92365],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.75
+    },
+    {
+      "id": "lv-dw1",
+      "position": [1.035919, 2.397842, 1.008575],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 25.72
+    },
+    {
+      "id": "lv-ic3077",
+      "position": [-8.791497, 2.268163, -0.612384],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.48
+    },
+    {
+      "id": "lv-kk149",
+      "position": [-6.543213, 5.975756, -0.828679],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.32
+    },
+    {
+      "id": "lv-eso149-003",
+      "position": [3.583199, -4.685639, -0.124398],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 26.27
+    },
+    {
+      "id": "lv-eso444-084",
+      "position": [-3.707178, -2.167539, -1.676517],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.87
+    },
+    {
+      "id": "lv-ugca319",
+      "position": [-6.71659, -2.163232, -1.870252],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.72
+    },
+    {
+      "id": "lv-mcg-04-31-038",
+      "position": [-6.623428, -3.558164, -2.075974],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.35
+    },
+    {
+      "id": "lv-kk2000-71",
+      "position": [1.085237, -7.442851, -3.509449],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.4
+    },
+    {
+      "id": "lv-eso384-016",
+      "position": [-3.224146, -2.619881, -1.806102],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.76
+    },
+    {
+      "id": "lv-ddo147",
+      "position": [-4.251175, 3.210254, -0.884181],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.92
+    },
+    {
+      "id": "lv-ddo043",
+      "position": [-1.630645, 3.741849, 4.021499],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.87
+    },
+    {
+      "id": "lv-eso006-001",
+      "position": [-0.323969, -6.675966, 0.465314],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.42
+    },
+    {
+      "id": "lv-kksg15",
+      "position": [-8.246858, -1.059374, 4.995704],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.68
+    },
+    {
+      "id": "lv-ugca281",
+      "position": [-3.739584, 4.253539, -0.43048],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.33
+    },
+    {
+      "id": "lv-ddo087",
+      "position": [-2.941436, 6.780858, 0.932961],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.04
+    },
+    {
+      "id": "lv-eso409-015",
+      "position": [6.790523, -3.626561, 0.163882],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.54
+    },
+    {
+      "id": "lv-ic2171",
+      "position": [-1.815593, -3.048174, 9.242416],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 25.39
+    },
+    {
+      "id": "lv-pgc051659",
+      "position": [-1.974852, -2.588294, -1.488991],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.3
+    },
+    {
+      "id": "lv-ugc07512",
+      "position": [-10.526007, 0.399311, -1.184789],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.8
+    },
+    {
+      "id": "lv-kug-1202-286",
+      "position": [-5.885134, 3.178388, -0.138391],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 23.98
+    },
+    {
+      "id": "lv-eso321-014",
+      "position": [-2.493403, -1.967907, -0.15061],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.74
+    },
+    {
+      "id": "lv-ugca092",
+      "position": [0.501084, 2.696417, 1.240303],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.42
+    },
+    {
+      "id": "lv-cgmw2-3473",
+      "position": [-3.8634, -3.490076, 5.25866],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.76
+    },
+    {
+      "id": "lv-ugc04115",
+      "position": [-3.659385, 1.921175, 6.532296],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.31
+    },
+    {
+      "id": "lv-kdg061",
+      "position": [-1.12943, 3.35161, 0.67164],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 24.69
+    },
+    {
+      "id": "lv-ugc7719",
+      "position": [-7.069219, 5.792174, -1.056817],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 25.52
+    },
+    {
+      "id": "lv-ugca298",
+      "position": [-9.633278, 4.919198, -2.000363],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.91
+    },
+    {
+      "id": "lv-hipass-j1258-04",
+      "position": [-6.264178, -0.553923, -1.644155],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.83
+    },
+    {
+      "id": "lv-ddo052",
+      "position": [-4.620589, 6.85953, 6.105359],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.06
+    },
+    {
+      "id": "lv-eso121-020",
+      "position": [-0.224058, -5.115323, 3.222697],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.95
+    },
+    {
+      "id": "lv-ddo131",
+      "position": [-6.966867, 4.014409, -0.978406],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.27
+    },
+    {
+      "id": "lv-cas1",
+      "position": [1.007531, 3.081022, 0.618212],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.51
+    },
+    {
+      "id": "lv-ddo006",
+      "position": [3.044441, -1.197826, 0.672451],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.59
+    },
+    {
+      "id": "lv-ugc08833",
+      "position": [-2.190082, 1.803304, -1.19918],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.27
+    },
+    {
+      "id": "lv-mcg-09-20-131",
+      "position": [-2.794723, 3.635998, -0.19271],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.09
+    },
+    {
+      "id": "lv-vcc2033",
+      "position": [-9.49773, 1.444538, -1.935572],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.21
+    },
+    {
+      "id": "lv-pgc170257",
+      "position": [-5.606152, -2.348356, -2.303538],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.86
+    },
+    {
+      "id": "lv-kk65",
+      "position": [-3.325202, 2.286004, 6.930917],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.14
+    },
+    {
+      "id": "lv-ic3023",
+      "position": [-7.452054, 1.910609, -0.326287],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.1
+    },
+    {
+      "id": "lv-orion",
+      "position": [0.419918, 0.570701, 6.421026],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 26.14
+    },
+    {
+      "id": "lv-cepheus1",
+      "position": [2.226459, 5.02574, -2.405164],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 26.09
+    },
+    {
+      "id": "lv-ugc09992",
+      "position": [-1.600745, 6.732272, -2.324677],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.78
+    },
+    {
+      "id": "lv-ugc07320",
+      "position": [-6.507798, 6.483932, -0.497177],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.17
+    },
+    {
+      "id": "lv-kug-1218-387",
+      "position": [-6.264246, 4.991142, -0.573261],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.13
+    },
+    {
+      "id": "lv-ddo083",
+      "position": [-8.682595, 5.702802, 3.301605],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.18
+    },
+    {
+      "id": "lv-kksg17",
+      "position": [-8.34767, -1.391692, 4.74021],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.76
+    },
+    {
+      "id": "lv-ugc03698",
+      "position": [-1.541224, 5.063757, 4.939696],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.11
+    },
+    {
+      "id": "lv-ddo167",
+      "position": [-2.74669, 3.030229, -0.910775],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.95
+    },
+    {
+      "id": "lv-ugca365",
+      "position": [-4.180963, -2.564173, -1.872717],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.55
+    },
+    {
+      "id": "lv-ugc00064",
+      "position": [7.254742, 6.282415, 0.24489],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.63
+    },
+    {
+      "id": "lv-ugc05812",
+      "position": [-9.556398, 2.246, 3.433765],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 24.41
+    },
+    {
+      "id": "lv-vcc0841",
+      "position": [-7.584277, 2.03827, -0.856857],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.88
+    },
+    {
+      "id": "lv-vv747",
+      "position": [-7.146585, 5.441451, 1.989201],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.88
+    },
+    {
+      "id": "lv-mcg-06-27-017",
+      "position": [-3.882217, 2.868606, -0.168483],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.64
+    },
+    {
+      "id": "lv-lv-j0939-2507",
+      "position": [-4.555262, -2.611391, 3.201987],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.08
+    },
+    {
+      "id": "lv-kdg064",
+      "position": [-1.230138, 3.426392, 0.660758],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 24.93
+    },
+    {
+      "id": "lv-eso294-010",
+      "position": [1.420483, -1.28113, 0.165329],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.4
+    },
+    {
+      "id": "lv-eso565-003",
+      "position": [-5.469605, -2.592639, 4.462292],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.2
+    },
+    {
+      "id": "lv-eso376-016",
+      "position": [-5.353957, -4.277092, 1.857856],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.15
+    },
+    {
+      "id": "lv-eso300-016",
+      "position": [4.550283, -5.65689, 4.973381],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.27
+    },
+    {
+      "id": "lv-ddo092",
+      "position": [-5.754684, 7.967936, 1.185585],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.13
+    },
+    {
+      "id": "lv-cgcg-014-054",
+      "position": [-9.507886, 0.280749, -1.296643],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.98
+    },
+    {
+      "id": "lv-ugc05497",
+      "position": [-1.4422, 3.328575, 0.728455],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.4
+    },
+    {
+      "id": "lv-cgcg-189-050",
+      "position": [-3.75148, 3.09964, -1.311575],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.33
+    },
+    {
+      "id": "lv-cgcg-095-078",
+      "position": [-6.694677, 2.460796, 1.855445],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.32
+    },
+    {
+      "id": "lv-ugc11411",
+      "position": [0.471233, 4.452707, -1.524545],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.23
+    },
+    {
+      "id": "lv-mrk0036",
+      "position": [-6.804037, 3.905233, 1.665724],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.01
+    },
+    {
+      "id": "lv-eso104-022",
+      "position": [0.686075, -6.062881, -2.767812],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.22
+    },
+    {
+      "id": "lv-ddo056",
+      "position": [-6.644547, -3.830608, 6.100528],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.97
+    },
+    {
+      "id": "lv-ddo044",
+      "position": [-0.500284, 2.933927, 1.147993],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 25.58
+    },
+    {
+      "id": "lv-ugc00288",
+      "position": [4.848037, 4.626801, 0.618181],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.63
+    },
+    {
+      "id": "lv-ddo022",
+      "position": [5.703342, 5.812293, 4.492119],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.51
+    },
+    {
+      "id": "lv-kk197",
+      "position": [-2.670921, -2.616304, -0.999015],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 24.27
+    },
+    {
+      "id": "lv-ddo182",
+      "position": [-6.177313, 5.680052, -2.964424],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.92
+    },
+    {
+      "id": "lv-kk35",
+      "position": [0.660618, 2.927081, 0.990648],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 25.22
+    },
+    {
+      "id": "lv-kkr59",
+      "position": [2.283981, 4.955789, -2.217135],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 25.01
+    },
+    {
+      "id": "lv-f8d1",
+      "position": [-1.200227, 3.48241, 0.803229],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 24.92
+    },
+    {
+      "id": "lv-ic2787",
+      "position": [-9.882, 2.427157, 1.595299],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.54
+    },
+    {
+      "id": "lv-fs04",
+      "position": [-9.577235, 2.221723, 3.391242],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 23.44
+    },
+    {
+      "id": "lv-eso489-056",
+      "position": [-0.512057, -2.208236, 4.445401],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.96
+    },
+    {
+      "id": "lv-lv-j1235-1104",
+      "position": [-9.695489, -1.919606, -1.520729],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.37
+    },
+    {
+      "id": "lv-ugc01171",
+      "position": [6.436566, 2.022198, 2.990941],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.85
+    },
+    {
+      "id": "lv-eso349-031",
+      "position": [2.641256, -1.821779, 0.094793],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.77
+    },
+    {
+      "id": "lv-eso381-018",
+      "position": [-4.224108, -3.124513, -0.834704],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.05
+    },
+    {
+      "id": "lv-arp211",
+      "position": [-5.087049, 4.136929, -0.836569],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.13
+    },
+    {
+      "id": "lv-kdg101",
+      "position": [-4.912169, 5.302726, -0.411443],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.79
+    },
+    {
+      "id": "lv-ugc02905",
+      "position": [2.857516, 1.658194, 4.803529],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.35
+    },
+    {
+      "id": "lv-ugc08882",
+      "position": [-4.253956, 6.739617, -2.388266],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 23.44
+    },
+    {
+      "id": "lv-ddo019",
+      "position": [6.064602, 5.471362, 4.446886],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.72
+    },
+    {
+      "id": "lv-lv-j1052-3639",
+      "position": [-7.063606, 5.493644, 2.136665],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.22
+    },
+    {
+      "id": "lv-vcc2037",
+      "position": [-7.135143, 1.310851, -1.459931],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.59
+    },
+    {
+      "id": "lv-kk151",
+      "position": [-4.76317, 4.465645, -0.635472],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.47
+    },
+    {
+      "id": "lv-maps1206-31",
+      "position": [-6.343153, 3.864735, -0.182028],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 22.79
+    },
+    {
+      "id": "lv-hipass-j0916-23b",
+      "position": [-7.166757, -4.07077, 6.177089],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.64
+    },
+    {
+      "id": "lv-eso320-014",
+      "position": [-4.688381, -3.844428, 0.453711],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.77
+    },
+    {
+      "id": "lv-kdg090",
+      "position": [-2.302432, 1.689893, -0.150556],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.97
+    },
+    {
+      "id": "lv-vcc0565",
+      "position": [-9.500604, 1.00588, -0.941658],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.45
+    },
+    {
+      "id": "lv-vcc1713",
+      "position": [-7.079496, 0.596393, -1.168354],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.45
+    },
+    {
+      "id": "lv-lv-j0956-0929",
+      "position": [-4.386586, -0.853733, 2.619429],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.05
+    },
+    {
+      "id": "lv-ugc11583",
+      "position": [1.771452, 5.123369, -2.30329],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.63
+    },
+    {
+      "id": "lv-ugc7427",
+      "position": [-7.9045, 5.570816, -0.758216],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.25
+    },
+    {
+      "id": "lv-mcg-08-25-028",
+      "position": [-5.027366, 5.434584, -2.257982],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.06
+    },
+    {
+      "id": "lv-gr34",
+      "position": [-8.523895, 2.42317, -0.825513],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.96
+    },
+    {
+      "id": "lv-ugc07298",
+      "position": [-2.572096, 3.327778, -0.185235],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.83
+    },
+    {
+      "id": "lv-ugc03817",
+      "position": [-2.131544, 6.057183, 5.645312],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.06
+    },
+    {
+      "id": "lv-ugc07827",
+      "position": [-5.939176, 5.991583, -1.037843],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.43
+    },
+    {
+      "id": "lv-ugc08061",
+      "position": [-6.156301, 1.341713, -1.555592],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.76
+    },
+    {
+      "id": "lv-ugc03476",
+      "position": [-0.77707, 3.848849, 5.807118],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.71
+    },
+    {
+      "id": "lv-kk2000-03",
+      "position": [0.939233, -3.931421, 0.686859],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 24.73
+    },
+    {
+      "id": "lv-ddo143",
+      "position": [-7.369151, 5.139416, -1.446382],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.53
+    },
+    {
+      "id": "lv-ugc05983",
+      "position": [-7.066544, 5.484409, 2.150629],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.15
+    },
+    {
+      "id": "lv-ckt2009-d0958-66",
+      "position": [-1.371362, 3.714687, 0.801292],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.79
+    },
+    {
+      "id": "lv-kdg063",
+      "position": [-1.221232, 3.211048, 0.669148],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 24.18
+    },
+    {
+      "id": "lv-eso215-009",
+      "position": [-3.371382, -3.912459, 0.94284],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.24
+    },
+    {
+      "id": "lv-ugc08215",
+      "position": [-2.9768, 3.318332, -0.910951],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.71
+    },
+    {
+      "id": "lv-kk55",
+      "position": [-0.995551, -4.990605, 5.711851],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.43
+    },
+    {
+      "id": "lv-ugc05209",
+      "position": [-4.614506, 3.499381, 3.081276],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.63
+    },
+    {
+      "id": "lv-ugca292",
+      "position": [-2.992481, 1.953801, -0.509723],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.93
+    },
+    {
+      "id": "lv-kk49",
+      "position": [0.40818, 0.599218, 5.098708],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.08
+    },
+    {
+      "id": "lv-kkh87",
+      "position": [-3.251368, 6.04441, -2.175711],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.04
+    },
+    {
+      "id": "lv-mcg-01-26-009",
+      "position": [-8.378637, -1.102276, 4.761663],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.04
+    },
+    {
+      "id": "lv-sbs-1224-533",
+      "position": [-3.189794, 4.278609, -0.375796],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.52
+    },
+    {
+      "id": "lv-pgc013294",
+      "position": [3.306664, -5.661529, 4.549006],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.14
+    },
+    {
+      "id": "lv-kk196",
+      "position": [-2.634069, -2.817394, -0.982023],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.58
+    },
+    {
+      "id": "lv-ic2684",
+      "position": [-9.856043, 2.33446, 1.870486],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.47
+    },
+    {
+      "id": "lv-vcc0114",
+      "position": [-8.143257, 0.811178, -0.518989],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.06
+    },
+    {
+      "id": "lv-ugc03600",
+      "position": [-1.351422, 4.565603, 5.454038],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 23.93
+    },
+    {
+      "id": "lv-ugc07584",
+      "position": [-8.430652, 3.533952, -1.036959],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.58
+    },
+    {
+      "id": "lv-ngc3521sat",
+      "position": [-10.400819, 0.022566, 2.51246],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 24.5
+    },
+    {
+      "id": "lv-kkh11",
+      "position": [1.354267, 2.487454, 0.989209],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.62
+    },
+    {
+      "id": "lv-cgcg-066-109",
+      "position": [-9.884171, 2.118763, 2.444178],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.79
+    },
+    {
+      "id": "lv-mcg-09-16-010",
+      "position": [-3.509861, 5.78975, 2.860448],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 22.58
+    },
+    {
+      "id": "lv-ugc07983",
+      "position": [-9.15847, 0.629886, -2.021302],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.39
+    },
+    {
+      "id": "lv-agc202456",
+      "position": [-9.765626, 1.992134, 2.970515],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 22.23
+    },
+    {
+      "id": "lv-ckt2009-d1028-70",
+      "position": [-1.246728, 3.764317, 0.524962],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.21
+    },
+    {
+      "id": "lv-am0106-382",
+      "position": [6.158656, -5.07198, 1.893669],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.14
+    },
+    {
+      "id": "lv-ugc05186",
+      "position": [-5.736499, 4.552584, 3.905965],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.16
+    },
+    {
+      "id": "lv-hipass-j1133-32",
+      "position": [-5.583076, -3.645349, 0.656272],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.74
+    },
+    {
+      "id": "lv-kdg010",
+      "position": [6.814439, 2.128266, 3.312221],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.24
+    },
+    {
+      "id": "lv-ugc02684",
+      "position": [3.974889, 1.929422, 4.753703],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.81
+    },
+    {
+      "id": "lv-eso269-037",
+      "position": [-2.300372, -2.527819, -0.654844],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.88
+    },
+    {
+      "id": "lv-kk77",
+      "position": [-1.123381, 3.215256, 0.714525],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 24.25
+    },
+    {
+      "id": "lv-kk258",
+      "position": [1.616189, -1.024077, -0.582408],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 23.52
+    },
+    {
+      "id": "lv-kk16",
+      "position": [4.232661, 2.564145, 2.330373],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.04
+    },
+    {
+      "id": "lv-ugc06757",
+      "position": [-1.307436, 2.395409, 0.074327],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.72
+    },
+    {
+      "id": "lv-kk152",
+      "position": [-5.702518, 3.793428, -0.837372],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.67
+    },
+    {
+      "id": "lv-kksg30",
+      "position": [-8.870516, -1.402721, -1.468438],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.35
+    },
+    {
+      "id": "lv-lv-j1342-4840",
+      "position": [-4.430511, 5.587905, -2.1212],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.2
+    },
+    {
+      "id": "lv-kk211",
+      "position": [-2.276211, -2.540483, -1.086835],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 22.84
+    },
+    {
+      "id": "lv-kk182",
+      "position": [-4.245429, -3.721705, -1.238401],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.38
+    },
+    {
+      "id": "lv-eso222-010",
+      "position": [-2.941852, -4.405201, -2.362142],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.48
+    },
+    {
+      "id": "lv-kdg052",
+      "position": [-0.678057, 3.357184, 0.933837],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.88
+    },
+    {
+      "id": "lv-mcg-05-28-046",
+      "position": [-6.555763, 3.536536, 0.131839],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.8
+    },
+    {
+      "id": "lv-kk73",
+      "position": [-6.653387, -4.023658, 5.965116],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 21.82
+    },
+    {
+      "id": "lv-kdg065",
+      "position": [-8.438126, -1.307914, 4.60189],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 22.59
+    },
+    {
+      "id": "lv-ugc05086",
+      "position": [-6.632548, 3.256802, 4.961103],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 22.45
+    },
+    {
+      "id": "lv-kdg177",
+      "position": [-7.843097, 1.953388, -1.382067],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.3
+    },
+    {
+      "id": "lv-kdg002",
+      "position": [3.157574, -1.054858, 0.690652],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.81
+    },
+    {
+      "id": "lv-am2220-460",
+      "position": [5.593289, -6.317611, -2.498583],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.28
+    },
+    {
+      "id": "lv-eso473-024",
+      "position": [9.043322, -3.830961, 1.245817],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.22
+    },
+    {
+      "id": "lv-kk167",
+      "position": [-8.051479, 4.048962, -1.849212],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.19
+    },
+    {
+      "id": "lv-eso373-007",
+      "position": [-5.557513, -4.550295, 4.15919],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.85
+    },
+    {
+      "id": "lv-kdg155",
+      "position": [-8.025047, -0.075451, -1.168344],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.72
+    },
+    {
+      "id": "lv-kkh37",
+      "position": [-0.120302, 3.339763, 0.568866],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.65
+    },
+    {
+      "id": "lv-kkh82",
+      "position": [-5.707667, 5.370853, -1.881508],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.65
+    },
+    {
+      "id": "lv-vcc1822",
+      "position": [-7.918994, 0.965662, -1.402509],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.14
+    },
+    {
+      "id": "lv-lv-j1241-3251",
+      "position": [-6.030492, 3.960656, -1.111926],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.07
+    },
+    {
+      "id": "lv-agc205165",
+      "position": [-9.380271, 2.750845, 3.550123],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.94
+    },
+    {
+      "id": "lv-agc205445",
+      "position": [-9.552201, 2.50537, 3.261682],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 21.71
+    },
+    {
+      "id": "lv-kksg9",
+      "position": [-1.935291, -3.080439, 9.314802],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.51
+    },
+    {
+      "id": "lv-mrk0475",
+      "position": [-5.661547, 5.511803, -4.712421],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.38
+    },
+    {
+      "id": "lv-eso219-010",
+      "position": [-2.667166, -3.293245, -0.666977],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 21.84
+    },
+    {
+      "id": "lv-eso540-032",
+      "position": [3.138171, -1.164488, 0.701608],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.08
+    },
+    {
+      "id": "lv-eso199-007",
+      "position": [3.045115, -4.979516, 2.994211],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.47
+    },
+    {
+      "id": "lv-ugc06145",
+      "position": [-10.394299, -0.347968, 2.515446],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.9
+    },
+    {
+      "id": "lv-ikn",
+      "position": [-1.219203, 3.486642, 0.647591],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 24.22
+    },
+    {
+      "id": "lv-ddo078",
+      "position": [-1.298029, 3.440712, 0.56127],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 23.56
+    },
+    {
+      "id": "lv-kk251",
+      "position": [1.778978, 5.118968, -2.307272],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 23.08
+    },
+    {
+      "id": "lv-kk176",
+      "position": [-6.286422, -2.293395, -1.682629],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.96
+    },
+    {
+      "id": "lv-ugc7751",
+      "position": [-5.886593, 5.189194, -0.911205],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.59
+    },
+    {
+      "id": "lv-kk27",
+      "position": [1.021874, -3.644888, 1.229215],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.53
+    },
+    {
+      "id": "lv-kk144",
+      "position": [-5.372287, 2.932875, -0.599394],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.46
+    },
+    {
+      "id": "lv-kdg229",
+      "position": [-3.512382, 6.931769, -1.900987],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.03
+    },
+    {
+      "id": "lv-kdg098",
+      "position": [-7.872707, 4.314546, -0.636535],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 21.87
+    },
+    {
+      "id": "lv-bts76",
+      "position": [-4.936754, 2.579267, 0.027249],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.57
+    },
+    {
+      "id": "lv-hipass-j1337-39",
+      "position": [-3.375776, -3.098058, -1.528095],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.4
+    },
+    {
+      "id": "lv-kksg29",
+      "position": [-7.47142, -1.402883, -1.224664],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.81
+    },
+    {
+      "id": "lv-kk13",
+      "position": [5.819112, 3.197746, 2.784306],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.68
+    },
+    {
+      "id": "lv-eso379-024",
+      "position": [-3.959905, -2.850658, -0.085455],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.72
+    },
+    {
+      "id": "lv-kdg192",
+      "position": [-4.303699, 6.024033, -0.831683],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.24
+    },
+    {
+      "id": "lv-eso379-007",
+      "position": [-4.348807, -2.88552, 0.10027],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.02
+    },
+    {
+      "id": "lv-agc238890",
+      "position": [-5.661938, 2.887093, -2.418088],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.85
+    },
+    {
+      "id": "lv-kkh40",
+      "position": [-1.963463, 5.447108, 3.897977],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.54
+    },
+    {
+      "id": "lv-lv-j0935-1348",
+      "position": [-5.723335, -1.743081, 4.182715],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.04
+    },
+    {
+      "id": "lv-kk141",
+      "position": [-6.430722, 4.331208, -0.644091],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21
+    },
+    {
+      "id": "lv-lv-j2335-3713",
+      "position": [6.174525, -4.718102, -0.674357],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.32
+    },
+    {
+      "id": "lv-kk200",
+      "position": [-3.702428, -2.382702, -1.432361],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.18
+    },
+    {
+      "id": "lv-vcc0169",
+      "position": [-9.244618, 1.575579, -0.64388],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.78
+    },
+    {
+      "id": "lv-vcc0381",
+      "position": [-4.660533, 0.54673, -0.405729],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.66
+    },
+    {
+      "id": "lv-kkh98",
+      "position": [1.90779, 1.532438, -0.120307],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.06
+    },
+    {
+      "id": "lv-ugca361",
+      "position": [-4.744878, 6.113096, -2.028839],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 21.95
+    },
+    {
+      "id": "lv-lv-j1203-3257",
+      "position": [-6.3345, 4.107173, -0.087945],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 21.94
+    },
+    {
+      "id": "lv-ckt2009-d0944-71",
+      "position": [-0.894082, 3.214488, 0.599817],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 21.81
+    },
+    {
+      "id": "lv-kk252",
+      "position": [1.763849, 5.14218, -2.26692],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.81
+    },
+    {
+      "id": "lv-kdg105",
+      "position": [-5.963054, 4.677691, -0.566737],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.7
+    },
+    {
+      "id": "lv-kdg078",
+      "position": [-5.443534, 7.130979, 0.719071],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.54
+    },
+    {
+      "id": "lv-kkh18",
+      "position": [2.57078, 2.457603, 2.641245],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.49
+    },
+    {
+      "id": "lv-lv-j1205-2813",
+      "position": [-5.936439, 3.188332, -0.144306],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 21.45
+    },
+    {
+      "id": "lv-agc213436",
+      "position": [-9.902069, 2.313395, 1.639277],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 21.11
+    },
+    {
+      "id": "lv-agc202256",
+      "position": [-10.524568, 2.408475, 2.105404],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.85
+    },
+    {
+      "id": "lv-camb",
+      "position": [0.37395, 3.07674, 1.244761],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.65
+    },
+    {
+      "id": "lv-leg05",
+      "position": [-9.531937, 2.274791, 3.482457],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.18
+    },
+    {
+      "id": "lv-kksg19",
+      "position": [-4.562917, -1.100128, 2.0203],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.32
+    },
+    {
+      "id": "lv-garland",
+      "position": [-1.21312, 3.558899, 0.674521],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 24.74
+    },
+    {
+      "id": "lv-a0952-69",
+      "position": [-1.178606, 3.619505, 0.697835],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.93
+    },
+    {
+      "id": "lv-kdg218",
+      "position": [-4.75188, -0.674735, -1.401559],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 22.93
+    },
+    {
+      "id": "lv-kdg235",
+      "position": [-0.918911, 9.978964, -3.454834],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 22.27
+    },
+    {
+      "id": "lv-ugc12894",
+      "position": [6.536069, 5.387076, 0.010695],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.87
+    },
+    {
+      "id": "lv-kkh80",
+      "position": [-6.823186, 2.818259, -0.840502],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.59
+    },
+    {
+      "id": "lv-lv-j1030-0607",
+      "position": [-7.174618, 0.832545, 2.944781],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.34
+    },
+    {
+      "id": "lv-kug-0821-321",
+      "position": [-4.088137, 4.320953, 5.571266],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.29
+    },
+    {
+      "id": "lv-agc731457",
+      "position": [-7.528888, 4.3228, 3.044543],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.66
+    },
+    {
+      "id": "lv-lv-j1218-4655",
+      "position": [-4.453143, 4.776583, -0.354087],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 21.65
+    },
+    {
+      "id": "lv-lv-j0944-2254",
+      "position": [-4.62437, -2.355767, 3.109352],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.48
+    },
+    {
+      "id": "lv-kkh86",
+      "position": [-2.26688, 0.191628, -1.237997],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.48
+    },
+    {
+      "id": "lv-kdg104",
+      "position": [-9.038874, 2.436773, -0.849054],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.41
+    },
+    {
+      "id": "lv-hizss008",
+      "position": [-2.46101, -3.078253, 6.298626],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 22.21
+    },
+    {
+      "id": "lv-kdg215",
+      "position": [-5.04128, 1.809598, -1.249342],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.95
+    },
+    {
+      "id": "lv-kdg216",
+      "position": [-5.618581, 1.561595, -1.411724],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 21.88
+    },
+    {
+      "id": "lv-bk6n",
+      "position": [-1.457635, 3.517469, 0.570275],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 21.85
+    },
+    {
+      "id": "lv-ic3840",
+      "position": [-4.979193, 2.036753, -1.144237],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.61
+    },
+    {
+      "id": "lv-leg26",
+      "position": [-9.688096, 2.312806, 2.991943],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 21.16
+    },
+    {
+      "id": "lv-ugca127sat",
+      "position": [-0.765752, -1.278425, 8.368348],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.16
+    },
+    {
+      "id": "lv-ic2791",
+      "position": [-9.914024, 2.298746, 1.586786],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.95
+    },
+    {
+      "id": "lv-lsbc-d640-13",
+      "position": [-9.781137, 2.164106, 2.793922],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.95
+    },
+    {
+      "id": "lv-lv-j1952-1428",
+      "position": [3.246331, 1.781996, -6.092842],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.33
+    },
+    {
+      "id": "lv-lsbc-d640-08",
+      "position": [-9.762095, 2.494994, 2.576143],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 21.29
+    },
+    {
+      "id": "lv-leg17",
+      "position": [-9.644893, 2.220196, 3.194802],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 20.83
+    },
+    {
+      "id": "lv-kkr25",
+      "position": [-0.484335, 1.511821, -0.969235],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 21.7
+    },
+    {
+      "id": "lv-hipass-j1131-31",
+      "position": [-5.658375, -3.517896, 0.705122],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.55
+    },
+    {
+      "id": "lv-kkh6",
+      "position": [2.098194, 2.94295, 0.921698],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.34
+    },
+    {
+      "id": "lv-kksg38",
+      "position": [-10.063539, -1.074058, -2.394071],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.34
+    },
+    {
+      "id": "lv-kug-0937-480",
+      "position": [-4.342127, 5.835435, 3.031176],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.3
+    },
+    {
+      "id": "lv-ugc01703",
+      "position": [2.945498, 2.270628, 1.929867],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 21.2
+    },
+    {
+      "id": "lv-kkr55",
+      "position": [1.920897, 5.121889, -2.183691],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.84
+    },
+    {
+      "id": "lv-kug-1033-366b",
+      "position": [-6.087612, 4.809569, 2.32788],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.84
+    },
+    {
+      "id": "lv-kk134",
+      "position": [-5.255248, 5.746316, -0.449687],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 20.35
+    },
+    {
+      "id": "lv-eso443-009",
+      "position": [-4.941978, -2.743856, -1.206857],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.04
+    },
+    {
+      "id": "lv-lv-j0616-5745",
+      "position": [-0.22538, -5.07522, 3.192388],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.4
+    },
+    {
+      "id": "lv-kdg056",
+      "position": [-6.640148, 3.042763, 5.085275],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.97
+    },
+    {
+      "id": "lv-kkh46",
+      "position": [-4.08823, 0.516518, 3.792043],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.77
+    },
+    {
+      "id": "lv-kk246",
+      "position": [3.430705, -4.112311, -5.712098],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.32
+    },
+    {
+      "id": "lv-agc122226",
+      "position": [5.660713, 3.982538, 5.036796],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.19
+    },
+    {
+      "id": "lv-kdg073",
+      "position": [-1.238056, 3.466723, 0.372897],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.72
+    },
+    {
+      "id": "lv-kkh34",
+      "position": [0.001798, 4.418499, 1.314902],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.29
+    },
+    {
+      "id": "lv-kkh5",
+      "position": [2.54687, 3.338964, 0.77309],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.19
+    },
+    {
+      "id": "lv-kk195",
+      "position": [-4.173438, -2.729751, -1.542491],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.91
+    },
+    {
+      "id": "lv-agc732602",
+      "position": [-6.163292, 2.944949, -2.276203],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.74
+    },
+    {
+      "id": "lv-lv-j1000-5022",
+      "position": [-4.406281, 6.139143, 2.533084],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.66
+    },
+    {
+      "id": "lv-lv-j1157-5638",
+      "position": [-3.865819, 5.87155, 0.035367],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.45
+    },
+    {
+      "id": "lv-maps1249-44",
+      "position": [-5.47505, 5.481367, -1.201681],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.43
+    },
+    {
+      "id": "lv-agc205544",
+      "position": [-9.606333, 2.697075, 2.933284],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 20.38
+    },
+    {
+      "id": "lv-and-iv",
+      "position": [4.710556, 4.104364, 0.88372],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.29
+    },
+    {
+      "id": "lv-lv-j1243-4127",
+      "position": [-4.480587, 4.031927, -0.869484],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.81
+    },
+    {
+      "id": "lv-kk17",
+      "position": [3.715922, 2.363028, 2.148957],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.26
+    },
+    {
+      "id": "lv-lv-j1203-4739",
+      "position": [-5.044861, 5.535803, -0.066041],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.16
+    },
+    {
+      "id": "lv-kdg058",
+      "position": [-8.202765, 0.007418, 5.719668],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.67
+    },
+    {
+      "id": "lv-leop",
+      "position": [-1.729128, 0.620957, 0.790273],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.45
+    },
+    {
+      "id": "lv-hipass-j0801-21",
+      "position": [-2.970785, -2.374749, 5.072534],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.3
+    },
+    {
+      "id": "lv-agc182595",
+      "position": [-3.663553, 2.85249, 3.95622],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.04
+    },
+    {
+      "id": "lv-ngc2784-dw01",
+      "position": [-6.650267, -4.018979, 5.971746],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 20.98
+    },
+    {
+      "id": "lv-hs117",
+      "position": [-1.164912, 3.746859, 0.534445],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.84
+    },
+    {
+      "id": "lv-kk221",
+      "position": [-2.414473, -2.910643, -1.240515],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.84
+    },
+    {
+      "id": "lv-leg03",
+      "position": [-9.600091, 1.533578, 3.694104],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 21.03
+    },
+    {
+      "id": "lv-kk180",
+      "position": [-4.025486, 1.342053, -1.163768],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 20.94
+    },
+    {
+      "id": "lv-kk2000-53",
+      "position": [-2.667191, -2.260966, -0.856812],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 20.76
+    },
+    {
+      "id": "lv-kkh73",
+      "position": [-5.056201, 7.442253, 0.218401],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.58
+    },
+    {
+      "id": "lv-lsbc-d565-06",
+      "position": [-6.45499, 3.343062, 5.440904],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.41
+    },
+    {
+      "id": "lv-kk2000-51",
+      "position": [-2.586245, -2.452423, -0.506913],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.31
+    },
+    {
+      "id": "lv-agc205278",
+      "position": [-9.728707, 2.538779, 2.658356],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.29
+    },
+    {
+      "id": "lv-lv-j1328-4937",
+      "position": [-4.81231, 6.110006, -1.957012],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.09
+    },
+    {
+      "id": "lv-hideep-j1337-33",
+      "position": [-3.327716, -2.403248, -1.499201],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.49
+    },
+    {
+      "id": "lv-kk69",
+      "position": [-4.381159, 4.283228, 4.663625],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.52
+    },
+    {
+      "id": "lv-bts151",
+      "position": [-6.04784, 3.920377, -1.159431],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 20.6
+    },
+    {
+      "id": "lv-kk177",
+      "position": [-3.927964, 1.648091, -1.102221],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 20.6
+    },
+    {
+      "id": "lv-kkh65",
+      "position": [-8.414928, 4.750484, 2.573304],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 20.22
+    },
+    {
+      "id": "lv-lv-j0913-1937",
+      "position": [-3.121034, 1.487426, 2.769767],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.14
+    },
+    {
+      "id": "lv-agc215354",
+      "position": [-9.938501, 2.572016, 1.785309],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.06
+    },
+    {
+      "id": "lv-hipass-j0905-36",
+      "position": [-4.6501, -4.667853, 4.41278],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.06
+    },
+    {
+      "id": "lv-lv-j1028-4240",
+      "position": [-5.115267, 5.117092, 2.156829],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.01
+    },
+    {
+      "id": "lv-lv-j1213-2957",
+      "position": [-2.317697, 1.338334, -0.139794],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.99
+    },
+    {
+      "id": "lv-agc205268",
+      "position": [-9.535667, 2.470366, 3.335918],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.79
+    },
+    {
+      "id": "lv-kk2000-58",
+      "position": [-2.595473, -2.13271, -1.294244],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 20.84
+    },
+    {
+      "id": "lv-kk160",
+      "position": [-3.06082, 2.975603, -0.594363],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.2
+    },
+    {
+      "id": "lv-leg13",
+      "position": [-9.635286, 2.147385, 3.272614],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.84
+    },
+    {
+      "id": "lv-kk14",
+      "position": [5.742419, 3.300912, 2.822872],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.52
+    },
+    {
+      "id": "lv-d0226-3325",
+      "position": [6.221504, 5.123122, 4.640745],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.73
+    },
+    {
+      "id": "lv-fm1",
+      "position": [-1.024419, 3.169149, 0.683418],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 20.65
+    },
+    {
+      "id": "lv-hizss021",
+      "position": [-1.179547, -1.430083, 2.358714],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.49
+    },
+    {
+      "id": "lv-cenn",
+      "position": [-2.199677, -2.701238, -1.122646],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 20.42
+    },
+    {
+      "id": "lv-kk230",
+      "position": [-1.488838, 1.229297, -0.922924],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.42
+    },
+    {
+      "id": "lv-kk165",
+      "position": [-4.477156, 2.859188, -0.969597],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 20.35
+    },
+    {
+      "id": "lv-kk227",
+      "position": [-6.667401, 6.468341, -3.702205],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 20.33
+    },
+    {
+      "id": "lv-lv-j1207-3133",
+      "position": [-6.276777, 3.85654, -0.21462],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 20.2
+    },
+    {
+      "id": "lv-kk94",
+      "position": [-9.623169, 2.339196, 3.17534],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.08
+    },
+    {
+      "id": "lv-hipass-j1351-47",
+      "position": [-3.455484, -4.190657, -1.825083],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.04
+    },
+    {
+      "id": "lv-bts157",
+      "position": [-5.864478, 6.465293, -1.33296],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.95
+    },
+    {
+      "id": "lv-kk136",
+      "position": [-5.29787, 5.704636, -0.479269],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 19.85
+    },
+    {
+      "id": "lv-lsbc-d634-03",
+      "position": [-6.783922, 2.40435, 6.276942],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.85
+    },
+    {
+      "id": "lv-lv-j1021-0054",
+      "position": [-6.164455, 0.106496, 2.820736],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.74
+    },
+    {
+      "id": "lv-agc202248",
+      "position": [-9.497509, 2.072043, 3.69648],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.62
+    },
+    {
+      "id": "lv-bts146",
+      "position": [-6.596105, 5.233187, -1.16411],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.55
+    },
+    {
+      "id": "lv-kksg20",
+      "position": [-10.389756, 0.010894, 2.557898],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.94
+    },
+    {
+      "id": "lv-bk5n",
+      "position": [-1.226773, 3.511036, 0.675319],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 20.43
+    },
+    {
+      "id": "lv-am1320-230",
+      "position": [-3.944779, -1.826369, -1.50436],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 20.25
+    },
+    {
+      "id": "lv-kk217",
+      "position": [-2.399294, -2.747545, -1.199993],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 20.11
+    },
+    {
+      "id": "lv-kk218",
+      "position": [-3.560792, -2.298551, -1.788135],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 20.36
+    },
+    {
+      "id": "lv-kkr56",
+      "position": [2.056307, 5.028396, -2.275727],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.18
+    },
+    {
+      "id": "lv-kk194",
+      "position": [-6.742295, 6.996218, -2.365247],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.03
+    },
+    {
+      "id": "lv-hipass-j1348-37",
+      "position": [-4.033908, -3.537483, -2.067921],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.7
+    },
+    {
+      "id": "lv-kk166",
+      "position": [-3.764963, 2.760104, -0.821268],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 19.94
+    },
+    {
+      "id": "lv-kk198",
+      "position": [-3.584428, -2.54378, -1.356856],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 19.69
+    },
+    {
+      "id": "lv-kk78",
+      "position": [-5.112675, 3.70516, 3.246897],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.45
+    },
+    {
+      "id": "lv-kksg31",
+      "position": [-9.01542, -1.693239, -1.531386],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 20.18
+    },
+    {
+      "id": "lv-kk2000-70",
+      "position": [1.049599, -7.45782, -3.488448],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.73
+    },
+    {
+      "id": "lv-kk203",
+      "position": [-2.347852, -2.561197, -0.942264],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.62
+    },
+    {
+      "id": "lv-kk70",
+      "position": [-4.444523, 4.256543, 4.627964],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 19.62
+    },
+    {
+      "id": "lv-kk133",
+      "position": [-5.959312, 5.65331, -0.509496],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.56
+    },
+    {
+      "id": "lv-kkh78",
+      "position": [-3.914496, 2.583511, -0.303638],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.51
+    },
+    {
+      "id": "lv-kk71",
+      "position": [-6.610938, -3.886991, 6.101377],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 19.4
+    },
+    {
+      "id": "lv-sc22",
+      "position": [3.803955, -1.759554, 0.39749],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 20.38
+    },
+    {
+      "id": "lv-kk189",
+      "position": [-2.980171, -2.807851, -0.97911],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 19.75
+    },
+    {
+      "id": "lv-hs1053-3624",
+      "position": [-7.147791, 5.425939, 2.026888],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.53
+    },
+    {
+      "id": "lv-kkh12",
+      "position": [1.290076, 2.52983, 0.967297],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 21.34
+    },
+    {
+      "id": "lv-mb1",
+      "position": [1.189213, 2.581685, 0.959517],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.5
+    },
+    {
+      "id": "lv-agc112521",
+      "position": [5.23767, 2.99281, 2.473925],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.68
+    },
+    {
+      "id": "lv-agc198508",
+      "position": [-7.300979, 4.386454, 5.967807],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.21
+    },
+    {
+      "id": "lv-leg19",
+      "position": [-9.630679, 2.30199, 3.17976],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 19.19
+    },
+    {
+      "id": "lv-maps1231-42",
+      "position": [-4.264163, 3.888036, -0.58317],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.1
+    },
+    {
+      "id": "lv-kkh57",
+      "position": [-1.52856, 3.489549, 0.880144],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 19.58
+    },
+    {
+      "id": "lv-lsbc-d564-08",
+      "position": [-5.830533, 2.976016, 5.684814],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.77
+    },
+    {
+      "id": "lv-kk2000-72",
+      "position": [1.135929, -7.45083, -3.47632],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.44
+    },
+    {
+      "id": "lv-lv-j1052-3628",
+      "position": [-7.075331, 5.469357, 2.160052],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.2
+    },
+    {
+      "id": "lv-agc174585",
+      "position": [-2.447613, 1.057827, 5.486364],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.11
+    },
+    {
+      "id": "lv-dw2",
+      "position": [1.119957, 2.571644, 1.064116],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.14
+    },
+    {
+      "id": "lv-kkh22",
+      "position": [0.599023, 3.329912, 0.896022],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 20.18
+    },
+    {
+      "id": "lv-kksg16",
+      "position": [-8.284646, -1.574796, 4.793189],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 19.89
+    },
+    {
+      "id": "lv-ckt2009-d0959-68",
+      "position": [-1.133404, 3.353105, 0.657331],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.75
+    },
+    {
+      "id": "lv-ddo169nw",
+      "position": [-2.683327, 3.098724, -0.915243],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.73
+    },
+    {
+      "id": "lv-ckt2009-d1009-70",
+      "position": [-2.655897, 8.486319, 1.38874],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 19.62
+    },
+    {
+      "id": "lv-kkr60",
+      "position": [2.316902, 4.959637, -2.2009],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.6
+    },
+    {
+      "id": "lv-kksg34",
+      "position": [-8.951761, -1.922066, -1.631451],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 19.57
+    },
+    {
+      "id": "lv-hipass-j1247-77",
+      "position": [-0.664879, -3.08609, -0.13994],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.51
+    },
+    {
+      "id": "lv-kk93",
+      "position": [-9.574322, 2.520391, 3.184334],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 19.35
+    },
+    {
+      "id": "lv-kkr08",
+      "position": [-6.558504, 0.435961, -4.56026],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 19.31
+    },
+    {
+      "id": "lv-leg22",
+      "position": [-9.719504, 2.047036, 3.082352],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.31
+    },
+    {
+      "id": "lv-hizss003",
+      "position": [-0.434489, -0.12255, 1.607825],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.19
+    },
+    {
+      "id": "lv-kk213",
+      "position": [-2.358065, -2.511069, -1.144972],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 19.14
+    },
+    {
+      "id": "lv-kk72",
+      "position": [-6.646388, -3.983241, 5.999943],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 19.08
+    },
+    {
+      "id": "lv-halogas",
+      "position": [6.174016, 5.194886, 4.624358],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.04
+    },
+    {
+      "id": "lv-agc174605",
+      "position": [-2.753213, 0.813717, 5.268556],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 18.83
+    },
+    {
+      "id": "lv-agc205540",
+      "position": [-9.639153, 2.536188, 2.968921],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 18.78
+    },
+    {
+      "id": "lv-lv-j1000-3032",
+      "position": [-5.304098, 3.607377, 3.043579],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 18.6
+    },
+    {
+      "id": "lv-kk2000-57",
+      "position": [-2.613791, -2.659211, -1.241609],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 19.15
+    },
+    {
+      "id": "lv-kk109",
+      "position": [-3.25701, 3.114283, 0.182285],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 18.93
+    },
+    {
+      "id": "lv-lv-j0300-2546",
+      "position": [4.952178, 3.392623, 4.980566],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 18.71
+    },
+    {
+      "id": "lv-kk2000-54",
+      "position": [-3.661236, -2.429889, -1.360511],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.32
+    },
+    {
+      "id": "lv-lv-j1217-3231",
+      "position": [-4.98488, 3.189023, -0.382107],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.22
+    },
+    {
+      "id": "lv-kksg22",
+      "position": [-10.40243, -0.2705, 2.491243],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 18.9
+    },
+    {
+      "id": "lv-kk191",
+      "position": [-4.227597, 4.01822, -1.407598],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 18.72
+    },
+    {
+      "id": "lv-lv-j1158-1535",
+      "position": [-6.039141, 1.685366, 0.034959],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 18.49
+    },
+    {
+      "id": "lv-ngc2903-hi-1",
+      "position": [-6.573961, 3.294154, 5.014139],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 18.37
+    },
+    {
+      "id": "lv-kk15",
+      "position": [5.74263, 3.246474, 2.884894],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.05
+    },
+    {
+      "id": "lv-leg28",
+      "position": [-9.795938, 1.87368, 2.947699],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.11
+    },
+    {
+      "id": "lv-leg06",
+      "position": [-9.485222, 2.499742, 3.455698],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.02
+    },
+    {
+      "id": "lv-kk96",
+      "position": [-9.694732, 2.226303, 3.035745],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 18.96
+    },
+    {
+      "id": "lv-agc749241",
+      "position": [-8.120659, 4.079414, -1.432927],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 18.39
+    },
+    {
+      "id": "lv-a0554-07",
+      "position": [0.056826, 0.717127, 5.452752],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 19.04
+    },
+    {
+      "id": "lv-kkh67",
+      "position": [-9.194452, 3.636893, 1.495009],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 19.02
+    },
+    {
+      "id": "lv-lsbc-d640-12",
+      "position": [-9.765605, 2.222412, 2.802471],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 18.5
+    },
+    {
+      "id": "lv-hizss014",
+      "position": [-2.828536, -2.452809, 6.324999],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 18.39
+    },
+    {
+      "id": "lv-bts132",
+      "position": [-5.225404, 5.765354, -0.543911],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 18.37
+    },
+    {
+      "id": "lv-sucd1",
+      "position": [-8.969106, -1.8808, -1.58358],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 17.62
+    },
+    {
+      "id": "lv-centaurus-a-de5",
+      "position": [-5.953865, -4.964704, -4.572002],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 18.61
+    },
+    {
+      "id": "lv-bts142",
+      "position": [-7.785587, 6.172571, -1.133135],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 18.17
+    },
+    {
+      "id": "lv-kk2000-55",
+      "position": [-2.709932, -2.673507, -1.015988],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 19.02
+    },
+    {
+      "id": "lv-leg09",
+      "position": [-9.592362, 2.189005, 3.369695],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 18.88
+    },
+    {
+      "id": "lv-kksg32",
+      "position": [-8.967478, -1.893339, -1.577847],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 18.67
+    },
+    {
+      "id": "lv-kksg33",
+      "position": [-8.945247, -1.991446, -1.583259],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 18.46
+    },
+    {
+      "id": "lv-lsbc-d640-14",
+      "position": [-9.804861, 2.162134, 2.711068],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 18.42
+    },
+    {
+      "id": "lv-kk132",
+      "position": [-5.228168, 5.771947, -0.436916],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 18.15
+    },
+    {
+      "id": "lv-lv-j1217-4703",
+      "position": [-5.29835, 5.710461, -0.397649],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 18.01
+    },
+    {
+      "id": "lv-leg12",
+      "position": [-9.636733, 2.079306, 3.31208],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 17.81
+    },
+    {
+      "id": "lv-leg27",
+      "position": [-9.623999, 2.640351, 2.926976],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 18.03
+    },
+    {
+      "id": "lv-leg33",
+      "position": [-9.748407, 2.546309, 2.577764],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 17.98
+    },
+    {
+      "id": "lv-d1219-4705",
+      "position": [-5.290936, 5.71314, -0.453903],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 17.84
+    },
+    {
+      "id": "lv-leg21",
+      "position": [-9.625471, 2.332367, 3.173384],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 17.74
+    },
+    {
+      "id": "lv-agc205156",
+      "position": [-9.424512, 2.247986, 3.861351],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 17.5
+    },
+    {
+      "id": "lv-kk193",
+      "position": [-6.306945, 5.89748, -2.156891],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 18.3
+    },
+    {
+      "id": "lv-leg04",
+      "position": [-9.527387, 2.292598, 3.483229],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 18.21
+    },
+    {
+      "id": "lv-kk138",
+      "position": [-5.524498, 2.981214, -0.5313],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 18
+    },
+    {
+      "id": "lv-leg14",
+      "position": [-9.614698, 2.332416, 3.205841],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 17.86
+    },
+    {
+      "id": "lv-bk3n",
+      "position": [-1.229438, 3.752218, 0.754815],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 17.65
+    },
+    {
+      "id": "lv-leg11",
+      "position": [-9.472167, 2.794824, 3.259911],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 17.69
+    },
+    {
+      "id": "lv-agc748778",
+      "position": [5.201191, 1.444071, 0.149219],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 17.48
+    },
+    {
+      "id": "lv-leg18",
+      "position": [-9.631993, 2.29427, 3.181359],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 17.38
+    },
+    {
+      "id": "lv-hizss012",
+      "position": [-2.558105, -2.699142, 6.165284],
+      "unit": "megaparsec",
+      "color": "#a8bed5",
+      "visualRadius": 21
+    },
+    {
+      "id": "lv-ckt2009-d0926-70",
+      "position": [-1.02799, 3.704734, 0.8143],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 17.52
+    },
+    {
+      "id": "lv-lv-j1243-3232",
+      "position": [-6.042636, 3.925988, -1.167548],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 17.4
+    },
+    {
+      "id": "lv-leg16",
+      "position": [-9.662721, 2.118911, 3.209678],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 17.26
+    },
+    {
+      "id": "lv-leg23",
+      "position": [-9.647275, 2.424939, 3.034757],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 16.83
+    },
+    {
+      "id": "lv-leg10",
+      "position": [-9.612548, 2.186294, 3.313463],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 16.63
+    },
+    {
+      "id": "lv-ckt2009-d0934-70",
+      "position": [-0.99604, 3.443966, 0.736616],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 17.49
+    },
+    {
+      "id": "lv-mb3",
+      "position": [1.117209, 2.567764, 1.076305],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 18.91
+    },
+    {
+      "id": "lv-d1220-4649",
+      "position": [-5.314362, 5.688673, -0.486373],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 16.58
+    },
+    {
+      "id": "lv-ckt2009-d0955-70",
+      "position": [-1.127282, 3.702471, 0.682527],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 16.68
+    },
+    {
+      "id": "lv-hipass-j1526-51",
+      "position": [-2.212142, -4.425104, -2.790571],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 15.73
+    },
+    {
+      "id": "lv-ckt2009-d0939-71",
+      "position": [-0.950632, 3.43861, 0.670193],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 16.53
+    },
+    {
+      "id": "lv-ckt2009-d1041-70",
+      "position": [-1.250073, 3.677706, 0.447099],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 16.53
+    },
+    {
+      "id": "lv-ckt2009-d1006-67",
+      "position": [-1.320285, 3.567639, 0.711123],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 16.32
+    },
+    {
+      "id": "lv-clumpi",
+      "position": [-1.12411, 3.354437, 0.666431],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 15.82
+    },
+    {
+      "id": "lv-clumpiii",
+      "position": [-1.136438, 3.353181, 0.651679],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 15.59
+    },
+    {
+      "id": "lv-ckt2009-d1014-68",
+      "position": [-1.484804, 4.259493, 0.732788],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 15.29
+    },
+    {
+      "id": "lv-hipass-j1441-62",
+      "position": [-2.09701, -5.352711, -1.786458],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 15.11
+    },
+    {
+      "id": "lv-kkh2011-s11",
+      "position": [-5.249505, 5.749869, -0.470853],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 15.06
+    },
+    {
+      "id": "lv-ckt2009-d1015-69",
+      "position": [-1.306233, 3.800626, 0.643348],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 14.98
+    },
+    {
+      "id": "lv-ckt2009-d0944-69",
+      "position": [-1.172393, 3.72088, 0.788001],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 14.13
+    },
+    {
+      "id": "lv-applesi",
+      "position": [6.012772, -5.625132, -1.194515],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 14
+    },
+    {
+      "id": "lv-cvnhi",
+      "position": [-4.479803, 4.692161, -0.406183],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 16.45
+    },
+    {
+      "id": "lv-hijass-j1021-6842",
+      "position": [-1.220579, 3.447258, 0.562673],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 16.45
+    },
+    {
+      "id": "lv-hipass-j0630-08",
+      "position": [-0.460703, 0.517182, 3.481778],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 16.45
+    },
+    {
+      "id": "lv-hipass-j0705-20",
+      "position": [-1.910089, -2.590019, 6.474277],
+      "unit": "megaparsec",
+      "color": "#d0bea1",
+      "visualRadius": 16.45
+    },
+    {
+      "id": "lv-lv-j1354-5438",
+      "position": [-3.760369, 6.043633, -2.059666],
+      "unit": "megaparsec",
+      "color": "#9eb8c8",
+      "visualRadius": 16.45
+    }
   ]
 }

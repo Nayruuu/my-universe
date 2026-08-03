@@ -3,6 +3,7 @@ import {
   calculateNearRepresentationBlend,
   calculateWorldDiameterForPixels,
   dampValue,
+  getMinimumVisualDiameterPixels,
   shouldDisplayObjectAtLevel,
 } from './screen-space-lod';
 import { SpaceObject } from '../../data/models/universe.models';
@@ -52,6 +53,14 @@ describe('LOD en espace écran', () => {
     const projectedRadius = calculateApparentRadiusPixels(diameter / 2, 100, 1_000, 50);
 
     expect(projectedRadius * 2).toBeCloseTo(5, 8);
+  });
+
+  it('rend les galaxies réellement lisibles aux échelles extragalactiques', () => {
+    expect(getMinimumVisualDiameterPixels(planet, 0, 5)).toBe(5);
+    expect(getMinimumVisualDiameterPixels(planet, 5, 5)).toBe(8);
+    expect(getMinimumVisualDiameterPixels(neighboringGalaxy, 4, 5)).toBe(20);
+    expect(getMinimumVisualDiameterPixels(neighboringGalaxy, 5, 5)).toBe(11);
+    expect(getMinimumVisualDiameterPixels(neighboringGalaxy, 6, 5)).toBe(8);
   });
 
   it('filtre les familles astronomiques selon l’échelle tout en gardant la sélection', () => {

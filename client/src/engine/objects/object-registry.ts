@@ -11,6 +11,7 @@ import {
   calculateNearRepresentationBlend,
   calculateWorldDiameterForPixels,
   dampValue,
+  getMinimumVisualDiameterPixels,
   shouldDisplayObjectAtLevel,
 } from '../lod/screen-space-lod';
 import { calculateMilkyWayTransition } from '../lod/milky-way-transition';
@@ -202,8 +203,6 @@ export class ObjectRegistry {
     this.currentLodLevel = lodLevel;
     const qualityMinimumPixelDiameter =
       this.quality === 'low' ? 3.5 : this.quality === 'medium' ? 4.5 : 5;
-    const minimumPixelDiameter =
-      lodLevel >= 5 ? qualityMinimumPixelDiameter * 1.6 : qualityMinimumPixelDiameter;
     const photographicProfile = getPhotographicProfile(lodLevel, this.quality);
 
     this.registryRoot.updateWorldMatrix(true, false);
@@ -228,6 +227,11 @@ export class ObjectRegistry {
           ? 1
           : 0;
       const lod = entry.lod;
+      const minimumPixelDiameter = getMinimumVisualDiameterPixels(
+        entry.definition,
+        lodLevel,
+        qualityMinimumPixelDiameter,
+      );
 
       lod.visibilityBlend = dampValue(lod.visibilityBlend, targetVisibility, 8, deltaSeconds);
 

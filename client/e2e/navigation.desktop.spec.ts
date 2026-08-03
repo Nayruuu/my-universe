@@ -518,8 +518,11 @@ test('le sélecteur traverse les sept échelles et partage le cadrage courant', 
     });
   await expect
     .poll(async () => (await readCosmicGroupBatchState(page)).opacity)
-    .toBeGreaterThan(0.27);
-  await expect.poll(async () => (await readCosmicGroupBatchState(page)).opacity).toBeLessThan(0.31);
+    .toBeGreaterThan(0.005);
+  await expect
+    .poll(async () => (await readCosmicGroupBatchState(page)).opacity)
+    .toBeLessThan(0.008);
+  expect((await readCosmicGroupBatchState(page)).filamentVisible).toBe(false);
 
   await scaleSwitcher.click();
   await page.getByRole('button', { name: 'Afficher l’échelle Réseau cosmique' }).click();
@@ -544,7 +547,23 @@ test('le sélecteur traverse les sept échelles et partage le cadrage courant', 
       visible: true,
       confidence: 'calculated',
       batchCount: 1,
+      filamentVisible: true,
+      filamentConfidence: 'illustrative',
+      filamentBatchCount: 1,
+      filamentEdgeCount: 49_939,
+      filamentActiveCount: 13_983,
+      filamentDrawCount: 27_966,
     });
+  const cosmicGroupBatch = await readCosmicGroupBatchState(page);
+
+  expect(cosmicGroupBatch.filamentActiveCount).toBeGreaterThan(0);
+  expect(cosmicGroupBatch.filamentActiveCount).toBeLessThan(cosmicGroupBatch.filamentEdgeCount);
+  expect(cosmicGroupBatch.filamentDrawCount).toBe(cosmicGroupBatch.filamentActiveCount * 2);
+  expect(cosmicGroupBatch.filamentOpacity).toBeGreaterThan(0.57);
+  expect(cosmicGroupBatch.filamentOpacity).toBeLessThan(0.59);
+  expect(cosmicGroupBatch.filamentDetail).toBeGreaterThan(0.27);
+  expect(cosmicGroupBatch.filamentDetail).toBeLessThan(0.29);
+  await expect(page.getByLabel('Légende du réseau cosmique')).toBeVisible();
   await expect
     .poll(async () => (await readCosmicGroupBatchState(page)).opacity)
     .toBeGreaterThan(0.8);

@@ -57,6 +57,8 @@ describe('DebugPanelComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Galaxies groupées');
     expect(fixture.nativeElement.textContent).toContain('Groupes Cosmicflows-4');
     expect(fixture.nativeElement.textContent).toContain('37730');
+    expect(fixture.nativeElement.textContent).toContain('Filaments dérivés');
+    expect(fixture.nativeElement.textContent).toContain('42000');
     expect(fixture.nativeElement.textContent).toContain('7');
     expect(fixture.nativeElement.textContent).toContain('limite maximale');
     expect(fixture.nativeElement.textContent).toContain('Référentiel actif');
@@ -95,6 +97,7 @@ function stats(targetId: string | null): EngineDebugStats {
     visibleObjects: 42,
     catalogStars: 2_000,
     cosmicGroups: 37_730,
+    cosmicFilaments: 42_000,
     batchedGalaxies: 7,
     loadedTiles: 5,
     indexedGalaxyTiles: 5,

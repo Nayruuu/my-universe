@@ -63,11 +63,16 @@ and illustrative data.
   collision-free names, contextual host/satellite visibility, and searchable scientific facts.
 - A searchable layer of 720 observed nearby-Universe galaxies, backed by five curated regions and a
   110-tile static Local Volume octree with screen-size refinement, 2/3/5-tile quality budgets,
-  target pinning, parsed-data reuse, and one shared GPU point batch for generated catalogue entries;
-  focusing an entry temporarily restores its shaped galaxy impostor.
+  target pinning, and parsed-data reuse. A lightweight one-draw-call overview keeps all 720 real
+  catalogue positions visible across the Local Group transition, while streamed tiles add labels,
+  picking, and detail; focusing an entry temporarily restores its shaped galaxy impostor.
 - A seventh cosmic-web scale containing 37,730 calculated Cosmicflows-4 galaxy groups from 11.1 to
   772.7 Mpc, rendered as one GPU point batch with uncertainty-aware styling, quality-bounded labels,
-  PGC search, reusable selection highlighting, scientific cards, and URL-addressable focus.
+  PGC search, reusable selection highlighting, scientific cards, and URL-addressable focus. A
+  second GPU batch derives a deterministic, quality-aware nearest-neighbor scaffold from those
+  positions so large-scale structure remains legible without presenting the lines as observed
+  physical filaments. Its confidence-aware detail strengthens continuously while zooming in, and a
+  compact legend keeps the calculated groups distinct from the illustrative links.
 - A continuously blended deep-space backdrop whose restrained navy, indigo haze, and vignette
   evolve with camera distance without a hard visual cut between semantic scales.
 - Searchable and clickable names, object details, confidence levels, and shareable URL state.
@@ -227,7 +232,8 @@ for detailed provenance and known visual adaptations.
 
 - Move future larger-catalogue decoding and octree preparation into Web Workers, and add deeper
   hierarchy levels when the source density requires them.
-- Derive navigable density, cluster, and filament hierarchy from the discrete Cosmicflows-4 groups.
+- Replace the first illustrative nearest-neighbor scaffold with a navigable multiscale density,
+  cluster, wall, void, and filament hierarchy derived and validated offline.
 - Expand the Solar System selection with additional scientifically useful moons and small bodies.
 - Implement the physically delayed **Observable view** temporal mode.
 - Benchmark startup time, memory, and frame rate across a wider device panel.

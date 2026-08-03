@@ -10,6 +10,7 @@ describe('App', () => {
   const ready = signal(false);
   const selectedId = signal<string | null>(null);
   const debugEnabled = signal(false);
+  const lodLevel = signal(0);
   const loading = signal(false);
   const error = signal<string | null>(null);
   const performanceWarning = signal<string | null>(null);
@@ -21,6 +22,7 @@ describe('App', () => {
     ready,
     selectedId,
     debugEnabled,
+    lodLevel,
     loading,
     error,
     performanceWarning,
@@ -45,6 +47,7 @@ describe('App', () => {
     ready.set(false);
     selectedId.set(null);
     debugEnabled.set(false);
+    lodLevel.set(0);
     loading.set(false);
     error.set(null);
     performanceWarning.set(null);
@@ -120,6 +123,18 @@ describe('App', () => {
     expect(fixture.nativeElement.textContent).toContain('Qualité réduite');
     expect(fixture.nativeElement.textContent).toContain('Lien copié');
     expect(fixture.nativeElement.querySelector('.navigation-hint')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.cosmic-map-key')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.science-caption')).not.toBeNull();
+
+    lodLevel.set(6);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.cosmic-map-key')?.textContent).toContain(
+      'Groupes Cosmicflows-4',
+    );
+    expect(fixture.nativeElement.querySelector('.cosmic-map-key')?.textContent).toContain(
+      'Liens de proximité illustratifs',
+    );
+    expect(fixture.nativeElement.querySelector('.science-caption')).toBeNull();
 
     fixture.nativeElement.querySelector('.notice--warning').click();
     expect(performanceWarning()).toBeNull();
