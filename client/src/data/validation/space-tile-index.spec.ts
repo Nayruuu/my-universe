@@ -25,6 +25,15 @@ describe('index de tuiles spatiales', () => {
         aliases: ['A'],
       }),
     );
+    expect(index.overviewEntries).toEqual([
+      {
+        id: 'galaxy-a',
+        position: [1, 2, 3],
+        unit: 'megaparsec',
+        color: '#9fb9dd',
+        visualRadius: 12,
+      },
+    ]);
   });
 
   it('valide une hiérarchie réciproque dont les enfants restent dans les bornes du parent', () => {
@@ -138,6 +147,48 @@ describe('index de tuiles spatiales', () => {
     ).toThrow('Entrée de recherche spatiale invalide');
   });
 
+  it.each([
+    null,
+    {},
+    { ...validOverviewEntry(), id: 42 },
+    { ...validOverviewEntry(), position: [1, 2] },
+    { ...validOverviewEntry(), position: [1, Number.NaN, 3] },
+    { ...validOverviewEntry(), unit: 'furlong' },
+    { ...validOverviewEntry(), color: 42 },
+    { ...validOverviewEntry(), visualRadius: 0 },
+  ])('rejette une entrée d’aperçu spatial invalide', (overviewEntry) => {
+    expect(() =>
+      parseSpaceTileIndex(
+        {
+          ...validIndex(),
+          overviewEntries: [overviewEntry],
+        },
+        'invalid-overview',
+      ),
+    ).toThrow('Entrée d’aperçu spatial invalide');
+  });
+
+  it('rejette les aperçus dupliqués ou absents de l’index de recherche', () => {
+    expect(() =>
+      parseSpaceTileIndex(
+        {
+          ...validIndex(),
+          overviewEntries: [validOverviewEntry(), validOverviewEntry()],
+        },
+        'duplicate-overview',
+      ),
+    ).toThrow('Entrée d’aperçu dupliquée');
+    expect(() =>
+      parseSpaceTileIndex(
+        {
+          ...validIndex(),
+          overviewEntries: [{ ...validOverviewEntry(), id: 'unknown' }],
+        },
+        'unknown-overview',
+      ),
+    ).toThrow('Objet d’aperçu absent de la recherche');
+  });
+
   it('exige une entrée de recherche unique pour chaque objet tuilé', () => {
     expect(() =>
       parseSpaceTileIndex(
@@ -237,11 +288,12 @@ describe('index de tuiles spatiales', () => {
   });
 });
 
-function validIndex(): unknown {
+function validIndex(): Record<string, unknown> {
   return {
     version: '1.0.0',
     tiles: [validTile()],
     searchEntries: [validSearchEntry()],
+    overviewEntries: [validOverviewEntry()],
   };
 }
 
@@ -268,6 +320,16 @@ function validSearchEntry(): object {
     type: 'galaxy',
     parentName: 'Univers proche',
     keywords: ['galaxie'],
+  };
+}
+
+function validOverviewEntry(): object {
+  return {
+    id: 'galaxy-a',
+    position: [1, 2, 3],
+    unit: 'megaparsec',
+    color: '#9fb9dd',
+    visualRadius: 12,
   };
 }
 

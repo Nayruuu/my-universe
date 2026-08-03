@@ -356,7 +356,7 @@ describe('ObjectRegistry', () => {
     registry.dispose();
   });
 
-  it('agrandit le seuil visuel des galaxies à l’échelle de l’univers proche', () => {
+  it('agrandit les galaxies extragalactiques en priorisant le Groupe local', () => {
     const galaxy = staticObject('m81', 'Galaxie de Bode', 'galaxy', {
       visualRadius: 12,
       galaxyShape: 'spiral',
@@ -378,8 +378,9 @@ describe('ObjectRegistry', () => {
     const localGroupScale = sprite.scale.x;
 
     registry.updateLod(camera, 900, 5, 10);
+    const nearbyUniverseScale = sprite.scale.x;
 
-    expect(sprite.scale.x).toBeGreaterThan(localGroupScale * 1.4);
+    expect(localGroupScale).toBeGreaterThan(nearbyUniverseScale * 1.2);
     registry.dispose();
   });
 

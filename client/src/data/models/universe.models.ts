@@ -201,10 +201,19 @@ export interface SpaceTileIndexEntry {
   objectIds: string[];
 }
 
+export interface NearbyGalaxyOverviewEntry {
+  id: string;
+  position: [number, number, number];
+  unit: DistanceUnit;
+  color: string;
+  visualRadius: number;
+}
+
 export interface SpaceTileIndex {
   version: string;
   tiles: SpaceTileIndexEntry[];
   searchEntries: SearchEntry[];
+  overviewEntries?: NearbyGalaxyOverviewEntry[];
 }
 
 export interface StarTileBounds {
@@ -364,6 +373,7 @@ export interface EngineDebugStats {
   visibleObjects: number;
   catalogStars: number;
   cosmicGroups: number;
+  cosmicFilaments: number;
   batchedGalaxies: number;
   loadedTiles: number;
   indexedGalaxyTiles: number;

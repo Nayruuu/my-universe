@@ -141,7 +141,7 @@ export function createCelestialVisual(
         nearBlend: 0,
         visibilityBlend: 0,
         farAlpha: 0,
-        farBaseOpacity: isNearbyUniverseCatalogObject ? 0.78 : 0.58,
+        farBaseOpacity: isNearbyUniverseCatalogObject ? 0.86 : 0.72,
         farBaseDiameter: diameter,
         farAspectRatio: aspectRatio,
       },

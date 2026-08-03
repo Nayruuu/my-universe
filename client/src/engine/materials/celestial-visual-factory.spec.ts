@@ -114,6 +114,8 @@ describe('imposteurs galactiques', () => {
     const nearbyVisual = createCelestialVisual(nearbyGalaxy, 'medium', assets);
     const localVisual = createCelestialVisual(createGalaxy(), 'medium', assets);
 
+    expect(localVisual.lod.farBaseOpacity).toBeCloseTo(0.72);
+    expect(nearbyVisual.lod.farBaseOpacity).toBeCloseTo(0.86);
     expect(nearbyVisual.lod.farBaseOpacity).toBeGreaterThan(localVisual.lod.farBaseOpacity);
     nearbyVisual.lod.farSprite?.material.dispose();
     localVisual.lod.farSprite?.material.dispose();

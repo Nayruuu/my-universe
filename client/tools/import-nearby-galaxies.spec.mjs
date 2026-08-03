@@ -79,6 +79,11 @@ test('filters the Local Volume, removes editorial duplicates, and builds a bound
 
   assert.equal(objects.length, 70);
   assert.equal(hierarchy.searchEntries.length, 70);
+  assert.equal(hierarchy.overviewEntries.length, 70);
+  assert.deepEqual(
+    new Set(hierarchy.overviewEntries.map((entry) => entry.id)),
+    new Set(objects.map((object) => object.id)),
+  );
   assert.equal(new Set(objects.map((object) => object.id)).size, 70);
   assert.equal(new Set(hierarchy.tiles.flatMap((tile) => tile.objectIds)).size, 70);
   assert.ok(hierarchy.tiles.every((tile) => tile.objectIds.length <= 24));
@@ -147,6 +152,8 @@ test('ships a complete validated static Local Volume octree', async () => {
   assert.equal(index.version, '2.0.0');
   assert.equal(index.tiles.length, 115);
   assert.equal(index.searchEntries.length, 720);
+  assert.equal(index.overviewEntries.length, 720);
+  assert.equal(new Set(index.overviewEntries.map((entry) => entry.id)).size, 720);
   assert.equal(generatedTiles.length, 110);
 
   for (const tile of generatedTiles) {

@@ -162,6 +162,9 @@ describe('UniverseEngine', () => {
 
     expect(engine.allObjects.map((object) => object.id)).toEqual(['nearby-universe']);
     expect(engine.hasObject('galaxy-a')).toBe(true);
+    expect(
+      access.universeScene?.spaceRoot.getObjectByName('observed-nearby-galaxy-overview'),
+    ).toBeInstanceOf(THREE.Points);
     expect(events.find((event) => event.type === 'data-ready')).toMatchObject({
       catalogEntries: [
         expect.objectContaining({ id: 'galaxy-a' }),
@@ -1531,6 +1534,7 @@ describe('UniverseEngine', () => {
         textures: 2,
         batchedGalaxies: 7,
         cosmicGroups: 37_730,
+        cosmicFilaments: 42_000,
         activeStarTiles: 8,
         cachedStarPacks: 5,
         cachedStarTiles: 19,
@@ -2280,6 +2284,7 @@ interface FakeUniverseScene {
   readonly dispose: ReturnType<typeof vi.fn>;
   visibleCatalogStarCount: number;
   visibleCosmicGroupCount: number;
+  visibleCosmicFilamentCount: number;
   visibleStarClusterCount: number;
   activeStarTileCount: number;
   starClusterRepresentationCount: number;
@@ -2448,6 +2453,7 @@ function createRuntime(): Runtime {
     dispose: vi.fn(),
     visibleCatalogStarCount: 2,
     visibleCosmicGroupCount: 37_730,
+    visibleCosmicFilamentCount: 42_000,
     visibleStarClusterCount: 0,
     activeStarTileCount: 0,
     starClusterRepresentationCount: 0,
@@ -2686,6 +2692,22 @@ function testSpaceTileIndex(): SpaceTileIndex {
         name: 'Galaxie B',
         aliases: [],
         type: 'galaxy',
+      },
+    ],
+    overviewEntries: [
+      {
+        id: 'galaxy-a',
+        position: [0, 0, 0],
+        unit: 'megaparsec',
+        color: '#9fc8ef',
+        visualRadius: 40,
+      },
+      {
+        id: 'galaxy-b',
+        position: [10, 0, 0],
+        unit: 'megaparsec',
+        color: '#e4bb91',
+        visualRadius: 40,
       },
     ],
   };

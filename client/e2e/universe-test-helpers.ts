@@ -1041,6 +1041,14 @@ export async function readCosmicGroupBatchState(page: Page): Promise<{
   confidence: string | null;
   batchCount: number;
   selectedObjectId: string | null;
+  filamentEdgeCount: number;
+  filamentActiveCount: number;
+  filamentDrawCount: number;
+  filamentVisible: boolean;
+  filamentOpacity: number;
+  filamentDetail: number;
+  filamentConfidence: string | null;
+  filamentBatchCount: number;
 }> {
   return page.evaluate(() => {
     interface CatalogPoints {
@@ -1087,17 +1095,29 @@ export async function readCosmicGroupBatchState(page: Page): Promise<{
     const selectionPoint = catalogBatch
       ? (Reflect.get(catalogBatch, 'selectionPoint') as CatalogPoints | undefined)
       : undefined;
+    const filaments = catalogBatch
+      ? (Reflect.get(catalogBatch, 'filaments') as CatalogPoints | undefined)
+      : undefined;
     let batchCount = 0;
+    let filamentBatchCount = 0;
 
     scene?.traverse((object) => {
       if (object.name === 'calculated-cosmicflows4-groups') {
         batchCount += 1;
+      }
+      if (object.name === 'illustrative-cosmicflows4-filaments') {
+        filamentBatchCount += 1;
       }
     });
     const confidence = points?.userData['scientificConfidence'];
     const catalogCount = points?.userData['catalogCount'];
     const selectedObjectId = selectionPoint?.userData['objectId'];
     const opacity = points?.material.uniforms['catalogOpacity']?.value;
+    const filamentEdgeCount = filaments?.userData['edgeCount'];
+    const filamentActiveCount = filaments?.userData['activeEdgeCount'];
+    const filamentOpacity = filaments?.material.uniforms['filamentOpacity']?.value;
+    const filamentDetail = filaments?.material.uniforms['filamentDetail']?.value;
+    const filamentConfidence = filaments?.userData['scientificConfidence'];
 
     return {
       catalogCount: typeof catalogCount === 'number' ? catalogCount : 0,
@@ -1107,6 +1127,14 @@ export async function readCosmicGroupBatchState(page: Page): Promise<{
       confidence: typeof confidence === 'string' ? confidence : null,
       batchCount,
       selectedObjectId: typeof selectedObjectId === 'string' ? selectedObjectId : null,
+      filamentEdgeCount: typeof filamentEdgeCount === 'number' ? filamentEdgeCount : 0,
+      filamentActiveCount: typeof filamentActiveCount === 'number' ? filamentActiveCount : 0,
+      filamentDrawCount: filaments?.geometry.drawRange.count ?? 0,
+      filamentVisible: filaments?.visible ?? false,
+      filamentOpacity: typeof filamentOpacity === 'number' ? filamentOpacity : 0,
+      filamentDetail: typeof filamentDetail === 'number' ? filamentDetail : 0,
+      filamentConfidence: typeof filamentConfidence === 'string' ? filamentConfidence : null,
+      filamentBatchCount,
     };
   });
 }

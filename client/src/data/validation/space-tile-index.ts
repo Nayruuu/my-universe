@@ -1,5 +1,6 @@
 import {
   DistanceUnit,
+  NearbyGalaxyOverviewEntry,
   ReferenceFrame,
   SearchEntry,
   SpaceObjectType,
@@ -47,7 +48,8 @@ export function parseSpaceTileIndex(value: unknown, source: string): SpaceTileIn
     !isRecord(value) ||
     typeof value['version'] !== 'string' ||
     !Array.isArray(value['tiles']) ||
-    !Array.isArray(value['searchEntries'])
+    !Array.isArray(value['searchEntries']) ||
+    (value['overviewEntries'] !== undefined && !Array.isArray(value['overviewEntries']))
   ) {
     throw new Error(`Index de tuiles spatiales invalide : ${source}.`);
   }
@@ -90,12 +92,56 @@ export function parseSpaceTileIndex(value: unknown, source: string): SpaceTileIn
       throw new Error(`Entrée de recherche manquante pour ${objectId}.`);
     }
   }
+  const overviewIds = new Set<string>();
+  const overviewEntries = (value['overviewEntries'] ?? []).map((entry, index) => {
+    const parsed = parseOverviewEntry(entry, source, index);
+
+    if (overviewIds.has(parsed.id)) {
+      throw new Error(`Entrée d’aperçu dupliquée : ${parsed.id}.`);
+    }
+    if (!searchIds.has(parsed.id)) {
+      throw new Error(`Objet d’aperçu absent de la recherche : ${parsed.id}.`);
+    }
+    overviewIds.add(parsed.id);
+
+    return parsed;
+  });
+
   validateHierarchy(tiles, tileIds);
 
   return {
     version: value['version'],
     tiles,
     searchEntries,
+    overviewEntries,
+  };
+}
+
+function parseOverviewEntry(
+  value: unknown,
+  source: string,
+  index: number,
+): NearbyGalaxyOverviewEntry {
+  if (
+    !isRecord(value) ||
+    typeof value['id'] !== 'string' ||
+    !isFiniteTuple3(value['position']) ||
+    !isEnumValue(value['unit'], DISTANCE_UNITS) ||
+    typeof value['color'] !== 'string' ||
+    value['color'].length === 0 ||
+    typeof value['visualRadius'] !== 'number' ||
+    !Number.isFinite(value['visualRadius']) ||
+    value['visualRadius'] <= 0
+  ) {
+    throw new Error(`Entrée d’aperçu spatial invalide dans ${source}, index ${index}.`);
+  }
+
+  return {
+    id: value['id'],
+    position: [...value['position']],
+    unit: value['unit'],
+    color: value['color'],
+    visualRadius: value['visualRadius'],
   };
 }
 

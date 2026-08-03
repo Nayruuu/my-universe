@@ -230,7 +230,10 @@ Five are the original editorial regions and 110 form a deterministic octree: 8 r
 nodes, 44 level-2 nodes, 19 level-3 nodes, and 6 level-4 nodes. An internal node retains four bright
 overview galaxies while its remaining objects move into children; a leaf contains at most 24
 objects. Search metadata for all 720 objects remains available at startup, while render records are
-loaded only for the camera-selected or explicitly targeted tiles.
+loaded only for the camera-selected or explicitly targeted tiles. The same index also stores one
+minimal `overviewEntries` record per galaxy (identifier, observed position, unit, adaptive color,
+and visual radius), allowing all 720 real positions to be rendered in one GPU batch without loading
+the complete tile objects.
 
 To reproduce the generated octree:
 
@@ -297,5 +300,12 @@ The browser parser validates the signature, version, record dimensions, coordina
 identifiers, finite measurements, and distance ordering. Distances are marked `calculated`, matching
 the catalogue methodology. Point radii, opacity, color, label ranks, and the selected halo are
 adaptive visual encodings. Label candidates use a progressive distance-stratified order so each
-quality tier covers the full catalogue depth instead of clustering around the Local Volume. These
-encodings are not measured group dimensions or a continuous reconstruction of cosmic filaments.
+quality tier covers the full catalogue depth instead of clustering around the Local Volume.
+
+The outer view also derives a deterministic nearest-neighbor scaffold at runtime. A 20 Mpc spatial
+hash connects each group to at most its two closest groups within 52 Mpc, deduplicates the resulting
+49,939 edges, and distributes their order so lower quality settings retain structure throughout the
+volume. Distance uncertainty attenuates each edge, while low, medium, and high quality draw 28%, 62%,
+or 100% of the graph in one `THREE.LineSegments` batch. The graph is marked `illustrative`: its lines
+are not measured group dimensions, detected physical links, or a continuous reconstruction of
+clusters, walls, voids, and cosmic filaments.

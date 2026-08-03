@@ -373,6 +373,50 @@
   background: #d1ae76;
 }
 
+.cosmic-map-key {
+  position: absolute;
+  z-index: 4;
+  right: 76px;
+  bottom: 94px;
+  display: grid;
+  gap: 5px;
+  padding: 9px 11px;
+  border: 1px solid rgb(112 198 242 / 12%);
+  border-radius: 11px;
+  color: rgb(202 226 244 / 55%);
+  background: rgb(4 10 22 / 48%);
+  font-size: 0.55rem;
+  pointer-events: none;
+  backdrop-filter: blur(12px);
+
+  span {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  small {
+    margin-top: 1px;
+    color: rgb(174 200 222 / 34%);
+    font-size: 0.49rem;
+  }
+}
+
+.cosmic-map-key__point {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #b9edff;
+  box-shadow: 0 0 7px rgb(91 204 255 / 78%);
+}
+
+.cosmic-map-key__link {
+  width: 14px;
+  height: 1px;
+  background: linear-gradient(90deg, #166bc3, #86e8ff);
+  box-shadow: 0 0 4px rgb(82 201 255 / 45%);
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -430,6 +474,10 @@
   }
 
   .science-caption {
+    display: none;
+  }
+
+  .cosmic-map-key {
     display: none;
   }
 

@@ -1,5 +1,9 @@
 import * as THREE from 'three';
-import { type ConstellationCatalog, type StarClusterTile } from '../../data/models/universe.models';
+import {
+  type ConstellationCatalog,
+  type SpaceTileIndex,
+  type StarClusterTile,
+} from '../../data/models/universe.models';
 import { CoordinateSystem } from '../coordinates/coordinate-system';
 import { CosmicGroupCatalog } from '../loaders/cosmic-group-catalog';
 import { StarCatalog } from '../loaders/star-catalog';
@@ -122,12 +126,61 @@ describe('UniverseScene', () => {
     expect(scene.visibleCatalogStarCount).toBe(0);
     expect(scene.catalogStarCount).toBe(0);
     expect(scene.visibleCosmicGroupCount).toBe(0);
+    expect(scene.visibleNearbyGalaxyOverviewCount).toBe(0);
     expect(scene.cosmicGroupCount).toBe(0);
+    expect(scene.activeCosmicFilamentCount).toBe(0);
+    expect(scene.visibleCosmicFilamentCount).toBe(0);
+    expect(scene.cosmicFilamentCount).toBe(0);
     expect(scene.visibleStarClusterCount).toBe(0);
     expect(scene.starClusterRepresentationCount).toBe(0);
 
     scene.dispose();
     expect(scene.scene.children).toHaveLength(0);
+  });
+
+  it('installe, estompe, remplace et détruit l’aperçu observé des galaxies proches', async () => {
+    const scene = new UniverseScene(new PerformanceManager());
+    const index = nearbyGalaxyIndex();
+
+    await scene.setNearbyGalaxyOverview(index, new CoordinateSystem());
+    const firstPoints = scene.spaceRoot.getObjectByName('observed-nearby-galaxy-overview') as
+      THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial> | undefined;
+
+    expect(firstPoints).toBeInstanceOf(THREE.Points);
+    expect(firstPoints?.geometry.getAttribute('position').count).toBe(2);
+    expect(firstPoints?.userData['scientificConfidence']).toBe('observed');
+    const firstGeometryDispose = vi.spyOn(firstPoints!.geometry, 'dispose');
+
+    scene.setPixelRatio(1.25);
+    scene.setQuality('high');
+    scene.updateLod(5, 10, 120_000);
+
+    expect(scene.visibleNearbyGalaxyOverviewCount).toBe(2);
+    expect(firstPoints?.material.uniforms['catalogOpacity']!.value).toBeCloseTo(0.42, 5);
+    expect(firstPoints?.material.uniforms['radiance']!.value).toBe(
+      getPhotographicProfile(5, 'high').galaxyRadiance,
+    );
+
+    await scene.setNearbyGalaxyOverview({ ...index, overviewEntries: [] }, new CoordinateSystem());
+    expect(firstGeometryDispose).toHaveBeenCalledOnce();
+    expect(scene.spaceRoot.getObjectByName('observed-nearby-galaxy-overview')).toBeUndefined();
+    expect(scene.visibleNearbyGalaxyOverviewCount).toBe(0);
+
+    await scene.setNearbyGalaxyOverview(
+      {
+        version: index.version,
+        tiles: index.tiles,
+        searchEntries: index.searchEntries,
+      },
+      new CoordinateSystem(),
+    );
+    expect(scene.visibleNearbyGalaxyOverviewCount).toBe(0);
+
+    await scene.setNearbyGalaxyOverview(index, new CoordinateSystem());
+    scene.updateLod(6, 10, 300_000);
+    expect(scene.visibleNearbyGalaxyOverviewCount).toBe(0);
+    scene.dispose();
+    expect(scene.visibleNearbyGalaxyOverviewCount).toBe(0);
   });
 
   it('installe, sélectionne, remplace et détruit le batch Cosmicflows-4', async () => {
@@ -173,6 +226,37 @@ describe('UniverseScene', () => {
     scene.selectCatalogObject(null);
     scene.dispose();
     expect(scene.cosmicGroupCount).toBe(0);
+  });
+
+  it('propage la qualité et le LOD au réseau cosmique dérivé', async () => {
+    const scene = new UniverseScene(new PerformanceManager());
+
+    scene.setQuality('low');
+    await scene.setCosmicGroupCatalog(connectedCosmicGroupRegistry());
+    const filaments = scene.spaceRoot.getObjectByName(
+      'illustrative-cosmicflows4-filaments',
+    ) as THREE.LineSegments<THREE.BufferGeometry, THREE.ShaderMaterial>;
+    const lowCount = scene.activeCosmicFilamentCount;
+
+    expect(filaments).toBeInstanceOf(THREE.LineSegments);
+    expect(scene.cosmicFilamentCount).toBeGreaterThan(2);
+    expect(lowCount).toBeGreaterThan(0);
+    expect(lowCount).toBeLessThan(scene.cosmicFilamentCount);
+
+    scene.setQuality('medium');
+    expect(scene.activeCosmicFilamentCount).toBeGreaterThan(lowCount);
+    scene.setQuality('high');
+    expect(scene.activeCosmicFilamentCount).toBe(scene.cosmicFilamentCount);
+
+    scene.updateLod(6, 10, 420_000);
+    expect(scene.visibleCosmicFilamentCount).toBe(scene.cosmicFilamentCount);
+    expect(filaments.visible).toBe(true);
+
+    scene.updateLod(4, 10, 17_000);
+    expect(scene.visibleCosmicFilamentCount).toBe(0);
+    expect(filaments.visible).toBe(false);
+    scene.dispose();
+    expect(scene.cosmicFilamentCount).toBe(0);
   });
 
   it('estompe le fond procédural avant les échelles galactiques', () => {
@@ -456,6 +540,30 @@ function catalogRegistry(id: number): StarCatalogRegistry {
   return new StarCatalogRegistry(catalog, new CoordinateSystem());
 }
 
+function nearbyGalaxyIndex(): SpaceTileIndex {
+  return {
+    version: '2.0.0',
+    tiles: [],
+    searchEntries: [],
+    overviewEntries: [
+      {
+        id: 'galaxy-a',
+        position: [1, 2, -1],
+        unit: 'megaparsec',
+        color: '#9fc8ef',
+        visualRadius: 18,
+      },
+      {
+        id: 'galaxy-b',
+        position: [-2, 0.5, 3],
+        unit: 'megaparsec',
+        color: '#e4bb91',
+        visualRadius: 42,
+      },
+    ],
+  };
+}
+
 function cosmicGroupRegistry(pgcId: number): CosmicGroupCatalogRegistry {
   const catalog: CosmicGroupCatalog = {
     count: 1,
@@ -468,6 +576,29 @@ function cosmicGroupRegistry(pgcId: number): CosmicGroupCatalogRegistry {
     velocitiesCmbKmPerSecond: new Int32Array([810]),
     pgcIds: new Uint32Array([pgcId]),
     distanceModuli: new Float32Array([30.413]),
+  };
+
+  return new CosmicGroupCatalogRegistry(catalog, new CoordinateSystem());
+}
+
+function connectedCosmicGroupRegistry(): CosmicGroupCatalogRegistry {
+  const positions = new Float32Array([
+    12, 0, 0, 18, 1, 0, 24, -1, 1, 24, 7, 0, 30, 1, -1, 36, 0, 0,
+  ]);
+  const distances = Float32Array.from({ length: positions.length / 3 }, (_, index) =>
+    Math.hypot(positions[index * 3]!, positions[index * 3 + 1]!, positions[index * 3 + 2]!),
+  );
+  const catalog: CosmicGroupCatalog = {
+    count: distances.length,
+    referenceEpochJulianDay: 2_451_545,
+    minimumDistanceMpc: distances[0]!,
+    maximumDistanceMpc: distances.at(-1)!,
+    positionsMpc: positions,
+    distancesMpc: distances,
+    distanceModulusErrors: Float32Array.from(distances, (_, index) => 0.1 + index * 0.05),
+    velocitiesCmbKmPerSecond: Int32Array.from(distances, (distance) => distance * 70),
+    pgcIds: Uint32Array.from(distances, (_, index) => 100 + index),
+    distanceModuli: Float32Array.from(distances, (distance) => 5 * Math.log10(distance) + 25),
   };
 
   return new CosmicGroupCatalogRegistry(catalog, new CoordinateSystem());

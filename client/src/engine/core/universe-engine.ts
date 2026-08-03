@@ -195,6 +195,10 @@ export class UniverseEngine {
 
       const universeScene = new UniverseScene(this.performanceManager);
 
+      if (assets.spaceTileIndex) {
+        await universeScene.setNearbyGalaxyOverview(assets.spaceTileIndex, this.coordinateSystem);
+      }
+
       if (assets.starCatalog) {
         const { StarCatalogRegistry } = await import('../objects/star-catalog-registry');
         const starCatalogRegistry = new StarCatalogRegistry(
@@ -1055,6 +1059,7 @@ export class UniverseEngine {
         registry.visibleObjectCount + (this.spaceTileObjectRegistry?.visibleObjectCount ?? 0),
       catalogStars: universeScene.visibleCatalogStarCount,
       cosmicGroups: universeScene.visibleCosmicGroupCount,
+      cosmicFilaments: universeScene.visibleCosmicFilamentCount,
       batchedGalaxies:
         registry.batchedGalaxyCount + (this.spaceTileObjectRegistry?.batchedGalaxyCount ?? 0),
       loadedTiles: this.spaceTileManager?.loadedTileCount ?? 0,

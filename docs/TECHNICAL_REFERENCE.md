@@ -307,8 +307,9 @@ clickable, URL-addressable, and available in the details card.
 
 The sixth LOD introduces the first real static streaming boundary. The root manifest loads only the
 `space-tiles-v2` index at `public/data/tiles/nearby-universe/index.json` during startup. That index
-contains bounds, hierarchy links, object identifiers, and compact search entries; it does not
-contain renderable object records. It exposes 720 unique observed galaxies: 22 in the five curated
+contains bounds, hierarchy links, object identifiers, compact search entries, and a minimal
+position/color/radius overview; complete renderable object records remain in deferred tile files.
+It exposes 720 unique observed galaxies: 22 in the five curated
 Sculptor, M81, Centaurus A, Canes Venatici, and Virgo regions, plus 698 generated from the Updated
 Nearby Galaxy Catalog between 1.5 and 11 megaparsecs.
 
@@ -317,6 +318,13 @@ internal node retains four brightness-ranked overview objects and distributes th
 among its children; leaves contain at most 24 galaxies. The current hierarchy reaches level 4 only
 where source density requires it. This additive layout preserves broad landmarks while revealing
 fainter galaxies as the camera approaches a region, without duplicating an object between tiles.
+
+The compact overview entries are rendered as one GPU point batch, so every catalogue position
+remains spatially legible while navigating from the Local Group into the Local Volume. This layer
+starts with a restrained continuous fade outside the Milky Way, reaches full opacity before the
+nearby-Universe entry distance, and disappears before the outer Cosmicflows view. It adds no
+procedural objects: streamed tiles progressively overlay the same observed positions with richer
+labels, picking metadata, and focused galaxy silhouettes.
 
 At LOD 5, the engine projects each tile's scientific bounds into the render frame, applies the
 floating-origin offset, rejects bounds outside the camera frustum, and ranks the remaining tiles by
@@ -364,11 +372,26 @@ same equatorial basis as the nearby-Universe catalogue.
 
 Every group shares one `THREE.Points` draw call. Distance uncertainty modulates point size and
 opacity, while low, medium, and high quality expose progressively depth-stratified label pools before
-the normal screen-space collision pass. Search accepts `PGC N`, creates object definitions only on demand, and focuses a
-group with one reusable selection marker. Details expose its distance, uncertainty, CMB-frame
-velocity, source, and `calculated` confidence. The halos, colors, and ranks remain illustrative
-rendering encodings; the layer is a discrete group map, not a reconstructed continuous filament
-density field.
+the normal screen-space collision pass. Search accepts `PGC N`, creates object definitions only on
+demand, and focuses a group with one reusable selection marker. Details expose its distance,
+uncertainty, CMB-frame velocity, source, and `calculated` confidence.
+
+A deterministic 20 Mpc spatial hash additionally derives a first large-scale structure scaffold.
+Each group connects to at most its two nearest neighbors within 52 Mpc; duplicate pairs and
+zero-length edges are rejected. The fixed catalogue produces 49,939 edges, stored as duplicated line endpoints
+with per-vertex alpha and detail-threshold attributes in a single `THREE.LineSegments` draw call. A deterministic hash
+orders edges across the volume, allowing low, medium, and high quality to expose 28%, 62%, or 100%
+without revealing only one contiguous catalogue region. Distance uncertainty and neighbor distance
+attenuate the line alpha. At the outer overview, the shortest and best-constrained links retain full
+emphasis while every other active edge remains faintly visible. A damped camera-distance uniform
+progressively restores secondary links toward the nearby-Universe boundary, avoiding discrete model
+swaps or extra draw calls. The batch fades independently from the calculated points between the
+nearby-Universe and cosmic-web scales, and a scale-specific legend identifies calculated points and
+illustrative connections.
+
+The graph carries `illustrative` confidence. It is a visual interpretation of proximity in the
+catalogue coordinate field, not an observed link, a density estimator, or a reconstructed continuous
+cluster, wall, void, or filament field.
 
 ## HYG stellar catalogue
 
@@ -615,6 +638,8 @@ The central point of the 12 August 2026 eclipse is checked against
   unit-tested weights that prevent a blank frame independently of information-card selection;
 - static galaxy tiles selected from camera frustum, projected size, and graphics-quality budget at
   the nearby-Universe LOD, with direct-demand target pinning and cached parsed records;
+- all 720 Local Volume catalogue positions retained in one lightweight GPU overview batch between
+  the Local Group and Cosmicflows layers, with continuous distance fades and no per-galaxy object;
 - heavy galaxy-tile synchronization deferred until camera transitions settle, with streamed
   galaxies isolated in a lightweight registry so Solar System visuals and textures remain intact;
 - the local search index built once from static catalogue metadata rather than rebuilt whenever a
@@ -623,6 +648,8 @@ The central point of the 12 August 2026 eclipse is checked against
   opacity, and indexed picking, with a focused galaxy promoted to its shaped impostor;
 - all 37,730 Cosmicflows-4 groups stored in typed arrays and rendered by one GPU point batch, with
   one reusable selected-group marker and no per-group Three.js allocation;
+- all 49,939 derived Cosmicflows-4 proximity edges rendered by one GPU line batch, with
+  quality-controlled draw ranges and no per-edge Three.js allocation;
 - raycast volumes placed on a non-rendered selection layer;
 - labels drawn in one 2D canvas at 30 Hz from a brightness-ranked pool, with quality-aware caps,
   priority, duplicate, overlap, and planetary-silhouette occlusion filtering, plus a restrained
@@ -639,7 +666,8 @@ The central point of the 12 August 2026 eclipse is checked against
 - geometries, materials, textures, listeners, and controls released by `dispose()`;
 - renderer metrics available through `?debug=true`;
 - debug metrics expose the active navigation frame and origin, the physical camera target, active
-  stellar tiles, cached packs and tiles, active/cached aggregate cells, and currently visible cells;
+  stellar tiles, cached packs and tiles, active/cached aggregate cells, currently visible cells,
+  calculated Cosmicflows-4 groups, and the visible derived-edge budget;
 - last-wheel diagnostics reporting its anchor, requested and applied distances, active bounds, and
   whether the movement was applied, clamped, ignored, or unchanged.
 
@@ -822,8 +850,9 @@ observed with Node 24 on macOS. This does not affect generated application outpu
 - galaxy positions are static at their reference epoch, with strongly adapted visual dimensions;
 - the nearby-Universe layer is dense only within the 1.5–11 Mpc Local Volume selection; Virgo remains
   a five-object editorial extension;
-- the Cosmicflows-4 layer contains calculated group distances rather than every galaxy, and its
-  point halos do not reconstruct continuous clusters, walls, voids, or filaments;
+- the Cosmicflows-4 layer contains calculated group distances rather than every galaxy; its point
+  halos and nearest-neighbor scaffold do not reconstruct continuous clusters, walls, voids, or
+  filaments, and the connecting lines are explicitly illustrative;
 - Titan and the bundled small bodies use simplified two-body paths rather than full numerical
   ephemerides; satellite separation is visually exaggerated after position calculation;
 - Observable view exists in the contract and interface but still previews simultaneous state mode;
@@ -833,7 +862,8 @@ observed with Node 24 on macOS. This does not affect generated application outpu
 
 1. move future larger-catalogue decoding and hierarchy preparation into Web Workers;
 2. add deeper stellar hierarchy levels when a denser source catalogue requires them;
-3. derive navigable cluster, wall, void, and filament hierarchy from the Cosmicflows-4 group field;
+3. replace the first illustrative proximity scaffold with a navigable, offline-validated multiscale
+   cluster, wall, void, and filament hierarchy from the Cosmicflows-4 group field;
 4. expand the Solar System selection with additional scientifically useful moons and small bodies;
 5. accept arbitrary eclipse locations and expose detailed local contact times;
 6. implement the physically delayed Observable view;

@@ -115,8 +115,21 @@
     </button>
   }
 
-  <div class="science-caption">
-    <span class="science-caption__dot"></span>
-    Distances et tailles visuelles adaptées · données statiques locales
-  </div>
+  @if (facade.ready() && facade.lodLevel() === 6) {
+    <div class="cosmic-map-key" role="note" aria-label="Légende du réseau cosmique">
+      <span><i class="cosmic-map-key__point" aria-hidden="true"></i>Groupes Cosmicflows-4</span>
+      <span
+        ><i class="cosmic-map-key__link" aria-hidden="true"></i>Liens de proximité
+        illustratifs</span
+      >
+      <small>Les connexions secondaires se renforcent en zoomant</small>
+    </div>
+  }
+
+  @if (!facade.ready() || facade.lodLevel() !== 6) {
+    <div class="science-caption">
+      <span class="science-caption__dot"></span>
+      Distances et tailles visuelles adaptées · données statiques locales
+    </div>
+  }
 </main>

@@ -8,7 +8,7 @@
       "type": "universe",
       "referenceFrame": "cosmic-web",
       "scientificConfidence": "calculated",
-      "description": "Carte des groupes de galaxies mesurés par Cosmicflows-4 au-delà du volume local. Les points révèlent statistiquement les filaments et les grandes structures, sans constituer une simulation exhaustive de l’Univers.",
+      "description": "Carte des groupes de galaxies mesurés par Cosmicflows-4 au-delà du volume local. Les points utilisent des distances calculées ; les traits de proximité sont une interprétation illustrative, pas une détection physique continue des filaments.",
       "visual": {
         "color": "#86b6cf",
         "visualRadius": 1,

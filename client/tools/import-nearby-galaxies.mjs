@@ -184,6 +184,7 @@ export function buildNearbyGalaxyHierarchy(records, options) {
   return {
     tiles,
     searchEntries: entries.map(({ searchEntry }) => searchEntry),
+    overviewEntries: entries.map(({ object }) => createOverviewEntry(object)),
     datasets,
   };
 }
@@ -199,6 +200,7 @@ async function main() {
   const legacySearchEntries = currentIndex.searchEntries.filter((entry) =>
     legacyObjectIds.has(entry.id),
   );
+  const legacyOverviewEntries = await loadLegacyOverviewEntries(legacyTiles);
   const hierarchy = buildNearbyGalaxyHierarchy(records, {
     baseUrl: options.baseUrl,
     excludedCatalogNames: LEGACY_CATALOG_NAMES,
@@ -207,6 +209,7 @@ async function main() {
     version: DATASET_VERSION,
     tiles: [...legacyTiles, ...hierarchy.tiles],
     searchEntries: [...legacySearchEntries, ...hierarchy.searchEntries],
+    overviewEntries: [...legacyOverviewEntries, ...hierarchy.overviewEntries],
   };
 
   await Promise.all(
@@ -222,6 +225,29 @@ async function main() {
   console.log(
     `Nearby-galaxy octree generated: ${hierarchy.searchEntries.length.toLocaleString('en-US')} catalog galaxies, ${hierarchy.tiles.length} adaptive tiles, ${legacySearchEntries.length} editorial galaxies preserved (${relative(process.cwd(), options.index)}).`,
   );
+}
+
+async function loadLegacyOverviewEntries(tiles) {
+  const entries = [];
+
+  for (const tile of tiles) {
+    const datasetPath = resolve('public', tile.url.replace(/^\/+/, ''));
+    const dataset = JSON.parse(await readFile(datasetPath, 'utf8'));
+
+    entries.push(...dataset.objects.map((object) => createOverviewEntry(object)));
+  }
+
+  return entries;
+}
+
+function createOverviewEntry(object) {
+  return {
+    id: object.id,
+    position: object.positionProvider.position,
+    unit: object.positionProvider.unit,
+    color: object.visual.color ?? '#9fb9dd',
+    visualRadius: object.visual.visualRadius,
+  };
 }
 
 function buildTileBranch(entries, bounds, level, path, parentId, baseUrl) {
