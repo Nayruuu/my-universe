@@ -110,11 +110,17 @@ describe('hiérarchie des labels par échelle', () => {
   const nearestCosmicGroup = createLabelObject('cf4-pgc-35', 'galaxy-cluster', {
     cosmicCatalogRank: 0,
   });
-  const mediumCosmicGroup = createLabelObject('cf4-pgc-240', 'galaxy-cluster', {
-    cosmicCatalogRank: 239,
+  const mediumCosmicGroup = createLabelObject('cf4-pgc-48', 'galaxy-cluster', {
+    cosmicCatalogRank: 47,
   });
-  const distantCosmicGroup = createLabelObject('cf4-pgc-500', 'galaxy-cluster', {
-    cosmicCatalogRank: 499,
+  const distantCosmicGroup = createLabelObject('cf4-pgc-72', 'galaxy-cluster', {
+    cosmicCatalogRank: 71,
+  });
+  const documentedSupercluster = createLabelObject('lss-supercluster-1', 'supercluster', {
+    cosmicStructureRank: 0,
+  });
+  const documentedVoidOutsideBudget = createLabelObject('lss-void-721', 'cosmic-void', {
+    cosmicStructureRank: 720,
   });
 
   it('réserve tous les noms stellaires au voisinage', () => {
@@ -152,12 +158,19 @@ describe('hiérarchie des labels par échelle', () => {
     expect(isLabelVisibleAtLevel(mediumCosmicGroup, 6, 'medium')).toBe(true);
     expect(isLabelVisibleAtLevel(distantCosmicGroup, 6, 'medium')).toBe(false);
     expect(isLabelVisibleAtLevel(distantCosmicGroup, 6, 'high', 'dense')).toBe(true);
-    expect(getMaximumCosmicLabelRank('low', 6)).toBe(120);
-    expect(getMaximumCosmicLabelRank('medium', 6)).toBe(240);
-    expect(getMaximumCosmicLabelRank('high', 6)).toBe(480);
+    expect(getMaximumCosmicLabelRank('low', 6)).toBe(24);
+    expect(getMaximumCosmicLabelRank('medium', 6)).toBe(48);
+    expect(getMaximumCosmicLabelRank('high', 6)).toBe(72);
     expect(getMaximumCosmicLabelRank('high', 5)).toBe(0);
-    expect(getMaximumCosmicLabelRank('high', 6, 'minimal')).toBe(240);
-    expect(getMaximumCosmicLabelRank('high', 6, 'dense')).toBe(720);
+    expect(getMaximumCosmicLabelRank('high', 6, 'minimal')).toBe(36);
+    expect(getMaximumCosmicLabelRank('high', 6, 'dense')).toBe(108);
+  });
+
+  it('applique la même politique aux structures documentées sans les confondre avec les groupes', () => {
+    expect(isLabelVisibleAtLevel(documentedSupercluster, 5, 'high')).toBe(false);
+    expect(isLabelVisibleAtLevel(documentedSupercluster, 6, 'low')).toBe(true);
+    expect(isLabelVisibleAtLevel(documentedVoidOutsideBudget, 6, 'high', 'balanced')).toBe(false);
+    expect(isLabelVisibleAtLevel(documentedVoidOutsideBudget, 6, 'high', 'dense')).toBe(false);
   });
 
   it('révèle les galaxies visibles dans leur contexte et adapte leur densité', () => {
@@ -230,7 +243,7 @@ describe('hiérarchie des labels par échelle', () => {
     expect(getMaximumLabelCount('high', 3)).toBe(72);
     expect(getMaximumLabelCount('high', 4)).toBe(36);
     expect(getMaximumLabelCount('high', 5)).toBe(48);
-    expect(getMaximumLabelCount('high', 6)).toBe(72);
+    expect(getMaximumLabelCount('high', 6)).toBe(24);
     expect(getMaximumLabelCount('high', 99)).toBe(72);
     expect(getMaximumLabelCount('low', 2, 'minimal')).toBe(14);
     expect(getMaximumLabelCount('medium', 2, 'dense')).toBe(84);
@@ -316,6 +329,7 @@ describe('LabelManager', () => {
       createLabelObject('ranked-galaxy', 'galaxy', { mapLabelRank: 2 }),
       createLabelObject('nearby-galaxy', 'galaxy', { nearbyUniverseLabelRank: 3 }),
       createLabelObject('cf4-pgc-35', 'galaxy-cluster', { cosmicCatalogRank: 0 }),
+      createLabelObject('lss-supercluster-1', 'supercluster', { cosmicStructureRank: 0 }),
       createLabelObject('unranked-galaxy', 'galaxy'),
       createLabelObject('constellation-orion', 'region', { constellationLabelRank: 0 }),
     ];
@@ -329,6 +343,7 @@ describe('LabelManager', () => {
       ['ranked-galaxy', new THREE.Vector3(0.4, 0, 0)],
       ['nearby-galaxy', new THREE.Vector3(-0.4, 0, 0)],
       ['cf4-pgc-35', new THREE.Vector3(-0.25, 0.25, 0)],
+      ['lss-supercluster-1', new THREE.Vector3(0.25, 0.25, 0)],
       ['unranked-galaxy', new THREE.Vector3(0.5, 0, 0)],
       ['selected-hidden', new THREE.Vector3(0, 0, 0)],
       ['temporary', new THREE.Vector3(-0.2, 0, 0)],
@@ -381,7 +396,10 @@ describe('LabelManager', () => {
     );
 
     access.collectCandidates(camera, reader, 6, null);
-    expect(access.candidates.find(({ object }) => object.id === 'cf4-pgc-35')?.priority).toBe(600);
+    expect(access.candidates.find(({ object }) => object.id === 'cf4-pgc-35')?.priority).toBe(300);
+    expect(
+      access.candidates.find(({ object }) => object.id === 'lss-supercluster-1')?.priority,
+    ).toBe(301);
   });
 
   it('ne crée aucun label pour un objet masqué par la carte courante', () => {

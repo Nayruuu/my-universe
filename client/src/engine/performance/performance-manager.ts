@@ -11,7 +11,6 @@ const RECOVERY_FRAME_RATE = 57;
 const SLOW_SAMPLE_COUNT = 2;
 const RECOVERY_SAMPLE_COUNT = 8;
 const PIXEL_RATIO_STEP = 0.25;
-const SEVERE_PIXEL_RATIO_STEP = 0.5;
 
 export class PerformanceManager {
   private adaptiveQuality: GraphicQuality | null = null;
@@ -35,7 +34,7 @@ export class PerformanceManager {
   }
 
   public getPixelRatio(quality: GraphicQuality): number {
-    const cap = quality === 'low' ? 1 : quality === 'medium' ? 1.5 : 2;
+    const cap = quality === 'low' ? 1 : quality === 'medium' ? 1.25 : 1.5;
 
     return Math.min(window.devicePixelRatio, cap);
   }
@@ -65,18 +64,24 @@ export class PerformanceManager {
     const targetPixelRatio = this.getPixelRatio(quality);
     const minimumPixelRatio = Math.min(1, targetPixelRatio);
 
+    if (
+      framesPerSecond < SEVERELY_SLOW_FRAME_RATE &&
+      this.currentAdaptivePixelRatio > minimumPixelRatio
+    ) {
+      this.currentAdaptivePixelRatio = minimumPixelRatio;
+      this.resetSampleCounters();
+
+      return this.currentAdaptivePixelRatio;
+    }
     if (framesPerSecond < SLOW_FRAME_RATE && this.currentAdaptivePixelRatio > minimumPixelRatio) {
       this.slowSampleCount += 1;
       this.recoverySampleCount = 0;
       if (this.slowSampleCount < SLOW_SAMPLE_COUNT) {
         return null;
       }
-      const step =
-        framesPerSecond < SEVERELY_SLOW_FRAME_RATE ? SEVERE_PIXEL_RATIO_STEP : PIXEL_RATIO_STEP;
-
       this.currentAdaptivePixelRatio = Math.max(
         minimumPixelRatio,
-        this.currentAdaptivePixelRatio - step,
+        this.currentAdaptivePixelRatio - PIXEL_RATIO_STEP,
       );
       this.slowSampleCount = 0;
 

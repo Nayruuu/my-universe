@@ -1,5 +1,5 @@
 {
-  "version": "1.6.0",
+  "version": "1.9.0",
   "datasets": [
     {
       "id": "solar-system",
@@ -50,7 +50,20 @@
       "id": "cosmicflows4-groups",
       "url": "/data/galaxies/cosmicflows4-groups.bin",
       "type": "cosmic-group-catalog",
-      "format": "cosmicflows4-group-catalog-v1"
+      "format": "cosmicflows4-group-catalog-v2"
+    },
+    {
+      "id": "documented-cosmic-structures",
+      "url": "/data/structures/cosmic-structures.bin",
+      "metadataUrl": "/data/structures/cosmic-structures.json",
+      "type": "cosmic-structure-catalog",
+      "format": "cosmic-structure-catalog-v1"
+    },
+    {
+      "id": "cosmic-web-density",
+      "url": "/data/structures/cosmic-web-density.bin",
+      "type": "cosmic-web-volume",
+      "format": "cosmic-web-volume-v1"
     }
   ]
 }

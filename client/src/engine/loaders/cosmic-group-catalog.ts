@@ -9,15 +9,18 @@ export interface CosmicGroupCatalog {
   readonly velocitiesCmbKmPerSecond: Int32Array;
   readonly pgcIds: Uint32Array;
   readonly distanceModuli: Float32Array;
+  readonly filamentPairs: Uint32Array;
 }
 
 export const COSMIC_GROUP_CATALOG_MAGIC = 'UMCG';
-export const COSMIC_GROUP_CATALOG_VERSION = 1;
+export const COSMIC_GROUP_CATALOG_VERSION = 2;
 export const COSMIC_GROUP_CATALOG_HEADER_BYTES = 40;
 export const COSMIC_GROUP_CATALOG_RECORD_BYTES = 32;
+export const COSMIC_GROUP_CATALOG_EDGE_BYTES = 8;
 
 const EQUATORIAL_CARTESIAN_FRAME = 1;
 const MAXIMUM_RECORD_COUNT = 100_000;
+const MAXIMUM_FILAMENTS_PER_GROUP = 2;
 const LOCAL_VOLUME_LIMIT_MPC = 11;
 
 export function parseCosmicGroupCatalog(buffer: ArrayBuffer): CosmicGroupCatalog {
@@ -29,14 +32,20 @@ export function parseCosmicGroupCatalog(buffer: ArrayBuffer): CosmicGroupCatalog
   assertMagic(view);
   assertHeader(view);
   const count = view.getUint32(12, true);
+  const filamentEdgeCount = view.getUint32(36, true);
   const referenceEpochJulianDay = view.getFloat64(16, true);
   const minimumDistanceMpc = view.getFloat32(28, true);
   const maximumDistanceMpc = view.getFloat32(32, true);
   const expectedBytes =
-    COSMIC_GROUP_CATALOG_HEADER_BYTES + count * COSMIC_GROUP_CATALOG_RECORD_BYTES;
+    COSMIC_GROUP_CATALOG_HEADER_BYTES +
+    count * COSMIC_GROUP_CATALOG_RECORD_BYTES +
+    filamentEdgeCount * COSMIC_GROUP_CATALOG_EDGE_BYTES;
 
   if (count === 0 || count > MAXIMUM_RECORD_COUNT) {
     throw invalidCatalog(`nombre de groupes hors limites (${count})`);
+  }
+  if (filamentEdgeCount > count * MAXIMUM_FILAMENTS_PER_GROUP) {
+    throw invalidCatalog(`nombre de filaments hors limites (${filamentEdgeCount})`);
   }
   if (!Number.isFinite(referenceEpochJulianDay)) {
     throw invalidCatalog('époque de référence invalide');
@@ -61,6 +70,7 @@ export function parseCosmicGroupCatalog(buffer: ArrayBuffer): CosmicGroupCatalog
     referenceEpochJulianDay,
     minimumDistanceMpc,
     maximumDistanceMpc,
+    filamentEdgeCount,
   );
 }
 
@@ -78,7 +88,6 @@ function assertHeader(view: DataView): void {
   const recordBytes = view.getUint16(8, true);
   const flags = view.getUint16(10, true);
   const coordinateFrame = view.getUint32(24, true);
-  const reserved = view.getUint32(36, true);
 
   if (version !== COSMIC_GROUP_CATALOG_VERSION) {
     throw invalidCatalog(`version non prise en charge (${version})`);
@@ -89,7 +98,7 @@ function assertHeader(view: DataView): void {
   ) {
     throw invalidCatalog('dimensions d’enregistrement incompatibles');
   }
-  if (flags !== 0 || reserved !== 0) {
+  if (flags !== 0) {
     throw invalidCatalog('options binaires non prises en charge');
   }
   if (coordinateFrame !== EQUATORIAL_CARTESIAN_FRAME) {
@@ -103,6 +112,7 @@ function decodeRecords(
   referenceEpochJulianDay: number,
   minimumDistanceMpc: number,
   maximumDistanceMpc: number,
+  filamentEdgeCount: number,
 ): CosmicGroupCatalog {
   const positionsMpc = new Float32Array(count * 3);
   const distancesMpc = new Float32Array(count);
@@ -171,6 +181,7 @@ function decodeRecords(
   ) {
     throw invalidCatalog('bornes du catalogue incohérentes');
   }
+  const filamentPairs = decodeFilamentPairs(view, count, filamentEdgeCount);
 
   return {
     count,
@@ -183,7 +194,40 @@ function decodeRecords(
     velocitiesCmbKmPerSecond,
     pgcIds,
     distanceModuli,
+    filamentPairs,
   };
+}
+
+function decodeFilamentPairs(
+  view: DataView,
+  groupCount: number,
+  filamentEdgeCount: number,
+): Uint32Array {
+  const pairs = new Uint32Array(filamentEdgeCount * 2);
+  const seenPairs = new Set<number>();
+  const filamentOffset =
+    COSMIC_GROUP_CATALOG_HEADER_BYTES + groupCount * COSMIC_GROUP_CATALOG_RECORD_BYTES;
+
+  for (let edgeIndex = 0; edgeIndex < filamentEdgeCount; edgeIndex += 1) {
+    const inputOffset = filamentOffset + edgeIndex * COSMIC_GROUP_CATALOG_EDGE_BYTES;
+    const outputOffset = edgeIndex * 2;
+    const fromIndex = view.getUint32(inputOffset, true);
+    const toIndex = view.getUint32(inputOffset + 4, true);
+
+    if (fromIndex >= toIndex || toIndex >= groupCount) {
+      throw invalidCatalog(`paire de filament invalide à l’index ${edgeIndex}`);
+    }
+    const key = fromIndex * groupCount + toIndex;
+
+    if (seenPairs.has(key)) {
+      throw invalidCatalog(`paire de filament dupliquée à l’index ${edgeIndex}`);
+    }
+    seenPairs.add(key);
+    pairs[outputOffset] = fromIndex;
+    pairs[outputOffset + 1] = toIndex;
+  }
+
+  return pairs;
 }
 
 function invalidCatalog(reason: string): Error {

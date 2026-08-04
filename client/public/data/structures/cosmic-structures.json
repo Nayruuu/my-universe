@@ -1,0 +1,109 @@
+{
+  "version": "1.1.0",
+  "recordCount": 26500,
+  "referenceEpochJulianDay": 2451545,
+  "referenceFrame": "equatorial-j2000",
+  "distanceUnit": "megaparsec",
+  "scientificConfidence": "calculated",
+  "structureCounts": {
+    "supercluster": 8757,
+    "void": 1228,
+    "filament": 15421,
+    "cluster": 1094
+  },
+  "cosmology": {
+    "model": "flat-lambda-cdm",
+    "hubbleConstantKmPerSecondPerMpc": 70,
+    "reducedHubbleParameter": 0.7,
+    "matterDensity": 0.3,
+    "darkEnergyDensity": 0.7,
+    "usage": "Mpc/h conversion and BOSS redshift-to-comoving-distance display coordinates"
+  },
+  "sources": [
+    {
+      "id": "sdss-dr7-main50",
+      "name": "SDSS DR7 Main D=5.0 superclusters",
+      "citation": "Liivamägi, Tempel & Saar (2012), A&A 539, A80",
+      "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/A+A/539/A80",
+      "structureType": "supercluster",
+      "method": "B3-spline luminosity-density field with a fixed 5.0 mean-density threshold",
+      "objectNamePrefix": "Superamas SDSS",
+      "scientificConfidence": "calculated",
+      "recordCount": 982,
+      "sourceSha256": "f888f6056b2cb373775ea699897e88d3702963cbba8c61fef53c28d9d5b21849"
+    },
+    {
+      "id": "sdss-dr7-main-adaptive",
+      "name": "SDSS DR7 Main adaptive superclusters",
+      "citation": "Liivamägi, Tempel & Saar (2012), A&A 539, A80",
+      "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/A+A/539/A80",
+      "structureType": "supercluster",
+      "method": "B3-spline luminosity-density field with adaptive local thresholds",
+      "objectNamePrefix": "Superamas SDSS adaptatif",
+      "scientificConfidence": "calculated",
+      "recordCount": 1313,
+      "sourceSha256": "285da134ec3d33655fbbbed7cf9ed4f43cef29d75766f54c95b9681ba131f907"
+    },
+    {
+      "id": "sdss-dr7-lrg44",
+      "name": "SDSS DR7 LRG D=4.4 superclusters",
+      "citation": "Liivamägi, Tempel & Saar (2012), A&A 539, A80",
+      "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/A+A/539/A80",
+      "structureType": "supercluster",
+      "method": "LRG B3-spline luminosity-density field with a fixed 4.4 threshold",
+      "objectNamePrefix": "Superamas SDSS LRG",
+      "scientificConfidence": "calculated",
+      "recordCount": 3761,
+      "sourceSha256": "a76095cfbd7d975215165cae0b100f19125f9a2300500e9ad3ac05602c910aa8"
+    },
+    {
+      "id": "sdss-dr7-lrg-adaptive",
+      "name": "SDSS DR7 LRG adaptive superclusters",
+      "citation": "Liivamägi, Tempel & Saar (2012), A&A 539, A80",
+      "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/A+A/539/A80",
+      "structureType": "supercluster",
+      "method": "LRG B3-spline luminosity-density field with adaptive local thresholds",
+      "objectNamePrefix": "Superamas SDSS LRG adaptatif",
+      "scientificConfidence": "calculated",
+      "recordCount": 2701,
+      "sourceSha256": "6c50d3a3ddbb6b050988a2c43f982459fc3a33bdeab2f54d35afcfd837d59447"
+    },
+    {
+      "id": "boss-dr12-voids",
+      "name": "BOSS DR12 robust cosmic voids",
+      "citation": "Mao et al. (2017), ApJ 835, 161",
+      "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJ/835/161",
+      "structureType": "void",
+      "method": "ZOBOV watershed void finder after published robustness quality cuts",
+      "objectNamePrefix": "Vide cosmique BOSS",
+      "scientificConfidence": "calculated",
+      "recordCount": 1228,
+      "sourceSha256": "895882fc1a227f15b4d85d64e060f93e78a4876e8c7cf1b4d4b560b671e19eb6"
+    },
+    {
+      "id": "sdss-dr8-tempel-filaments",
+      "name": "SDSS DR8 Bisous cosmic filaments",
+      "citation": "Tempel et al. (2014), MNRAS 438, 3465",
+      "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/MNRAS/438/3465",
+      "structureType": "filament",
+      "method": "Three-dimensional Bisous marked point-process filament finder",
+      "objectNamePrefix": "Filament SDSS",
+      "scientificConfidence": "calculated",
+      "recordCount": 15421,
+      "sourceSha256": "6a017f1374f402692f653421dd4b624078036a4f01992f54734c5e92a6273f28"
+    },
+    {
+      "id": "planck-psz2-clusters",
+      "name": "Planck PSZ2 redshift-positioned galaxy clusters",
+      "citation": "Planck Collaboration (2016), A&A 594, A27",
+      "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/A+A/594/A27",
+      "structureType": "cluster",
+      "method": "Multi-pipeline Sunyaev-Zeldovich detection with an external redshift counterpart",
+      "objectNamePrefix": "Amas Planck",
+      "scientificConfidence": "calculated",
+      "recordCount": 1094,
+      "sourceSha256": "12bb5822ebf10c0155532cd83626e0d9c63b753d23eba8d62472d742eb433b45"
+    }
+  ],
+  "representation": "gpu-symbol-catalog-with-lazy-object-definitions"
+}

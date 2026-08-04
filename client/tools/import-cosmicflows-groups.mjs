@@ -5,10 +5,15 @@ import { createGunzip } from 'node:zlib';
 import { dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createInterface } from 'node:readline';
+import {
+  buildCosmicFilamentIndex,
+  DEFAULT_COSMIC_FILAMENT_OPTIONS,
+} from './build-cosmic-filament-index.mjs';
 
-export const COSMIC_GROUP_CATALOG_VERSION = 1;
+export const COSMIC_GROUP_CATALOG_VERSION = 2;
 export const COSMIC_GROUP_CATALOG_HEADER_BYTES = 40;
 export const COSMIC_GROUP_CATALOG_RECORD_BYTES = 32;
+export const COSMIC_GROUP_CATALOG_EDGE_BYTES = 8;
 
 const DEFAULT_INPUT = resolve('data-sources/cosmicflows4-table4.dat.gz');
 const DEFAULT_OUTPUT = resolve('public/data/galaxies/cosmicflows4-groups.bin');
@@ -85,12 +90,16 @@ export function buildCosmicflowsCatalog(lines) {
   return records;
 }
 
-export function encodeCosmicflowsCatalog(records) {
+export function encodeCosmicflowsCatalog(records, filamentPairs = new Uint32Array()) {
   if (records.length === 0) {
     throw new Error('Cosmicflows-4 catalogue contains no records beyond the Local Volume.');
   }
+  assertFilamentPairs(filamentPairs, records.length);
+  const filamentEdgeCount = filamentPairs.length / 2;
   const buffer = Buffer.allocUnsafe(
-    COSMIC_GROUP_CATALOG_HEADER_BYTES + records.length * COSMIC_GROUP_CATALOG_RECORD_BYTES,
+    COSMIC_GROUP_CATALOG_HEADER_BYTES +
+      records.length * COSMIC_GROUP_CATALOG_RECORD_BYTES +
+      filamentEdgeCount * COSMIC_GROUP_CATALOG_EDGE_BYTES,
   );
   const minimumDistanceMpc = records[0].distanceMpc;
   const maximumDistanceMpc = records.at(-1).distanceMpc;
@@ -105,7 +114,7 @@ export function encodeCosmicflowsCatalog(records) {
   buffer.writeUInt32LE(EQUATORIAL_CARTESIAN_FRAME, 24);
   buffer.writeFloatLE(minimumDistanceMpc, 28);
   buffer.writeFloatLE(maximumDistanceMpc, 32);
-  buffer.writeUInt32LE(0, 36);
+  buffer.writeUInt32LE(filamentEdgeCount, 36);
 
   for (let index = 0; index < records.length; index += 1) {
     const record = records[index];
@@ -121,6 +130,13 @@ export function encodeCosmicflowsCatalog(records) {
     buffer.writeFloatLE(record.distanceModulus, offset + 28);
   }
 
+  const filamentOffset =
+    COSMIC_GROUP_CATALOG_HEADER_BYTES + records.length * COSMIC_GROUP_CATALOG_RECORD_BYTES;
+
+  for (let index = 0; index < filamentPairs.length; index += 1) {
+    buffer.writeUInt32LE(filamentPairs[index], filamentOffset + index * 4);
+  }
+
   return buffer;
 }
 
@@ -128,15 +144,18 @@ async function main() {
   const options = parseArguments(process.argv.slice(2));
   const lines = await readCompressedLines(options.input);
   const records = buildCosmicflowsCatalog(lines);
-  const binary = encodeCosmicflowsCatalog(records);
+  const filamentPairs = buildCosmicFilamentIndex(createPositionArray(records), records.length);
+  const filamentEdgeCount = filamentPairs.length / 2;
+  const binary = encodeCosmicflowsCatalog(records, filamentPairs);
   const sourceBuffer = await readFile(options.input);
   const metadata = {
-    version: '1.0.0',
+    version: '2.0.0',
     source: SOURCE_NAME,
     sourceUrl: SOURCE_URL,
     sourceSha256: createHash('sha256').update(sourceBuffer).digest('hex'),
     sourceRecordCount: lines.filter((line) => line.trim()).length,
     catalogRecordCount: records.length,
+    filamentEdgeCount,
     excludedLocalVolumeRecords: lines.filter((line, index) => {
       const record = parseCosmicflowsGroupLine(line, index + 1);
 
@@ -147,15 +166,53 @@ async function main() {
     referenceEpochJulianDay: REFERENCE_EPOCH_JULIAN_DAY,
     referenceFrame: 'equatorial-j2000',
     scientificConfidence: 'calculated',
-    representation: 'gpu-point-catalog',
+    filamentScientificConfidence: 'illustrative',
+    filamentParameters: DEFAULT_COSMIC_FILAMENT_OPTIONS,
+    representation: 'gpu-point-and-precomputed-filament-catalog',
   };
 
   await mkdir(dirname(options.output), { recursive: true });
   await writeFile(options.output, binary);
   await writeFile(metadataPath(options.output), `${JSON.stringify(metadata, null, 2)}\n`);
   console.log(
-    `Cosmicflows-4 catalogue generated: ${records.length.toLocaleString('en-US')} groups beyond ${LOCAL_VOLUME_LIMIT_MPC} Mpc (${options.output}).`,
+    `Cosmicflows-4 catalogue generated: ${records.length.toLocaleString('en-US')} groups and ${filamentEdgeCount.toLocaleString('en-US')} precomputed filaments beyond ${LOCAL_VOLUME_LIMIT_MPC} Mpc (${options.output}).`,
   );
+}
+
+function createPositionArray(records) {
+  const positions = new Float32Array(records.length * 3);
+
+  for (let index = 0; index < records.length; index += 1) {
+    const record = records[index];
+
+    positions[index * 3] = record.x;
+    positions[index * 3 + 1] = record.y;
+    positions[index * 3 + 2] = record.z;
+  }
+
+  return positions;
+}
+
+function assertFilamentPairs(filamentPairs, recordCount) {
+  if (filamentPairs.length % 2 !== 0) {
+    throw new Error('Cosmicflows-4 filament index must contain an even number of indices.');
+  }
+  const seenPairs = new Set();
+
+  for (let offset = 0; offset < filamentPairs.length; offset += 2) {
+    const fromIndex = filamentPairs[offset];
+    const toIndex = filamentPairs[offset + 1];
+
+    if (fromIndex >= toIndex || toIndex >= recordCount) {
+      throw new Error(`Cosmicflows-4 invalid filament pair at offset ${offset}.`);
+    }
+    const key = fromIndex * recordCount + toIndex;
+
+    if (seenPairs.has(key)) {
+      throw new Error(`Cosmicflows-4 duplicate filament pair at offset ${offset}.`);
+    }
+    seenPairs.add(key);
+  }
 }
 
 function parseArguments(argumentList) {

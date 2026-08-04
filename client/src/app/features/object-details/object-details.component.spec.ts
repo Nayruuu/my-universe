@@ -102,6 +102,13 @@ describe('ObjectDetailsComponent', () => {
       ['black-hole', 'Trou noir'],
       ['region', 'Région cosmique'],
       ['galaxy-cluster', 'Groupe ou amas de galaxies'],
+      ['supercluster', 'Superamas de galaxies'],
+      ['cosmic-wall', 'Mur cosmique'],
+      ['cosmic-filament', 'Filament cosmique'],
+      ['cosmic-void', 'Vide cosmique'],
+      ['cosmic-basin', 'Bassin d’attraction'],
+      ['cosmic-attractor', 'Attracteur cosmique'],
+      ['cosmic-repeller', 'Répulseur cosmique'],
       ['universe', 'Univers'],
       ['artificial-object', 'Objet astronomique'],
     ];
@@ -249,6 +256,50 @@ describe('ObjectDetailsComponent', () => {
     expect(component.cmbVelocityLabel(object())).toBeNull();
   });
 
+  it('présente la méthode, l’empreinte et les mesures d’une structure cosmologique', () => {
+    const component = createComponent();
+    const structure = object({
+      type: 'cosmic-void',
+      metadata: {
+        catalogIdentifier: 'CMASS-North-60',
+        effectiveRadiusMpc: 46.14,
+        memberGalaxyCount: 35,
+        catalogConfidence: 0.996,
+        densityContrast: -0.717,
+        boundaryDistanceMpc: 75.006,
+        detectionMethod: 'ZOBOV watershed',
+        surveyEdge: false,
+      },
+    });
+
+    expect(component.catalogIdentifierLabel(structure)).toBe('CMASS-North-60');
+    expect(component.effectiveRadiusLabel(structure)).toBe('46,14 Mpc');
+    expect(component.memberGalaxyCountLabel(structure)).toBe('35');
+    expect(component.catalogConfidenceLabel(structure)).toBe('99,6 %');
+    expect(component.densityContrastLabel(structure)).toBe('−71,7 %');
+    expect(component.boundaryDistanceLabel(structure)).toBe('75,01 Mpc');
+    expect(component.detectionMethodLabel(structure)).toBe('ZOBOV watershed');
+    expect(component.surveyEdgeLabel(structure)).toBe('À l’intérieur du relevé');
+    expect(component.surveyEdgeLabel(object({ metadata: { surveyEdge: true } }))).toBe(
+      'Au contact de la limite',
+    );
+    expect(component.effectiveRadiusLabel(object())).toBeNull();
+    expect(component.memberGalaxyCountLabel(object())).toBeNull();
+    expect(component.catalogConfidenceLabel(object())).toBeNull();
+    expect(component.densityContrastLabel(object())).toBeNull();
+    expect(component.boundaryDistanceLabel(object())).toBeNull();
+    expect(component.detectionMethodLabel(object())).toBeNull();
+    expect(component.surveyEdgeLabel(object())).toBeNull();
+
+    const filament = object({
+      type: 'cosmic-filament',
+      metadata: { lengthMpc: 24.8 },
+    });
+
+    expect(component.structureLengthLabel(filament)).toBe('24,8 Mpc');
+    expect(component.structureLengthLabel(object())).toBeNull();
+  });
+
   it('présente les métadonnées conventionnelles d’une constellation', () => {
     const component = createComponent();
     const constellation = object({
@@ -350,6 +401,14 @@ interface ObjectDetailsAccess {
   apparentMagnitudeLabel(object: SpaceObject): string | null;
   colorIndexLabel(object: SpaceObject): string | null;
   catalogIdentifierLabel(object: SpaceObject): string | null;
+  effectiveRadiusLabel(object: SpaceObject): string | null;
+  structureLengthLabel(object: SpaceObject): string | null;
+  memberGalaxyCountLabel(object: SpaceObject): string | null;
+  catalogConfidenceLabel(object: SpaceObject): string | null;
+  densityContrastLabel(object: SpaceObject): string | null;
+  boundaryDistanceLabel(object: SpaceObject): string | null;
+  detectionMethodLabel(object: SpaceObject): string | null;
+  surveyEdgeLabel(object: SpaceObject): string | null;
   distanceUncertaintyLabel(object: SpaceObject): string | null;
   cmbVelocityLabel(object: SpaceObject): string | null;
   morphologyLabel(object: SpaceObject): string | null;

@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import test from 'node:test';
 import {
+  COSMIC_GROUP_CATALOG_EDGE_BYTES,
   COSMIC_GROUP_CATALOG_HEADER_BYTES,
   COSMIC_GROUP_CATALOG_RECORD_BYTES,
   COSMIC_GROUP_CATALOG_VERSION,
@@ -61,7 +62,8 @@ test('filters the Local Volume, rejects duplicate PGC identifiers, and sorts by 
 
 test('encodes a deterministic, self-describing binary catalogue', () => {
   const records = buildCosmicflowsCatalog([FIRST_SOURCE_ROW]);
-  const buffer = encodeCosmicflowsCatalog(records);
+  const filamentPairs = new Uint32Array();
+  const buffer = encodeCosmicflowsCatalog(records, filamentPairs);
 
   assert.equal(
     buffer.byteLength,
@@ -73,7 +75,39 @@ test('encodes a deterministic, self-describing binary catalogue', () => {
   assert.equal(buffer.readUInt16LE(8), COSMIC_GROUP_CATALOG_RECORD_BYTES);
   assert.equal(buffer.readUInt32LE(12), 1);
   assert.equal(buffer.readDoubleLE(16), 2_451_545);
+  assert.equal(buffer.readUInt32LE(36), 0);
   assert.equal(buffer.readUInt32LE(COSMIC_GROUP_CATALOG_HEADER_BYTES + 24), 12);
+});
+
+test('appends the precomputed filament index after the scientific records', () => {
+  const secondRow = replaceFixedField(
+    replaceFixedField(FIRST_SOURCE_ROW, 1, 7, '     14'),
+    22,
+    26,
+    '165.6',
+  );
+  const records = buildCosmicflowsCatalog([FIRST_SOURCE_ROW, secondRow]);
+  const buffer = encodeCosmicflowsCatalog(records, new Uint32Array([0, 1]));
+  const edgeOffset =
+    COSMIC_GROUP_CATALOG_HEADER_BYTES + records.length * COSMIC_GROUP_CATALOG_RECORD_BYTES;
+
+  assert.equal(buffer.byteLength, edgeOffset + COSMIC_GROUP_CATALOG_EDGE_BYTES);
+  assert.equal(buffer.readUInt32LE(36), 1);
+  assert.equal(buffer.readUInt32LE(edgeOffset), 0);
+  assert.equal(buffer.readUInt32LE(edgeOffset + 4), 1);
+});
+
+test('rejects malformed precomputed filament pairs', () => {
+  const records = buildCosmicflowsCatalog([FIRST_SOURCE_ROW]);
+
+  assert.throws(
+    () => encodeCosmicflowsCatalog(records, new Uint32Array([0])),
+    /even number of indices/,
+  );
+  assert.throws(
+    () => encodeCosmicflowsCatalog(records, new Uint32Array([0, 1])),
+    /invalid filament pair/,
+  );
 });
 
 test('ships the complete reproducible Cosmicflows-4 layer beyond 11 Mpc', async () => {
@@ -83,12 +117,23 @@ test('ships the complete reproducible Cosmicflows-4 layer beyond 11 Mpc', async 
   );
 
   assert.equal(binary.toString('ascii', 0, 4), 'UMCG');
+  assert.equal(binary.readUInt16LE(4), 2);
   assert.equal(binary.readUInt32LE(12), 37_730);
+  assert.equal(binary.readUInt32LE(36), 49_939);
+  assert.equal(
+    binary.byteLength,
+    COSMIC_GROUP_CATALOG_HEADER_BYTES +
+      37_730 * COSMIC_GROUP_CATALOG_RECORD_BYTES +
+      49_939 * COSMIC_GROUP_CATALOG_EDGE_BYTES,
+  );
+  assert.equal(metadata.version, '2.0.0');
   assert.equal(metadata.sourceRecordCount, 38_053);
   assert.equal(metadata.catalogRecordCount, 37_730);
+  assert.equal(metadata.filamentEdgeCount, 49_939);
   assert.equal(metadata.minimumDistanceMpc, 11.1);
   assert.equal(metadata.maximumDistanceMpc, 772.7);
   assert.equal(metadata.scientificConfidence, 'calculated');
+  assert.equal(metadata.filamentScientificConfidence, 'illustrative');
 });
 
 function replaceFixedField(line, start, end, replacement) {

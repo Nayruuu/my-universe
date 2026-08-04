@@ -6,11 +6,19 @@ import {
 } from '../../data/models/universe.models';
 import { CoordinateSystem } from '../coordinates/coordinate-system';
 import { CosmicGroupCatalog } from '../loaders/cosmic-group-catalog';
+import {
+  CosmicStructureCatalog,
+  CosmicStructureCatalogMetadata,
+} from '../loaders/cosmic-structure-catalog';
+import { type CosmicWebVolume } from '../loaders/cosmic-web-volume';
 import { StarCatalog } from '../loaders/star-catalog';
 import { CosmicGroupCatalogRegistry } from '../objects/cosmic-group-catalog-registry';
+import { CosmicStructureCatalogRegistry } from '../objects/cosmic-structure-catalog-registry';
 import { StarCatalogRegistry } from '../objects/star-catalog-registry';
 import { PerformanceManager } from '../performance/performance-manager';
 import { getNavigationScale } from '../camera/navigation-scales';
+import { ALL_COSMIC_MAP_LAYERS, DEFAULT_COSMIC_MAP_LAYERS } from './cosmic-map-policy';
+import { getCosmicWebVolumeProfile } from './cosmic-web-volume';
 import { getPhotographicProfile } from './photographic-profile';
 import { UniverseScene } from './universe-scene';
 
@@ -131,6 +139,9 @@ describe('UniverseScene', () => {
     expect(scene.activeCosmicFilamentCount).toBe(0);
     expect(scene.visibleCosmicFilamentCount).toBe(0);
     expect(scene.cosmicFilamentCount).toBe(0);
+    expect(scene.cosmicStructureCount).toBe(0);
+    expect(scene.visibleCosmicStructureCount).toBe(0);
+    expect(scene.isCatalogObjectVisibleForLabels('unknown')).toBeNull();
     expect(scene.visibleStarClusterCount).toBe(0);
     expect(scene.starClusterRepresentationCount).toBe(0);
 
@@ -217,6 +228,12 @@ describe('UniverseScene', () => {
     ).toBe(getPhotographicProfile(6, 'high').galaxyRadiance);
     expect(scene.getCatalogWorldPosition('cf4-pgc-84')).toBeInstanceOf(THREE.Vector3);
     expect(scene.getCatalogPickables()).toHaveLength(2);
+    expect(scene.isCatalogObjectVisibleForLabels('cf4-pgc-84')).toBe(true);
+
+    scene.setCosmicMapLayers({ ...DEFAULT_COSMIC_MAP_LAYERS, groups: false });
+    expect(scene.visibleCosmicGroupCount).toBe(0);
+    expect(scene.isCatalogObjectVisibleForLabels('cf4-pgc-84')).toBe(false);
+    scene.setCosmicMapLayers(DEFAULT_COSMIC_MAP_LAYERS);
 
     scene.updateLod(5, 10, 120_000);
     expect(scene.visibleCosmicGroupCount).toBe(1);
@@ -228,6 +245,46 @@ describe('UniverseScene', () => {
     expect(scene.cosmicGroupCount).toBe(0);
   });
 
+  it('installe, pilote, masque, remplace et détruit le volume simulé du réseau cosmique', async () => {
+    const scene = new UniverseScene(new PerformanceManager());
+    const firstVolume = cosmicWebVolume(72);
+
+    await scene.setCosmicWebVolume(firstVolume, new CoordinateSystem());
+    const firstMesh = scene.spaceRoot.getObjectByName('simulated-cosmic-web-volume') as THREE.Mesh<
+      THREE.BoxGeometry,
+      THREE.ShaderMaterial
+    >;
+
+    expect(firstMesh).toBeInstanceOf(THREE.Mesh);
+    expect(firstMesh.userData['scientificConfidence']).toBe('simulated');
+    expect(firstMesh.userData['volumeResolution']).toBe(72);
+    const firstGeometryDispose = vi.spyOn(firstMesh.geometry, 'dispose');
+
+    scene.setQuality('high');
+    scene.updateLod(6, 10, 420_000);
+    expect(firstMesh.visible).toBe(true);
+    expect(firstMesh.material.uniforms['stepCount']!.value).toBe(
+      getCosmicWebVolumeProfile('high').stepCount,
+    );
+    expect(firstMesh.material.uniforms['radiance']!.value).toBe(
+      getPhotographicProfile(6, 'high').galaxyRadiance,
+    );
+
+    scene.setCosmicMapLayers({ ...DEFAULT_COSMIC_MAP_LAYERS, volume: false });
+    expect(firstMesh.visible).toBe(false);
+    scene.setCosmicMapLayers(DEFAULT_COSMIC_MAP_LAYERS);
+    expect(firstMesh.visible).toBe(true);
+
+    await scene.setCosmicWebVolume(cosmicWebVolume(48), new CoordinateSystem());
+    expect(firstGeometryDispose).toHaveBeenCalledOnce();
+    expect(
+      scene.spaceRoot.getObjectByName('simulated-cosmic-web-volume')?.userData['volumeResolution'],
+    ).toBe(48);
+
+    scene.dispose();
+    expect(scene.spaceRoot.getObjectByName('simulated-cosmic-web-volume')).toBeUndefined();
+  });
+
   it('propage la qualité et le LOD au réseau cosmique dérivé', async () => {
     const scene = new UniverseScene(new PerformanceManager());
 
@@ -236,6 +293,8 @@ describe('UniverseScene', () => {
     const filaments = scene.spaceRoot.getObjectByName(
       'illustrative-cosmicflows4-filaments',
     ) as THREE.LineSegments<THREE.BufferGeometry, THREE.ShaderMaterial>;
+
+    scene.updateLod(6, 10, 420_000);
     const lowCount = scene.activeCosmicFilamentCount;
 
     expect(filaments).toBeInstanceOf(THREE.LineSegments);
@@ -244,13 +303,16 @@ describe('UniverseScene', () => {
     expect(lowCount).toBeLessThan(scene.cosmicFilamentCount);
 
     scene.setQuality('medium');
-    expect(scene.activeCosmicFilamentCount).toBeGreaterThan(lowCount);
+    expect(scene.activeCosmicFilamentCount).toBeGreaterThanOrEqual(lowCount);
     scene.setQuality('high');
-    expect(scene.activeCosmicFilamentCount).toBe(scene.cosmicFilamentCount);
 
     scene.updateLod(6, 10, 420_000);
-    expect(scene.visibleCosmicFilamentCount).toBe(scene.cosmicFilamentCount);
+    expect(scene.visibleCosmicFilamentCount).toBeGreaterThan(0);
+    expect(scene.visibleCosmicFilamentCount).toBeLessThan(scene.cosmicFilamentCount);
     expect(filaments.visible).toBe(true);
+
+    scene.updateLod(6, 10, 170_000);
+    expect(scene.visibleCosmicFilamentCount).toBe(scene.cosmicFilamentCount);
 
     scene.updateLod(4, 10, 17_000);
     expect(scene.visibleCosmicFilamentCount).toBe(0);
@@ -293,6 +355,54 @@ describe('UniverseScene', () => {
     expect(backdrop.material.opacity).toBeGreaterThan(0.18);
     expect(backdrop.material.opacity).toBeLessThan(0.24);
     scene.dispose();
+  });
+
+  it('installe, sélectionne, remplace et détruit les structures cosmologiques documentées', async () => {
+    const scene = new UniverseScene(new PerformanceManager());
+    const first = cosmicStructureRegistry('239+027+0091');
+    const second = cosmicStructureRegistry('170+043+0196');
+
+    await scene.setCosmicStructureCatalog(first);
+    const firstPoints = scene.spaceRoot.getObjectByName('calculated-cosmic-structure-symbols');
+
+    expect(firstPoints).toBeInstanceOf(THREE.Points);
+    const firstGeometryDispose = vi.spyOn((firstPoints as THREE.Points).geometry, 'dispose');
+
+    await scene.setCosmicStructureCatalog(second);
+    expect(firstGeometryDispose).toHaveBeenCalledOnce();
+    const activePoints = scene.spaceRoot.getObjectByName(
+      'calculated-cosmic-structure-symbols',
+    ) as THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial>;
+
+    scene.setQuality('high');
+    scene.setPixelRatio(1.25);
+    scene.updateLod(6, 10, 420_000);
+    scene.selectCatalogObject('lss-sdss-main50-170-043-0196');
+
+    expect(scene.cosmicStructureCount).toBe(1);
+    expect(scene.visibleCosmicStructureCount).toBe(1);
+    expect(activePoints.material.uniforms['pixelRatio']!.value).toBe(1.25);
+    expect(activePoints.material.uniforms['detailScale']!.value).toBe(1);
+    expect(activePoints.material.uniforms['radiance']!.value).toBe(
+      getPhotographicProfile(6, 'high').galaxyRadiance,
+    );
+    expect(scene.getCatalogWorldPosition('lss-sdss-main50-170-043-0196')).toBeInstanceOf(
+      THREE.Vector3,
+    );
+    expect(scene.getCatalogPickables()).toHaveLength(2);
+    expect(scene.isCatalogObjectVisibleForLabels('lss-sdss-main50-170-043-0196')).toBe(true);
+
+    scene.setCosmicMapLayers({ ...ALL_COSMIC_MAP_LAYERS, superclusters: false });
+    expect(scene.visibleCosmicStructureCount).toBe(0);
+    expect(scene.isCatalogObjectVisibleForLabels('lss-sdss-main50-170-043-0196')).toBe(false);
+    scene.setCosmicMapLayers(ALL_COSMIC_MAP_LAYERS);
+    expect(scene.visibleCosmicStructureCount).toBe(1);
+
+    scene.updateLod(4, 10, 40_000);
+    expect(scene.visibleCosmicStructureCount).toBe(0);
+    scene.selectCatalogObject(null);
+    scene.dispose();
+    expect(scene.cosmicStructureCount).toBe(0);
   });
 
   it('intègre un fond cosmique illustratif piloté par la distance plutôt que le LOD', () => {
@@ -540,6 +650,17 @@ function catalogRegistry(id: number): StarCatalogRegistry {
   return new StarCatalogRegistry(catalog, new CoordinateSystem());
 }
 
+function cosmicWebVolume(resolution: number): CosmicWebVolume {
+  return {
+    resolution,
+    halfExtentMpc: 800,
+    referenceEpochJulianDay: 2_451_545,
+    sourceGroupCount: 37_730,
+    sourceEdgeCount: 49_939,
+    density: new Uint8Array(resolution ** 3),
+  };
+}
+
 function nearbyGalaxyIndex(): SpaceTileIndex {
   return {
     version: '2.0.0',
@@ -576,9 +697,56 @@ function cosmicGroupRegistry(pgcId: number): CosmicGroupCatalogRegistry {
     velocitiesCmbKmPerSecond: new Int32Array([810]),
     pgcIds: new Uint32Array([pgcId]),
     distanceModuli: new Float32Array([30.413]),
+    filamentPairs: new Uint32Array(),
   };
 
   return new CosmicGroupCatalogRegistry(catalog, new CoordinateSystem());
+}
+
+function cosmicStructureRegistry(identifier: string): CosmicStructureCatalogRegistry {
+  const metadata: CosmicStructureCatalogMetadata = {
+    version: '1.0.0',
+    recordCount: 1,
+    referenceEpochJulianDay: 2_451_545,
+    referenceFrame: 'equatorial-j2000',
+    distanceUnit: 'megaparsec',
+    scientificConfidence: 'calculated',
+    sources: [
+      {
+        id: 'sdss-main50',
+        name: 'SDSS superclusters',
+        citation: 'Liivamägi et al. (2012)',
+        sourceUrl: 'https://example.test/superclusters',
+        structureType: 'supercluster',
+        method: 'Luminosity density field',
+        objectNamePrefix: 'Superamas SDSS',
+        scientificConfidence: 'calculated',
+        recordCount: 1,
+      },
+    ],
+  };
+  const distanceMpc = Math.hypot(-176.1, 163.7, -287.8);
+  const catalog: CosmicStructureCatalog = {
+    count: 1,
+    referenceEpochJulianDay: 2_451_545,
+    minimumDistanceMpc: distanceMpc,
+    maximumDistanceMpc: distanceMpc,
+    positionsMpc: new Float32Array([-176.1, 163.7, -287.8]),
+    distancesMpc: new Float32Array([distanceMpc]),
+    radiiMpc: new Float32Array([35.9]),
+    confidences: new Float32Array([0.98]),
+    densityContrasts: new Float32Array([Number.NaN]),
+    boundaryDistancesMpc: new Float32Array([Number.NaN]),
+    galaxyCounts: new Uint32Array([1_038]),
+    sourceIndices: new Uint16Array([0]),
+    catalogNumericIds: new Uint16Array([1]),
+    flags: new Uint8Array([0]),
+    identifiers: [identifier],
+    structureTypes: ['supercluster'],
+    metadata,
+  };
+
+  return new CosmicStructureCatalogRegistry(catalog, new CoordinateSystem());
 }
 
 function connectedCosmicGroupRegistry(): CosmicGroupCatalogRegistry {
@@ -599,6 +767,7 @@ function connectedCosmicGroupRegistry(): CosmicGroupCatalogRegistry {
     velocitiesCmbKmPerSecond: Int32Array.from(distances, (distance) => distance * 70),
     pgcIds: Uint32Array.from(distances, (_, index) => 100 + index),
     distanceModuli: Float32Array.from(distances, (distance) => 5 * Math.log10(distance) + 25),
+    filamentPairs: new Uint32Array([0, 1, 1, 2, 2, 3, 3, 4, 4, 5]),
   };
 
   return new CosmicGroupCatalogRegistry(catalog, new CoordinateSystem());

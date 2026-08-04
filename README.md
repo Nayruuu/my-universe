@@ -67,12 +67,25 @@ and illustrative data.
   catalogue positions visible across the Local Group transition, while streamed tiles add labels,
   picking, and detail; focusing an entry temporarily restores its shaped galaxy impostor.
 - A seventh cosmic-web scale containing 37,730 calculated Cosmicflows-4 galaxy groups from 11.1 to
-  772.7 Mpc, rendered as one GPU point batch with uncertainty-aware styling, quality-bounded labels,
-  PGC search, reusable selection highlighting, scientific cards, and URL-addressable focus. A
-  second GPU batch derives a deterministic, quality-aware nearest-neighbor scaffold from those
-  positions so large-scale structure remains legible without presenting the lines as observed
-  physical filaments. Its confidence-aware detail strengthens continuously while zooming in, and a
-  compact legend keeps the calculated groups distinct from the illustrative links.
+  772.7 Mpc. The exact catalogue remains searchable while one GPU point batch progressively reveals
+  a deterministic, spatially distributed sample as the camera approaches. A second GPU batch adds
+  a quality-aware nearest-neighbor scaffold precomputed from those positions without presenting the
+  lines as observed physical filaments. An optional 128³ static density volume combines a
+  distance-compensated sample of those data with a deterministic cellular continuity field, then
+  ray-marches the resulting Illustris-inspired cyan, violet, and amber envelope in one mesh. A
+  broader sample of catalogue-backed luminous points maps relative depth from warm nearby groups to
+  cool remote groups without restoring a decorative star wallpaper. The added continuity is
+  explicitly marked `simulated` and never presented as an observed matter field. Independent map
+  layers, bounded labels, uncertainty-aware styling, reusable selection
+  highlighting, scientific cards, and URL-addressable focus keep this dense scale readable and
+  inspectable.
+- A second scientific batch containing 26,500 positionable large-scale-structure detections from
+  seven versioned public catalogues: SDSS superclusters and filament envelopes, robust BOSS voids,
+  and redshift-positioned Planck SZ clusters. A default synthesis shows progressively sampled
+  clusters and superclusters; the map panel exposes groups, links, filament centers, and voids as
+  independent layers. Every record remains searchable and focusable, preserves its detection method
+  and source, and remains separate when survey methods overlap. Missing survey coverage is
+  explicitly not rendered as a cosmic void.
 - A continuously blended deep-space backdrop whose restrained navy, indigo haze, and vignette
   evolve with camera distance without a hard visual cut between semantic scales.
 - Searchable and clickable names, object details, confidence levels, and shareable URL state.
@@ -149,10 +162,10 @@ From the repository root, the equivalent command is `make verify`.
 
 The current baseline contains:
 
-- 911 unit and integration tests plus 21 static-data pipeline tests;
+- 1,004 unit and integration tests plus 43 static-data pipeline tests;
 - 100% statements, branches, functions, and lines coverage across production code;
 - individual 100% coverage gates for declared scientific modules;
-- 45 end-to-end Chromium journeys across desktop and mobile viewports.
+- 48 end-to-end Chromium journeys across desktop and mobile viewports.
 
 GitHub Actions runs the same verification on every push and pull request.
 
@@ -223,6 +236,12 @@ any static file server or CDN.
 - The outer cosmic-web scale uses the
   [Cosmicflows-4 group catalogue](https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJ/944/94),
   published by [Tully et al. (2023)](https://doi.org/10.3847/1538-4357/ac94d8).
+- Documented large-scale structures use the
+  [SDSS DR7 supercluster catalogues](https://cdsarc.cds.unistra.fr/viz-bin/cat/J/A+A/539/A80),
+  [BOSS DR12 robust void catalogue](https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJ/835/161),
+  [Tempel SDSS DR8 filament catalogue](https://cdsarc.cds.unistra.fr/viz-bin/cat/J/MNRAS/438/3465),
+  and the redshift-positioned subset of
+  [Planck PSZ2](https://cdsarc.cds.unistra.fr/viz-bin/cat/J/A+A/594/A27).
 - The Earth texture uses NASA Visible Earth Blue Marble imagery stored with the application.
 
 See [client/data-sources/README.md](client/data-sources/README.md) and the in-app confidence labels
@@ -232,8 +251,9 @@ for detailed provenance and known visual adaptations.
 
 - Move future larger-catalogue decoding and octree preparation into Web Workers, and add deeper
   hierarchy levels when the source density requires them.
-- Replace the first illustrative nearest-neighbor scaffold with a navigable multiscale density,
-  cluster, wall, void, and filament hierarchy derived and validated offline.
+- Add tiled spine geometry for the documented filament catalogue, then extend the same import
+  contract to published wall, basin, attractor, and repeller products without merging incompatible
+  survey definitions.
 - Expand the Solar System selection with additional scientifically useful moons and small bodies.
 - Implement the physically delayed **Observable view** temporal mode.
 - Benchmark startup time, memory, and frame rate across a wider device panel.

@@ -65,7 +65,20 @@ describe('validation des données statiques', () => {
             id: 'cosmicflows4-groups',
             url: '/galaxies/cosmicflows4-groups.bin',
             type: 'cosmic-group-catalog',
-            format: 'cosmicflows4-group-catalog-v1',
+            format: 'cosmicflows4-group-catalog-v2',
+          },
+          {
+            id: 'documented-cosmic-structures',
+            url: '/structures/cosmic-structures.bin',
+            metadataUrl: '/structures/cosmic-structures.json',
+            type: 'cosmic-structure-catalog',
+            format: 'cosmic-structure-catalog-v1',
+          },
+          {
+            id: 'cosmic-web-density',
+            url: '/structures/cosmic-web-density.bin',
+            type: 'cosmic-web-volume',
+            format: 'cosmic-web-volume-v1',
           },
         ],
       }).datasets,
@@ -100,7 +113,20 @@ describe('validation des données statiques', () => {
         id: 'cosmicflows4-groups',
         url: '/galaxies/cosmicflows4-groups.bin',
         type: 'cosmic-group-catalog',
-        format: 'cosmicflows4-group-catalog-v1',
+        format: 'cosmicflows4-group-catalog-v2',
+      },
+      {
+        id: 'documented-cosmic-structures',
+        url: '/structures/cosmic-structures.bin',
+        metadataUrl: '/structures/cosmic-structures.json',
+        type: 'cosmic-structure-catalog',
+        format: 'cosmic-structure-catalog-v1',
+      },
+      {
+        id: 'cosmic-web-density',
+        url: '/structures/cosmic-web-density.bin',
+        type: 'cosmic-web-volume',
+        format: 'cosmic-web-volume-v1',
       },
     ]);
   });
@@ -187,7 +213,7 @@ describe('validation des données statiques', () => {
     ).toThrow('Catalogue stellaire manquant');
   });
 
-  it('rejette un format de groupes cosmiques inconnu', () => {
+  it('rejette le format de groupes cosmiques sans index de filaments pré-calculé', () => {
     expect(() =>
       parseManifest({
         version: '1',
@@ -196,11 +222,57 @@ describe('validation des données statiques', () => {
             id: 'cosmic-groups',
             url: '/cosmic.bin',
             type: 'cosmic-group-catalog',
-            format: 'cosmicflows4-group-catalog-v0',
+            format: 'cosmicflows4-group-catalog-v1',
           },
         ],
       }),
     ).toThrow('Format de groupes cosmiques invalide');
+  });
+
+  it('rejette une couche de structures cosmiques sans format ou métadonnées compatibles', () => {
+    expect(() =>
+      parseManifest({
+        version: '1',
+        datasets: [
+          {
+            id: 'cosmic-structures',
+            url: '/structures.bin',
+            metadataUrl: '/structures.json',
+            type: 'cosmic-structure-catalog',
+            format: 'cosmic-structure-catalog-v2',
+          },
+        ],
+      }),
+    ).toThrow('Format de structures cosmiques invalide');
+    expect(() =>
+      parseManifest({
+        version: '1',
+        datasets: [
+          {
+            id: 'cosmic-structures',
+            url: '/structures.bin',
+            type: 'cosmic-structure-catalog',
+            format: 'cosmic-structure-catalog-v1',
+          },
+        ],
+      }),
+    ).toThrow('Métadonnées de structures cosmiques manquantes');
+  });
+
+  it('rejette un format volumique cosmique inconnu', () => {
+    expect(() =>
+      parseManifest({
+        version: '1',
+        datasets: [
+          {
+            id: 'cosmic-web-density',
+            url: '/density.bin',
+            type: 'cosmic-web-volume',
+            format: 'cosmic-web-volume-v2',
+          },
+        ],
+      }),
+    ).toThrow('Format de volume cosmique invalide');
   });
 
   it('rejette une unité ou une échelle visuelle inconnue', () => {

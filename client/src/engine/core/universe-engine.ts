@@ -24,6 +24,7 @@ import {
 } from '../objects/label-manager';
 import { ObjectRegistry } from '../objects/object-registry';
 import type { CosmicGroupCatalogRegistry } from '../objects/cosmic-group-catalog-registry';
+import type { CosmicStructureCatalogRegistry } from '../objects/cosmic-structure-catalog-registry';
 import type { StarCatalogRegistry } from '../objects/star-catalog-registry';
 import { PerformanceManager } from '../performance/performance-manager';
 import {
@@ -35,6 +36,7 @@ import {
   dampPhotographicExposure,
   getPhotographicProfile,
 } from '../rendering/photographic-profile';
+import type { CosmicMapLayers } from '../rendering/cosmic-map-policy';
 import { SelectionManager, type ZoomPointer } from '../selection/selection-manager';
 import { EarthEclipseEvent, SolarEclipseAppearance } from '../simulation/earth-eclipse';
 import { calculateEarthObserverDirection } from '../simulation/body-orientation';
@@ -100,6 +102,7 @@ export class UniverseEngine {
   private labelManager: LabelManager | null = null;
   private starCatalogRegistry: StarCatalogRegistry | null = null;
   private cosmicGroupCatalogRegistry: CosmicGroupCatalogRegistry | null = null;
+  private cosmicStructureCatalogRegistry: CosmicStructureCatalogRegistry | null = null;
   private selectionManager: SelectionManager | null = null;
   private renderLoop: RenderLoop | null = null;
   private blackHoleLensingPass: BlackHoleLensingPass | null = null;
@@ -237,6 +240,20 @@ export class UniverseEngine {
         this.cosmicGroupCatalogRegistry = cosmicGroupCatalogRegistry;
         await universeScene.setCosmicGroupCatalog(cosmicGroupCatalogRegistry);
       }
+      if (assets.cosmicStructureCatalog) {
+        const { CosmicStructureCatalogRegistry } =
+          await import('../objects/cosmic-structure-catalog-registry');
+        const cosmicStructureCatalogRegistry = new CosmicStructureCatalogRegistry(
+          assets.cosmicStructureCatalog,
+          this.coordinateSystem,
+        );
+
+        this.cosmicStructureCatalogRegistry = cosmicStructureCatalogRegistry;
+        await universeScene.setCosmicStructureCatalog(cosmicStructureCatalogRegistry);
+      }
+      if (assets.cosmicWebVolume) {
+        await universeScene.setCosmicWebVolume(assets.cosmicWebVolume, this.coordinateSystem);
+      }
       universeScene.setQuality(this.displayOptions.quality);
       universeScene.setPixelRatio(this.renderPixelRatio);
       universeScene.setConstellationsEnabled(this.displayOptions.showConstellations);
@@ -279,8 +296,10 @@ export class UniverseEngine {
           }
 
           const registry = this.getObjectRegistry(objectId);
+          const cosmicMapVisible =
+            this.universeScene?.isCatalogObjectVisibleForLabels(objectId) ?? true;
 
-          return registry === null || registry.isVisibleForLabels(objectId);
+          return cosmicMapVisible && (registry === null || registry.isVisibleForLabels(objectId));
         },
       );
 
@@ -302,6 +321,7 @@ export class UniverseEngine {
         (objectId) =>
           this.starCatalogRegistry?.has(objectId) === true ||
           this.cosmicGroupCatalogRegistry?.has(objectId) === true ||
+          this.cosmicStructureCatalogRegistry?.has(objectId) === true ||
           this.universeScene?.hasConstellation(objectId) === true ||
           this.getDefinition(objectId)?.type === 'galaxy',
         (objectId) => {
@@ -311,7 +331,8 @@ export class UniverseEngine {
         this.handleSemanticZoomIntent,
         (objectId) =>
           this.getObjectRegistry(objectId) !== null ||
-          this.cosmicGroupCatalogRegistry?.has(objectId) === true,
+          this.cosmicGroupCatalogRegistry?.has(objectId) === true ||
+          this.cosmicStructureCatalogRegistry?.has(objectId) === true,
       );
       this.renderLoop = new RenderLoop((deltaSeconds) => this.renderFrame(deltaSeconds));
 
@@ -374,6 +395,7 @@ export class UniverseEngine {
     this.labelManager = null;
     this.starCatalogRegistry = null;
     this.cosmicGroupCatalogRegistry = null;
+    this.cosmicStructureCatalogRegistry = null;
     this.objectRegistry = null;
     this.spaceTileObjectRegistry = null;
     this.universeScene = null;
@@ -671,7 +693,9 @@ export class UniverseEngine {
     this.selectedId = objectId;
     const catalogObjectId =
       objectId &&
-      (this.starCatalogRegistry?.has(objectId) || this.cosmicGroupCatalogRegistry?.has(objectId))
+      (this.starCatalogRegistry?.has(objectId) ||
+        this.cosmicGroupCatalogRegistry?.has(objectId) ||
+        this.cosmicStructureCatalogRegistry?.has(objectId))
         ? objectId
         : null;
     const constellationObjectId =
@@ -729,6 +753,10 @@ export class UniverseEngine {
     this.spaceTileObjectRegistry?.setDisplayOptions(this.displayOptions);
   }
 
+  public setCosmicMapLayers(layers: CosmicMapLayers): void {
+    this.universeScene?.setCosmicMapLayers(layers);
+  }
+
   public zoomBy(factor: number): void {
     const controller = this.cameraController;
 
@@ -777,6 +805,7 @@ export class UniverseEngine {
       this.spaceTileObjectRegistry?.has(objectId) === true ||
       this.starCatalogRegistry?.has(objectId) === true ||
       this.cosmicGroupCatalogRegistry?.has(objectId) === true ||
+      this.cosmicStructureCatalogRegistry?.has(objectId) === true ||
       this.universeScene?.hasConstellation(objectId) === true ||
       this.spaceTileManager?.hasObject(objectId) === true
     );
@@ -1060,6 +1089,7 @@ export class UniverseEngine {
       catalogStars: universeScene.visibleCatalogStarCount,
       cosmicGroups: universeScene.visibleCosmicGroupCount,
       cosmicFilaments: universeScene.visibleCosmicFilamentCount,
+      cosmicStructures: universeScene.visibleCosmicStructureCount,
       batchedGalaxies:
         registry.batchedGalaxyCount + (this.spaceTileObjectRegistry?.batchedGalaxyCount ?? 0),
       loadedTiles: this.spaceTileManager?.loadedTileCount ?? 0,
@@ -1184,7 +1214,8 @@ export class UniverseEngine {
     const selectedCatalogId =
       this.selectedId &&
       (this.starCatalogRegistry?.has(this.selectedId) ||
-        this.cosmicGroupCatalogRegistry?.has(this.selectedId))
+        this.cosmicGroupCatalogRegistry?.has(this.selectedId) ||
+        this.cosmicStructureCatalogRegistry?.has(this.selectedId))
         ? this.selectedId
         : null;
     const selectedConstellationId =
@@ -1424,6 +1455,9 @@ export class UniverseEngine {
       ...(this.cosmicGroupCatalogRegistry?.getLabelObjects(
         getMaximumCosmicLabelRank(this.displayOptions.quality, 6, this.displayOptions.labelDensity),
       ) ?? []),
+      ...(this.cosmicStructureCatalogRegistry?.getLabelObjects(
+        getMaximumCosmicLabelRank(this.displayOptions.quality, 6, this.displayOptions.labelDensity),
+      ) ?? []),
     ];
   }
 
@@ -1439,6 +1473,7 @@ export class UniverseEngine {
       catalogEntries: [
         ...(this.starCatalogRegistry?.getSearchEntries() ?? []),
         ...(this.cosmicGroupCatalogRegistry?.getSearchEntries() ?? []),
+        ...(this.cosmicStructureCatalogRegistry?.getSearchEntries() ?? []),
         ...tileSearchEntries,
       ],
     });
@@ -1477,6 +1512,7 @@ export class UniverseEngine {
       this.spaceTileObjectRegistry?.getDefinition(objectId) ??
       this.starCatalogRegistry?.getDefinition(objectId) ??
       this.cosmicGroupCatalogRegistry?.getDefinition(objectId) ??
+      this.cosmicStructureCatalogRegistry?.getDefinition(objectId) ??
       this.universeScene?.getConstellationDefinition(objectId)
     );
   }

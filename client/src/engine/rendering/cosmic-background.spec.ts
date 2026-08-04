@@ -16,7 +16,8 @@ describe('fond cosmique continu', () => {
     expect(planetary.lowerColor.getHexString()).toBe('020817');
     expect(stellar.lowerColor.getHexString()).toBe('081323');
     expect(galactic.lowerColor.getHexString()).toBe('0a1023');
-    expect(cosmic.lowerColor.getHexString()).toBe('090718');
+    expect(cosmic.lowerColor.getHexString()).toBe('10081d');
+    expect(cosmic.hazeColor.getHexString()).toBe('32195b');
     expect(galactic.hazeStrength).toBeGreaterThan(planetary.hazeStrength);
     expect(galactic.nebulaStrength).toBeGreaterThan(planetary.nebulaStrength);
     expect(galactic.dustStrength).toBeGreaterThan(planetary.dustStrength);

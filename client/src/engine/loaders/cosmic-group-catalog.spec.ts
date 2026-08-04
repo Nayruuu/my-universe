@@ -1,4 +1,5 @@
 import {
+  COSMIC_GROUP_CATALOG_EDGE_BYTES,
   COSMIC_GROUP_CATALOG_HEADER_BYTES,
   COSMIC_GROUP_CATALOG_MAGIC,
   COSMIC_GROUP_CATALOG_RECORD_BYTES,
@@ -33,6 +34,7 @@ const TEST_GROUPS: readonly TestGroup[] = [
     distanceModulus: 34.995,
   },
 ];
+const TEST_FILAMENT_PAIRS = new Uint32Array([0, 1]);
 
 describe('parseCosmicGroupCatalog', () => {
   it('décode le format UMCG little-endian et conserve les mesures Cosmicflows-4', () => {
@@ -47,6 +49,7 @@ describe('parseCosmicGroupCatalog', () => {
     expect(catalog.distanceModulusErrors[0]).toBeCloseTo(0.1, 5);
     expect(catalog.velocitiesCmbKmPerSecond).toEqual(new Int32Array([28, 6_179]));
     expect(catalog.distanceModuli[1]).toBeCloseTo(34.995, 4);
+    expect(catalog.filamentPairs).toEqual(TEST_FILAMENT_PAIRS);
     expect(catalog.minimumDistanceMpc).toBeCloseTo(12.1, 5);
     expect(catalog.maximumDistanceMpc).toBeCloseTo(99.611, 4);
   });
@@ -65,16 +68,20 @@ describe('parseCosmicGroupCatalog', () => {
     expect(() => parseCosmicGroupCatalog(invalidFrame)).toThrow(/référentiel inconnu/);
   });
 
-  it('rejette un fichier tronqué, prolongé ou une cardinalité hors limites', () => {
+  it('rejette un fichier tronqué, prolongé ou une cardinalité de groupes hors limites', () => {
     const valid = createCatalogBuffer(TEST_GROUPS);
     const empty = createCatalogBuffer(TEST_GROUPS);
     const excessive = createCatalogBuffer(TEST_GROUPS);
+    const extended = new Uint8Array(valid.byteLength + 1);
+
+    extended.set(new Uint8Array(valid));
 
     new DataView(empty).setUint32(12, 0, true);
     new DataView(excessive).setUint32(12, 100_001, true);
 
     expect(() => parseCosmicGroupCatalog(new ArrayBuffer(8))).toThrow(/en-tête tronqué/);
     expect(() => parseCosmicGroupCatalog(valid.slice(0, -1))).toThrow(/taille inattendue/);
+    expect(() => parseCosmicGroupCatalog(extended.buffer)).toThrow(/taille inattendue/);
     expect(() => parseCosmicGroupCatalog(empty)).toThrow(/nombre de groupes hors limites/);
     expect(() => parseCosmicGroupCatalog(excessive)).toThrow(/nombre de groupes hors limites/);
   });
@@ -83,17 +90,30 @@ describe('parseCosmicGroupCatalog', () => {
     const invalidHeader = createCatalogBuffer(TEST_GROUPS);
     const invalidRecord = createCatalogBuffer(TEST_GROUPS);
     const invalidFlags = createCatalogBuffer(TEST_GROUPS);
-    const invalidReserved = createCatalogBuffer(TEST_GROUPS);
 
     new DataView(invalidHeader).setUint16(6, 42, true);
     new DataView(invalidRecord).setUint16(8, 42, true);
     new DataView(invalidFlags).setUint16(10, 1, true);
-    new DataView(invalidReserved).setUint32(36, 1, true);
 
     expect(() => parseCosmicGroupCatalog(invalidHeader)).toThrow(/dimensions d’enregistrement/);
     expect(() => parseCosmicGroupCatalog(invalidRecord)).toThrow(/dimensions d’enregistrement/);
     expect(() => parseCosmicGroupCatalog(invalidFlags)).toThrow(/options binaires/);
-    expect(() => parseCosmicGroupCatalog(invalidReserved)).toThrow(/options binaires/);
+  });
+
+  it('rejette une cardinalité ou des paires de filaments incompatibles', () => {
+    const excessive = createCatalogBuffer(TEST_GROUPS);
+    const reversed = createCatalogBuffer(TEST_GROUPS, new Uint32Array([1, 0]));
+    const selfEdge = createCatalogBuffer(TEST_GROUPS, new Uint32Array([0, 0]));
+    const outOfRange = createCatalogBuffer(TEST_GROUPS, new Uint32Array([0, 2]));
+    const duplicate = createCatalogBuffer(TEST_GROUPS, new Uint32Array([0, 1, 0, 1]));
+
+    new DataView(excessive).setUint32(36, TEST_GROUPS.length * 2 + 1, true);
+
+    expect(() => parseCosmicGroupCatalog(excessive)).toThrow(/nombre de filaments hors limites/);
+    expect(() => parseCosmicGroupCatalog(reversed)).toThrow(/paire de filament invalide/);
+    expect(() => parseCosmicGroupCatalog(selfEdge)).toThrow(/paire de filament invalide/);
+    expect(() => parseCosmicGroupCatalog(outOfRange)).toThrow(/paire de filament invalide/);
+    expect(() => parseCosmicGroupCatalog(duplicate)).toThrow(/paire de filament dupliquée/);
   });
 
   it('rejette une époque ou des limites scientifiques incohérentes', () => {
@@ -156,9 +176,14 @@ describe('parseCosmicGroupCatalog', () => {
   });
 });
 
-function createCatalogBuffer(groups: readonly TestGroup[]): ArrayBuffer {
+function createCatalogBuffer(
+  groups: readonly TestGroup[],
+  filamentPairs: Uint32Array = TEST_FILAMENT_PAIRS,
+): ArrayBuffer {
   const buffer = new ArrayBuffer(
-    COSMIC_GROUP_CATALOG_HEADER_BYTES + groups.length * COSMIC_GROUP_CATALOG_RECORD_BYTES,
+    COSMIC_GROUP_CATALOG_HEADER_BYTES +
+      groups.length * COSMIC_GROUP_CATALOG_RECORD_BYTES +
+      (filamentPairs.length / 2) * COSMIC_GROUP_CATALOG_EDGE_BYTES,
   );
   const view = new DataView(buffer);
 
@@ -174,7 +199,7 @@ function createCatalogBuffer(groups: readonly TestGroup[]): ArrayBuffer {
   view.setUint32(24, 1, true);
   view.setFloat32(28, Math.min(...groups.map((group) => group.distanceMpc)), true);
   view.setFloat32(32, Math.max(...groups.map((group) => group.distanceMpc)), true);
-  view.setUint32(36, 0, true);
+  view.setUint32(36, filamentPairs.length / 2, true);
 
   for (let index = 0; index < groups.length; index += 1) {
     const group = groups[index]!;
@@ -188,6 +213,13 @@ function createCatalogBuffer(groups: readonly TestGroup[]): ArrayBuffer {
     view.setInt32(offset + 20, group.velocityCmbKmPerSecond, true);
     view.setUint32(offset + 24, group.pgcId, true);
     view.setFloat32(offset + 28, group.distanceModulus, true);
+  }
+
+  const filamentOffset =
+    COSMIC_GROUP_CATALOG_HEADER_BYTES + groups.length * COSMIC_GROUP_CATALOG_RECORD_BYTES;
+
+  for (let index = 0; index < filamentPairs.length; index += 1) {
+    view.setUint32(filamentOffset + index * 4, filamentPairs[index]!, true);
   }
 
   return buffer;

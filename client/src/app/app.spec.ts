@@ -16,6 +16,15 @@ describe('App', () => {
   const performanceWarning = signal<string | null>(null);
   const shareNotice = signal<string | null>(null);
   const currentSolarEclipse = signal<object | null>(null);
+  const cosmicMapLayers = signal({
+    volume: true,
+    groups: true,
+    links: true,
+    clusters: true,
+    superclusters: true,
+    filaments: false,
+    voids: false,
+  });
   const facade = {
     settingsOpen,
     helpOpen,
@@ -28,9 +37,12 @@ describe('App', () => {
     performanceWarning,
     shareNotice,
     currentSolarEclipse,
+    cosmicMapLayers,
     focus: vi.fn(() => Promise.resolve()),
     toggleSettings: vi.fn(),
     toggleHelp: vi.fn(),
+    toggleCosmicMapLayer: vi.fn(),
+    resetCosmicMapLayers: vi.fn(),
     initialize: vi.fn(() => Promise.resolve()),
     resize: vi.fn(),
     dispose: vi.fn(),
@@ -53,6 +65,15 @@ describe('App', () => {
     performanceWarning.set(null);
     shareNotice.set(null);
     currentSolarEclipse.set(null);
+    cosmicMapLayers.set({
+      volume: true,
+      groups: true,
+      links: true,
+      clusters: true,
+      superclusters: true,
+      filaments: false,
+      voids: false,
+    });
     vi.clearAllMocks();
     vi.stubGlobal(
       'ResizeObserver',
@@ -129,11 +150,58 @@ describe('App', () => {
     lodLevel.set(6);
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.cosmic-map-key')?.textContent).toContain(
+      'Matière cosmique simulée',
+    );
+    expect(fixture.nativeElement.querySelector('.cosmic-map-key')?.textContent).toContain(
       'Groupes Cosmicflows-4',
     );
     expect(fixture.nativeElement.querySelector('.cosmic-map-key')?.textContent).toContain(
       'Liens de proximité illustratifs',
     );
+    expect(fixture.nativeElement.querySelector('.cosmic-map-key')?.textContent).toContain(
+      '8 757 superamas',
+    );
+    expect(fixture.nativeElement.querySelector('.cosmic-map-key')?.textContent).toContain(
+      '1 228 vides',
+    );
+    expect(fixture.nativeElement.querySelector('.cosmic-map-key')?.textContent).toContain(
+      '15 421 filaments',
+    );
+    expect(fixture.nativeElement.querySelector('.cosmic-map-key')?.textContent).toContain(
+      '1 094 amas',
+    );
+    expect(fixture.nativeElement.querySelector('.cosmic-map-key')?.textContent).toContain(
+      '26 500 détections',
+    );
+    expect(fixture.nativeElement.querySelector('.cosmic-map-key')?.textContent).toContain(
+      'chaud = proche · violet = lointain',
+    );
+    expect(fixture.nativeElement.querySelector('.cosmic-map-key')?.textContent).toContain(
+      'Zone non relevée ≠ vide cosmique',
+    );
+    const filamentLayer = fixture.nativeElement.querySelector(
+      '[aria-label="Afficher les centres de filaments SDSS"]',
+    ) as HTMLButtonElement;
+    const groupLayer = fixture.nativeElement.querySelector(
+      '[aria-label="Masquer les groupes Cosmicflows-4"]',
+    ) as HTMLButtonElement;
+    const volumeLayer = fixture.nativeElement.querySelector(
+      '[aria-label="Masquer la matière cosmique simulée"]',
+    ) as HTMLButtonElement;
+
+    expect(filamentLayer.getAttribute('aria-pressed')).toBe('false');
+    expect(groupLayer.getAttribute('aria-pressed')).toBe('true');
+    expect(volumeLayer.getAttribute('aria-pressed')).toBe('true');
+    filamentLayer.click();
+    expect(facade.toggleCosmicMapLayer).toHaveBeenCalledWith('filaments');
+    volumeLayer.click();
+    expect(facade.toggleCosmicMapLayer).toHaveBeenCalledWith('volume');
+    (
+      fixture.nativeElement.querySelector(
+        '[aria-label="Réinitialiser les couches cosmiques"]',
+      ) as HTMLButtonElement
+    ).click();
+    expect(facade.resetCosmicMapLayers).toHaveBeenCalledOnce();
     expect(fixture.nativeElement.querySelector('.science-caption')).toBeNull();
 
     fixture.nativeElement.querySelector('.notice--warning').click();

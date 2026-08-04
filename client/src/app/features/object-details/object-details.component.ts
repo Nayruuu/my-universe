@@ -80,6 +80,13 @@ export class ObjectDetailsComponent {
       galaxy: 'Galaxie',
       'black-hole': 'Trou noir',
       'galaxy-cluster': 'Groupe ou amas de galaxies',
+      supercluster: 'Superamas de galaxies',
+      'cosmic-wall': 'Mur cosmique',
+      'cosmic-filament': 'Filament cosmique',
+      'cosmic-void': 'Vide cosmique',
+      'cosmic-basin': 'Bassin d’attraction',
+      'cosmic-attractor': 'Attracteur cosmique',
+      'cosmic-repeller': 'Répulseur cosmique',
       universe: 'Univers',
       'dwarf-planet': 'Planète naine',
       asteroid: 'Astéroïde',
@@ -182,7 +189,66 @@ export class ObjectDetailsComponent {
     }
     const pgcId = object.metadata?.['pgcId'];
 
-    return typeof pgcId === 'number' ? `PGC ${pgcId}` : null;
+    if (typeof pgcId === 'number') {
+      return `PGC ${pgcId}`;
+    }
+    const catalogIdentifier = object.metadata?.['catalogIdentifier'];
+
+    return typeof catalogIdentifier === 'string' ? catalogIdentifier : null;
+  }
+
+  protected effectiveRadiusLabel(object: SpaceObject): string | null {
+    const radiusMpc = object.metadata?.['effectiveRadiusMpc'];
+
+    return typeof radiusMpc === 'number' ? `${this.formatNumber(radiusMpc, 2)} Mpc` : null;
+  }
+
+  protected structureLengthLabel(object: SpaceObject): string | null {
+    const lengthMpc = object.metadata?.['lengthMpc'];
+
+    return typeof lengthMpc === 'number' ? `${this.formatNumber(lengthMpc, 2)} Mpc` : null;
+  }
+
+  protected memberGalaxyCountLabel(object: SpaceObject): string | null {
+    const count = object.metadata?.['memberGalaxyCount'];
+
+    return typeof count === 'number' ? this.formatNumber(count, 0) : null;
+  }
+
+  protected catalogConfidenceLabel(object: SpaceObject): string | null {
+    const confidence = object.metadata?.['catalogConfidence'];
+
+    return typeof confidence === 'number' ? `${this.formatNumber(confidence * 100, 1)} %` : null;
+  }
+
+  protected densityContrastLabel(object: SpaceObject): string | null {
+    const densityContrast = object.metadata?.['densityContrast'];
+
+    return typeof densityContrast === 'number'
+      ? `${this.formatNumber(densityContrast * 100, 1).replace('-', '−')} %`
+      : null;
+  }
+
+  protected boundaryDistanceLabel(object: SpaceObject): string | null {
+    const distanceMpc = object.metadata?.['boundaryDistanceMpc'];
+
+    return typeof distanceMpc === 'number' ? `${this.formatNumber(distanceMpc, 2)} Mpc` : null;
+  }
+
+  protected detectionMethodLabel(object: SpaceObject): string | null {
+    const method = object.metadata?.['detectionMethod'];
+
+    return typeof method === 'string' ? method : null;
+  }
+
+  protected surveyEdgeLabel(object: SpaceObject): string | null {
+    const surveyEdge = object.metadata?.['surveyEdge'];
+
+    return typeof surveyEdge === 'boolean'
+      ? surveyEdge
+        ? 'Au contact de la limite'
+        : 'À l’intérieur du relevé'
+      : null;
   }
 
   protected distanceUncertaintyLabel(object: SpaceObject): string | null {

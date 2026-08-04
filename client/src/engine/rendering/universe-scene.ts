@@ -10,11 +10,15 @@ import {
 import type { CoordinateSystem } from '../coordinates/coordinate-system';
 import type { StarCatalogRegistry } from '../objects/star-catalog-registry';
 import type { CosmicGroupCatalogRegistry } from '../objects/cosmic-group-catalog-registry';
+import type { CosmicStructureCatalogRegistry } from '../objects/cosmic-structure-catalog-registry';
+import type { CosmicWebVolume } from '../loaders/cosmic-web-volume';
 import { PerformanceManager } from '../performance/performance-manager';
 import { getNavigationScaleForLod } from '../camera/navigation-scales';
 import { calculateMilkyWayTransition } from '../lod/milky-way-transition';
 import type { ConstellationBatch as ConstellationBatchInstance } from './constellation-batch';
 import type { CosmicGroupCatalogBatch as CosmicGroupCatalogBatchInstance } from './cosmic-group-catalog-batch';
+import type { CosmicStructureCatalogBatch as CosmicStructureCatalogBatchInstance } from './cosmic-structure-catalog-batch';
+import type { CosmicWebVolumeRenderer as CosmicWebVolumeRendererInstance } from './cosmic-web-volume';
 import { CosmicBackground } from './cosmic-background';
 import {
   calculateGalactocentricSpiralAngle,
@@ -27,6 +31,7 @@ import type { NearbyGalaxyOverviewBatch as NearbyGalaxyOverviewBatchInstance } f
 import { getPhotographicProfile } from './photographic-profile';
 import type { StarCatalogBatch as StarCatalogBatchInstance } from './star-catalog-batch';
 import type { StarClusterBatch as StarClusterBatchInstance } from './star-cluster-batch';
+import { type CosmicMapLayers, DEFAULT_COSMIC_MAP_LAYERS } from './cosmic-map-policy';
 
 export class UniverseScene {
   public readonly scene = new THREE.Scene();
@@ -45,8 +50,11 @@ export class UniverseScene {
   private starClusterBatch: StarClusterBatchInstance | null = null;
   private constellationBatch: ConstellationBatchInstance | null = null;
   private cosmicGroupCatalogBatch: CosmicGroupCatalogBatchInstance | null = null;
+  private cosmicStructureCatalogBatch: CosmicStructureCatalogBatchInstance | null = null;
+  private cosmicWebVolumeRenderer: CosmicWebVolumeRendererInstance | null = null;
   private nearbyGalaxyOverviewBatch: NearbyGalaxyOverviewBatchInstance | null = null;
   private quality: GraphicQuality = 'medium';
+  private cosmicMapLayers: CosmicMapLayers = DEFAULT_COSMIC_MAP_LAYERS;
   private milkyWayScale = 1;
   private stellarNeighborhoodScale = 1;
 
@@ -114,6 +122,8 @@ export class UniverseScene {
     this.milkyWayVolume.setQuality(quality);
     this.starClusterBatch?.setQuality(quality);
     this.cosmicGroupCatalogBatch?.setQuality(quality);
+    this.cosmicStructureCatalogBatch?.setQuality(quality);
+    this.cosmicWebVolumeRenderer?.setQuality(quality);
   }
 
   public get milkyWayAtlasStatus(): MilkyWayAtlasStatus {
@@ -132,6 +142,7 @@ export class UniverseScene {
     this.starCatalogBatch?.setPixelRatio(pixelRatio);
     this.starClusterBatch?.setPixelRatio(pixelRatio);
     this.cosmicGroupCatalogBatch?.setPixelRatio(pixelRatio);
+    this.cosmicStructureCatalogBatch?.setPixelRatio(pixelRatio);
     this.nearbyGalaxyOverviewBatch?.setPixelRatio(pixelRatio);
   }
 
@@ -168,8 +179,43 @@ export class UniverseScene {
     const { CosmicGroupCatalogBatch } = await import('./cosmic-group-catalog-batch');
 
     this.cosmicGroupCatalogBatch = new CosmicGroupCatalogBatch(registry, this.quality);
+    this.cosmicGroupCatalogBatch.setLayers(this.cosmicMapLayers);
     this.spaceRoot.add(this.cosmicGroupCatalogBatch.root);
     this.setQuality(this.quality);
+  }
+
+  public async setCosmicStructureCatalog(registry: CosmicStructureCatalogRegistry): Promise<void> {
+    if (this.cosmicStructureCatalogBatch) {
+      this.spaceRoot.remove(this.cosmicStructureCatalogBatch.root);
+      this.cosmicStructureCatalogBatch.dispose();
+    }
+
+    const { CosmicStructureCatalogBatch } = await import('./cosmic-structure-catalog-batch');
+
+    this.cosmicStructureCatalogBatch = new CosmicStructureCatalogBatch(registry, this.quality);
+    this.cosmicStructureCatalogBatch.setLayers(this.cosmicMapLayers);
+    this.spaceRoot.add(this.cosmicStructureCatalogBatch.root);
+    this.setQuality(this.quality);
+  }
+
+  public async setCosmicWebVolume(
+    volume: CosmicWebVolume,
+    coordinateSystem: CoordinateSystem,
+  ): Promise<void> {
+    if (this.cosmicWebVolumeRenderer) {
+      this.spaceRoot.remove(this.cosmicWebVolumeRenderer.mesh);
+      this.cosmicWebVolumeRenderer.dispose();
+    }
+
+    const { CosmicWebVolumeRenderer } = await import('./cosmic-web-volume');
+
+    this.cosmicWebVolumeRenderer = new CosmicWebVolumeRenderer(
+      volume,
+      coordinateSystem,
+      this.quality,
+    );
+    this.cosmicWebVolumeRenderer.setEnabled(this.cosmicMapLayers.volume);
+    this.spaceRoot.add(this.cosmicWebVolumeRenderer.mesh);
   }
 
   public async setStarCatalog(registry: StarCatalogRegistry): Promise<void> {
@@ -225,6 +271,13 @@ export class UniverseScene {
     this.constellationBatch?.setEnabled(enabled);
   }
 
+  public setCosmicMapLayers(layers: CosmicMapLayers): void {
+    this.cosmicMapLayers = { ...layers };
+    this.cosmicGroupCatalogBatch?.setLayers(this.cosmicMapLayers);
+    this.cosmicStructureCatalogBatch?.setLayers(this.cosmicMapLayers);
+    this.cosmicWebVolumeRenderer?.setEnabled(this.cosmicMapLayers.volume);
+  }
+
   public get constellationDefinitions(): readonly SpaceObject[] {
     return this.constellationBatch?.definitions ?? [];
   }
@@ -271,11 +324,18 @@ export class UniverseScene {
     this.starCatalogBatch?.setPhotographicRadiance(photographicProfile.starRadiance);
     this.starClusterBatch?.setPhotographicRadiance(photographicProfile.starRadiance);
     this.cosmicGroupCatalogBatch?.setPhotographicRadiance(photographicProfile.galaxyRadiance);
+    this.cosmicStructureCatalogBatch?.setPhotographicRadiance(photographicProfile.galaxyRadiance);
+    this.cosmicWebVolumeRenderer?.updateDistance(
+      cameraDistance,
+      deltaSeconds,
+      photographicProfile.galaxyRadiance,
+    );
     this.nearbyGalaxyOverviewBatch?.setPhotographicRadiance(photographicProfile.galaxyRadiance);
     this.starCatalogBatch?.updateLod(lodLevel, deltaSeconds);
     this.starClusterBatch?.updateLod(lodLevel, deltaSeconds);
     this.constellationBatch?.updateLod(lodLevel, deltaSeconds);
     this.cosmicGroupCatalogBatch?.updateDistance(cameraDistance, deltaSeconds);
+    this.cosmicStructureCatalogBatch?.updateDistance(cameraDistance, deltaSeconds);
     this.nearbyGalaxyOverviewBatch?.updateDistance(cameraDistance, deltaSeconds);
     const transition = calculateMilkyWayTransition(cameraDistance);
     const transitionVisible = lodLevel === 3 || lodLevel === 4;
@@ -312,6 +372,7 @@ export class UniverseScene {
   public selectCatalogObject(objectId: string | null): void {
     this.starCatalogBatch?.select(objectId);
     this.cosmicGroupCatalogBatch?.select(objectId);
+    this.cosmicStructureCatalogBatch?.select(objectId);
   }
 
   public getCatalogWorldPosition(
@@ -321,6 +382,7 @@ export class UniverseScene {
     return (
       this.starCatalogBatch?.getWorldPosition(objectId, target) ??
       this.cosmicGroupCatalogBatch?.getWorldPosition(objectId, target) ??
+      this.cosmicStructureCatalogBatch?.getWorldPosition(objectId, target) ??
       null
     );
   }
@@ -330,7 +392,16 @@ export class UniverseScene {
       ...(this.starCatalogBatch?.getPickables() ?? []),
       ...(this.constellationBatch?.getPickables() ?? []),
       ...(this.cosmicGroupCatalogBatch?.getPickables() ?? []),
+      ...(this.cosmicStructureCatalogBatch?.getPickables() ?? []),
     ];
+  }
+
+  public isCatalogObjectVisibleForLabels(objectId: string): boolean | null {
+    return (
+      this.cosmicGroupCatalogBatch?.isObjectVisibleForLabels(objectId) ??
+      this.cosmicStructureCatalogBatch?.isObjectVisibleForLabels(objectId) ??
+      null
+    );
   }
 
   public get visibleCatalogStarCount(): number {
@@ -351,6 +422,14 @@ export class UniverseScene {
 
   public get cosmicGroupCount(): number {
     return this.cosmicGroupCatalogBatch?.points.userData['catalogCount'] ?? 0;
+  }
+
+  public get visibleCosmicStructureCount(): number {
+    return this.cosmicStructureCatalogBatch?.visibleCount ?? 0;
+  }
+
+  public get cosmicStructureCount(): number {
+    return this.cosmicStructureCatalogBatch?.points.userData['catalogCount'] ?? 0;
   }
 
   public get cosmicFilamentCount(): number {
@@ -397,6 +476,16 @@ export class UniverseScene {
       this.spaceRoot.remove(this.cosmicGroupCatalogBatch.root);
       this.cosmicGroupCatalogBatch.dispose();
       this.cosmicGroupCatalogBatch = null;
+    }
+    if (this.cosmicStructureCatalogBatch) {
+      this.spaceRoot.remove(this.cosmicStructureCatalogBatch.root);
+      this.cosmicStructureCatalogBatch.dispose();
+      this.cosmicStructureCatalogBatch = null;
+    }
+    if (this.cosmicWebVolumeRenderer) {
+      this.spaceRoot.remove(this.cosmicWebVolumeRenderer.mesh);
+      this.cosmicWebVolumeRenderer.dispose();
+      this.cosmicWebVolumeRenderer = null;
     }
     if (this.nearbyGalaxyOverviewBatch) {
       this.spaceRoot.remove(this.nearbyGalaxyOverviewBatch.points);

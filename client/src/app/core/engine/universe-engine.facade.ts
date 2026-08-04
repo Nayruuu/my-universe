@@ -13,6 +13,11 @@ import {
 } from '../../../data/models/universe.models';
 import { type NavigationScaleDefinition } from '../../../engine/camera/navigation-scales';
 import { UniverseEngine } from '../../../engine/core/universe-engine';
+import {
+  type CosmicMapLayer,
+  type CosmicMapLayers,
+  DEFAULT_COSMIC_MAP_LAYERS,
+} from '../../../engine/rendering/cosmic-map-policy';
 import { type EarthEclipseEvent } from '../../../engine/simulation/earth-eclipse';
 import { MAX_EARTH_VISUAL_DAYS_PER_SECOND } from '../../../engine/simulation/earth-rotation-playback';
 import { type SolarEclipseObserverLocation } from '../../../engine/simulation/solar-eclipse-locations';
@@ -90,6 +95,9 @@ export class UniverseEngineFacade {
     quality: 'medium',
     labelDensity: 'balanced',
     temporalMode: 'state',
+  });
+  public readonly cosmicMapLayers = signal<CosmicMapLayers>({
+    ...DEFAULT_COSMIC_MAP_LAYERS,
   });
   public readonly selectedObject = computed(() => {
     const selectedId = this.selectedId();
@@ -346,6 +354,21 @@ export class UniverseEngineFacade {
     }
   }
 
+  public toggleCosmicMapLayer(layer: CosmicMapLayer): void {
+    const current = this.cosmicMapLayers();
+    const layers: CosmicMapLayers = { ...current, [layer]: !current[layer] };
+
+    this.cosmicMapLayers.set(layers);
+    this.engine.setCosmicMapLayers(layers);
+  }
+
+  public resetCosmicMapLayers(): void {
+    const layers = { ...DEFAULT_COSMIC_MAP_LAYERS };
+
+    this.cosmicMapLayers.set(layers);
+    this.engine.setCosmicMapLayers(layers);
+  }
+
   public toggleSettings(): void {
     this.settingsOpen.update((open) => !open);
     this.helpOpen.set(false);
@@ -481,6 +504,7 @@ export class UniverseEngineFacade {
 
     try {
       await this.engine.initialize(container, options);
+      this.engine.setCosmicMapLayers(this.cosmicMapLayers());
 
       if (this.initialNavigation.julianDay) {
         this.engine.setTime({ julianDay: this.initialNavigation.julianDay });

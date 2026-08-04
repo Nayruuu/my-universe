@@ -17,6 +17,8 @@ import {
   readConstellationLineState,
   readCosmicBackgroundState,
   readCosmicGroupBatchState,
+  readCosmicStructureBatchState,
+  readCosmicWebVolumeState,
   readGalaxyImpostorStates,
   readMilkyWayDetailState,
   readMilkyWayVolumeState,
@@ -518,10 +520,10 @@ test('le sélecteur traverse les sept échelles et partage le cadrage courant', 
     });
   await expect
     .poll(async () => (await readCosmicGroupBatchState(page)).opacity)
-    .toBeGreaterThan(0.005);
+    .toBeGreaterThan(0.004);
   await expect
     .poll(async () => (await readCosmicGroupBatchState(page)).opacity)
-    .toBeLessThan(0.008);
+    .toBeLessThan(0.006);
   expect((await readCosmicGroupBatchState(page)).filamentVisible).toBe(false);
 
   await scaleSwitcher.click();
@@ -543,7 +545,6 @@ test('le sélecteur traverse les sept échelles et partage le cadrage courant', 
     .poll(() => readCosmicGroupBatchState(page))
     .toMatchObject({
       catalogCount: 37_730,
-      drawCount: 37_730,
       visible: true,
       confidence: 'calculated',
       batchCount: 1,
@@ -551,31 +552,104 @@ test('le sélecteur traverse les sept échelles et partage le cadrage courant', 
       filamentConfidence: 'illustrative',
       filamentBatchCount: 1,
       filamentEdgeCount: 49_939,
-      filamentActiveCount: 13_983,
-      filamentDrawCount: 27_966,
+      layerState: {
+        groups: true,
+        links: true,
+      },
     });
+  await expect
+    .poll(() => readCosmicStructureBatchState(page))
+    .toMatchObject({
+      catalogCount: 26_500,
+      sourceCount: 7,
+      visible: true,
+      confidence: 'calculated',
+      batchCount: 1,
+      structureCounts: {
+        cluster: 1_094,
+        supercluster: 8_757,
+        filament: 15_421,
+        void: 1_228,
+      },
+      layerState: {
+        clusters: true,
+        superclusters: true,
+        filaments: false,
+        voids: false,
+      },
+    });
+  await expect
+    .poll(() => readCosmicWebVolumeState(page))
+    .toMatchObject({
+      visible: true,
+      confidence: 'simulated',
+      resolution: 128,
+      sourceGroupCount: 37_730,
+      sourceEdgeCount: 49_939,
+      rayMarchSteps: 16,
+      batchCount: 1,
+    });
+  await expect
+    .poll(async () => (await readCosmicWebVolumeState(page)).opacity)
+    .toBeGreaterThan(0.12);
+  await expect.poll(async () => (await readCosmicWebVolumeState(page)).opacity).toBeLessThan(0.14);
   const cosmicGroupBatch = await readCosmicGroupBatchState(page);
+  const cosmicStructureBatch = await readCosmicStructureBatchState(page);
 
+  expect(cosmicGroupBatch.activeCount).toBeGreaterThan(500);
+  expect(cosmicGroupBatch.activeCount).toBeLessThan(5_000);
+  expect(cosmicGroupBatch.drawCount).toBe(cosmicGroupBatch.activeCount);
+  expect(cosmicStructureBatch.activeCount).toBeGreaterThan(20);
+  expect(cosmicStructureBatch.activeCount).toBeLessThan(800);
+  expect(cosmicStructureBatch.drawCount).toBeLessThan(cosmicStructureBatch.catalogCount);
   expect(cosmicGroupBatch.filamentActiveCount).toBeGreaterThan(0);
   expect(cosmicGroupBatch.filamentActiveCount).toBeLessThan(cosmicGroupBatch.filamentEdgeCount);
   expect(cosmicGroupBatch.filamentDrawCount).toBe(cosmicGroupBatch.filamentActiveCount * 2);
-  expect(cosmicGroupBatch.filamentOpacity).toBeGreaterThan(0.57);
-  expect(cosmicGroupBatch.filamentOpacity).toBeLessThan(0.59);
-  expect(cosmicGroupBatch.filamentDetail).toBeGreaterThan(0.27);
-  expect(cosmicGroupBatch.filamentDetail).toBeLessThan(0.29);
+  await expect
+    .poll(async () => (await readCosmicGroupBatchState(page)).filamentOpacity)
+    .toBeGreaterThan(0.21);
+  await expect
+    .poll(async () => (await readCosmicGroupBatchState(page)).filamentOpacity)
+    .toBeLessThan(0.23);
+  await expect
+    .poll(async () => (await readCosmicGroupBatchState(page)).filamentDetail)
+    .toBeGreaterThan(0.11);
+  await expect
+    .poll(async () => (await readCosmicGroupBatchState(page)).filamentDetail)
+    .toBeLessThan(0.13);
   await expect(page.getByLabel('Légende du réseau cosmique')).toBeVisible();
+  await expect(page.getByLabel('Légende du réseau cosmique')).toContainText(
+    '26 500 détections · 7 catalogues',
+  );
+  const volumeLayer = page.getByRole('button', { name: /la matière cosmique simulée/ });
+  const voidLayer = page.getByRole('button', { name: /les vides BOSS/ });
+
+  await expect(volumeLayer).toHaveAttribute('aria-pressed', 'true');
+  await volumeLayer.click();
+  await expect(volumeLayer).toHaveAttribute('aria-pressed', 'false');
+  await expect.poll(async () => (await readCosmicWebVolumeState(page)).visible).toBe(false);
+  await volumeLayer.click();
+  await expect(volumeLayer).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(async () => (await readCosmicWebVolumeState(page)).visible).toBe(true);
+  await expect(voidLayer).toHaveAttribute('aria-pressed', 'false');
+  await voidLayer.click();
+  await expect(voidLayer).toHaveAttribute('aria-pressed', 'true');
+  await expect
+    .poll(async () => (await readCosmicStructureBatchState(page)).activeCount)
+    .toBeGreaterThan(cosmicStructureBatch.activeCount);
   await expect
     .poll(async () => (await readCosmicGroupBatchState(page)).opacity)
-    .toBeGreaterThan(0.8);
-  await expect.poll(async () => (await readCosmicGroupBatchState(page)).opacity).toBeLessThan(0.83);
+    .toBeGreaterThan(0.57);
+  await expect.poll(async () => (await readCosmicGroupBatchState(page)).opacity).toBeLessThan(0.59);
   await expect
     .poll(
       async () =>
-        (await readVisibleLabelIds(page)).filter((objectId) => objectId.startsWith('cf4-pgc-'))
-          .length,
+        (await readVisibleLabelIds(page)).filter(
+          (objectId) => objectId.startsWith('cf4-pgc-') || objectId.startsWith('lss-'),
+        ).length,
     )
     .toBeGreaterThanOrEqual(8);
-  await expect(page.getByLabel('Statistiques de débogage')).toContainText('37730');
+  await expect(page.getByLabel('Statistiques de débogage')).toContainText('Groupes Cosmicflows-4');
 
   await scaleSwitcher.click();
   await page.getByRole('button', { name: 'Afficher l’échelle Planétaire' }).click();
@@ -614,6 +688,7 @@ test('le sélecteur traverse les sept échelles et partage le cadrage courant', 
     });
   await expect.poll(async () => (await readSpaceTileStreamingState(page)).loadedTileCount).toBe(0);
   await expect.poll(async () => (await readCosmicGroupBatchState(page)).visible).toBe(false);
+  await expect.poll(async () => (await readCosmicStructureBatchState(page)).visible).toBe(false);
   await expect
     .poll(async () => (await readCosmicGroupBatchState(page)).opacity)
     .toBeLessThan(0.004);
@@ -625,6 +700,66 @@ test('le sélecteur traverse les sept échelles et partage le cadrage courant', 
       ),
     )
     .toBeLessThan(0.002);
+  expect(browserErrors).toEqual([]);
+});
+
+test('la recherche Planck centre une détection d’amas et conserve sa provenance', async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  const browserErrors = monitorBrowserErrors(page);
+
+  await openUniverse(
+    page,
+    universeUrl({
+      target: 'cosmic-web',
+      selected: '',
+      quality: 'low',
+      zoom: '420000',
+      debug: 'true',
+    }),
+  );
+  const search = page.getByRole('searchbox', {
+    name: 'Rechercher un objet astronomique',
+  });
+
+  await search.fill('PSZ2 G000.04+45.13');
+  await page
+    .getByRole('option', {
+      name: /Amas Planck PSZ2 G000\.04\+45\.13 Groupe de galaxies · Réseau cosmique/,
+    })
+    .click();
+  await waitForCameraSettled(page);
+
+  const objectId = 'lss-planck-psz2-clusters-psz2-g000-04-45-13';
+
+  await expect.poll(() => queryParameter(page, 'target')).toBe(objectId);
+  await expect.poll(() => queryParameter(page, 'selected')).toBe(objectId);
+  const details = page.getByRole('complementary', {
+    name: 'Informations sur l’objet sélectionné',
+  });
+
+  await expect(
+    details.getByRole('heading', { name: 'Amas Planck PSZ2 G000.04+45.13' }),
+  ).toBeVisible();
+  await expect(details).toContainText('Calculé');
+  await expect(details).toContainText('498,935 Mpc');
+  await expect(details).toContainText('PSZ2 G000.04+45.13');
+  await expect(details).toContainText('93,9 %');
+  await expect(details).toContainText('Sunyaev-Zeldovich');
+  await expect(details).toContainText('Planck Collaboration (2016)');
+  await expect(details).not.toContainText('Rayon effectif');
+  await expect(details).not.toContainText('Galaxies associées');
+  await expect
+    .poll(() => readCosmicStructureBatchState(page))
+    .toMatchObject({
+      catalogCount: 26_500,
+      visible: true,
+      confidence: 'calculated',
+      batchCount: 1,
+      selectedObjectId: objectId,
+    });
+  await expect(page.getByLabel('Statistiques de débogage')).toContainText('Structures documentées');
   expect(browserErrors).toEqual([]);
 });
 
@@ -647,7 +782,7 @@ test('la recherche PGC centre un groupe Cosmicflows-4 et expose sa provenance sc
   const debugPanel = page.getByLabel('Statistiques de débogage');
 
   await expect(debugPanel).toContainText('Groupes Cosmicflows-4');
-  await expect(debugPanel).toContainText('37730');
+  await expect(debugPanel).toContainText('Groupes Cosmicflows-4');
   const search = page.getByRole('searchbox', {
     name: 'Rechercher un objet astronomique',
   });
@@ -678,13 +813,12 @@ test('la recherche PGC centre un groupe Cosmicflows-4 et expose sa provenance sc
     .poll(() => readCosmicGroupBatchState(page))
     .toMatchObject({
       catalogCount: 37_730,
-      drawCount: 37_730,
       visible: true,
       confidence: 'calculated',
       batchCount: 1,
       selectedObjectId: 'cf4-pgc-12',
     });
-  await expect(debugPanel).toContainText('37730');
+  await expect(debugPanel).toContainText('Groupes Cosmicflows-4');
   expect(browserErrors).toEqual([]);
 });
 
@@ -797,8 +931,10 @@ test('le streaming galactique augmente son budget avec la qualité graphique', a
   await expect.poll(() => readCosmicGroupBatchState(page)).toMatchObject({ visible: true });
   await expect
     .poll(async () => (await readCosmicGroupBatchState(page)).opacity)
-    .toBeGreaterThan(0.27);
-  await expect.poll(async () => (await readCosmicGroupBatchState(page)).opacity).toBeLessThan(0.31);
+    .toBeGreaterThan(0.004);
+  await expect
+    .poll(async () => (await readCosmicGroupBatchState(page)).opacity)
+    .toBeLessThan(0.006);
   const batch = await readNearbyGalaxyBatchState(page);
 
   expect(batch.catalogObjectIds.length).toBeGreaterThan(0);
@@ -2159,6 +2295,47 @@ test('les budgets renderer restent bornés dans la vue galactique', async ({ pag
 
   expect(contextAttributes?.antialias).toBe(false);
   expect(browserErrors).toEqual([]);
+});
+
+test.describe('budget volumétrique Retina', () => {
+  test.use({ deviceScaleFactor: 2 });
+
+  test('le réseau cosmique borne son coût combiné pixels × ray marching', async ({ page }) => {
+    const browserErrors = monitorBrowserErrors(page);
+
+    await openUniverse(
+      page,
+      universeUrl({ target: 'cosmic-web', selected: '', quality: 'high', debug: 'true' }),
+    );
+    const panel = page.getByRole('complementary', {
+      name: 'Statistiques de débogage',
+    });
+
+    await expect(panel).toBeVisible();
+    await expect.poll(async () => (await readCosmicWebVolumeState(page)).visible).toBe(true);
+    const stats = await panel
+      .locator('dl > div')
+      .evaluateAll((rows) =>
+        Object.fromEntries(
+          rows.map((row) => [
+            row.querySelector('dt')?.textContent?.trim() ?? '',
+            row.querySelector('dd')?.textContent?.trim() ?? '',
+          ]),
+        ),
+      );
+    const pixelRatio = Number(stats['Résolution rendu']?.replace('×', ''));
+    const volume = await readCosmicWebVolumeState(page);
+    const framesPerSecond = Number(
+      (await panel.locator('header strong').textContent())?.replace(' FPS', ''),
+    );
+
+    expect(pixelRatio).toBeGreaterThanOrEqual(1);
+    expect(pixelRatio).toBeLessThanOrEqual(1.5);
+    expect(volume.rayMarchSteps).toBe(40);
+    expect(volume.rayMarchSteps * pixelRatio ** 2).toBeLessThanOrEqual(90);
+    expect(framesPerSecond).toBeGreaterThan(0);
+    expect(browserErrors).toEqual([]);
+  });
 });
 
 function quaternionDistance(

@@ -13,11 +13,19 @@ import { assertLocalGroupCatalogCoordinates } from '../../data/validation/local-
 import { parseSpaceTileIndex } from '../../data/validation/space-tile-index';
 import { parseStarCatalog, StarCatalog } from './star-catalog';
 import { CosmicGroupCatalog, parseCosmicGroupCatalog } from './cosmic-group-catalog';
+import {
+  CosmicStructureCatalog,
+  parseCosmicStructureCatalog,
+  parseCosmicStructureCatalogMetadata,
+} from './cosmic-structure-catalog';
+import { CosmicWebVolume, parseCosmicWebVolume } from './cosmic-web-volume';
 
 export interface LoadedUniverseAssets {
   readonly objects: SpaceObject[];
   readonly starCatalog: StarCatalog | null;
   readonly cosmicGroupCatalog: CosmicGroupCatalog | null;
+  readonly cosmicStructureCatalog: CosmicStructureCatalog | null;
+  readonly cosmicWebVolume: CosmicWebVolume | null;
   readonly constellationCatalog: ConstellationCatalog | null;
   readonly spaceTileIndex: SpaceTileIndex | null;
   readonly starTileSource: StarTileSource | null;
@@ -45,32 +53,55 @@ export class AssetLoader {
     const cosmicGroupDataset = manifest.datasets.find(
       (dataset) => dataset.type === 'cosmic-group-catalog',
     );
-    const [loadedDatasets, catalogResult, cosmicGroupResult, spaceTileIndex, constellationCatalog] =
-      await Promise.all([
-        Promise.all(
-          jsonDatasets.map(async (dataset) => {
-            const response = await fetch(dataset.url);
+    const cosmicStructureDataset = manifest.datasets.find(
+      (dataset) => dataset.type === 'cosmic-structure-catalog',
+    );
+    const cosmicWebVolumeDataset = manifest.datasets.find(
+      (dataset) => dataset.type === 'cosmic-web-volume',
+    );
+    const [
+      loadedDatasets,
+      catalogResult,
+      cosmicGroupResult,
+      cosmicStructureResult,
+      cosmicWebVolumeResult,
+      spaceTileIndex,
+      constellationCatalog,
+    ] = await Promise.all([
+      Promise.all(
+        jsonDatasets.map(async (dataset) => {
+          const response = await fetch(dataset.url);
 
-            if (!response.ok) {
-              throw new Error(`Impossible de charger ${dataset.id} (${response.status}).`);
-            }
+          if (!response.ok) {
+            throw new Error(`Impossible de charger ${dataset.id} (${response.status}).`);
+          }
 
-            return parseUniverseDataset(await response.json(), dataset.id);
-          }),
-        ),
-        binaryDataset
-          ? loadOptionalStarCatalog(binaryDataset.id, binaryDataset.url)
-          : Promise.resolve({ catalog: null, warnings: [] }),
-        cosmicGroupDataset
-          ? loadOptionalCosmicGroupCatalog(cosmicGroupDataset.id, cosmicGroupDataset.url)
-          : Promise.resolve({ catalog: null, warnings: [] }),
-        tileIndexDataset
-          ? loadSpaceTileIndex(tileIndexDataset.id, tileIndexDataset.url)
-          : Promise.resolve(null),
-        constellationDataset
-          ? loadConstellationCatalog(constellationDataset.id, constellationDataset.url)
-          : Promise.resolve(null),
-      ]);
+          return parseUniverseDataset(await response.json(), dataset.id);
+        }),
+      ),
+      binaryDataset
+        ? loadOptionalStarCatalog(binaryDataset.id, binaryDataset.url)
+        : Promise.resolve({ catalog: null, warnings: [] }),
+      cosmicGroupDataset
+        ? loadOptionalCosmicGroupCatalog(cosmicGroupDataset.id, cosmicGroupDataset.url)
+        : Promise.resolve({ catalog: null, warnings: [] }),
+      cosmicStructureDataset
+        ? loadOptionalCosmicStructureCatalog(
+            cosmicStructureDataset.id,
+            cosmicStructureDataset.url,
+            cosmicStructureDataset.metadataUrl,
+          )
+        : Promise.resolve({ catalog: null, warnings: [] }),
+      cosmicWebVolumeDataset
+        ? loadOptionalCosmicWebVolume(cosmicWebVolumeDataset.id, cosmicWebVolumeDataset.url)
+        : Promise.resolve({ volume: null, warnings: [] }),
+      tileIndexDataset
+        ? loadSpaceTileIndex(tileIndexDataset.id, tileIndexDataset.url)
+        : Promise.resolve(null),
+      constellationDataset
+        ? loadConstellationCatalog(constellationDataset.id, constellationDataset.url)
+        : Promise.resolve(null),
+    ]);
     const objects = loadedDatasets.flatMap((dataset) => dataset.objects);
 
     assertUniqueIds(objects);
@@ -85,6 +116,8 @@ export class AssetLoader {
       objects,
       starCatalog: catalogResult.catalog,
       cosmicGroupCatalog: cosmicGroupResult.catalog,
+      cosmicStructureCatalog: cosmicStructureResult.catalog,
+      cosmicWebVolume: cosmicWebVolumeResult.volume,
       constellationCatalog,
       spaceTileIndex,
       starTileSource: starTileDataset
@@ -94,7 +127,71 @@ export class AssetLoader {
             starCatalogId: starTileDataset.starCatalogId,
           }
         : null,
-      warnings: [...catalogResult.warnings, ...cosmicGroupResult.warnings],
+      warnings: [
+        ...catalogResult.warnings,
+        ...cosmicGroupResult.warnings,
+        ...cosmicStructureResult.warnings,
+        ...cosmicWebVolumeResult.warnings,
+      ],
+    };
+  }
+}
+
+async function loadOptionalCosmicWebVolume(
+  datasetId: string,
+  url: string,
+): Promise<{ volume: CosmicWebVolume | null; warnings: readonly string[] }> {
+  try {
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`Impossible de charger ${datasetId} (${response.status}).`);
+    }
+
+    return {
+      volume: parseCosmicWebVolume(await response.arrayBuffer()),
+      warnings: [],
+    };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : 'erreur inconnue';
+
+    return {
+      volume: null,
+      warnings: [`Volume du réseau cosmique indisponible : ${reason}`],
+    };
+  }
+}
+
+async function loadOptionalCosmicStructureCatalog(
+  datasetId: string,
+  url: string,
+  metadataUrl: string,
+): Promise<{ catalog: CosmicStructureCatalog | null; warnings: readonly string[] }> {
+  try {
+    const metadataResponse = await fetch(metadataUrl);
+
+    if (!metadataResponse.ok) {
+      throw new Error(
+        `Impossible de charger les métadonnées ${datasetId} (${metadataResponse.status}).`,
+      );
+    }
+    const metadata = parseCosmicStructureCatalogMetadata(await metadataResponse.json(), datasetId);
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`Impossible de charger ${datasetId} (${response.status}).`);
+    }
+
+    return {
+      catalog: parseCosmicStructureCatalog(await response.arrayBuffer(), metadata),
+      warnings: [],
+    };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : 'erreur inconnue';
+
+    return {
+      catalog: null,
+      warnings: [`Catalogue de structures cosmiques indisponible : ${reason}`],
     };
   }
 }

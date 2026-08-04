@@ -1035,6 +1035,7 @@ export async function readStarCatalogBatchState(page: Page): Promise<{
 
 export async function readCosmicGroupBatchState(page: Page): Promise<{
   catalogCount: number;
+  activeCount: number;
   drawCount: number;
   visible: boolean;
   opacity: number;
@@ -1049,6 +1050,8 @@ export async function readCosmicGroupBatchState(page: Page): Promise<{
   filamentDetail: number;
   filamentConfidence: string | null;
   filamentBatchCount: number;
+  detail: number;
+  layerState: Record<string, boolean>;
 }> {
   return page.evaluate(() => {
     interface CatalogPoints {
@@ -1111,8 +1114,11 @@ export async function readCosmicGroupBatchState(page: Page): Promise<{
     });
     const confidence = points?.userData['scientificConfidence'];
     const catalogCount = points?.userData['catalogCount'];
+    const activeCount = points?.userData['activeCount'];
+    const layerState = points?.userData['layerState'];
     const selectedObjectId = selectionPoint?.userData['objectId'];
     const opacity = points?.material.uniforms['catalogOpacity']?.value;
+    const detail = points?.material.uniforms['detailLevel']?.value;
     const filamentEdgeCount = filaments?.userData['edgeCount'];
     const filamentActiveCount = filaments?.userData['activeEdgeCount'];
     const filamentOpacity = filaments?.material.uniforms['filamentOpacity']?.value;
@@ -1121,6 +1127,7 @@ export async function readCosmicGroupBatchState(page: Page): Promise<{
 
     return {
       catalogCount: typeof catalogCount === 'number' ? catalogCount : 0,
+      activeCount: typeof activeCount === 'number' ? activeCount : 0,
       drawCount: points?.geometry.drawRange.count ?? 0,
       visible: points?.visible ?? false,
       opacity: typeof opacity === 'number' ? opacity : 0,
@@ -1135,6 +1142,182 @@ export async function readCosmicGroupBatchState(page: Page): Promise<{
       filamentDetail: typeof filamentDetail === 'number' ? filamentDetail : 0,
       filamentConfidence: typeof filamentConfidence === 'string' ? filamentConfidence : null,
       filamentBatchCount,
+      detail: typeof detail === 'number' ? detail : 0,
+      layerState:
+        typeof layerState === 'object' && layerState !== null
+          ? (layerState as Record<string, boolean>)
+          : {},
+    };
+  });
+}
+
+export async function readCosmicWebVolumeState(page: Page): Promise<{
+  visible: boolean;
+  opacity: number;
+  confidence: string | null;
+  resolution: number;
+  sourceGroupCount: number;
+  sourceEdgeCount: number;
+  rayMarchSteps: number;
+  batchCount: number;
+}> {
+  return page.evaluate(() => {
+    interface VolumeMesh {
+      name: string;
+      visible: boolean;
+      userData: Record<string, unknown>;
+      material: {
+        uniforms: Record<string, { value: unknown } | undefined>;
+      };
+    }
+
+    const root = document.querySelector('app-root');
+    const angularDebug = (
+      window as unknown as {
+        ng?: {
+          getComponent(element: Element): object | null;
+        };
+      }
+    ).ng;
+    const component = root && angularDebug?.getComponent(root);
+    const facade = component ? (Reflect.get(component, 'facade') as object | undefined) : undefined;
+    const engine = facade ? (Reflect.get(facade, 'engine') as object | undefined) : undefined;
+    const universeScene = engine
+      ? (Reflect.get(engine, 'universeScene') as object | undefined)
+      : undefined;
+    const renderer = universeScene
+      ? (Reflect.get(universeScene, 'cosmicWebVolumeRenderer') as object | null)
+      : null;
+    const mesh = renderer ? (Reflect.get(renderer, 'mesh') as VolumeMesh | undefined) : undefined;
+    const scene = universeScene
+      ? (Reflect.get(universeScene, 'scene') as
+          | {
+              traverse(callback: (object: { name: string }) => void): void;
+            }
+          | undefined)
+      : undefined;
+    let batchCount = 0;
+
+    scene?.traverse((object) => {
+      if (object.name === 'simulated-cosmic-web-volume') {
+        batchCount += 1;
+      }
+    });
+    const opacity = mesh?.material.uniforms['volumeOpacity']?.value;
+    const confidence = mesh?.userData['scientificConfidence'];
+    const resolution = mesh?.userData['volumeResolution'];
+    const sourceGroupCount = mesh?.userData['sourceGroupCount'];
+    const sourceEdgeCount = mesh?.userData['sourceEdgeCount'];
+    const rayMarchSteps = mesh?.userData['rayMarchSteps'];
+
+    return {
+      visible: mesh?.visible ?? false,
+      opacity: typeof opacity === 'number' ? opacity : 0,
+      confidence: typeof confidence === 'string' ? confidence : null,
+      resolution: typeof resolution === 'number' ? resolution : 0,
+      sourceGroupCount: typeof sourceGroupCount === 'number' ? sourceGroupCount : 0,
+      sourceEdgeCount: typeof sourceEdgeCount === 'number' ? sourceEdgeCount : 0,
+      rayMarchSteps: typeof rayMarchSteps === 'number' ? rayMarchSteps : 0,
+      batchCount,
+    };
+  });
+}
+
+export async function readCosmicStructureBatchState(page: Page): Promise<{
+  catalogCount: number;
+  sourceCount: number;
+  activeCount: number;
+  drawCount: number;
+  visible: boolean;
+  opacity: number;
+  confidence: string | null;
+  batchCount: number;
+  selectedObjectId: string | null;
+  structureCounts: Record<string, number>;
+  detail: number;
+  layerState: Record<string, boolean>;
+}> {
+  return page.evaluate(() => {
+    interface CatalogPoints {
+      name: string;
+      visible: boolean;
+      userData: Record<string, unknown>;
+      geometry: {
+        drawRange: {
+          count: number;
+        };
+      };
+      material: {
+        uniforms: Record<string, { value: unknown } | undefined>;
+      };
+    }
+
+    const root = document.querySelector('app-root');
+    const angularDebug = (
+      window as unknown as {
+        ng?: {
+          getComponent(element: Element): object | null;
+        };
+      }
+    ).ng;
+    const component = root && angularDebug?.getComponent(root);
+    const facade = component ? (Reflect.get(component, 'facade') as object | undefined) : undefined;
+    const engine = facade ? (Reflect.get(facade, 'engine') as object | undefined) : undefined;
+    const universeScene = engine
+      ? (Reflect.get(engine, 'universeScene') as object | undefined)
+      : undefined;
+    const scene = universeScene
+      ? (Reflect.get(universeScene, 'scene') as
+          | {
+              traverse(callback: (object: { name: string }) => void): void;
+            }
+          | undefined)
+      : undefined;
+    const catalogBatch = universeScene
+      ? (Reflect.get(universeScene, 'cosmicStructureCatalogBatch') as object | null)
+      : null;
+    const points = catalogBatch
+      ? (Reflect.get(catalogBatch, 'points') as CatalogPoints | undefined)
+      : undefined;
+    const selectionPoint = catalogBatch
+      ? (Reflect.get(catalogBatch, 'selectionPoint') as CatalogPoints | undefined)
+      : undefined;
+    let batchCount = 0;
+
+    scene?.traverse((object) => {
+      if (object.name === 'calculated-cosmic-structure-symbols') {
+        batchCount += 1;
+      }
+    });
+    const catalogCount = points?.userData['catalogCount'];
+    const sourceCount = points?.userData['sourceCount'];
+    const activeCount = points?.userData['activeCount'];
+    const confidence = points?.userData['scientificConfidence'];
+    const selectedObjectId = selectionPoint?.userData['objectId'];
+    const structureCounts = points?.userData['structureCounts'];
+    const layerState = points?.userData['layerState'];
+    const opacity = points?.material.uniforms['catalogOpacity']?.value;
+    const detail = points?.material.uniforms['detailLevel']?.value;
+
+    return {
+      catalogCount: typeof catalogCount === 'number' ? catalogCount : 0,
+      sourceCount: typeof sourceCount === 'number' ? sourceCount : 0,
+      activeCount: typeof activeCount === 'number' ? activeCount : 0,
+      drawCount: points?.geometry.drawRange.count ?? 0,
+      visible: points?.visible ?? false,
+      opacity: typeof opacity === 'number' ? opacity : 0,
+      confidence: typeof confidence === 'string' ? confidence : null,
+      batchCount,
+      selectedObjectId: typeof selectedObjectId === 'string' ? selectedObjectId : null,
+      structureCounts:
+        typeof structureCounts === 'object' && structureCounts !== null
+          ? (structureCounts as Record<string, number>)
+          : {},
+      detail: typeof detail === 'number' ? detail : 0,
+      layerState:
+        typeof layerState === 'object' && layerState !== null
+          ? (layerState as Record<string, boolean>)
+          : {},
     };
   });
 }

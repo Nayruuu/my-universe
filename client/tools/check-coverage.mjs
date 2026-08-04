@@ -26,8 +26,16 @@ const scientificModules = [
     suffix: '/src/engine/loaders/cosmic-group-catalog.ts',
   },
   {
+    name: 'catalogues de structures cosmiques',
+    suffix: '/src/engine/loaders/cosmic-structure-catalog.ts',
+  },
+  {
     name: 'référentiel du catalogue Cosmicflows-4',
     suffix: '/src/engine/objects/cosmic-group-catalog-registry.ts',
+  },
+  {
+    name: 'référentiel des structures cosmiques',
+    suffix: '/src/engine/objects/cosmic-structure-catalog-registry.ts',
   },
   {
     name: 'rotation axiale',

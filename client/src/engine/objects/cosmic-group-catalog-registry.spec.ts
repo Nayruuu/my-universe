@@ -116,6 +116,7 @@ function createCatalog(): CosmicGroupCatalog {
     velocitiesCmbKmPerSecond: new Int32Array([28, 6_179]),
     pgcIds: new Uint32Array([35, 12]),
     distanceModuli: new Float32Array([30.413, 34.995]),
+    filamentPairs: new Uint32Array(),
   };
 }
 
@@ -141,5 +142,6 @@ function createLinearCatalog(count: number): CosmicGroupCatalog {
     velocitiesCmbKmPerSecond: new Int32Array(count),
     pgcIds: Uint32Array.from({ length: count }, (_, index) => index + 1),
     distanceModuli: new Float32Array(count),
+    filamentPairs: new Uint32Array(),
   };
 }

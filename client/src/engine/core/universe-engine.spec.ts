@@ -18,6 +18,17 @@ import {
   COSMIC_GROUP_CATALOG_VERSION,
 } from '../loaders/cosmic-group-catalog';
 import {
+  COSMIC_STRUCTURE_CATALOG_HEADER_BYTES,
+  COSMIC_STRUCTURE_CATALOG_MAGIC,
+  COSMIC_STRUCTURE_CATALOG_RECORD_BYTES,
+  COSMIC_STRUCTURE_CATALOG_VERSION,
+} from '../loaders/cosmic-structure-catalog';
+import {
+  COSMIC_WEB_VOLUME_HEADER_BYTES,
+  COSMIC_WEB_VOLUME_MAGIC,
+  COSMIC_WEB_VOLUME_VERSION,
+} from '../loaders/cosmic-web-volume';
+import {
   STAR_CATALOG_HEADER_BYTES,
   STAR_CATALOG_MAGIC,
   STAR_CATALOG_RECORD_BYTES,
@@ -608,6 +619,75 @@ describe('UniverseEngine', () => {
     engine.dispose();
   });
 
+  it('installe le volume simulé du réseau cosmique depuis les données statiques', async () => {
+    installAssets([], { cosmicWebVolumeBuffer: cosmicWebVolumeBuffer() });
+    const engine = createTestEngine();
+    const access = engine as unknown as EngineAccess;
+
+    await engine.initialize(sizedContainer(960, 540), { quality: 'high' });
+    const volumeMesh = access.universeScene?.spaceRoot.getObjectByName(
+      'simulated-cosmic-web-volume',
+    ) as THREE.Mesh<THREE.BoxGeometry, THREE.ShaderMaterial> | undefined;
+
+    expect(volumeMesh).toBeInstanceOf(THREE.Mesh);
+    expect(volumeMesh?.userData).toMatchObject({
+      scientificConfidence: 'simulated',
+      volumeResolution: 4,
+      quality: 'high',
+    });
+    engine.dispose();
+  });
+
+  it('branche les structures documentées à la recherche, la sélection et la navigation', async () => {
+    const cosmicWeb = {
+      ...object('cosmic-web', 'Réseau cosmique', 'universe'),
+      referenceFrame: 'cosmic-web' as const,
+    };
+
+    installAssets([cosmicWeb], {
+      cosmicStructureBuffer: cosmicStructureCatalogBuffer(),
+      cosmicStructureMetadata: testCosmicStructureMetadata(),
+    });
+    const engine = createTestEngine();
+    const access = engine as unknown as EngineAccess;
+    const events: UniverseEngineEvent[] = [];
+
+    engine.subscribe((event) => events.push(event));
+    await engine.initialize(sizedContainer(960, 540), { quality: 'low' });
+
+    const structureId = 'lss-sdss-main50-239-027-0091';
+
+    expect(engine.hasObject(structureId)).toBe(true);
+    expect(events.find((event) => event.type === 'data-ready')).toMatchObject({
+      catalogEntries: [
+        expect.objectContaining({
+          id: structureId,
+          name: 'Superamas SDSS 239+027+0091',
+          parentName: 'Réseau cosmique · SDSS superclusters',
+        }),
+      ],
+    });
+    expect(
+      access.universeScene?.spaceRoot.getObjectByName('calculated-cosmic-structure-symbols'),
+    ).toBeInstanceOf(THREE.Points);
+
+    engine.selectObject(structureId);
+    expect(events).toContainEqual({
+      type: 'object-selected',
+      objectId: structureId,
+      object: expect.objectContaining({
+        type: 'supercluster',
+        scientificConfidence: 'calculated',
+      }),
+    });
+
+    await engine.setTarget(structureId);
+    expect(events).toContainEqual({ type: 'target-changed', objectId: structureId });
+    (access.cameraController as unknown as { update(deltaSeconds: number): void }).update(10);
+    expect(access.cameraController?.distanceToTarget).toBeGreaterThan(1_000);
+    engine.dispose();
+  });
+
   it('branche le catalogue illustratif des constellations sur le batch stellaire', async () => {
     installAssets([object('milky-way', 'Voie lactée', 'galaxy')], {
       binaryBuffer: starCatalogBuffer([3_229, 6_960]),
@@ -1194,6 +1274,26 @@ describe('UniverseEngine', () => {
     expect(runtime.labels.setQuality).not.toHaveBeenCalled();
   });
 
+  it('transmet la sélection des couches du réseau cosmique à la scène', () => {
+    const runtime = createRuntime();
+    const layers = {
+      volume: true,
+      groups: true,
+      links: false,
+      clusters: true,
+      superclusters: false,
+      filaments: true,
+      voids: true,
+    } as const;
+
+    runtime.engine.setCosmicMapLayers(layers);
+    expect(runtime.scene.setCosmicMapLayers).toHaveBeenCalledWith(layers);
+
+    runtime.access.universeScene = null;
+    runtime.engine.setCosmicMapLayers(layers);
+    expect(runtime.scene.setCosmicMapLayers).toHaveBeenCalledOnce();
+  });
+
   it('reconfigure le rendu et reconstruit le registre lors d’un changement de qualité', () => {
     const runtime = createRuntime();
     const rebuild = vi
@@ -1535,6 +1635,7 @@ describe('UniverseEngine', () => {
         batchedGalaxies: 7,
         cosmicGroups: 37_730,
         cosmicFilaments: 42_000,
+        cosmicStructures: 9_985,
         activeStarTiles: 8,
         cachedStarPacks: 5,
         cachedStarTiles: 19,
@@ -1963,6 +2064,9 @@ interface AssetOptions {
   readonly tileBodies?: Readonly<Record<string, unknown>>;
   readonly cosmicGroupBuffer?: ArrayBuffer;
   readonly cosmicGroupStatus?: number;
+  readonly cosmicStructureBuffer?: ArrayBuffer;
+  readonly cosmicStructureMetadata?: unknown;
+  readonly cosmicWebVolumeBuffer?: ArrayBuffer;
 }
 
 function installAssets(objects: readonly SpaceObject[], options: AssetOptions = {}): void {
@@ -2001,12 +2105,36 @@ function installAssets(objects: readonly SpaceObject[], options: AssetOptions = 
       id: 'cosmicflows4-groups',
       url: '/data/cosmic-groups.bin',
       type: 'cosmic-group-catalog',
-      format: 'cosmicflows4-group-catalog-v1',
+      format: 'cosmicflows4-group-catalog-v2',
     });
     responses['/data/cosmic-groups.bin'] =
       options.cosmicGroupBuffer !== undefined
         ? successfulBinaryResponse(options.cosmicGroupBuffer)
         : failedResponse(options.cosmicGroupStatus!);
+  }
+  if (options.cosmicStructureBuffer !== undefined && options.cosmicStructureMetadata) {
+    datasets.push({
+      id: 'cosmic-structures',
+      url: '/data/cosmic-structures.bin',
+      metadataUrl: '/data/cosmic-structures.json',
+      type: 'cosmic-structure-catalog',
+      format: 'cosmic-structure-catalog-v1',
+    });
+    responses['/data/cosmic-structures.json'] = jsonResponse(options.cosmicStructureMetadata);
+    responses['/data/cosmic-structures.bin'] = successfulBinaryResponse(
+      options.cosmicStructureBuffer,
+    );
+  }
+  if (options.cosmicWebVolumeBuffer) {
+    datasets.push({
+      id: 'cosmic-web-density',
+      url: '/data/cosmic-web-density.bin',
+      type: 'cosmic-web-volume',
+      format: 'cosmic-web-volume-v1',
+    });
+    responses['/data/cosmic-web-density.bin'] = successfulBinaryResponse(
+      options.cosmicWebVolumeBuffer,
+    );
   }
   if (options.constellationCatalog) {
     datasets.push({
@@ -2270,6 +2398,8 @@ interface FakeUniverseScene {
   readonly setPixelRatio: ReturnType<typeof vi.fn>;
   readonly setStarClusterTiles: ReturnType<typeof vi.fn>;
   readonly setConstellationsEnabled: ReturnType<typeof vi.fn>;
+  readonly setCosmicMapLayers: ReturnType<typeof vi.fn>;
+  readonly isCatalogObjectVisibleForLabels: ReturnType<typeof vi.fn>;
   readonly hasConstellation: ReturnType<typeof vi.fn>;
   readonly getConstellationDefinition: ReturnType<typeof vi.fn>;
   readonly getConstellationWorldPosition: ReturnType<typeof vi.fn>;
@@ -2285,6 +2415,7 @@ interface FakeUniverseScene {
   visibleCatalogStarCount: number;
   visibleCosmicGroupCount: number;
   visibleCosmicFilamentCount: number;
+  visibleCosmicStructureCount: number;
   visibleStarClusterCount: number;
   activeStarTileCount: number;
   starClusterRepresentationCount: number;
@@ -2439,6 +2570,8 @@ function createRuntime(): Runtime {
     setPixelRatio: vi.fn(),
     setStarClusterTiles: vi.fn(async () => undefined),
     setConstellationsEnabled: vi.fn(),
+    setCosmicMapLayers: vi.fn(),
+    isCatalogObjectVisibleForLabels: vi.fn(() => null),
     hasConstellation: vi.fn(() => false),
     getConstellationDefinition: vi.fn(() => undefined),
     getConstellationWorldPosition: vi.fn(() => null),
@@ -2454,6 +2587,7 @@ function createRuntime(): Runtime {
     visibleCatalogStarCount: 2,
     visibleCosmicGroupCount: 37_730,
     visibleCosmicFilamentCount: 42_000,
+    visibleCosmicStructureCount: 9_985,
     visibleStarClusterCount: 0,
     activeStarTileCount: 0,
     starClusterRepresentationCount: 0,
@@ -2885,6 +3019,102 @@ function cosmicGroupCatalogBuffer(pgcId: number): ArrayBuffer {
   view.setInt32(COSMIC_GROUP_CATALOG_HEADER_BYTES + 20, 810, true);
   view.setUint32(COSMIC_GROUP_CATALOG_HEADER_BYTES + 24, pgcId, true);
   view.setFloat32(COSMIC_GROUP_CATALOG_HEADER_BYTES + 28, 30.413, true);
+
+  return buffer;
+}
+
+function testCosmicStructureMetadata() {
+  return {
+    version: '1.0.0',
+    recordCount: 1,
+    referenceEpochJulianDay: 2_451_545,
+    referenceFrame: 'equatorial-j2000',
+    distanceUnit: 'megaparsec',
+    scientificConfidence: 'calculated',
+    sources: [
+      {
+        id: 'sdss-main50',
+        name: 'SDSS superclusters',
+        citation: 'Liivamägi et al. (2012)',
+        sourceUrl: 'https://example.test/superclusters',
+        structureType: 'supercluster',
+        method: 'Luminosity density field',
+        objectNamePrefix: 'Superamas SDSS',
+        scientificConfidence: 'calculated',
+        recordCount: 1,
+      },
+    ],
+  };
+}
+
+function cosmicStructureCatalogBuffer(): ArrayBuffer {
+  const identifier = new TextEncoder().encode('239+027+0091');
+  const buffer = new ArrayBuffer(
+    COSMIC_STRUCTURE_CATALOG_HEADER_BYTES +
+      COSMIC_STRUCTURE_CATALOG_RECORD_BYTES +
+      identifier.length,
+  );
+  const view = new DataView(buffer);
+  const distanceMpc = Math.hypot(-176.1, 163.7, -287.8);
+
+  for (let index = 0; index < COSMIC_STRUCTURE_CATALOG_MAGIC.length; index += 1) {
+    view.setUint8(index, COSMIC_STRUCTURE_CATALOG_MAGIC.charCodeAt(index));
+  }
+  view.setUint16(4, COSMIC_STRUCTURE_CATALOG_VERSION, true);
+  view.setUint16(6, COSMIC_STRUCTURE_CATALOG_HEADER_BYTES, true);
+  view.setUint16(8, COSMIC_STRUCTURE_CATALOG_RECORD_BYTES, true);
+  view.setUint16(10, 0, true);
+  view.setUint32(12, 1, true);
+  view.setUint16(16, 1, true);
+  view.setUint16(18, 1, true);
+  view.setFloat64(20, 2_451_545, true);
+  view.setFloat32(28, distanceMpc, true);
+  view.setFloat32(32, distanceMpc, true);
+  view.setUint32(36, identifier.length, true);
+  view.setUint32(40, 0xff, true);
+  view.setUint32(44, 0, true);
+  view.setFloat32(COSMIC_STRUCTURE_CATALOG_HEADER_BYTES, -176.1, true);
+  view.setFloat32(COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + 4, 163.7, true);
+  view.setFloat32(COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + 8, -287.8, true);
+  view.setFloat32(COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + 12, distanceMpc, true);
+  view.setFloat32(COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + 16, 35.9, true);
+  view.setFloat32(COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + 20, 0.98, true);
+  view.setFloat32(COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + 24, Number.NaN, true);
+  view.setFloat32(COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + 28, Number.NaN, true);
+  view.setUint32(COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + 32, 1_038, true);
+  view.setUint32(COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + 36, 0, true);
+  view.setUint16(COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + 40, identifier.length, true);
+  view.setUint16(COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + 42, 0, true);
+  view.setUint8(COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + 44, 1);
+  view.setUint8(COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + 45, 0);
+  view.setUint16(COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + 46, 1, true);
+  new Uint8Array(
+    buffer,
+    COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + COSMIC_STRUCTURE_CATALOG_RECORD_BYTES,
+  ).set(identifier);
+
+  return buffer;
+}
+
+function cosmicWebVolumeBuffer(): ArrayBuffer {
+  const resolution = 4;
+  const voxelCount = resolution ** 3;
+  const buffer = new ArrayBuffer(COSMIC_WEB_VOLUME_HEADER_BYTES + voxelCount);
+  const view = new DataView(buffer);
+
+  for (let index = 0; index < COSMIC_WEB_VOLUME_MAGIC.length; index += 1) {
+    view.setUint8(index, COSMIC_WEB_VOLUME_MAGIC.charCodeAt(index));
+  }
+  view.setUint16(4, COSMIC_WEB_VOLUME_VERSION, true);
+  view.setUint16(6, COSMIC_WEB_VOLUME_HEADER_BYTES, true);
+  view.setUint16(8, resolution, true);
+  view.setUint16(10, 1, true);
+  view.setUint32(12, voxelCount, true);
+  view.setFloat32(16, 800, true);
+  view.setUint32(20, 1, true);
+  view.setFloat64(24, 2_451_545, true);
+  view.setUint32(32, 3, true);
+  view.setUint32(36, 2, true);
 
   return buffer;
 }
