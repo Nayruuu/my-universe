@@ -98,6 +98,7 @@ function stats(targetId: string | null): EngineDebugStats {
     catalogStars: 2_000,
     cosmicGroups: 37_730,
     cosmicFilaments: 42_000,
+    cosmicStructures: 9_985,
     batchedGalaxies: 7,
     loadedTiles: 5,
     indexedGalaxyTiles: 5,

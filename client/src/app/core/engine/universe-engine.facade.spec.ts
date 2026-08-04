@@ -34,6 +34,7 @@ class FakeUniverseEngine {
   public readonly zoomBy = vi.fn();
   public readonly resize = vi.fn();
   public readonly setDisplayOptions = vi.fn();
+  public readonly setCosmicMapLayers = vi.fn();
   public readonly viewSolarEclipse = vi.fn();
   public readonly observeSolarEclipse = vi.fn();
   public readonly setSolarEclipsePathVisible = vi.fn();
@@ -532,6 +533,38 @@ describe('UniverseEngineFacade', () => {
     expect(engine.setDisplayOptions).toHaveBeenCalledTimes(7);
   });
 
+  it('pilote les couches cosmiques indépendamment des autres options visuelles', () => {
+    expect(facade.cosmicMapLayers()).toEqual({
+      volume: true,
+      groups: true,
+      links: true,
+      clusters: true,
+      superclusters: true,
+      filaments: false,
+      voids: false,
+    });
+
+    facade.toggleCosmicMapLayer('filaments');
+    expect(facade.cosmicMapLayers().filaments).toBe(true);
+    expect(engine.setCosmicMapLayers).toHaveBeenLastCalledWith(
+      expect.objectContaining({ filaments: true }),
+    );
+
+    facade.toggleCosmicMapLayer('groups');
+    expect(facade.cosmicMapLayers().groups).toBe(false);
+    facade.resetCosmicMapLayers();
+    expect(facade.cosmicMapLayers()).toEqual({
+      volume: true,
+      groups: true,
+      links: true,
+      clusters: true,
+      superclusters: true,
+      filaments: false,
+      voids: false,
+    });
+    expect(engine.setCosmicMapLayers).toHaveBeenLastCalledWith(facade.cosmicMapLayers());
+  });
+
   it('rend les panneaux mutuellement exclusifs', async () => {
     facade.helpOpen.set(true);
     facade.eclipseBrowserOpen.set(true);
@@ -837,6 +870,7 @@ function debugStats(): EngineDebugStats {
     catalogStars: 1_000,
     cosmicGroups: 0,
     cosmicFilaments: 0,
+    cosmicStructures: 0,
     batchedGalaxies: 0,
     loadedTiles: 0,
     indexedGalaxyTiles: 0,

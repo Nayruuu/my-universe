@@ -4,6 +4,13 @@ export type ScientificConfidence =
 export type SpaceObjectType =
   | 'universe'
   | 'galaxy-cluster'
+  | 'supercluster'
+  | 'cosmic-wall'
+  | 'cosmic-filament'
+  | 'cosmic-void'
+  | 'cosmic-basin'
+  | 'cosmic-attractor'
+  | 'cosmic-repeller'
   | 'galaxy'
   | 'black-hole'
   | 'nebula'
@@ -31,6 +38,8 @@ export type TemporalMode = 'state' | 'observable';
 export type GraphicQuality = 'low' | 'medium' | 'high';
 export type LabelDensity = 'minimal' | 'balanced' | 'dense';
 export type GalaxyVisualShape = 'spiral' | 'elliptical' | 'irregular';
+export type CosmicStructureType =
+  'cluster' | 'supercluster' | 'wall' | 'filament' | 'void' | 'basin' | 'attractor' | 'repeller';
 export type BlackHoleActivity = 'dormant' | 'quiescent' | 'active';
 export type JovianMoon = 'io' | 'europa' | 'ganymede' | 'callisto';
 export type EphemerisBody =
@@ -333,7 +342,20 @@ export type DatasetManifestEntry =
       id: string;
       url: string;
       type: 'cosmic-group-catalog';
-      format: 'cosmicflows4-group-catalog-v1';
+      format: 'cosmicflows4-group-catalog-v2';
+    }
+  | {
+      id: string;
+      url: string;
+      metadataUrl: string;
+      type: 'cosmic-structure-catalog';
+      format: 'cosmic-structure-catalog-v1';
+    }
+  | {
+      id: string;
+      url: string;
+      type: 'cosmic-web-volume';
+      format: 'cosmic-web-volume-v1';
     };
 
 export interface DatasetManifest {
@@ -374,6 +396,7 @@ export interface EngineDebugStats {
   catalogStars: number;
   cosmicGroups: number;
   cosmicFilaments: number;
+  cosmicStructures: number;
   batchedGalaxies: number;
   loadedTiles: number;
   indexedGalaxyTiles: number;

@@ -117,12 +117,123 @@
 
   @if (facade.ready() && facade.lodLevel() === 6) {
     <div class="cosmic-map-key" role="note" aria-label="Légende du réseau cosmique">
-      <span><i class="cosmic-map-key__point" aria-hidden="true"></i>Groupes Cosmicflows-4</span>
-      <span
-        ><i class="cosmic-map-key__link" aria-hidden="true"></i>Liens de proximité
-        illustratifs</span
+      <header>
+        <strong>Carte du réseau cosmique</strong>
+        <button
+          type="button"
+          class="cosmic-map-key__reset"
+          aria-label="Réinitialiser les couches cosmiques"
+          (click)="facade.resetCosmicMapLayers()"
+        >
+          Synthèse
+        </button>
+      </header>
+      <button
+        type="button"
+        class="cosmic-map-key__layer"
+        [class.active]="facade.cosmicMapLayers().volume"
+        [attr.aria-pressed]="facade.cosmicMapLayers().volume"
+        [attr.aria-label]="
+          facade.cosmicMapLayers().volume
+            ? 'Masquer la matière cosmique simulée'
+            : 'Afficher la matière cosmique simulée'
+        "
+        (click)="facade.toggleCosmicMapLayer('volume')"
       >
-      <small>Les connexions secondaires se renforcent en zoomant</small>
+        <i class="cosmic-map-key__volume" aria-hidden="true"></i>
+        <span>Matière cosmique simulée</span>
+      </button>
+      <button
+        type="button"
+        class="cosmic-map-key__layer"
+        [class.active]="facade.cosmicMapLayers().groups"
+        [attr.aria-pressed]="facade.cosmicMapLayers().groups"
+        [attr.aria-label]="
+          facade.cosmicMapLayers().groups
+            ? 'Masquer les groupes Cosmicflows-4'
+            : 'Afficher les groupes Cosmicflows-4'
+        "
+        (click)="facade.toggleCosmicMapLayer('groups')"
+      >
+        <i class="cosmic-map-key__point" aria-hidden="true"></i>
+        <span>Groupes Cosmicflows-4</span>
+      </button>
+      <button
+        type="button"
+        class="cosmic-map-key__layer"
+        [class.active]="facade.cosmicMapLayers().links"
+        [attr.aria-pressed]="facade.cosmicMapLayers().links"
+        [attr.aria-label]="
+          facade.cosmicMapLayers().links
+            ? 'Masquer les liens de proximité illustratifs'
+            : 'Afficher les liens de proximité illustratifs'
+        "
+        (click)="facade.toggleCosmicMapLayer('links')"
+      >
+        <i class="cosmic-map-key__link" aria-hidden="true"></i>
+        <span>Liens de proximité illustratifs</span>
+      </button>
+      <button
+        type="button"
+        class="cosmic-map-key__layer"
+        [class.active]="facade.cosmicMapLayers().superclusters"
+        [attr.aria-pressed]="facade.cosmicMapLayers().superclusters"
+        [attr.aria-label]="
+          facade.cosmicMapLayers().superclusters
+            ? 'Masquer les superamas SDSS'
+            : 'Afficher les superamas SDSS'
+        "
+        (click)="facade.toggleCosmicMapLayer('superclusters')"
+      >
+        <i class="cosmic-map-key__supercluster" aria-hidden="true"></i>
+        <span>8 757 superamas SDSS</span>
+      </button>
+      <button
+        type="button"
+        class="cosmic-map-key__layer"
+        [class.active]="facade.cosmicMapLayers().clusters"
+        [attr.aria-pressed]="facade.cosmicMapLayers().clusters"
+        [attr.aria-label]="
+          facade.cosmicMapLayers().clusters ? 'Masquer les amas Planck' : 'Afficher les amas Planck'
+        "
+        (click)="facade.toggleCosmicMapLayer('clusters')"
+      >
+        <i class="cosmic-map-key__cluster" aria-hidden="true"></i>
+        <span>1 094 amas Planck</span>
+      </button>
+      <button
+        type="button"
+        class="cosmic-map-key__layer"
+        [class.active]="facade.cosmicMapLayers().voids"
+        [attr.aria-pressed]="facade.cosmicMapLayers().voids"
+        [attr.aria-label]="
+          facade.cosmicMapLayers().voids ? 'Masquer les vides BOSS' : 'Afficher les vides BOSS'
+        "
+        (click)="facade.toggleCosmicMapLayer('voids')"
+      >
+        <i class="cosmic-map-key__void" aria-hidden="true"></i>
+        <span>1 228 vides BOSS</span>
+      </button>
+      <button
+        type="button"
+        class="cosmic-map-key__layer"
+        [class.active]="facade.cosmicMapLayers().filaments"
+        [attr.aria-pressed]="facade.cosmicMapLayers().filaments"
+        [attr.aria-label]="
+          facade.cosmicMapLayers().filaments
+            ? 'Masquer les centres de filaments SDSS'
+            : 'Afficher les centres de filaments SDSS'
+        "
+        (click)="facade.toggleCosmicMapLayer('filaments')"
+      >
+        <i class="cosmic-map-key__filament" aria-hidden="true"></i>
+        <span>15 421 filaments SDSS · centres</span>
+      </button>
+      <small>26 500 détections · 7 catalogues · les détections peuvent se recouvrir</small>
+      <small>Couleur des groupes · chaud = proche · violet = lointain</small>
+      <small>Affichage progressif · zoomez pour révéler les détections individuelles</small>
+      <small>Enveloppe simulée depuis Cosmicflows-4 · continuité illustrative</small>
+      <small class="cosmic-map-key__warning">Zone non relevée ≠ vide cosmique</small>
     </div>
   }
 

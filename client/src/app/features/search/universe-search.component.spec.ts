@@ -71,6 +71,13 @@ describe('UniverseSearchComponent', () => {
       ['asteroid', 'Astéroïde'],
       ['comet', 'Comète'],
       ['galaxy-cluster', 'Groupe de galaxies'],
+      ['supercluster', 'Superamas'],
+      ['cosmic-wall', 'Mur cosmique'],
+      ['cosmic-filament', 'Filament cosmique'],
+      ['cosmic-void', 'Vide cosmique'],
+      ['cosmic-basin', 'Bassin cosmique'],
+      ['cosmic-attractor', 'Attracteur'],
+      ['cosmic-repeller', 'Répulseur'],
       ['universe', 'Univers'],
     ];
 

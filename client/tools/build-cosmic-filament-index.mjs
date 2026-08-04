@@ -1,42 +1,17 @@
-export interface CosmicFilamentEdge {
-  readonly fromIndex: number;
-  readonly toIndex: number;
-  readonly distanceMpc: number;
-  readonly strength: number;
-}
-
-export interface CosmicFilamentGraphOptions {
-  readonly cellSizeMpc: number;
-  readonly maximumLengthMpc: number;
-  readonly maximumNeighbors: number;
-}
-
-export interface CosmicFilamentGraphDiagnostics {
-  visitedCellCount: number;
-  candidateComparisonCount: number;
-}
-
-const DEFAULT_OPTIONS: CosmicFilamentGraphOptions = {
+export const DEFAULT_COSMIC_FILAMENT_OPTIONS = Object.freeze({
   cellSizeMpc: 20,
   maximumLengthMpc: 52,
   maximumNeighbors: 2,
-};
+});
 
-interface NeighborCandidate {
-  readonly index: number;
-  readonly distanceSquared: number;
-}
-
-type SpatialCells = Map<number, Map<number, Map<number, number[]>>>;
-
-export function buildCosmicFilamentGraph(
-  positionsMpc: Float32Array,
-  count: number,
-  options: CosmicFilamentGraphOptions = DEFAULT_OPTIONS,
-  diagnostics?: CosmicFilamentGraphDiagnostics,
-): CosmicFilamentEdge[] {
+export function buildCosmicFilamentIndex(
+  positionsMpc,
+  count,
+  options = DEFAULT_COSMIC_FILAMENT_OPTIONS,
+  diagnostics,
+) {
   if (!Number.isInteger(count) || count < 0 || positionsMpc.length < count * 3) {
-    throw new Error('Catalogue de positions Cosmicflows-4 incohérent.');
+    throw new Error('Inconsistent Cosmicflows-4 positions catalogue.');
   }
   if (
     !Number.isFinite(options.cellSizeMpc) ||
@@ -46,10 +21,10 @@ export function buildCosmicFilamentGraph(
     !Number.isInteger(options.maximumNeighbors) ||
     options.maximumNeighbors <= 0
   ) {
-    throw new Error('Les paramètres de filaments Cosmicflows-4 sont invalides.');
+    throw new Error('Cosmicflows-4 filament parameters are invalid.');
   }
   if (count <= 1) {
-    return [];
+    return new Uint32Array();
   }
   if (diagnostics) {
     diagnostics.visitedCellCount = 0;
@@ -59,18 +34,18 @@ export function buildCosmicFilamentGraph(
   const cells = buildSpatialCells(positionsMpc, count, options.cellSizeMpc);
   const searchRadius = Math.ceil(options.maximumLengthMpc / options.cellSizeMpc);
   const maximumDistanceSquared = options.maximumLengthMpc ** 2;
-  const edgeKeys = new Set<string>();
-  const edges: CosmicFilamentEdge[] = [];
+  const edgeKeys = new Set();
+  const edges = [];
 
   for (let index = 0; index < count; index += 1) {
     const offset = index * 3;
-    const x = positionsMpc[offset]!;
-    const y = positionsMpc[offset + 1]!;
-    const z = positionsMpc[offset + 2]!;
+    const x = positionsMpc[offset];
+    const y = positionsMpc[offset + 1];
+    const z = positionsMpc[offset + 2];
     const cellX = Math.floor(x / options.cellSizeMpc);
     const cellY = Math.floor(y / options.cellSizeMpc);
     const cellZ = Math.floor(z / options.cellSizeMpc);
-    const candidates: NeighborCandidate[] = [];
+    const candidates = [];
 
     for (let radius = 0; radius <= searchRadius; radius += 1) {
       collectShellCandidates(
@@ -111,44 +86,43 @@ export function buildCosmicFilamentGraph(
     for (const candidate of candidates) {
       const fromIndex = Math.min(index, candidate.index);
       const toIndex = Math.max(index, candidate.index);
-      const key = `${fromIndex}:${toIndex}`;
+      const key = fromIndex * count + toIndex;
 
       if (edgeKeys.has(key)) {
         continue;
       }
       edgeKeys.add(key);
-      const distanceMpc = Math.sqrt(candidate.distanceSquared);
-
-      edges.push({
-        fromIndex,
-        toIndex,
-        distanceMpc,
-        strength: 0.12 + (1 - distanceMpc / options.maximumLengthMpc) * 0.88,
-      });
+      edges.push({ fromIndex, toIndex });
     }
   }
 
   edges.sort((first, second) => edgeOrder(first) - edgeOrder(second));
+  const pairs = new Uint32Array(edges.length * 2);
 
-  return edges;
+  for (let index = 0; index < edges.length; index += 1) {
+    pairs[index * 2] = edges[index].fromIndex;
+    pairs[index * 2 + 1] = edges[index].toIndex;
+  }
+
+  return pairs;
 }
 
 function collectShellCandidates(
-  cells: SpatialCells,
-  positionsMpc: Float32Array,
-  index: number,
-  x: number,
-  y: number,
-  z: number,
-  cellX: number,
-  cellY: number,
-  cellZ: number,
-  radius: number,
-  maximumDistanceSquared: number,
-  maximumNeighbors: number,
-  candidates: NeighborCandidate[],
-  diagnostics?: CosmicFilamentGraphDiagnostics,
-): void {
+  cells,
+  positionsMpc,
+  index,
+  x,
+  y,
+  z,
+  cellX,
+  cellY,
+  cellZ,
+  radius,
+  maximumDistanceSquared,
+  maximumNeighbors,
+  candidates,
+  diagnostics,
+) {
   for (let deltaX = -radius; deltaX <= radius; deltaX += 1) {
     for (let deltaY = -radius; deltaY <= radius; deltaY += 1) {
       for (let deltaZ = -radius; deltaZ <= radius; deltaZ += 1) {
@@ -174,9 +148,9 @@ function collectShellCandidates(
             continue;
           }
           const candidateOffset = candidateIndex * 3;
-          const deltaPositionX = positionsMpc[candidateOffset]! - x;
-          const deltaPositionY = positionsMpc[candidateOffset + 1]! - y;
-          const deltaPositionZ = positionsMpc[candidateOffset + 2]! - z;
+          const deltaPositionX = positionsMpc[candidateOffset] - x;
+          const deltaPositionY = positionsMpc[candidateOffset + 1] - y;
+          const deltaPositionZ = positionsMpc[candidateOffset + 2] - z;
           const distanceSquared = deltaPositionX ** 2 + deltaPositionY ** 2 + deltaPositionZ ** 2;
 
           if (distanceSquared === 0 || distanceSquared > maximumDistanceSquared) {
@@ -193,16 +167,12 @@ function collectShellCandidates(
   }
 }
 
-function retainNearestCandidate(
-  candidates: NeighborCandidate[],
-  candidate: NeighborCandidate,
-  maximumNeighbors: number,
-): void {
+function retainNearestCandidate(candidates, candidate, maximumNeighbors) {
   let insertionIndex = 0;
 
   while (
     insertionIndex < candidates.length &&
-    compareCandidates(candidates[insertionIndex]!, candidate) <= 0
+    compareCandidates(candidates[insertionIndex], candidate) <= 0
   ) {
     insertionIndex += 1;
   }
@@ -215,23 +185,23 @@ function retainNearestCandidate(
   }
 }
 
-function compareCandidates(first: NeighborCandidate, second: NeighborCandidate): number {
+function compareCandidates(first, second) {
   return first.distanceSquared - second.distanceSquared || first.index - second.index;
 }
 
 function canStopNeighborSearch(
-  candidates: readonly NeighborCandidate[],
-  maximumNeighbors: number,
-  maximumLengthMpc: number,
-  x: number,
-  y: number,
-  z: number,
-  cellX: number,
-  cellY: number,
-  cellZ: number,
-  radius: number,
-  cellSizeMpc: number,
-): boolean {
+  candidates,
+  maximumNeighbors,
+  maximumLengthMpc,
+  x,
+  y,
+  z,
+  cellX,
+  cellY,
+  cellZ,
+  radius,
+  cellSizeMpc,
+) {
   const minimumOutsideDistance = Math.min(
     x - (cellX - radius) * cellSizeMpc,
     (cellX + radius + 1) * cellSizeMpc - x,
@@ -248,24 +218,20 @@ function canStopNeighborSearch(
     return false;
   }
 
-  return candidates[candidates.length - 1]!.distanceSquared < minimumOutsideDistance ** 2;
+  return candidates.at(-1).distanceSquared < minimumOutsideDistance ** 2;
 }
 
-function buildSpatialCells(
-  positionsMpc: Float32Array,
-  count: number,
-  cellSizeMpc: number,
-): SpatialCells {
-  const cells: SpatialCells = new Map();
+function buildSpatialCells(positionsMpc, count, cellSizeMpc) {
+  const cells = new Map();
 
   for (let index = 0; index < count; index += 1) {
     const offset = index * 3;
-    const x = positionsMpc[offset]!;
-    const y = positionsMpc[offset + 1]!;
-    const z = positionsMpc[offset + 2]!;
+    const x = positionsMpc[offset];
+    const y = positionsMpc[offset + 1];
+    const z = positionsMpc[offset + 2];
 
     if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) {
-      throw new Error(`Catalogue Cosmicflows-4 : position non finie à l’index ${index}.`);
+      throw new Error(`Cosmicflows-4 catalogue: non-finite position at index ${index}.`);
     }
     const cellX = Math.floor(x / cellSizeMpc);
     const cellY = Math.floor(y / cellSizeMpc);
@@ -294,16 +260,11 @@ function buildSpatialCells(
   return cells;
 }
 
-function getCellOccupants(
-  cells: SpatialCells,
-  x: number,
-  y: number,
-  z: number,
-): readonly number[] | undefined {
+function getCellOccupants(cells, x, y, z) {
   return cells.get(x)?.get(y)?.get(z);
 }
 
-function edgeOrder(edge: CosmicFilamentEdge): number {
+function edgeOrder(edge) {
   let hash =
     Math.imul(edge.fromIndex + 1, 2_654_435_761) ^ Math.imul(edge.toIndex + 1, 805_459_861);
 

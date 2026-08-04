@@ -1,0 +1,19 @@
+{
+  "version": "1.0.0",
+  "source": "Cosmicflows-4 galaxy groups and derived proximity scaffold",
+  "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJ/944/94",
+  "sourceSha256": "9da2aba4eafd34c3ece806e89f48bef85dbd8dd403f9e30da716df197b3b5c82",
+  "scientificConfidence": "simulated",
+  "representation": "catalogue-aligned-cellular-density-volume",
+  "referenceFrame": "equatorial-j2000",
+  "resolution": 128,
+  "halfExtentMpc": 800,
+  "sourceGroupCount": 37730,
+  "sourceEdgeCount": 49939,
+  "sampledEdgeCount": 10987,
+  "illustrativeCellCount": 6,
+  "illustrativeVoxelCount": 261865,
+  "radialSelectionCompensation": "distance-weighted-for-visual-continuity",
+  "blurPasses": 1,
+  "warning": "Continuous density and the cellular scaffold are reconstructed for visualization. They are not an observed matter-density field."
+}

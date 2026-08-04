@@ -77,6 +77,54 @@
             <dd>{{ catalogIdentifier }}</dd>
           </div>
         }
+        @if (effectiveRadiusLabel(selected); as radius) {
+          <div>
+            <dt>Rayon effectif</dt>
+            <dd>{{ radius }}</dd>
+          </div>
+        }
+        @if (structureLengthLabel(selected); as length) {
+          <div>
+            <dt>Longueur cataloguée</dt>
+            <dd>{{ length }}</dd>
+          </div>
+        }
+        @if (memberGalaxyCountLabel(selected); as count) {
+          <div>
+            <dt>Galaxies associées</dt>
+            <dd>{{ count }}</dd>
+          </div>
+        }
+        @if (catalogConfidenceLabel(selected); as confidence) {
+          <div>
+            <dt>Confiance du catalogue</dt>
+            <dd>{{ confidence }}</dd>
+          </div>
+        }
+        @if (densityContrastLabel(selected); as contrast) {
+          <div>
+            <dt>Contraste de densité</dt>
+            <dd>{{ contrast }}</dd>
+          </div>
+        }
+        @if (boundaryDistanceLabel(selected); as boundaryDistance) {
+          <div>
+            <dt>Distance à la limite du relevé</dt>
+            <dd>{{ boundaryDistance }}</dd>
+          </div>
+        }
+        @if (surveyEdgeLabel(selected); as surveyEdge) {
+          <div>
+            <dt>Empreinte du relevé</dt>
+            <dd>{{ surveyEdge }}</dd>
+          </div>
+        }
+        @if (detectionMethodLabel(selected); as method) {
+          <div class="facts__wide">
+            <dt>Méthode de détection</dt>
+            <dd>{{ method }}</dd>
+          </div>
+        }
         @if (distanceUncertaintyLabel(selected); as uncertainty) {
           <div>
             <dt>Incertitude de distance</dt>

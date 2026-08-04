@@ -4,8 +4,43 @@ All notable changes to Universe Map are documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Restored luminous large-scale landmarks without bringing back a decorative star wallpaper. The
+  single Cosmicflows-4 point batch now reveals a broader quality-bounded sample, uses larger
+  white-core halos, and maps relative catalogue depth from warm nearby groups to cool violet remote
+  groups. The simulated density volume and scale-aware background add restrained cyan, violet, and
+  amber separation, while the map key documents that the point color is a visual depth encoding.
+- Reworked the cosmic-web view as a semantic, progressively disclosed map instead of drawing every
+  catalogue symbol at once. Stable zoom- and quality-dependent prefixes now reveal Cosmicflows
+  groups and documented structures without spatial popping, labels use a smaller collision-aware
+  budget, and normal alpha blending prevents the central survey footprint from becoming an
+  overexposed blob. An interactive layer panel keeps calculated groups, illustrative links,
+  clusters, superclusters, filament centers, and voids distinguishable; the default synthesis hides
+  the two densest specialist overlays while every record remains searchable and directly focusable.
+- Reduced the full-screen cosmic-volume cost with 16/26/40-step quality budgets, shader-side empty
+  space leaping, 1×/1.25×/1.5× renderer pixel-ratio caps, and an immediate fallback to 1× after a
+  severely slow frame-rate sample. A Retina browser regression test now bounds the combined
+  `ray-march steps × pixel ratio²` budget at 90 instead of the previous worst case of 256.
+
 ### Added
 
+- Added an optional Illustris-inspired cosmic-density envelope generated offline from the 37,730
+  Cosmicflows-4 groups, a spatial sample of 10,987 of their 49,939 derived proximity links, and a
+  deterministic 6³ cellular continuity field. Radial selection compensation prevents the nearby
+  survey footprint from collapsing into a central blob. The validated 128³ `UMCV` v1 volume occupies
+  about 2 MiB, uploads once as a single-channel `Data3DTexture`, and ray-marches through one box mesh
+  with bounded 16/26/40-step quality profiles. The UI, metadata, and scene graph all label the
+  continuous field `simulated`: it is an educational reconstruction, not Illustris data and not an
+  observed matter-density measurement.
+- Added a systematic, provenance-preserving large-scale-structure layer containing 26,500
+  positionable detections from seven public catalogues: 8,757 SDSS DR7 supercluster detections,
+  1,228 robust BOSS DR12 voids, all 15,421 Tempel SDSS DR8 filament envelopes, and the 1,094 Planck
+  PSZ2 cluster detections that have a published redshift. One typed-array GPU batch, one reusable
+  selection marker, lazy object cards, local search, confidence-aware symbols, bounded labels, and
+  a survey-coverage warning expose every retained record without allocating one Three.js object per
+  detection. Overlapping methods remain separate instead of being merged into invented physical
+  identities.
 - Added a single-draw-call overview of all 720 observed Local Volume galaxies directly from the
   static tile index. It fades in at the outer Milky Way boundary, remains behind streamed galaxy
   detail, and fades out before the Cosmicflows map dominates, removing the empty visual gap without
@@ -76,6 +111,10 @@ All notable changes to Universe Map are documented in this file.
 
 ### Changed
 
+- Moved the 49,939-edge Cosmicflows-4 nearest-neighbor search from browser startup into the static
+  data pipeline. The UMCG v2 asset now stores validated 8-byte index pairs after its 37,730 group
+  records, so runtime work is limited to typed-array decoding and GPU-attribute creation while the
+  rendered graph and quality budgets remain unchanged.
 - Replaced the hand-authored directions of the 16 featured stars with catalogue links to their HYG
   v4.1 J2000 entries. Search, cards, labels, picking, URLs, and rendering now share one canonical
   identity and one GPU point per star; the fixed 10,000-entry import also guarantees that faint

@@ -7,6 +7,17 @@ import {
   COSMIC_GROUP_CATALOG_VERSION,
 } from './cosmic-group-catalog';
 import {
+  COSMIC_STRUCTURE_CATALOG_HEADER_BYTES,
+  COSMIC_STRUCTURE_CATALOG_MAGIC,
+  COSMIC_STRUCTURE_CATALOG_RECORD_BYTES,
+  COSMIC_STRUCTURE_CATALOG_VERSION,
+} from './cosmic-structure-catalog';
+import {
+  COSMIC_WEB_VOLUME_HEADER_BYTES,
+  COSMIC_WEB_VOLUME_MAGIC,
+  COSMIC_WEB_VOLUME_VERSION,
+} from './cosmic-web-volume';
+import {
   STAR_CATALOG_HEADER_BYTES,
   STAR_CATALOG_MAGIC,
   STAR_CATALOG_RECORD_BYTES,
@@ -55,7 +66,7 @@ describe('AssetLoader', () => {
             id: 'cosmicflows4-groups',
             url: '/data/cosmic-groups.bin',
             type: 'cosmic-group-catalog',
-            format: 'cosmicflows4-group-catalog-v1',
+            format: 'cosmicflows4-group-catalog-v2',
           },
         ],
       }),
@@ -66,6 +77,7 @@ describe('AssetLoader', () => {
 
     expect(assets.cosmicGroupCatalog?.count).toBe(1);
     expect(assets.cosmicGroupCatalog?.pgcIds[0]).toBe(42);
+    expect(assets.cosmicGroupCatalog?.filamentPairs).toEqual(new Uint32Array());
     expect(assets.warnings).toEqual([]);
     expect(fetchMock).toHaveBeenCalledWith('/data/cosmic-groups.bin');
   });
@@ -79,7 +91,7 @@ describe('AssetLoader', () => {
             id: 'cosmicflows4-groups',
             url: '/data/cosmic-groups.bin',
             type: 'cosmic-group-catalog',
-            format: 'cosmicflows4-group-catalog-v1',
+            format: 'cosmicflows4-group-catalog-v2',
           },
         ],
       }),
@@ -103,7 +115,7 @@ describe('AssetLoader', () => {
             id: 'cosmicflows4-groups',
             url: '/data/cosmic-groups.bin',
             type: 'cosmic-group-catalog',
-            format: 'cosmicflows4-group-catalog-v1',
+            format: 'cosmicflows4-group-catalog-v2',
           },
         ],
       }),
@@ -119,6 +131,196 @@ describe('AssetLoader', () => {
     expect(assets.cosmicGroupCatalog).toBeNull();
     expect(assets.warnings).toEqual([
       'Catalogue de groupes cosmiques indisponible : erreur inconnue',
+    ]);
+  });
+
+  it('charge le volume statique simulé du réseau cosmique', async () => {
+    const fetchMock = installFetch({
+      '/data/manifest.json': successfulResponse({
+        version: '1.0.0',
+        datasets: [
+          {
+            id: 'cosmic-web-density',
+            url: '/data/cosmic-web-density.bin',
+            type: 'cosmic-web-volume',
+            format: 'cosmic-web-volume-v1',
+          },
+        ],
+      }),
+      '/data/cosmic-web-density.bin': successfulBinaryResponse(cosmicWebVolumeBuffer()),
+    });
+
+    const assets = await new AssetLoader().loadAssets();
+
+    expect(assets.cosmicWebVolume).toMatchObject({
+      resolution: 4,
+      halfExtentMpc: 800,
+      sourceGroupCount: 3,
+      sourceEdgeCount: 2,
+    });
+    expect(assets.cosmicWebVolume?.density).toHaveLength(64);
+    expect(assets.warnings).toEqual([]);
+    expect(fetchMock).toHaveBeenCalledWith('/data/cosmic-web-density.bin');
+  });
+
+  it('conserve les autres données si le volume cosmique est indisponible', async () => {
+    installFetch({
+      '/data/manifest.json': successfulResponse({
+        version: '1.0.0',
+        datasets: [
+          {
+            id: 'cosmic-web-density',
+            url: '/data/cosmic-web-density.bin',
+            type: 'cosmic-web-volume',
+            format: 'cosmic-web-volume-v1',
+          },
+        ],
+      }),
+      '/data/cosmic-web-density.bin': failedResponse(503),
+    });
+
+    const assets = await new AssetLoader().loadAssets();
+
+    expect(assets.cosmicWebVolume).toBeNull();
+    expect(assets.warnings).toEqual([
+      'Volume du réseau cosmique indisponible : Impossible de charger cosmic-web-density (503).',
+    ]);
+  });
+
+  it('normalise une erreur volumique non standard sans interrompre le démarrage', async () => {
+    installFetch({
+      '/data/manifest.json': successfulResponse({
+        version: '1.0.0',
+        datasets: [
+          {
+            id: 'cosmic-web-density',
+            url: '/data/cosmic-web-density.bin',
+            type: 'cosmic-web-volume',
+            format: 'cosmic-web-volume-v1',
+          },
+        ],
+      }),
+      '/data/cosmic-web-density.bin': {
+        ok: true,
+        status: 200,
+        arrayBuffer: async () => Promise.reject('échec brut'),
+      } as Response,
+    });
+
+    const assets = await new AssetLoader().loadAssets();
+
+    expect(assets.cosmicWebVolume).toBeNull();
+    expect(assets.warnings).toEqual(['Volume du réseau cosmique indisponible : erreur inconnue']);
+  });
+
+  it('charge le catalogue binaire et les provenances des structures cosmiques', async () => {
+    const fetchMock = installFetch({
+      '/data/manifest.json': successfulResponse({
+        version: '1.0.0',
+        datasets: [
+          {
+            id: 'cosmic-structures',
+            url: '/data/structures.bin',
+            metadataUrl: '/data/structures.json',
+            type: 'cosmic-structure-catalog',
+            format: 'cosmic-structure-catalog-v1',
+          },
+        ],
+      }),
+      '/data/structures.json': successfulResponse(cosmicStructureMetadata()),
+      '/data/structures.bin': successfulBinaryResponse(cosmicStructureCatalogBuffer()),
+    });
+
+    const assets = await new AssetLoader().loadAssets();
+
+    expect(assets.cosmicStructureCatalog?.count).toBe(1);
+    expect(assets.cosmicStructureCatalog?.identifiers).toEqual(['239+027+0091']);
+    expect(assets.cosmicStructureCatalog?.metadata.sources[0]?.citation).toBe(
+      'Liivamägi et al. (2012)',
+    );
+    expect(assets.warnings).toEqual([]);
+    expect(fetchMock).toHaveBeenCalledWith('/data/structures.json');
+    expect(fetchMock).toHaveBeenCalledWith('/data/structures.bin');
+  });
+
+  it('conserve les autres données si les structures cosmiques sont indisponibles', async () => {
+    installFetch({
+      '/data/manifest.json': successfulResponse({
+        version: '1.0.0',
+        datasets: [
+          {
+            id: 'cosmic-structures',
+            url: '/data/structures.bin',
+            metadataUrl: '/data/structures.json',
+            type: 'cosmic-structure-catalog',
+            format: 'cosmic-structure-catalog-v1',
+          },
+        ],
+      }),
+      '/data/structures.json': failedResponse(503),
+    });
+
+    const assets = await new AssetLoader().loadAssets();
+
+    expect(assets.cosmicStructureCatalog).toBeNull();
+    expect(assets.warnings).toEqual([
+      'Catalogue de structures cosmiques indisponible : Impossible de charger les métadonnées cosmic-structures (503).',
+    ]);
+  });
+
+  it('signale séparément un binaire de structures indisponible', async () => {
+    installFetch({
+      '/data/manifest.json': successfulResponse({
+        version: '1.0.0',
+        datasets: [
+          {
+            id: 'cosmic-structures',
+            url: '/data/structures.bin',
+            metadataUrl: '/data/structures.json',
+            type: 'cosmic-structure-catalog',
+            format: 'cosmic-structure-catalog-v1',
+          },
+        ],
+      }),
+      '/data/structures.json': successfulResponse(cosmicStructureMetadata()),
+      '/data/structures.bin': failedResponse(502),
+    });
+
+    const assets = await new AssetLoader().loadAssets();
+
+    expect(assets.cosmicStructureCatalog).toBeNull();
+    expect(assets.warnings).toEqual([
+      'Catalogue de structures cosmiques indisponible : Impossible de charger cosmic-structures (502).',
+    ]);
+  });
+
+  it('normalise une erreur de structure non standard sans interrompre le démarrage', async () => {
+    installFetch({
+      '/data/manifest.json': successfulResponse({
+        version: '1.0.0',
+        datasets: [
+          {
+            id: 'cosmic-structures',
+            url: '/data/structures.bin',
+            metadataUrl: '/data/structures.json',
+            type: 'cosmic-structure-catalog',
+            format: 'cosmic-structure-catalog-v1',
+          },
+        ],
+      }),
+      '/data/structures.json': successfulResponse(cosmicStructureMetadata()),
+      '/data/structures.bin': {
+        ok: true,
+        status: 200,
+        arrayBuffer: async () => Promise.reject('échec brut'),
+      } as Response,
+    });
+
+    const assets = await new AssetLoader().loadAssets();
+
+    expect(assets.cosmicStructureCatalog).toBeNull();
+    expect(assets.warnings).toEqual([
+      'Catalogue de structures cosmiques indisponible : erreur inconnue',
     ]);
   });
 
@@ -592,6 +794,102 @@ function cosmicGroupCatalogBuffer(): ArrayBuffer {
   view.setInt32(COSMIC_GROUP_CATALOG_HEADER_BYTES + 20, 810, true);
   view.setUint32(COSMIC_GROUP_CATALOG_HEADER_BYTES + 24, 42, true);
   view.setFloat32(COSMIC_GROUP_CATALOG_HEADER_BYTES + 28, 30.413, true);
+
+  return buffer;
+}
+
+function cosmicWebVolumeBuffer(): ArrayBuffer {
+  const resolution = 4;
+  const voxelCount = resolution ** 3;
+  const buffer = new ArrayBuffer(COSMIC_WEB_VOLUME_HEADER_BYTES + voxelCount);
+  const view = new DataView(buffer);
+
+  for (let index = 0; index < COSMIC_WEB_VOLUME_MAGIC.length; index += 1) {
+    view.setUint8(index, COSMIC_WEB_VOLUME_MAGIC.charCodeAt(index));
+  }
+  view.setUint16(4, COSMIC_WEB_VOLUME_VERSION, true);
+  view.setUint16(6, COSMIC_WEB_VOLUME_HEADER_BYTES, true);
+  view.setUint16(8, resolution, true);
+  view.setUint16(10, 1, true);
+  view.setUint32(12, voxelCount, true);
+  view.setFloat32(16, 800, true);
+  view.setUint32(20, 1, true);
+  view.setFloat64(24, 2_451_545, true);
+  view.setUint32(32, 3, true);
+  view.setUint32(36, 2, true);
+
+  return buffer;
+}
+
+function cosmicStructureMetadata() {
+  return {
+    version: '1.0.0',
+    recordCount: 1,
+    referenceEpochJulianDay: 2_451_545,
+    referenceFrame: 'equatorial-j2000',
+    distanceUnit: 'megaparsec',
+    scientificConfidence: 'calculated',
+    sources: [
+      {
+        id: 'sdss-main50',
+        name: 'SDSS superclusters',
+        citation: 'Liivamägi et al. (2012)',
+        sourceUrl: 'https://example.test/superclusters',
+        structureType: 'supercluster',
+        method: 'Luminosity density field',
+        objectNamePrefix: 'Superamas SDSS',
+        scientificConfidence: 'calculated',
+        recordCount: 1,
+      },
+    ],
+  };
+}
+
+function cosmicStructureCatalogBuffer(): ArrayBuffer {
+  const identifier = new TextEncoder().encode('239+027+0091');
+  const buffer = new ArrayBuffer(
+    COSMIC_STRUCTURE_CATALOG_HEADER_BYTES +
+      COSMIC_STRUCTURE_CATALOG_RECORD_BYTES +
+      identifier.length,
+  );
+  const view = new DataView(buffer);
+  const distanceMpc = Math.hypot(-176.1, 163.7, -287.8);
+
+  for (let index = 0; index < COSMIC_STRUCTURE_CATALOG_MAGIC.length; index += 1) {
+    view.setUint8(index, COSMIC_STRUCTURE_CATALOG_MAGIC.charCodeAt(index));
+  }
+  view.setUint16(4, COSMIC_STRUCTURE_CATALOG_VERSION, true);
+  view.setUint16(6, COSMIC_STRUCTURE_CATALOG_HEADER_BYTES, true);
+  view.setUint16(8, COSMIC_STRUCTURE_CATALOG_RECORD_BYTES, true);
+  view.setUint16(10, 0, true);
+  view.setUint32(12, 1, true);
+  view.setUint16(16, 1, true);
+  view.setUint16(18, 1, true);
+  view.setFloat64(20, 2_451_545, true);
+  view.setFloat32(28, distanceMpc, true);
+  view.setFloat32(32, distanceMpc, true);
+  view.setUint32(36, identifier.length, true);
+  view.setUint32(40, 0xff, true);
+  view.setUint32(44, 0, true);
+  view.setFloat32(COSMIC_STRUCTURE_CATALOG_HEADER_BYTES, -176.1, true);
+  view.setFloat32(COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + 4, 163.7, true);
+  view.setFloat32(COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + 8, -287.8, true);
+  view.setFloat32(COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + 12, distanceMpc, true);
+  view.setFloat32(COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + 16, 35.9, true);
+  view.setFloat32(COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + 20, 0.98, true);
+  view.setFloat32(COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + 24, Number.NaN, true);
+  view.setFloat32(COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + 28, Number.NaN, true);
+  view.setUint32(COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + 32, 1_038, true);
+  view.setUint32(COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + 36, 0, true);
+  view.setUint16(COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + 40, identifier.length, true);
+  view.setUint16(COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + 42, 0, true);
+  view.setUint8(COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + 44, 1);
+  view.setUint8(COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + 45, 0);
+  view.setUint16(COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + 46, 1, true);
+  new Uint8Array(
+    buffer,
+    COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + COSMIC_STRUCTURE_CATALOG_RECORD_BYTES,
+  ).set(identifier);
 
   return buffer;
 }

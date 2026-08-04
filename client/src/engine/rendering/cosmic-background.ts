@@ -25,7 +25,7 @@ const BACKGROUND_STOPS: readonly CosmicBackgroundStop[] = [
   createStop(3, 0x050817, 0x0a1023, 0x24264c, 0x4a376d, 0x060b1a, 0.105, 0.05, 0.055, 0.25),
   createStop(4, 0x060715, 0x0b0d1d, 0x261d48, 0x58325f, 0x070914, 0.075, 0.06, 0.07, 0.27),
   createStop(5, 0x050713, 0x0c0b1b, 0x221942, 0x3d2b64, 0x060713, 0.06, 0.05, 0.06, 0.29),
-  createStop(6, 0x03050f, 0x090718, 0x171b3e, 0x21385d, 0x040611, 0.05, 0.042, 0.045, 0.31),
+  createStop(6, 0x070519, 0x10081d, 0x32195b, 0x18506f, 0x060510, 0.08, 0.07, 0.05, 0.29),
 ];
 
 const QUALITY_DETAIL_STRENGTH: Readonly<Record<GraphicQuality, number>> = {

@@ -49,6 +49,7 @@ export interface LabelHitRegion {
 
 const LABEL_FRAME_INTERVAL_MS = 1_000 / 30;
 const LABEL_HIT_PADDING_PX = 6;
+const COSMIC_LABEL_PRIORITY_BASE = 300;
 const MAXIMUM_CATALOG_LABEL_RANKS = {
   low: [400, 700, 1_000, 0, 0],
   medium: [800, 1_400, 2_200, 0, 0],
@@ -60,13 +61,25 @@ const MAXIMUM_CONSTELLATION_LABEL_RANKS = {
   high: [20, 32, 44, 0, 0, 0],
 } as const satisfies Record<GraphicQuality, readonly number[]>;
 const MAXIMUM_COSMIC_LABEL_RANKS = {
-  low: 120,
-  medium: 240,
-  high: 480,
+  low: 24,
+  medium: 48,
+  high: 72,
+} as const satisfies Record<GraphicQuality, number>;
+const MAXIMUM_COSMIC_LABELS = {
+  low: 10,
+  medium: 16,
+  high: 24,
 } as const satisfies Record<GraphicQuality, number>;
 const LABEL_TEXT_COLORS = {
   universe: '#d7ccff',
   'galaxy-cluster': '#d7ccff',
+  supercluster: '#d9b8ff',
+  'cosmic-wall': '#ffb78a',
+  'cosmic-filament': '#7de4f2',
+  'cosmic-void': '#78a9ff',
+  'cosmic-basin': '#b89cff',
+  'cosmic-attractor': '#ffd27c',
+  'cosmic-repeller': '#7ce0c3',
   galaxy: '#c9b8ff',
   'black-hole': '#ffb274',
   nebula: '#efb9dc',
@@ -632,14 +645,14 @@ export function isLabelVisibleAtLevel(
   density: LabelDensity = 'balanced',
 ): boolean {
   const catalogRecordIndex = object.metadata?.['catalogRecordIndex'];
-  const cosmicCatalogRank = object.metadata?.['cosmicCatalogRank'];
+  const cosmicLabelRank = getCosmicLabelRank(object);
   const constellationLabelRank = object.metadata?.['constellationLabelRank'];
 
   if (typeof catalogRecordIndex === 'number') {
     return catalogRecordIndex < getMaximumCatalogLabelRank(quality, lodLevel, density);
   }
-  if (typeof cosmicCatalogRank === 'number') {
-    return cosmicCatalogRank < getMaximumCosmicLabelRank(quality, lodLevel, density);
+  if (cosmicLabelRank !== null) {
+    return cosmicLabelRank < getMaximumCosmicLabelRank(quality, lodLevel, density);
   }
   if (typeof constellationLabelRank === 'number') {
     return constellationLabelRank < getMaximumConstellationLabelRank(quality, lodLevel, density);
@@ -679,6 +692,9 @@ export function getMaximumLabelCount(
   lodLevel: number,
   density: LabelDensity = 'balanced',
 ): number {
+  if (lodLevel === 6) {
+    return scaleLabelLimit(MAXIMUM_COSMIC_LABELS[quality], density);
+  }
   const qualityLimit = quality === 'low' ? 28 : quality === 'medium' ? 56 : 96;
   const lodLimit = MAXIMUM_LABELS_BY_LOD[lodLevel] ?? MAXIMUM_LABELS_BY_LOD.at(-1)!;
 
@@ -794,7 +810,12 @@ function getLabelPriority(object: LabelObject): number {
   const cosmicCatalogRank = object.metadata?.['cosmicCatalogRank'];
 
   if (typeof cosmicCatalogRank === 'number') {
-    return 600 + cosmicCatalogRank;
+    return COSMIC_LABEL_PRIORITY_BASE + cosmicCatalogRank * 2;
+  }
+  const cosmicStructureRank = object.metadata?.['cosmicStructureRank'];
+
+  if (typeof cosmicStructureRank === 'number') {
+    return COSMIC_LABEL_PRIORITY_BASE + cosmicStructureRank * 2 + 1;
   }
   const constellationLabelRank = object.metadata?.['constellationLabelRank'];
 
@@ -818,7 +839,18 @@ function isCatalogLabel(object: LabelObject): boolean {
 }
 
 function isCosmicCatalogLabel(object: LabelObject): boolean {
-  return typeof object.metadata?.['cosmicCatalogRank'] === 'number';
+  return getCosmicLabelRank(object) !== null;
+}
+
+function getCosmicLabelRank(object: LabelObject): number | null {
+  const catalogRank = object.metadata?.['cosmicCatalogRank'];
+
+  if (typeof catalogRank === 'number') {
+    return catalogRank;
+  }
+  const structureRank = object.metadata?.['cosmicStructureRank'];
+
+  return typeof structureRank === 'number' ? structureRank : null;
 }
 
 function isConstellationLabel(object: LabelObject): boolean {

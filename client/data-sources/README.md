@@ -296,16 +296,103 @@ y = D sin(δ)
 z = D cos(δ) sin(α)
 ```
 
-The browser parser validates the signature, version, record dimensions, coordinate norm, unique PGC
-identifiers, finite measurements, and distance ordering. Distances are marked `calculated`, matching
-the catalogue methodology. Point radii, opacity, color, label ranks, and the selected halo are
-adaptive visual encodings. Label candidates use a progressive distance-stratified order so each
-quality tier covers the full catalogue depth instead of clustering around the Local Volume.
+The browser parser validates the signature, v2 format, record dimensions, coordinate norm, unique
+PGC identifiers, finite measurements, distance ordering, filament index bounds, pair ordering,
+pair uniqueness, and exact byte length. Distances are marked `calculated`, matching the catalogue
+methodology. Point radii, opacity, color, label ranks, and the selected halo are adaptive visual
+encodings. The runtime point shader uses one additive white-core halo per entry and maps logarithmic
+relative depth from warm nearby groups to cool violet remote groups; the legend identifies this as
+an illustrative depth encoding rather than an observed physical color. Label candidates use a
+progressive distance-stratified order so each quality tier covers the full catalogue depth instead
+of clustering around the Local Volume.
 
-The outer view also derives a deterministic nearest-neighbor scaffold at runtime. A 20 Mpc spatial
-hash connects each group to at most its two closest groups within 52 Mpc, deduplicates the resulting
-49,939 edges, and distributes their order so lower quality settings retain structure throughout the
-volume. Distance uncertainty attenuates each edge, while low, medium, and high quality draw 28%, 62%,
-or 100% of the graph in one `THREE.LineSegments` batch. The graph is marked `illustrative`: its lines
+The importer also derives a deterministic nearest-neighbor scaffold before the application build. A
+20 Mpc spatial hash connects each group to at most its two closest groups within 52 Mpc, deduplicates
+the resulting 49,939 edges, and appends their 8-byte index pairs after the group records. Their order
+is distributed so lower quality settings retain structure throughout the volume. The browser only
+decodes those pairs and creates the GPU attributes; no spatial graph is rebuilt on the main thread.
+Distance uncertainty attenuates each edge, while low, medium, and high quality draw 28%, 62%, or
+100% of the graph in one `THREE.LineSegments` batch. The graph is marked `illustrative`: its lines
 are not measured group dimensions, detected physical links, or a continuous reconstruction of
 clusters, walls, voids, and cosmic filaments.
+
+### Simulated cosmic-density volume
+
+`npm run data:cosmic-web` also runs `npm run data:cosmic-volume` and derives
+`public/data/structures/cosmic-web-density.bin` from the versioned Cosmicflows-4 binary. The build
+tool splats uncertainty-weighted group positions, spatially samples 10,987 of the illustrative
+proximity links, and compensates for the catalogue's radial selection bias in a 128³ Cartesian grid
+spanning ±800 Mpc. A deterministic 6³ cellular field fills unmeasured gaps with explicitly simulated
+continuity; one separable smoothing pass, restored anchors, and logarithmic encoding preserve both
+filaments and nodes. The generated asset is approximately 2 MiB and its JSON sidecar records the
+source hash, dimensions, epoch, inputs, reconstruction settings, and scientific warning.
+
+The `UMCV` v1 format uses a 64-byte little-endian header followed by a single-channel density field.
+The browser validates its signature, version, dimensions, coordinate frame, epoch, source counts,
+flags, and exact byte length before creating a `THREE.Data3DTexture`. One back-face box shader then
+ray-marches the field with at most 16, 26, or 40 samples according to graphics quality and advances
+more quickly through samples below the density threshold. No voxel becomes a Three.js object and no
+density reconstruction runs in the browser.
+
+This layer is marked `simulated`. Its cellular continuity is an Illustris-inspired visual device,
+not an import of the Illustris simulation, not a physical filament catalogue, and not a directly
+observed dark-matter or baryonic-matter density field. The measured/calculated point catalogues and
+documented structure symbols remain separate selectable layers, and the continuous envelope can be
+disabled from the cosmic-map panel.
+
+## Documented large-scale structures
+
+`public/data/structures/cosmic-structures.bin` is a provenance-preserving union of selected public
+catalogues, not a deduplicated claim that each row is a distinct physical object. The current static
+asset retains 26,500 positionable detections from seven source tables:
+
+- all 8,757 detections in the four
+  [Liivamäki, Tempel & Saar SDSS DR7 supercluster tables](https://cdsarc.cds.unistra.fr/viz-bin/cat/J/A+A/539/A80);
+- all 1,228 robust voids in the published
+  [BOSS DR12 quality-cut table](https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJ/835/161), rather
+  than treating all 10,643 pre-cut watershed candidates as robust structures;
+- all 15,421 filament envelopes in the
+  [Tempel et al. SDSS DR8 Bisous catalogue](https://cdsarc.cds.unistra.fr/viz-bin/cat/J/MNRAS/438/3465);
+- the 1,094 detections from
+  [Planck PSZ2](https://cdsarc.cds.unistra.fr/viz-bin/cat/J/A+A/594/A27) that have a published
+  external redshift and can therefore be placed in three dimensions. The 559 PSZ2 detections
+  without a redshift remain outside the 3D asset instead of receiving an invented distance.
+
+The four supercluster definitions deliberately remain separate because fixed and adaptive density
+thresholds, Main and LRG samples, and survey masks can detect overlapping structures. An empty part
+of a survey footprint is not interpreted as a void, and an area outside a footprint is explicitly
+treated as missing coverage.
+
+To rebuild the static asset, download the documented CDS tables using the local names consumed by
+the importer, then run:
+
+```bash
+npm run data:cosmic-structures
+```
+
+The generated metadata sidecar records the SHA-256 of every compressed source snapshot, source URL,
+citation, detection method, retained record count, reference frame, and display cosmology. Raw
+tables are ignored by Git; the generated binary and metadata remain versioned.
+
+The `UMCS` v1 file uses a 48-byte header, fixed 48-byte little-endian records, and one UTF-8
+identifier table. It preserves Cartesian J2000 position, comoving distance, catalogue scale,
+quality/confidence, optional density and boundary measurements, member count when available, source
+index, structure kind, flags, and catalogue identifier. The browser validates exact dimensions,
+source cardinalities, type/source agreement, finite ranges, Cartesian norms, UTF-8 identifiers,
+identifier uniqueness within each source, and catalogue distance bounds before exposing typed
+arrays.
+
+BOSS and Planck redshifts use a documented flat ΛCDM display conversion with `H0 = 70 km/s/Mpc`,
+`Ωm = 0.3`, and `ΩΛ = 0.7`; source values in Mpc/h are converted with `h = 0.7`. This choice is
+stored in the sidecar and is not presented as a precision cosmological fit. Tempel filament symbols
+use the center of each published Cartesian envelope and its catalogued spine length. They do not
+claim to render the continuous 275,599-point spine geometry, which belongs in a later tiled line
+layer.
+
+At runtime, all 26,500 records share one typed-array `THREE.Points` batch and one reusable selection
+marker. A stable, source-aware reveal order lets the draw range grow with zoom and graphics quality;
+this changes only presentation, not search availability. Search entries and object cards preserve
+source identity, and definitions are created only when requested. Type-aware symbols distinguish
+clusters, superclusters, filament centers, and voids. The default synthesis displays clusters and
+superclusters, while filament centers and voids are opt-in layers in the cosmic-map panel. The label
+pool stays bounded by quality and collision policy.

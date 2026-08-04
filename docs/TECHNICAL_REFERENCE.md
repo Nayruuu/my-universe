@@ -363,35 +363,101 @@ by [Tully et al. (2023)](https://doi.org/10.3847/1538-4357/ac94d8). Static prepa
 323 records at or inside 11 Mpc already owned by the detailed nearby-Universe layer. The resulting
 37,730 groups span 11.1 to 772.7 Mpc.
 
-The approximately 1.2 MiB `cosmicflows4-groups.bin` file uses one 40-byte header and fixed 32-byte
-little-endian records. Typed arrays preserve J2000 Cartesian coordinates in megaparsecs, catalogue
-distance, distance-modulus uncertainty, CMB-frame velocity, PGC identifier, and distance modulus.
-Both the import script and browser parser verify record dimensions, unique identifiers, finite
-measurements, distance ordering, and the Cartesian norm. Scientific coordinate conversion uses the
-same equatorial basis as the nearby-Universe catalogue.
+The approximately 1.53 MiB `cosmicflows4-groups.bin` v2 file uses one 40-byte header, fixed 32-byte
+little-endian group records, and an appended array of 8-byte filament index pairs. Typed arrays
+preserve J2000 Cartesian coordinates in megaparsecs, catalogue distance, distance-modulus
+uncertainty, CMB-frame velocity, PGC identifier, distance modulus, and the precomputed graph. Both
+the import script and browser parser verify record dimensions, unique identifiers, finite
+measurements, distance ordering, the Cartesian norm, filament bounds, ordering, uniqueness, and
+the exact file length. Scientific coordinate conversion uses the same equatorial basis as the
+nearby-Universe catalogue.
 
-Every group shares one `THREE.Points` draw call. Distance uncertainty modulates point size and
-opacity, while low, medium, and high quality expose progressively depth-stratified label pools before
-the normal screen-space collision pass. Search accepts `PGC N`, creates object definitions only on
-demand, and focuses a group with one reusable selection marker. Details expose its distance,
-uncertainty, CMB-frame velocity, source, and `calculated` confidence.
+Every group shares one `THREE.Points` draw call. A deterministic identifier hash defines a stable,
+spatially distributed reveal order; the geometry draw range exposes only the active prefix according
+to camera distance and graphics quality. The complete typed catalogue remains resident and
+searchable, and a focused result uses one reusable marker even when it is outside the current map
+sample. Distance uncertainty modulates point size and opacity. A white-core additive halo keeps the
+active catalogue sample readable over the density field, while an explicitly illustrative
+logarithmic depth gradient maps nearby groups to warm gold and remote groups to cool violet. Low,
+medium, and high quality expose progressively ranked label pools before the normal screen-space
+collision pass. Search accepts
+`PGC N`, creates object definitions only on demand, and details expose distance, uncertainty,
+CMB-frame velocity, source, and `calculated` confidence.
 
-A deterministic 20 Mpc spatial hash additionally derives a first large-scale structure scaffold.
-Each group connects to at most its two nearest neighbors within 52 Mpc; duplicate pairs and
-zero-length edges are rejected. The fixed catalogue produces 49,939 edges, stored as duplicated line endpoints
-with per-vertex alpha and detail-threshold attributes in a single `THREE.LineSegments` draw call. A deterministic hash
-orders edges across the volume, allowing low, medium, and high quality to expose 28%, 62%, or 100%
-without revealing only one contiguous catalogue region. Distance uncertainty and neighbor distance
-attenuate the line alpha. At the outer overview, the shortest and best-constrained links retain full
-emphasis while every other active edge remains faintly visible. A damped camera-distance uniform
-progressively restores secondary links toward the nearby-Universe boundary, avoiding discrete model
-swaps or extra draw calls. The batch fades independently from the calculated points between the
-nearby-Universe and cosmic-web scales, and a scale-specific legend identifies calculated points and
-illustrative connections.
+During static data preparation, a deterministic 20 Mpc spatial hash derives a first large-scale
+structure scaffold. Each group connects to at most its two nearest neighbors within 52 Mpc;
+duplicate pairs and zero-length edges are rejected. The fixed catalogue produces 49,939 edges,
+stored as index pairs after the scientific records. The browser only expands these pairs into
+duplicated line endpoints with per-vertex alpha and detail-threshold attributes for a single
+`THREE.LineSegments` draw call; it never rebuilds the spatial graph. A deterministic hash orders
+edges across the volume, allowing low, medium, and high quality to expose at most 28%, 62%, or 100%
+without revealing only one contiguous catalogue region. A second confidence threshold combines that
+quality budget with the camera-distance detail value, so the far overview shows only the strongest
+scaffold and progressively restores secondary links toward the nearby-Universe boundary. Distance
+uncertainty and neighbor distance attenuate the line alpha. The normally blended line batch fades
+independently from the calculated points, and the map panel can hide it without changing the group
+layer.
 
 The graph carries `illustrative` confidence. It is a visual interpretation of proximity in the
 catalogue coordinate field, not an observed link, a density estimator, or a reconstructed continuous
 cluster, wall, void, or filament field.
+
+### Simulated cosmic-density volume
+
+The static pipeline turns the Cosmicflows point field and its illustrative proximity scaffold into a
+128³ single-channel density texture over ±800 Mpc. Group contributions are weighted by distance
+modulus uncertainty and compensated for radial catalogue selection; 10,987 of 49,939 links are
+sampled across the full edge list. A deterministic 6³ cellular field supplies explicitly simulated
+continuity outside measured coverage, while one separable smoothing pass and logarithmic encoding
+preserve faint filaments and dense nodes. The resulting `cosmic-web-density.bin` is approximately
+2 MiB and uses the validated `UMCV` v1 format: a 64-byte header followed by one unsigned byte per
+voxel.
+
+At runtime the loader uploads the field once as a `THREE.Data3DTexture`. One back-face box mesh
+ray-marches at most 16, 26, or 40 samples for low, medium, or high quality. Empty samples advance by
+2.8×, 2.1×, or 1.6× respectively, while distance damping fades the layer in only across the
+nearby-Universe-to-cosmic-web transition. A density-driven cyan/violet body, amber dense cores,
+bounded procedural detail, edge fading, early alpha termination, and normal blending create the
+volumetric appearance without allocating objects per voxel. The map panel controls this volume
+independently from groups, links, and documented structures.
+
+The renderer, metadata, and interface mark the field `simulated`. It is visually inspired by modern
+cosmological simulations, but it does not bundle Illustris output and must not be interpreted as an
+observed or simulation-derived physical matter-density cube. Catalogue points remain calculated;
+proximity links remain illustrative; their volume envelope and cellular gap filling are simulated.
+
+### Documented structure catalogues
+
+A separate `UMCS` v1 asset preserves 26,500 positionable detections from seven public source tables:
+8,757 SDSS DR7 supercluster detections, 1,228 robust BOSS DR12 voids, 15,421 SDSS DR8 Bisous
+filament envelopes, and 1,094 Planck PSZ2 clusters with an external redshift. The importer retains
+overlapping survey methods as separate records and excludes the 559 PSZ2 entries without a redshift
+instead of assigning a synthetic distance. Its JSON sidecar stores source-level citations, URLs,
+methods, record counts, SHA-256 hashes, and the flat ΛCDM conversion used for display coordinates.
+
+The approximately 1.4 MiB binary uses a 48-byte header, fixed 48-byte records, and one UTF-8 string
+table. Typed arrays retain Cartesian position, catalogue distance and scale, confidence, optional
+void density/boundary values, optional member count, source index, structure kind, flags, and source
+identifier. Runtime parsing validates the exact byte length, source and type agreement, source
+cardinalities, scientific ranges, Cartesian norms, identifiers, and global distance bounds before
+scene integration.
+
+All records share one normally blended `THREE.Points` batch. A deterministic per-source reveal order
+and a camera-distance draw range progressively disclose the map instead of compositing all 26,500
+symbols in the overview. Hollow blue rings identify void detections, violet halos identify
+superclusters, cyan marks identify filament-envelope centers, and compact pale points identify
+Planck clusters. The default synthesis enables clusters and superclusters while leaving the much
+denser filament-center and void overlays opt-in; a four-component shader mask and CPU picking mask
+switch those semantic layers without reallocating geometry. One selection point is reused for every
+catalogue target, every retained record remains searchable and focusable, object definitions are
+materialized lazily, and labels share a reduced collision- and quality-aware budget. The in-app map
+panel states both that catalogue detections can overlap and that missing survey coverage is not a
+measured cosmic void.
+
+The Tempel source contains 275,599 published spine points, but this first pass stores the center and
+length of each of its 15,421 filament envelopes. It therefore does not render those center symbols as
+continuous physical tubes. Detailed spine geometry requires a separately tiled line layer so it can
+remain faithful without adding hundreds of thousands of startup vertices.
 
 ## HYG stellar catalogue
 
@@ -611,7 +677,9 @@ The central point of the 12 August 2026 eclipse is checked against
 - all 644 constellation links share one optional, LOD-faded base batch plus one reusable highlight
   batch;
 - one reusable GPU marker, adaptive halo, and close-range volume materialize the active HYG entry;
-- particle density, geometry, textures, and pixel ratio adapt during initialization;
+- particle density, geometry, textures, and pixel ratio adapt during initialization; renderer ratios
+  are capped at 1×, 1.25×, and 1.5× for low, medium, and high quality, and a severely slow sample
+  falls back directly to 1×;
 - targeted visual reconstruction and resource disposal when quality changes;
 - three shared quality-aware procedural textures for galaxy impostors, combining cool halos, warm
   cores, blurred spiral filaments, and subtractive dust lanes at 256, 384, or 512 pixels;
@@ -646,10 +714,17 @@ The central point of the 12 August 2026 eclipse is checked against
   visible galaxy tile enters or leaves the view;
 - generated Local Volume galaxies and other distant objects batched with per-vertex color, size,
   opacity, and indexed picking, with a focused galaxy promoted to its shaped impostor;
-- all 37,730 Cosmicflows-4 groups stored in typed arrays and rendered by one GPU point batch, with
-  one reusable selected-group marker and no per-group Three.js allocation;
+- all 37,730 Cosmicflows-4 groups stored in typed arrays and progressively exposed through one GPU
+  point batch, with a stable reveal order, one reusable selected-group marker, and no per-group
+  Three.js allocation;
 - all 49,939 derived Cosmicflows-4 proximity edges rendered by one GPU line batch, with
-  quality-controlled draw ranges and no per-edge Three.js allocation;
+  quality-controlled draw ranges, a build-time spatial index, no runtime graph construction, and no
+  per-edge Three.js allocation;
+- all 26,500 documented large-scale-structure detections retained in typed arrays and progressively
+  exposed by one type-aware GPU point batch, with semantic layer masks, lazy cards, and one reusable
+  selection marker;
+- one 128³ cosmic-density texture rendered by one ray-marched mesh, with bounded quality steps and no
+  per-voxel CPU or Three.js allocation;
 - raycast volumes placed on a non-rendered selection layer;
 - labels drawn in one 2D canvas at 30 Hz from a brightness-ranked pool, with quality-aware caps,
   priority, duplicate, overlap, and planetary-silhouette occlusion filtering, plus a restrained
@@ -667,7 +742,8 @@ The central point of the 12 August 2026 eclipse is checked against
 - renderer metrics available through `?debug=true`;
 - debug metrics expose the active navigation frame and origin, the physical camera target, active
   stellar tiles, cached packs and tiles, active/cached aggregate cells, currently visible cells,
-  calculated Cosmicflows-4 groups, and the visible derived-edge budget;
+  calculated Cosmicflows-4 groups, documented structure detections, and the visible derived-edge
+  budget;
 - last-wheel diagnostics reporting its anchor, requested and applied distances, active bounds, and
   whether the movement was applied, clamped, ignored, or unchanged.
 
@@ -682,8 +758,10 @@ individual galaxy files remain deferred until their LOD or target requires them.
 aggregate manifest entry is lighter still: only its source descriptor is retained at startup; its
 index and spatial packs remain deferred until LOD 3 or 4. Constellation figures are also
 cross-validated against the loaded HYG identifier array before scene creation. The compact
-Cosmicflows-4 binary is fetched once at startup, decoded into typed arrays, and retained as one
-searchable/renderable catalogue without creating 37,730 generic object instances.
+Cosmicflows-4, documented-structure, and density-volume binaries are fetched once at startup. The
+catalogues decode into typed arrays and remain searchable/renderable without creating 64,230 generic
+object instances or running the nearest-neighbor search on the main thread; the volume uploads as
+one GPU texture and is not part of search.
 
 To add an object:
 
@@ -771,9 +849,12 @@ Vitest covers:
 - J2000 equatorial conversion in megaparsecs, fixed-width source parsing, duplicate rejection,
   720-entry static-index completeness, octree hierarchy and bounds validation, camera-frustum
   refinement, quality budgets, target pinning, cache reuse, unloading, and failures;
-- Cosmicflows-4 fixed-width parsing and binary encoding, PGC uniqueness, coordinate norms,
-  uncertainty-aware rendering, lazy definitions, label bounds, resource disposal, and the seventh
-  navigation scale.
+- Cosmicflows-4 fixed-width parsing, build-time filament generation, v2 binary encoding, PGC and
+  edge uniqueness, coordinate norms, uncertainty-aware rendering, lazy definitions, label bounds,
+  resource disposal, and the seventh navigation scale.
+- SDSS supercluster, BOSS void, Tempel filament, and Planck PSZ2 fixed-width parsing; explicit
+  Mpc/h and redshift conversion; UMCS metadata and binary validation; source cardinality and
+  identifier preservation; type-aware rendering; lazy search/details; label bounds; and disposal;
 
 Playwright covers critical Chromium journeys:
 
@@ -853,6 +934,9 @@ observed with Node 24 on macOS. This does not affect generated application outpu
 - the Cosmicflows-4 layer contains calculated group distances rather than every galaxy; its point
   halos and nearest-neighbor scaffold do not reconstruct continuous clusters, walls, voids, or
   filaments, and the connecting lines are explicitly illustrative;
+- large-scale-structure catalogues cover particular survey footprints and algorithms, not the whole
+  observable Universe; overlapping detections are intentionally not merged, absent coverage is not
+  a void, and Tempel filament centers do not yet include their tiled continuous spine geometry;
 - Titan and the bundled small bodies use simplified two-body paths rather than full numerical
   ephemerides; satellite separation is visually exaggerated after position calculation;
 - Observable view exists in the contract and interface but still previews simultaneous state mode;
@@ -862,8 +946,8 @@ observed with Node 24 on macOS. This does not affect generated application outpu
 
 1. move future larger-catalogue decoding and hierarchy preparation into Web Workers;
 2. add deeper stellar hierarchy levels when a denser source catalogue requires them;
-3. replace the first illustrative proximity scaffold with a navigable, offline-validated multiscale
-   cluster, wall, void, and filament hierarchy from the Cosmicflows-4 group field;
+3. tile the published Tempel filament spines and extend the same provenance contract to documented
+   wall, basin, attractor, and repeller products without merging incompatible definitions;
 4. expand the Solar System selection with additional scientifically useful moons and small bodies;
 5. accept arbitrary eclipse locations and expose detailed local contact times;
 6. implement the physically delayed Observable view;

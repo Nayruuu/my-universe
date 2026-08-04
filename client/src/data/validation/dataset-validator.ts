@@ -15,6 +15,13 @@ import {
 const SPACE_OBJECT_TYPES: readonly SpaceObjectType[] = [
   'universe',
   'galaxy-cluster',
+  'supercluster',
+  'cosmic-wall',
+  'cosmic-filament',
+  'cosmic-void',
+  'cosmic-basin',
+  'cosmic-attractor',
+  'cosmic-repeller',
   'galaxy',
   'black-hole',
   'nebula',
@@ -98,7 +105,9 @@ export function parseManifest(value: unknown): DatasetManifest {
         datasetType !== 'space-tile-index' &&
         datasetType !== 'constellation-lines' &&
         datasetType !== 'star-tile-index' &&
-        datasetType !== 'cosmic-group-catalog')
+        datasetType !== 'cosmic-group-catalog' &&
+        datasetType !== 'cosmic-structure-catalog' &&
+        datasetType !== 'cosmic-web-volume')
     ) {
       throw new Error(`Entrée de manifest invalide à l’index ${index}.`);
     }
@@ -160,7 +169,7 @@ export function parseManifest(value: unknown): DatasetManifest {
     }
 
     if (datasetType === 'cosmic-group-catalog') {
-      if (entry['format'] !== 'cosmicflows4-group-catalog-v1') {
+      if (entry['format'] !== 'cosmicflows4-group-catalog-v2') {
         throw new Error(`Format de groupes cosmiques invalide à l’index ${index}.`);
       }
 
@@ -168,6 +177,36 @@ export function parseManifest(value: unknown): DatasetManifest {
         id: entry['id'],
         url: entry['url'],
         type: 'cosmic-group-catalog',
+        format: entry['format'],
+      };
+    }
+
+    if (datasetType === 'cosmic-structure-catalog') {
+      if (entry['format'] !== 'cosmic-structure-catalog-v1') {
+        throw new Error(`Format de structures cosmiques invalide à l’index ${index}.`);
+      }
+      if (typeof entry['metadataUrl'] !== 'string') {
+        throw new Error(`Métadonnées de structures cosmiques manquantes à l’index ${index}.`);
+      }
+
+      return {
+        id: entry['id'],
+        url: entry['url'],
+        metadataUrl: entry['metadataUrl'],
+        type: 'cosmic-structure-catalog',
+        format: entry['format'],
+      };
+    }
+
+    if (datasetType === 'cosmic-web-volume') {
+      if (entry['format'] !== 'cosmic-web-volume-v1') {
+        throw new Error(`Format de volume cosmique invalide à l’index ${index}.`);
+      }
+
+      return {
+        id: entry['id'],
+        url: entry['url'],
+        type: 'cosmic-web-volume',
         format: entry['format'],
       };
     }
