@@ -9,7 +9,9 @@ import {
   buildCosmicStructureCatalog,
   comovingDistanceMpc,
   encodeCosmicStructureCatalog,
+  galacticToEquatorialSkyPosition,
   parseBossVoidLine,
+  parseNamedCosmicLandmarks,
   parsePlanckPsz2Line,
   parseSuperclusterLine,
   parseTempelFilamentLine,
@@ -114,6 +116,104 @@ test('matches an independent flat-Lambda-CDM comoving-distance reference', () =>
   assert.throws(() => comovingDistanceMpc(-0.1), /redshift/);
 });
 
+test('matches the independent IAU J2000 galactic-to-equatorial reference', () => {
+  const galacticCenter = galacticToEquatorialSkyPosition(0, 0);
+
+  // IAU Galactic-centre direction in the ICRS/J2000 system.
+  assert.ok(Math.abs(galacticCenter.rightAscensionDegrees - 266.404995) < 0.000001);
+  assert.ok(Math.abs(galacticCenter.declinationDegrees - -28.936174) < 0.000001);
+  assert.throws(() => galacticToEquatorialSkyPosition(361, 0), /galactic longitude/);
+  assert.throws(() => galacticToEquatorialSkyPosition(0, 91), /galactic latitude/);
+});
+
+test('normalizes documented named landmarks without turning them into Tempel filaments', () => {
+  const catalog = parseNamedCosmicLandmarks({
+    version: '1.0.0',
+    cosmology: {
+      hubbleConstantKmPerSecondPerMpc: 70,
+      reducedHubbleParameter: 0.7,
+    },
+    sources: [
+      {
+        id: 'reference-basins',
+        name: 'Reference basins',
+        citation: 'Reference et al. (2026)',
+        sourceUrl: 'https://example.org/reference',
+        structureType: 'basin',
+        scientificConfidence: 'calculated',
+        method: 'Probabilistic basin reconstruction',
+        objectNamePrefix: 'Bassin',
+        confidenceMeaning: 'Intrinsic basin-existence probability',
+        extentMeaning: 'Equivalent spherical radius derived from the published volume',
+        mapPriority: 'landmark',
+        records: [
+          {
+            identifier: 'reference-basin',
+            name: 'Reference Basin',
+            aliases: ['RB'],
+            catalogNumericId: 1,
+            rightAscensionDegrees: 195.9,
+            declinationDegrees: -0.4,
+            recessionVelocityKmPerSecond: 24_909,
+            volumeMillionCubicMpcPerH3: 15.51,
+            confidence: 0.99,
+          },
+        ],
+      },
+    ],
+  });
+  const [record] = catalog.records;
+  const [source] = catalog.sources;
+
+  assert.equal(record.structureType, 'basin');
+  assert.equal(record.distanceMpc, 24_909 / 70);
+  assert.ok(Math.abs(record.radiusMpc - 221.008862581) < 0.000001);
+  assert.ok(Math.abs(Math.hypot(...record.positionMpc) - record.distanceMpc) < 1e-9);
+  assert.equal(record.flags, 128);
+  assert.equal(source.recordNames['reference-basin'], 'Reference Basin');
+  assert.deepEqual(source.recordAliases['reference-basin'], ['RB']);
+  assert.equal(source.recordCount, 1);
+  assert.equal(source.layout, 'named-landmark');
+});
+
+test('ships published walls, basins, attractors, and repellers with explicit provenance', async () => {
+  const sourceDocument = JSON.parse(
+    await readFile(resolve('data-sources/named-cosmic-landmarks.json'), 'utf8'),
+  );
+  const catalog = parseNamedCosmicLandmarks(sourceDocument);
+  const counts = Object.groupBy(catalog.records, ({ structureType }) => structureType);
+  const valadeSource = sourceDocument.sources.find(({ id }) => id === 'valade-2024-pboa');
+  const sloanBasin = valadeSource.records.find(
+    ({ identifier }) => identifier === 'sloan-great-wall-basin',
+  );
+
+  assert.deepEqual(
+    Object.fromEntries(
+      Object.entries(counts).map(([structureType, records]) => [structureType, records.length]),
+    ),
+    { wall: 2, basin: 15, attractor: 1, repeller: 2 },
+  );
+  // Valade et al. (2024), Table 2: core sky position, cz, volume and p-BoA probability.
+  assert.deepEqual(
+    {
+      rightAscensionDegrees: sloanBasin.rightAscensionDegrees,
+      declinationDegrees: sloanBasin.declinationDegrees,
+      recessionVelocityKmPerSecond: sloanBasin.recessionVelocityKmPerSecond,
+      volumeMillionCubicMpcPerH3: sloanBasin.volumeMillionCubicMpcPerH3,
+      confidence: sloanBasin.confidence,
+    },
+    {
+      rightAscensionDegrees: 195.9,
+      declinationDegrees: -0.4,
+      recessionVelocityKmPerSecond: 24_909,
+      volumeMillionCubicMpcPerH3: 15.51,
+      confidence: 0.99,
+    },
+  );
+  assert.ok(catalog.sources.every(({ sourceUrl }) => sourceUrl.startsWith('https://')));
+  assert.ok(catalog.sources.every(({ mapPriority }) => mapPriority === 'landmark'));
+});
+
 test('preserves catalogue detections, source identity, and scientific radii', () => {
   const catalog = buildCosmicStructureCatalog([
     { sourceId: 'sdss-dr7-main50', layout: 'main50', lines: [SUPERCLUSTER_ROW] },
@@ -185,18 +285,22 @@ test('ships every record from the selected public catalogues', async () => {
 
   assert.equal(binary.toString('ascii', 0, 4), 'UMCS');
   assert.equal(metadata.version, '1.1.0');
-  assert.equal(binary.readUInt32LE(12), 26_500);
-  assert.equal(metadata.recordCount, 26_500);
-  assert.equal(metadata.sources.length, 7);
+  assert.equal(binary.readUInt32LE(12), 26_520);
+  assert.equal(metadata.recordCount, 26_520);
+  assert.equal(metadata.sources.length, 13);
   assert.equal(
     metadata.sources.reduce((count, source) => count + source.recordCount, 0),
-    26_500,
+    26_520,
   );
   assert.deepEqual(metadata.structureCounts, {
     supercluster: 8_757,
     void: 1_228,
     filament: 15_421,
     cluster: 1_094,
+    wall: 2,
+    basin: 15,
+    attractor: 1,
+    repeller: 2,
   });
 });
 

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
-import { GraphicQuality, SpaceObject } from '../../data/models/universe.models';
+import { GraphicQuality, SpaceObject, type TemporalMode } from '../../data/models/universe.models';
 import { CoordinateSystem } from '../coordinates/coordinate-system';
+import { calculateApparentRadiusPixels } from '../lod/screen-space-lod';
 import { EarthEclipseKind } from '../simulation/earth-eclipse';
 import { dateToJulianDay } from '../simulation/time-utils';
 import { ObjectRegistry } from './object-registry';
@@ -38,7 +39,6 @@ describe('ObjectRegistry', () => {
 
     expect(['partial', 'annular', 'total']).toContain(appearance.phase);
     registry.updateBodyRotations(ECLIPSE_TIME);
-    registry.updateBodyRotations(ECLIPSE_TIME, null);
     expect(root.getObjectByName('astronomical-object-registry')).toBeDefined();
 
     const access = registry as unknown as RegistryAccess;
@@ -51,6 +51,295 @@ describe('ObjectRegistry', () => {
     registry.dispose();
     expect(root.children).toHaveLength(0);
     expect(registry.getPickables()).toHaveLength(0);
+  });
+
+  it('actualise l’activité cométaire à partir de la distance héliocentrique', () => {
+    const root = new THREE.Group();
+    const sun = staticObject('sun', 'Soleil', 'star');
+    const comet: SpaceObject = {
+      ...staticObject('test-comet', 'Comète test', 'comet'),
+      parentId: 'sun',
+      cometActivity: {
+        activationDistanceAu: 5,
+        saturatedDistanceAu: 1,
+        scientificConfidence: 'illustrative',
+        source: 'NASA comet activity overview',
+      },
+      positionProvider: {
+        type: 'static',
+        position: [1, 0, 0],
+        unit: 'astronomical-unit',
+      },
+    };
+    const registry = new ObjectRegistry(root, new CoordinateSystem(), [sun, comet], 'low');
+
+    registry.updatePositions(ECLIPSE_TIME);
+
+    const activity = root.getObjectByName('test-comet-activity')!;
+    const direction = new THREE.Vector3(0, 1, 0).applyQuaternion(activity.quaternion);
+
+    expect(activity.visible).toBe(true);
+    expect(direction.x).toBeCloseTo(1, 6);
+    registry.dispose();
+  });
+
+  it('calcule toutes les orbites à la date scientifique demandée', () => {
+    const phobos = keplerianObject('phobos', 'Phobos', 'moon', 'mars', 0.000_062_7, 0.3187, {
+      rotationHours: 7.6538,
+    });
+    const staticMoon: SpaceObject = {
+      ...staticObject('static-moon', 'Lune statique', 'moon'),
+      parentId: 'mars',
+    };
+    const registryWithPhobos = new ObjectRegistry(
+      new THREE.Group(),
+      new CoordinateSystem(),
+      [...diverseObjects(), phobos, staticMoon],
+      'low',
+    );
+    const entries = (registryWithPhobos as unknown as RegistryAccess).entries;
+    const scientificTime = { julianDay: 2_461_250.5 };
+    const marsPosition = vi.spyOn(entries.get('mars')!.provider, 'getPositionAt');
+    const moonPosition = vi.spyOn(entries.get('moon')!.provider, 'getPositionAt');
+    const phobosPosition = vi.spyOn(entries.get('phobos')!.provider, 'getPositionAt');
+    const staticMoonPosition = vi.spyOn(entries.get('static-moon')!.provider, 'getPositionAt');
+
+    registryWithPhobos.updatePositions(scientificTime);
+
+    expect(marsPosition).toHaveBeenCalledWith(scientificTime);
+    expect(moonPosition).toHaveBeenCalledWith(scientificTime);
+    expect(phobosPosition).toHaveBeenCalledWith(scientificTime);
+    expect(staticMoonPosition).toHaveBeenCalledWith(scientificTime);
+
+    phobosPosition.mockClear();
+    registryWithPhobos.updatePositions(scientificTime);
+    expect(phobosPosition).toHaveBeenCalledWith(scientificTime);
+    registryWithPhobos.dispose();
+  });
+
+  it('active les positions et rotations retardées uniquement en mode observable', () => {
+    const { registry } = createRegistry('low');
+    const access = registry as unknown as RegistryAccess;
+
+    registry.setDisplayOptions(displayOptions(true, 'state'));
+    registry.updatePositions(ECLIPSE_TIME);
+    registry.updateBodyRotations(ECLIPSE_TIME);
+    const simultaneousMoonPosition = registry.getSpacePosition('moon')!.clone();
+    const simultaneousMoonRotation = access.entries.get('moon')!.rotatingBody!.quaternion.clone();
+
+    registry.setDisplayOptions(displayOptions(true, 'observable'));
+    registry.updatePositions(ECLIPSE_TIME);
+    registry.updateBodyRotations(ECLIPSE_TIME);
+    const receivedMoonPosition = registry.getSpacePosition('moon')!;
+    const receivedMoonRotation = access.entries.get('moon')!.rotatingBody!.quaternion;
+
+    expect(receivedMoonPosition.distanceTo(simultaneousMoonPosition)).toBeGreaterThan(0);
+    expect(receivedMoonRotation.angleTo(simultaneousMoonRotation)).toBeGreaterThan(0);
+    expect(access.receivedEmissionTimes.has('sun')).toBe(true);
+    expect(access.receivedEmissionTimes.has('earth')).toBe(true);
+    expect(access.receivedEmissionTimes.has('moon')).toBe(true);
+    expect(access.receivedEmissionTimes.has('asteroid')).toBe(false);
+    registry.dispose();
+  });
+
+  it('retarde aussi la phase et la rotation des satellites képlériens simplifiés', () => {
+    const phobos = keplerianObject('phobos', 'Phobos', 'moon', 'mars', 0.000_062_67, 0.3187, {
+      rotationHours: 7.6538,
+    });
+    const registry = new ObjectRegistry(
+      new THREE.Group(),
+      new CoordinateSystem(),
+      [...diverseObjects(), phobos],
+      'low',
+    );
+    const access = registry as unknown as RegistryAccess;
+
+    registry.setDisplayOptions(displayOptions(true, 'state'));
+    registry.updatePositions(ECLIPSE_TIME);
+    registry.updateBodyRotations(ECLIPSE_TIME);
+    const simultaneousPosition = registry.getSpacePosition('phobos')!.clone();
+    const simultaneousRotation = access.entries.get('phobos')!.rotatingBody!.quaternion.clone();
+
+    registry.setDisplayOptions(displayOptions(true, 'observable'));
+    registry.updatePositions(ECLIPSE_TIME);
+    registry.updateBodyRotations(ECLIPSE_TIME);
+    const receivedPosition = registry.getSpacePosition('phobos')!;
+    const receivedRotation = access.entries.get('phobos')!.rotatingBody!.quaternion;
+
+    expect(receivedPosition.distanceTo(simultaneousPosition)).toBeGreaterThan(0);
+    expect(receivedRotation.angleTo(simultaneousRotation)).toBeGreaterThan(0);
+    expect(access.receivedEmissionTimes.has('phobos')).toBe(true);
+    registry.dispose();
+  });
+
+  it('retarde tout un système exoplanétaire sans prétendre reconstruire sa phase', () => {
+    const host: SpaceObject = {
+      id: 'test-host',
+      name: 'Test Host',
+      type: 'star',
+      referenceFrame: 'stellar',
+      scientificConfidence: 'observed',
+      visual: { visualRadius: 1, scaleMode: 'adaptive' },
+      positionProvider: { type: 'static', position: [1, 0, 0], unit: 'parsec' },
+      metadata: {
+        sourceTable: 'PSCompPars',
+        exoplanetHost: true,
+        distancePc: 1,
+      },
+    };
+    const planet: SpaceObject = {
+      id: 'test-host-b',
+      name: 'Test Host b',
+      type: 'exoplanet',
+      parentId: host.id,
+      referenceFrame: 'stellar',
+      scientificConfidence: 'observed',
+      visual: { visualRadius: 0.5, scaleMode: 'adaptive' },
+      positionProvider: {
+        type: 'illustrative-orbit',
+        semiMajorAxis: 1,
+        orbitalPeriodDays: 100,
+        epochJulianDay: 2_451_545,
+        visualPhaseAtEpochDegrees: 0,
+        visualInclinationDegrees: 0,
+        unit: 'astronomical-unit',
+        distanceScale: 100,
+      },
+      metadata: {
+        sourceTable: 'PSCompPars',
+        distancePc: 1,
+        orbitRepresentationConfidence: 'illustrative',
+      },
+    };
+    const registry = new ObjectRegistry(
+      new THREE.Group(),
+      new CoordinateSystem(),
+      [host, planet],
+      'low',
+    );
+    const access = registry as unknown as RegistryAccess;
+
+    registry.setDisplayOptions(displayOptions(true, 'state'));
+    registry.updatePositions(ECLIPSE_TIME);
+    const simultaneousHost = registry.getSpacePosition(host.id)!.clone();
+    const simultaneousPlanet = registry.getSpacePosition(planet.id)!.clone();
+
+    registry.setDisplayOptions(displayOptions(true, 'observable'));
+    registry.updatePositions(ECLIPSE_TIME);
+    const receivedHost = registry.getSpacePosition(host.id)!;
+    const receivedPlanet = registry.getSpacePosition(planet.id)!;
+    const hostEmission = access.receivedEmissionTimes.get(host.id)!;
+    const planetEmission = access.receivedEmissionTimes.get(planet.id)!;
+
+    expect(receivedHost).toEqual(simultaneousHost);
+    expect(receivedPlanet.distanceTo(simultaneousPlanet)).toBeGreaterThan(0.1);
+    expect(planetEmission.julianDay).toBeCloseTo(hostEmission.julianDay, 9);
+    expect(planet.metadata?.['orbitRepresentationConfidence']).toBe('illustrative');
+    registry.dispose();
+  });
+
+  it('expose un diagnostic de surface solide après stabilisation du LOD', () => {
+    const { registry } = createRegistry('high');
+    const camera = new THREE.PerspectiveCamera(48, 1, 0.01, 1_000_000);
+
+    expect(registry.getVisualDiagnostics('unknown')).toBeNull();
+    registry.updatePositions(ECLIPSE_TIME);
+    const earthPosition = registry.getWorldPosition('earth')!;
+
+    camera.position.copy(earthPosition).add(new THREE.Vector3(0, 0, 4.8));
+    registry.select('earth');
+    registry.setNavigationTarget('earth');
+    registry.updateLod(camera, 900, 0, 2);
+
+    const diagnostics = registry.getVisualDiagnostics('earth');
+
+    expect(diagnostics).toMatchObject({
+      objectId: 'earth',
+      bodyPresent: true,
+      bodyVisible: true,
+      visualVisible: true,
+      nearVisible: true,
+      transparent: true,
+      depthTest: true,
+      depthWrite: true,
+      surfaceTexture: {
+        requested: true,
+        loaded: false,
+        source: expect.stringContaining('textures/earth-blue-marble-2048.jpg'),
+        width: 0,
+        height: 0,
+      },
+    });
+    expect(diagnostics?.nearBlend).toBeGreaterThan(0.999);
+    expect(diagnostics?.visibilityBlend).toBeGreaterThan(0.999);
+    expect(diagnostics?.opacity).toBeGreaterThan(0.999);
+    registry.dispose();
+  });
+
+  it('réemploie les objets détaillés pour les astres visibles depuis la Terre puis les restaure', () => {
+    const { registry } = createRegistry('high');
+    const access = registry as unknown as RegistryAccess;
+    const camera = new THREE.PerspectiveCamera(48, 1, 0.025, 1_000_000);
+    const saturn = access.entries.get('saturn')!;
+    const moon = access.entries.get('moon')!;
+    const sun = access.entries.get('sun')!;
+    const originalParent = saturn.visualRoot.parent;
+
+    saturn.visualRoot.position.set(0.25, -0.5, 0.75);
+    saturn.visualRoot.rotation.set(0.1, 0.2, 0.3);
+    saturn.visualRoot.scale.setScalar(0.8);
+    const originalPosition = saturn.visualRoot.position.clone();
+    const originalQuaternion = saturn.visualRoot.quaternion.clone();
+    const originalScale = saturn.visualRoot.scale.clone();
+
+    registry.updatePositions(ECLIPSE_TIME);
+    registry.setEarthObserverCelestialPresentations([
+      {
+        objectId: 'saturn',
+        direction: { x: 0, y: 0, z: -1 },
+        diameterPixels: 72,
+      },
+      {
+        objectId: 'earth',
+        direction: { x: 1, y: 0, z: 0 },
+        diameterPixels: 500,
+      },
+    ]);
+    camera.position.set(0, 0, 0);
+    camera.lookAt(0, 0, -1);
+    camera.updateMatrixWorld(true);
+
+    registry.updateLod(camera, 900, 0, 0, true);
+    saturn.visualRoot.updateWorldMatrix(true, true);
+    const worldScale = saturn.visualRoot.getWorldScale(new THREE.Vector3()).x;
+    const worldPosition = saturn.visualRoot.getWorldPosition(new THREE.Vector3());
+    const apparentDiameter =
+      calculateApparentRadiusPixels(
+        saturn.definition.visual.visualRadius * worldScale,
+        worldPosition.distanceTo(camera.position),
+        900,
+        camera.fov,
+      ) * 2;
+
+    expect(saturn.visualRoot.parent?.name).toBe('saturn-earth-observer-presentation');
+    expect(saturn.visualRoot.parent?.parent?.name).toBe('earth-observer-celestial-presentation');
+    expect(saturn.visualRoot.userData['observerPresentationActive']).toBe(true);
+    expect(saturn.lod.nearRoot?.visible).toBe(true);
+    expect(saturn.lod.deferredTexturesRequested).toBe(true);
+    expect(saturn.pickTarget?.layers.isEnabled(1)).toBe(false);
+    expect(apparentDiameter).toBeCloseTo(72, 8);
+    expect(moon.visualRoot.visible).toBe(false);
+    expect(sun.visualRoot.visible).toBe(true);
+    expect(sun.lod.nearRoot?.visible).toBe(false);
+
+    registry.updateLod(camera, 900, 0, 0, false);
+
+    expect(saturn.visualRoot.parent).toBe(originalParent);
+    expect(saturn.visualRoot.position).toEqual(originalPosition);
+    expect(saturn.visualRoot.quaternion.toArray()).toEqual(originalQuaternion.toArray());
+    expect(saturn.visualRoot.scale).toEqual(originalScale);
+    expect(saturn.visualRoot.userData['observerPresentationActive']).toBeUndefined();
+    registry.dispose();
   });
 
   it('expose la position galactocentrique indépendamment du floating origin', () => {
@@ -115,15 +404,90 @@ describe('ObjectRegistry', () => {
     registry.dispose();
   });
 
-  it('synchronise la rotation terrestre et tolère un registre sans Terre', () => {
-    const { registry } = createRegistry('low');
-    const empty = new ObjectRegistry(new THREE.Group(), new CoordinateSystem(), [], 'low');
+  it('ancre une étoile hôte héliocentrique au Soleil et son exoplanète à cette étoile', () => {
+    const root = new THREE.Group();
+    const milkyWay = {
+      ...staticObject('milky-way', 'Voie lactée', 'galaxy'),
+      referenceFrame: 'local-group' as const,
+      positionProvider: {
+        type: 'static' as const,
+        position: [0, 0, 0] as [number, number, number],
+        unit: 'kiloparsec' as const,
+      },
+    };
+    const sun = {
+      ...staticObject('sun', 'Soleil', 'star'),
+      parentId: 'milky-way',
+      referenceFrame: 'galactic' as const,
+      positionProvider: {
+        type: 'static' as const,
+        position: [8.178, 0, 0] as [number, number, number],
+        unit: 'kiloparsec' as const,
+      },
+    };
+    const host = {
+      ...staticObject('kepler-452', 'Kepler-452', 'star'),
+      parentId: 'milky-way',
+      referenceFrame: 'stellar' as const,
+      positionProvider: {
+        type: 'static' as const,
+        position: [-114.227452241, 95.689533348, 531.223385135] as [number, number, number],
+        unit: 'parsec' as const,
+      },
+    };
+    const planet: SpaceObject = {
+      ...staticObject('kepler-452-b', 'Kepler-452 b', 'exoplanet'),
+      parentId: 'kepler-452',
+      referenceFrame: 'stellar',
+      positionProvider: {
+        type: 'illustrative-orbit',
+        semiMajorAxis: 1.046,
+        orbitalPeriodDays: 384.843,
+        epochJulianDay: 2_451_545,
+        visualPhaseAtEpochDegrees: 0,
+        visualInclinationDegrees: 0,
+        unit: 'astronomical-unit',
+        distanceScale: 3_800,
+      },
+    };
+    const registry = new ObjectRegistry(
+      root,
+      new CoordinateSystem(),
+      [milkyWay, sun, host, planet],
+      'low',
+    );
 
-    expect(empty.synchronizeEarthRotation(ECLIPSE_TIME, 1)).toBe(true);
-    expect(registry.synchronizeEarthRotation(ECLIPSE_TIME, -1)).toBe(false);
-    expect(registry.synchronizeEarthRotation(ECLIPSE_TIME, Math.PI * 2)).toBe(true);
+    registry.updatePositions({ julianDay: 2_451_545 });
 
-    empty.dispose();
+    expect(root.getObjectByName('kepler-452')?.parent?.name).toBe('sun');
+    expect(root.getObjectByName('kepler-452-b')?.parent?.name).toBe('kepler-452');
+    expect(registry.getOrbitRadius('kepler-452-b')).toBeGreaterThan(15);
+    registry.setNavigationTarget('kepler-452-b');
+    const camera = new THREE.PerspectiveCamera(48, 1, 0.01, 1_000_000);
+    const planetPosition = registry.getWorldPosition('kepler-452-b')!;
+
+    camera.position.copy(planetPosition).add(new THREE.Vector3(0, 0, 5));
+    registry.updateLod(camera, 900, 0, 2);
+    const access = registry as unknown as RegistryAccess;
+
+    expect(access.entries.get('kepler-452')?.lod.visibilityBlend).toBeGreaterThan(0.9);
+    registry.dispose();
+  });
+
+  it('conserve le parent galactique d’une étoile héliocentrique si le Soleil est absent', () => {
+    const root = new THREE.Group();
+    const milkyWay = {
+      ...staticObject('milky-way', 'Voie lactée', 'galaxy'),
+      referenceFrame: 'local-group' as const,
+    };
+    const host = {
+      ...staticObject('remote-host', 'Hôte distante', 'star'),
+      parentId: 'milky-way',
+      referenceFrame: 'stellar' as const,
+    };
+    const registry = new ObjectRegistry(root, new CoordinateSystem(), [milkyWay, host], 'low');
+
+    expect(root.getObjectByName('remote-host')?.parent?.name).toBe('milky-way');
     registry.dispose();
   });
 
@@ -133,17 +497,17 @@ describe('ObjectRegistry', () => {
     const camera = new THREE.PerspectiveCamera(48, 1, 0.01, 1_000_000);
 
     camera.position.set(0, 0, 120);
-    expect(access.orbitVisuals.size).toBe(0);
+    expect(orbitLines(access.registryRoot)).toHaveLength(0);
 
     registry.updateLod(camera, 900, 1, 2);
-    expect(access.orbitVisuals.size).toBeGreaterThan(0);
-    const orbit = access.orbitVisuals.get('mars')!;
-    const disposeGeometry = vi.spyOn(orbit.line.geometry, 'dispose');
-    const disposeMaterial = vi.spyOn(orbit.line.material, 'dispose');
+    expect(orbitLines(access.registryRoot).length).toBeGreaterThan(0);
+    const orbit = orbitLine(access.registryRoot, 'mars');
+    const disposeGeometry = vi.spyOn(orbit.geometry, 'dispose');
+    const disposeMaterial = vi.spyOn(orbit.material, 'dispose');
 
     registry.updateLod(camera, 900, 3, 2);
 
-    expect(access.orbitVisuals.size).toBe(0);
+    expect(orbitLines(access.registryRoot)).toHaveLength(0);
     expect(disposeGeometry).toHaveBeenCalledOnce();
     expect(disposeMaterial).toHaveBeenCalledOnce();
 
@@ -151,9 +515,7 @@ describe('ObjectRegistry', () => {
     registry.select(null);
     access.currentLodLevel = 2;
     access.applyOrbitVisibility();
-    expect(access.orbitVisuals.size).toBe(0);
-
-    access.disposeOrbitVisual('unknown');
+    expect(orbitLines(access.registryRoot)).toHaveLength(0);
     registry.dispose();
   });
 
@@ -169,16 +531,16 @@ describe('ObjectRegistry', () => {
 
     expect(north.x).toBeCloseTo(-0.21199958, 6);
     expect(north.y).toBeCloseTo(0.134363, 6);
-    expect(north.z).toBeCloseTo(-0.96798903, 6);
+    expect(north.z).toBeCloseTo(0.96798903, 6);
 
     registry.select('uranus');
     registry.setNavigationTarget('sun');
     access.currentLodLevel = 0;
-    access.applyRotationGuideVisibility();
-    access.rotationGuide.updateWorldMatrix(true, false);
-    const guideNorth = new THREE.Vector3(0, 1, 0).transformDirection(
-      access.rotationGuide.matrixWorld,
-    );
+    access.updateActiveObjectAdornments();
+    const rotationGuide = access.activeObjectAdornmentController.rotationGuide;
+
+    rotationGuide.updateWorldMatrix(true, false);
+    const guideNorth = new THREE.Vector3(0, 1, 0).transformDirection(rotationGuide.matrixWorld);
 
     expect(guideNorth.dot(north)).toBeCloseTo(1, 10);
     registry.dispose();
@@ -191,13 +553,16 @@ describe('ObjectRegistry', () => {
     registry.select(null);
     registry.select('unknown');
     registry.select('region');
-    expect(access.selectionMarker.parent).toBeNull();
+    const adornments = access.activeObjectAdornmentController;
+
+    expect(adornments.selectionMarker.parent).toBeNull();
 
     registry.select('andromeda');
-    expect(access.selectionMarker.scale.x).toBeCloseTo(6);
+    expect(adornments.selectionMarker.scale.x).toBeCloseTo(6);
     registry.select('test-black-hole');
-    expect(access.selectionMarker.scale.x).toBeCloseTo(10.4);
-    expect(access.selectionMarker.visible).toBe(false);
+    expect(adornments.selectionMarker.scale.x).toBeCloseTo(10.4);
+    expect(adornments.selectionMarker.visible).toBe(false);
+    expect(registry.getAdornmentDiagnostics().selectionMarker.depthTest).toBe(true);
     expect(registry.getLensingForeground('test-black-hole')).toBeInstanceOf(THREE.Group);
     expect(registry.getLensingForeground('test-black-hole')?.name).toBe(
       'test-black-hole-lensing-foreground',
@@ -208,42 +573,52 @@ describe('ObjectRegistry', () => {
     registry.setNavigationTarget('sun');
     access.currentLodLevel = 0;
     access.applyOrbitVisibility();
-    access.applyRotationGuideVisibility();
-    expect(access.rotationGuide.visible).toBe(true);
-    expect(access.rotationGuide.userData['direction']).toBe('prograde');
-    expect(access.orbitVisuals.get('mars')?.line.userData['active']).toBe(true);
+    access.updateActiveObjectAdornments();
+    expect(adornments.rotationGuide.visible).toBe(true);
+    expect(adornments.rotationGuide.userData['direction']).toBe('prograde');
+    expect(orbitLine(access.registryRoot, 'mars').userData['active']).toBe(true);
+    expect(orbitLine(access.registryRoot, 'mars').material.color.getHexString()).toBe('ff9e83');
+    expect(orbitLine(access.registryRoot, 'earth').material.color.getHexString()).toBe('43b4dd');
+    expect(orbitLine(access.registryRoot, 'venus').material.color.getHexString()).toBe('e0a141');
+    expect(
+      new Set(
+        ['earth', 'venus', 'mars'].map((objectId) =>
+          orbitLine(access.registryRoot, objectId).material.color.getHexString(),
+        ),
+      ).size,
+    ).toBe(3);
 
     registry.select('venus');
     registry.setNavigationTarget('sun');
-    access.applyRotationGuideVisibility();
-    expect(access.rotationGuide.userData['direction']).toBe('retrograde');
-    expect(access.rotationGuide.scale.z).toBe(-1);
+    access.updateActiveObjectAdornments();
+    expect(adornments.rotationGuide.userData['direction']).toBe('retrograde');
+    expect(adornments.rotationGuide.scale.z).toBe(-1);
 
     registry.select('bare-spinner');
-    access.applyRotationGuideVisibility();
+    access.updateActiveObjectAdornments();
     registry.select('asteroid');
     registry.setNavigationTarget('sun');
-    access.applyRotationGuideVisibility();
-    expect(access.rotationGuide.userData['objectId']).toBe('sun');
+    access.updateActiveObjectAdornments();
+    expect(adornments.rotationGuide.userData['objectId']).toBe('sun');
 
     registry.setNavigationTarget(null);
     registry.select(null);
-    access.applyRotationGuideVisibility();
-    expect(access.rotationGuide.visible).toBe(false);
+    access.updateActiveObjectAdornments();
+    expect(adornments.rotationGuide.visible).toBe(false);
 
     registry.select('moon');
     registry.setNavigationTarget('earth');
     access.currentLodLevel = 2;
     access.applyOrbitVisibility();
-    expect(access.orbitVisuals.get('moon')?.line.visible).toBe(true);
+    expect(orbitLine(access.registryRoot, 'moon').visible).toBe(true);
     access.currentLodLevel = 3;
     access.applyOrbitVisibility();
-    expect(access.orbitVisuals.has('moon')).toBe(false);
+    expect(access.registryRoot.getObjectByName('moon-orbit')).toBeUndefined();
 
     registry.setDisplayOptions(displayOptions(false));
     registry.setDisplayOptions(displayOptions(true));
     registry.setSolarObserverActive(true, 1.2);
-    expect(access.orbitVisuals.size).toBe(0);
+    expect(orbitLines(access.registryRoot)).toHaveLength(0);
     registry.setSolarObserverActive(false);
 
     registry.dispose();
@@ -283,6 +658,70 @@ describe('ObjectRegistry', () => {
     registry.updateLod(camera, 600, 4, 0);
     expect(earth.pickTarget?.layers.isEnabled(1)).toBe(false);
 
+    registry.dispose();
+  });
+
+  it('synchronise le flash et le rémanent d’une supernova avec le temps et les fondus LOD', () => {
+    const object = staticObject('sn-1987a', 'SN 1987A', 'supernova', {
+      color: '#77d8ff',
+      secondaryColor: '#ff6b8f',
+      visualRadius: 1.8,
+    });
+
+    object.metadata = {
+      visualPeakJulianDay: 2_446_849.5,
+      supernovaRiseDays: 20,
+      supernovaDecayDays: 650,
+      shellFormationDays: 60,
+      appearanceReferenceJulianDay: 2_461_257.5,
+    };
+    const registry = new ObjectRegistry(
+      new THREE.Group(),
+      new CoordinateSystem(),
+      [object],
+      'high',
+    );
+    const access = registry as unknown as RegistryAccess;
+    const entry = access.entries.get('sn-1987a')!;
+    const camera = new THREE.PerspectiveCamera(48, 1, 0.01, 1_000_000);
+    const auxiliaryMaterial = new THREE.ShaderMaterial();
+
+    entry.lod.nearMaterials.push({
+      material: auxiliaryMaterial,
+      baseOpacity: 1,
+      baseDepthWrite: false,
+    });
+    entry.lod.nearRoot?.add(new THREE.Mesh(new THREE.PlaneGeometry(1, 1), auxiliaryMaterial));
+
+    registry.select('sn-1987a');
+    registry.setNavigationTarget('sn-1987a');
+    registry.updatePositions({ julianDay: 2_446_800 });
+    camera.position.copy(entry.node.getWorldPosition(new THREE.Vector3())).addScalar(5);
+    registry.updateLod(camera, 900, 2, 10);
+    expect(entry.supernova?.phase).toBe('pre-event');
+    expect(entry.lod.farSprite?.userData['appearanceOpacity']).toBe(0);
+
+    registry.updatePositions({ julianDay: 2_446_849.5 });
+    registry.updateLod(camera, 900, 2, 10);
+    expect(entry.supernova?.phase).toBe('peak');
+    expect(entry.supernova?.flash.visible).toBe(true);
+    expect(entry.supernova?.shell.visible).toBe(false);
+    expect(entry.supernova?.shell.material.uniforms['layerOpacity']!.value).toBe(0);
+
+    registry.updatePositions({ julianDay: 2_461_257.5 });
+    registry.updateLod(camera, 900, 2, 10);
+    const shellMaterial = entry.supernova!.shell.material;
+
+    expect(entry.supernova?.phase).toBe('remnant');
+    expect(entry.supernova?.flash.visible).toBe(false);
+    expect(entry.supernova?.shell.visible).toBe(true);
+    expect(shellMaterial.opacity).toBeGreaterThan(0);
+    expect(shellMaterial.uniforms['layerOpacity']!.value).toBe(shellMaterial.opacity);
+
+    camera.position.set(0, 0, 100_000);
+    registry.updateLod(camera, 900, 2, 10);
+    expect(entry.lod.farSprite?.visible).toBe(true);
+    expect(entry.lod.farSprite?.material.opacity).toBeGreaterThan(0);
     registry.dispose();
   });
 
@@ -560,7 +999,7 @@ describe('ObjectRegistry', () => {
     },
   );
 
-  it('affiche puis retire les trajectoires d’éclipse avec ou sans Terre', () => {
+  it('affiche puis retire les trajectoires d’éclipse avec ou sans Terre', async () => {
     const { registry } = createRegistry('low');
     const withoutEarth = new ObjectRegistry(
       new THREE.Group(),
@@ -570,60 +1009,25 @@ describe('ObjectRegistry', () => {
     );
 
     for (const kind of ['partial', 'annular', 'total'] satisfies EarthEclipseKind[]) {
-      registry.showSolarEclipsePath(ECLIPSE_TIME, kind);
+      await registry.showSolarEclipsePath(ECLIPSE_TIME, kind);
       registry.clearSolarEclipsePath();
     }
-    withoutEarth.showSolarEclipsePath(ECLIPSE_TIME, 'partial');
+    await withoutEarth.showSolarEclipsePath(ECLIPSE_TIME, 'partial');
     withoutEarth.clearSolarEclipsePath();
+
+    const cancelledPath = registry.showSolarEclipsePath(ECLIPSE_TIME, 'total');
+
+    registry.clearSolarEclipsePath();
+    await cancelledPath;
 
     registry.dispose();
     withoutEarth.dispose();
   });
 
-  it('couvre les gardes privées et toutes les causes de masquage du marqueur', () => {
-    const { registry } = createRegistry('low');
-    const access = registry as unknown as RegistryAccess;
-    const staticEntry = access.entries.get('asteroid')!;
-    const earth = access.entries.get('earth')!;
-    const mars = access.entries.get('mars')!;
-
-    access.createOrbitLine(staticEntry);
-    const marsParent = mars.definition.parentId;
-
-    delete mars.definition.parentId;
-    access.createOrbitLine(mars);
-    mars.definition.parentId = marsParent;
-    access.updateBodyRotation(access.entries.get('region')!, ECLIPSE_TIME);
-    access.updateBodyRotation(staticEntry, ECLIPSE_TIME);
-    access.updateBodyRotation(earth, ECLIPSE_TIME);
-    access.updateBodyRotation(mars, ECLIPSE_TIME);
-
-    access.solarObserverActive = false;
-    access.solarEclipsePathActive = false;
-    access.solarEclipseActive = false;
-    access.rotationGuide.visible = false;
-    access.applySelectionMarkerVisibility();
-    expect(access.selectionMarker.visible).toBe(true);
-
-    access.solarObserverActive = true;
-    access.applySelectionMarkerVisibility();
-    access.solarObserverActive = false;
-    access.solarEclipsePathActive = true;
-    access.applySelectionMarkerVisibility();
-    access.solarEclipsePathActive = false;
-    access.solarEclipseActive = true;
-    access.applySelectionMarkerVisibility();
-    access.solarEclipseActive = false;
-    access.rotationGuide.visible = true;
-    access.applySelectionMarkerVisibility();
-    expect(access.selectionMarker.visible).toBe(false);
-
-    registry.dispose();
-  });
-
   it('libère une seule fois géométries, matériaux, sprites et textures partagés', () => {
     const { registry } = createRegistry('low');
     const access = registry as unknown as RegistryAccess;
+    const deferredResource = { request: vi.fn(() => Promise.resolve()), dispose: vi.fn() };
     const texture = new THREE.Texture();
     const firstMaterial = new THREE.MeshBasicMaterial({ map: texture });
     const secondMaterial = new THREE.MeshBasicMaterial();
@@ -635,9 +1039,11 @@ describe('ObjectRegistry', () => {
     const geometryDispose = vi.spyOn(geometry, 'dispose');
     const firstDispose = vi.spyOn(firstMaterial, 'dispose');
 
+    access.entries.get('earth')!.lod.deferredResources = [deferredResource];
     access.registryRoot.add(mesh, sprite);
     registry.dispose();
 
+    expect(deferredResource.dispose).toHaveBeenCalledOnce();
     expect(textureDispose).toHaveBeenCalledOnce();
     expect(geometryDispose).toHaveBeenCalledOnce();
     expect(firstDispose).toHaveBeenCalledOnce();
@@ -650,12 +1056,29 @@ interface RegistryEntryAccess {
   readonly visualRoot: THREE.Group;
   readonly rotatingBody: THREE.Object3D | null;
   readonly observerCorona: THREE.Sprite | null;
+  readonly supernova: {
+    readonly phase: string;
+    readonly flash: THREE.Sprite;
+    readonly shell: THREE.Mesh<THREE.SphereGeometry, THREE.ShaderMaterial>;
+  } | null;
+  readonly provider: {
+    getPositionAt(time: { julianDay: number }): { x: number; y: number; z: number };
+  };
   readonly pickTarget: THREE.Object3D | null;
   readonly lod: {
     readonly nearRoot: THREE.Group | null;
     readonly farSprite: THREE.Sprite | null;
     readonly deferredTextures: THREE.Texture[];
     readonly deferredTexturesRequested: boolean;
+    deferredResources?: Array<{
+      request(): Promise<void>;
+      dispose(): void;
+    }>;
+    readonly nearMaterials: Array<{
+      material: THREE.Material;
+      baseOpacity: number;
+      baseDepthWrite: boolean;
+    }>;
     visibilityBlend: number;
   };
 }
@@ -668,30 +1091,45 @@ function textureSources(entry: RegistryEntryAccess): Array<string | null> {
   });
 }
 
+function orbitLines(
+  root: THREE.Object3D,
+): Array<THREE.LineLoop<THREE.BufferGeometry, THREE.LineBasicMaterial>> {
+  const lines: Array<THREE.LineLoop<THREE.BufferGeometry, THREE.LineBasicMaterial>> = [];
+
+  root.traverse((object) => {
+    if (object.userData['kind'] === 'orbit') {
+      lines.push(object as THREE.LineLoop<THREE.BufferGeometry, THREE.LineBasicMaterial>);
+    }
+  });
+
+  return lines;
+}
+
+function orbitLine(
+  root: THREE.Object3D,
+  objectId: string,
+): THREE.LineLoop<THREE.BufferGeometry, THREE.LineBasicMaterial> {
+  const line = root.getObjectByName(`${objectId}-orbit`);
+
+  expect(line).toBeInstanceOf(THREE.LineLoop);
+
+  return line as THREE.LineLoop<THREE.BufferGeometry, THREE.LineBasicMaterial>;
+}
+
 interface RegistryAccess {
   readonly entries: Map<string, RegistryEntryAccess>;
+  readonly activeObjectAdornmentController: {
+    readonly rotationGuide: THREE.LineSegments<THREE.BufferGeometry, THREE.LineBasicMaterial>;
+    readonly selectionMarker: THREE.Sprite;
+  };
   readonly farObjectBatch: {
     readonly points: THREE.Points;
   };
-  readonly orbitVisuals: Map<
-    string,
-    {
-      readonly line: THREE.LineLoop<THREE.BufferGeometry, THREE.LineBasicMaterial>;
-    }
-  >;
   readonly registryRoot: THREE.Group;
-  readonly rotationGuide: THREE.LineSegments<THREE.BufferGeometry, THREE.LineBasicMaterial>;
-  readonly selectionMarker: THREE.Sprite;
+  readonly receivedEmissionTimes: Map<string, { julianDay: number }>;
   currentLodLevel: number;
-  solarObserverActive: boolean;
-  solarEclipsePathActive: boolean;
-  solarEclipseActive: boolean;
-  createOrbitLine(entry: RegistryEntryAccess): void;
-  disposeOrbitVisual(objectId: string): void;
-  updateBodyRotation(entry: RegistryEntryAccess, time: { julianDay: number }): void;
   applyOrbitVisibility(): void;
-  applyRotationGuideVisibility(): void;
-  applySelectionMarkerVisibility(): void;
+  updateActiveObjectAdornments(): void;
 }
 
 function createRegistry(quality: GraphicQuality): {
@@ -710,27 +1148,27 @@ function diverseObjects(): SpaceObject[] {
   return [
     staticObject('sun', 'Soleil', 'star', {
       color: '#fff1c2',
-      rotationPeriodHours: 609.12,
+      rotationHours: 609.12,
     }),
     ephemerisObject('earth', 'Terre', 'planet', 'sun', 'earth', 'sun', 365.256, {
       color: '#4c84bd',
       atmosphereColor: '#75b9ff',
-      rotationPeriodHours: 23.934,
+      rotationHours: 23.934,
     }),
     ephemerisObject('moon', 'Lune', 'moon', 'earth', 'moon', 'earth', 27.321, {
       color: '#c7c2b8',
-      rotationPeriodHours: 655.7,
+      rotationHours: 655.7,
     }),
     keplerianObject('mars', 'Mars', 'planet', 'sun', 1.52, 686.98, {
       color: '#c66f49',
-      rotationPeriodHours: 24.623,
+      rotationHours: 24.623,
     }),
     keplerianObject('venus', 'Vénus', 'planet', 'sun', 0.72, 224.7, {
       atmosphereColor: '#e8cf87',
-      rotationPeriodHours: -5832.5,
+      rotationHours: -5832.5,
     }),
     staticObject('bare-spinner', 'Rotation nue', 'planet', {
-      rotationPeriodHours: 12,
+      rotationHours: 12,
     }),
     staticObject('asteroid', 'Astéroïde', 'asteroid'),
     staticObject('sirius', 'Sirius', 'star', { color: '#dce8ff' }),
@@ -741,12 +1179,12 @@ function diverseObjects(): SpaceObject[] {
     staticObject('saturn', 'Saturne', 'planet', {
       color: '#d6bd8b',
       hasRings: true,
-      rotationPeriodHours: 10.7,
+      rotationHours: 10.7,
     }),
     staticObject('uranus', 'Uranus', 'planet', {
       color: '#b8e1e8',
       hasRings: true,
-      rotationPeriodHours: -17.24,
+      rotationHours: -17.24,
     }),
     staticObject('andromeda', 'Andromède', 'galaxy', {
       visualRadius: 12,
@@ -764,22 +1202,27 @@ function diverseObjects(): SpaceObject[] {
   ];
 }
 
+type VisualFixture = Partial<SpaceObject['visual']> & { rotationHours?: number };
+
 function staticObject(
   id: string,
   name: string,
   type: SpaceObject['type'],
-  visual: Partial<SpaceObject['visual']> = {},
+  visual: VisualFixture = {},
 ): SpaceObject {
+  const { rotationHours, ...visualDefinition } = visual;
+
   return {
     id,
     name,
     type,
     referenceFrame: type === 'galaxy' ? 'local-group' : 'solar-system',
     scientificConfidence: 'calculated',
+    ...(rotationHours === undefined ? {} : { rotation: rotationDefinition(id, rotationHours) }),
     visual: {
-      visualRadius: visual.visualRadius ?? 1,
+      visualRadius: visualDefinition.visualRadius ?? 1,
       scaleMode: 'adaptive',
-      ...visual,
+      ...visualDefinition,
     },
     positionProvider: {
       type: 'static',
@@ -797,7 +1240,7 @@ function ephemerisObject(
   body: 'earth' | 'moon',
   origin: 'sun' | 'earth',
   orbitalPeriodDays: number,
-  visual: Partial<SpaceObject['visual']>,
+  visual: VisualFixture,
 ): SpaceObject {
   return {
     ...staticObject(id, name, type, visual),
@@ -819,7 +1262,7 @@ function keplerianObject(
   parentId: string,
   semiMajorAxis: number,
   orbitalPeriodDays: number,
-  visual: Partial<SpaceObject['visual']>,
+  visual: VisualFixture,
 ): SpaceObject {
   return {
     ...staticObject(id, name, type, visual),
@@ -839,14 +1282,33 @@ function keplerianObject(
   };
 }
 
-function displayOptions(showOrbits: boolean) {
+function rotationDefinition(
+  objectId: string,
+  signedPeriodHours: number,
+): NonNullable<SpaceObject['rotation']> {
+  return {
+    siderealPeriodHours: Math.abs(signedPeriodHours),
+    direction: signedPeriodHours < 0 ? 'retrograde' : 'prograde',
+    bodyFixedFrame: objectId === 'earth' ? 'EARTH_GEOGRAPHIC' : `IAU_${objectId.toUpperCase()}`,
+    orientationModel:
+      objectId === 'earth'
+        ? 'earth-geographic'
+        : objectId === 'moon'
+          ? 'iau-wgccre-2009'
+          : 'iau-wgccre-2015',
+    scientificConfidence: 'calculated',
+    source: 'NASA/JPL test fixture',
+  };
+}
+
+function displayOptions(showOrbits: boolean, temporalMode: TemporalMode = 'state') {
   return {
     showOrbits,
     showConstellations: true,
     showLabels: true,
     quality: 'low' as const,
     labelDensity: 'balanced' as const,
-    temporalMode: 'state' as const,
+    temporalMode,
   };
 }
 
@@ -862,6 +1324,7 @@ function installCanvasContext(): void {
     scale: vi.fn(),
     restore: vi.fn(),
     beginPath: vi.fn(),
+    closePath: vi.fn(),
     moveTo: vi.fn(),
     lineTo: vi.fn(),
     arc: vi.fn(),

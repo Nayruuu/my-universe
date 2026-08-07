@@ -27,6 +27,23 @@ describe('catalogue du Système solaire', () => {
     expect(parentIds(['pluto', 'ceres', 'vesta', 'halley'])).toEqual(['sun', 'sun', 'sun', 'sun']);
   });
 
+  it('décrit la rotation scientifique de chaque lune du catalogue principal', () => {
+    const moonIds = objectsOfType('moon').map(({ id }) => id);
+
+    expect(moonIds).toHaveLength(6);
+    for (const id of moonIds) {
+      const rotation = requiredObject(id).rotation;
+
+      expect(rotation).toMatchObject({
+        siderealPeriodHours: expect.any(Number),
+        bodyFixedFrame: `IAU_${id.toUpperCase()}`,
+        scientificConfidence: 'calculated',
+        source: expect.stringMatching(/Astronomy Engine|pck00011\.tpc/u),
+      });
+      expect(rotation?.siderealPeriodHours).toBeGreaterThan(0);
+    }
+  });
+
   it('place le Soleil hors du centre galactique dans un référentiel documenté', () => {
     const sun = requiredObject('sun');
 
@@ -147,6 +164,41 @@ describe('catalogue du Système solaire', () => {
       orbitalPeriodDays: 27_700,
       unit: 'astronomical-unit',
     });
+    expect(requiredObject('halley').cometActivity).toMatchObject({
+      activationDistanceAu: 5,
+      saturatedDistanceAu: 0.575,
+      scientificConfidence: 'illustrative',
+      source: expect.stringContaining('NASA'),
+    });
+  });
+
+  it('documente les silhouettes mesurées de Cérès, Vesta et Halley', () => {
+    expect(requiredObject('ceres').physical?.shape).toMatchObject({
+      type: 'triaxial-ellipsoid',
+      dimensionsKm: [965.6, 961.2, 890],
+      scientificConfidence: 'calculated',
+      source: expect.stringContaining('Dawn'),
+    });
+    expect(requiredObject('vesta').physical?.shape).toMatchObject({
+      type: 'triaxial-ellipsoid',
+      dimensionsKm: [570.4, 555.4, 447.6],
+      scientificConfidence: 'calculated',
+      source: expect.stringContaining('Dawn'),
+    });
+    expect(requiredObject('halley').physical?.shape).toMatchObject({
+      type: 'triaxial-ellipsoid',
+      dimensionsKm: [15, 8, 8],
+      scientificConfidence: 'observed',
+      source: expect.stringContaining('NASA'),
+    });
+    for (const id of ['ceres', 'vesta']) {
+      expect(requiredObject(id).metadata).toMatchObject({
+        shapeSource: 'NASA Visualization Technology Applications and Development',
+        shapeReference: expect.stringContaining(`/${id}-3d-model/`),
+        shapeConfidence: 'observed',
+        surfaceConfidence: 'observed',
+      });
+    }
   });
 
   it('documente séparément les cartes observées et leurs traitements visuels', () => {
@@ -163,6 +215,23 @@ describe('catalogue du Système solaire', () => {
       textureSource: expect.stringContaining('Magellan'),
       visualConfidence: 'observed-radar-with-simulated-color',
     });
+    expect(requiredObject('mercury').metadata).toMatchObject({
+      textureSource: expect.stringContaining('MESSENGER MDIS'),
+      textureReference: expect.stringContaining('astrogeology.usgs.gov'),
+      appearanceConfidence: 'observed',
+    });
+    expect(requiredObject('titan').metadata).toMatchObject({
+      visualSource: expect.stringContaining('Cassini'),
+      appearanceConfidence: 'observed',
+      textureReference: expect.stringContaining('astrogeology.usgs.gov'),
+    });
+    for (const id of ['saturn', 'uranus', 'neptune']) {
+      expect(requiredObject(id).metadata).toMatchObject({
+        visualSource: expect.stringContaining('NASA VTAD'),
+        appearanceConfidence: 'illustrative',
+        textureReference: expect.stringContaining('science.nasa.gov/resource'),
+      });
+    }
   });
 
   function objectsOfType(type: SpaceObject['type']): SpaceObject[] {

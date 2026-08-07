@@ -4,6 +4,8 @@ describe('TimeController', () => {
   it('avance selon la vitesse uniquement pendant la lecture', () => {
     const controller = new TimeController();
 
+    expect(controller.speed).toBe(1);
+
     controller.setTime({ julianDay: 2_451_545 });
     controller.setSpeed(10);
 

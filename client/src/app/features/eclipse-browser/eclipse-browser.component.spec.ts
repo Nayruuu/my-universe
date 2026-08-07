@@ -9,13 +9,18 @@ describe('EclipseBrowserComponent', () => {
   const eclipseBrowserOpen = signal(false);
   const eclipseEventsLoading = signal(false);
   const localEclipseLoading = signal(false);
+  const eclipseCatalogAtPresent = signal(true);
   const upcomingEclipses = signal<readonly EarthEclipseEvent[]>([]);
   const facade = {
     browserTimeZone: 'Europe/Paris',
     eclipseBrowserOpen,
     eclipseEventsLoading,
     localEclipseLoading,
+    eclipseCatalogAtPresent,
     upcomingEclipses,
+    browseEarlierEclipses: vi.fn(),
+    browseLaterEclipses: vi.fn(),
+    returnToCurrentEclipses: vi.fn(),
     toggleEclipseBrowser: vi.fn(),
     viewEarthEclipse: vi.fn(() => Promise.resolve()),
     viewLocalSolarEclipse: vi.fn(() => Promise.resolve()),
@@ -26,6 +31,7 @@ describe('EclipseBrowserComponent', () => {
     eclipseBrowserOpen.set(false);
     eclipseEventsLoading.set(false);
     localEclipseLoading.set(false);
+    eclipseCatalogAtPresent.set(true);
     upcomingEclipses.set([]);
     vi.clearAllMocks();
     TestBed.configureTestingModule({
@@ -40,9 +46,9 @@ describe('EclipseBrowserComponent', () => {
     const component = createComponent();
     const eclipse = event({ family: 'solar', kind: 'total' });
 
-    expect(component.selectedLocation().id).toBe('paris');
-    component.changeLocation(selectEvent('biarritz'));
-    expect(component.selectedLocation().id).toBe('biarritz');
+    expect(component.selectedLocation()?.id).toBe('paris');
+    component.changeLocation('biarritz');
+    expect(component.selectedLocation()?.id).toBe('biarritz');
 
     component.view(eclipse);
     component.viewLocal(eclipse);
@@ -56,12 +62,81 @@ describe('EclipseBrowserComponent', () => {
     expect(facade.observeEarthEclipse).toHaveBeenCalledWith(eclipse);
   });
 
+  it('accepte des coordonnées arbitraires valides et bloque les valeurs incorrectes', () => {
+    const component = createComponent();
+    const eclipse = event({ family: 'solar', kind: 'total' });
+
+    component.changeLocation('custom');
+    expect(component.selectedLocation()).toBeNull();
+    component.viewLocal(eclipse);
+    expect(facade.viewLocalSolarEclipse).not.toHaveBeenCalled();
+
+    component.changeCustomLatitude(inputEvent('91'));
+    component.changeCustomLongitude(inputEvent('2.3522'));
+    expect(component.customLocationIssue()).toBe('latitude-out-of-range');
+
+    component.changeCustomLatitude(inputEvent('48.8566'));
+    expect(component.customLocationIssue()).toBeNull();
+    expect(component.selectedLocation()).toEqual({
+      id: 'coordinates-48.856600-2.352200',
+      name: 'Coordonnées personnalisées',
+      latitude: 48.8566,
+      longitude: 2.3522,
+      timeZone: 'UTC',
+    });
+
+    component.viewLocal(eclipse);
+    expect(facade.viewLocalSolarEclipse).toHaveBeenCalledWith(
+      eclipse,
+      component.selectedLocation(),
+    );
+  });
+
+  it('explique chaque erreur de coordonnées et nomme le lieu personnalisé incomplet', () => {
+    const component = createComponent();
+
+    component.changeLocation('custom');
+    expect(component.customLocationMessage()).toBe('Renseignez une latitude et une longitude.');
+    expect(component.selectedLocationName()).toBe('Coordonnées personnalisées');
+
+    component.changeCustomLatitude(inputEvent('nord'));
+    component.changeCustomLongitude(inputEvent('2'));
+    expect(component.customLocationMessage()).toBe('Utilisez des coordonnées décimales valides.');
+
+    component.changeCustomLatitude(inputEvent('91'));
+    expect(component.customLocationMessage()).toBe(
+      'La latitude doit être comprise entre −90° et 90°.',
+    );
+
+    component.changeCustomLatitude(inputEvent('48'));
+    component.changeCustomLongitude(inputEvent('181'));
+    expect(component.customLocationMessage()).toBe(
+      'La longitude doit être comprise entre −180° et 180°.',
+    );
+
+    component.changeCustomLongitude(inputEvent('2'));
+    expect(component.customLocationMessage()).toBeNull();
+    expect(component.selectedLocationName()).toBe('Coordonnées personnalisées');
+  });
+
+  it('parcourt les événements antérieurs, suivants et revient à la date courante', () => {
+    const component = createComponent();
+
+    component.browseEarlier();
+    component.browseLater();
+    component.returnToCurrent();
+
+    expect(facade.browseEarlierEclipses).toHaveBeenCalledOnce();
+    expect(facade.browseLaterEclipses).toHaveBeenCalledOnce();
+    expect(facade.returnToCurrentEclipses).toHaveBeenCalledOnce();
+  });
+
   it('retombe sur le premier lieu lorsque l’identifiant est inconnu', () => {
     const component = createComponent();
 
-    component.changeLocation(selectEvent('inconnu'));
+    component.changeLocation('inconnu');
 
-    expect(component.selectedLocation().id).toBe('paris');
+    expect(component.selectedLocation()?.id).toBe('paris');
   });
 
   it('traduit les familles, types et dates', () => {
@@ -147,20 +222,57 @@ describe('EclipseBrowserComponent', () => {
 
     expect(fixture.nativeElement.querySelectorAll('.event-list__item')).toHaveLength(3);
     expect(fixture.nativeElement.textContent).toContain('Maximum depuis Paris');
+    expect(fixture.nativeElement.querySelectorAll('.catalog-navigation button')).toHaveLength(3);
+
+    eclipseCatalogAtPresent.set(false);
+    fixture.detectChanges();
+    const presentButton = fixture.nativeElement.querySelector(
+      '.catalog-navigation__present',
+    ) as HTMLButtonElement | null;
+
+    expect(presentButton?.disabled).toBe(false);
 
     localEclipseLoading.set(true);
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Calcul en cours');
   });
+
+  it('rend les champs de coordonnées et leur validation uniquement en mode personnalisé', () => {
+    eclipseBrowserOpen.set(true);
+    const fixture = TestBed.createComponent(EclipseBrowserComponent);
+
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.observer-coordinates')).toBeNull();
+
+    const component = fixture.componentInstance as unknown as EclipseBrowserAccess;
+
+    component.changeLocation('custom');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('.observer-coordinates input')).toHaveLength(2);
+    expect(fixture.nativeElement.textContent).toContain('Renseignez une latitude et une longitude');
+
+    component.changeCustomLatitude(inputEvent('45'));
+    component.changeCustomLongitude(inputEvent('200'));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('La longitude doit être comprise');
+  });
 });
 
 interface EclipseBrowserAccess {
   readonly selectedLocationId: WritableSignal<string>;
-  readonly selectedLocation: Signal<SolarEclipseObserverLocation>;
+  readonly selectedLocation: Signal<SolarEclipseObserverLocation | null>;
+  readonly customLocationIssue: Signal<string | null>;
+  readonly customLocationMessage: Signal<string | null>;
+  readonly selectedLocationName: Signal<string>;
   view(event: EarthEclipseEvent): void;
   viewLocal(event: EarthEclipseEvent): void;
   observe(event: EarthEclipseEvent): void;
-  changeLocation(event: Event): void;
+  browseEarlier(): void;
+  browseLater(): void;
+  returnToCurrent(): void;
+  changeLocation(locationId: string): void;
+  changeCustomLatitude(event: Event): void;
+  changeCustomLongitude(event: Event): void;
   eventTitle(event: EarthEclipseEvent): string;
   kindLabel(kind: EarthEclipseKind): string;
   peakLabel(event: EarthEclipseEvent): string;
@@ -189,17 +301,17 @@ function event(overrides: Partial<EarthEclipseEvent> = {}): EarthEclipseEvent {
     observerName: null,
     observerTimeZone: null,
     sunAltitudeDegrees: null,
+    localContacts: null,
     ...overrides,
   };
 }
 
-function selectEvent(value: string): Event {
-  const select = document.createElement('select');
-  const event = new Event('change');
+function inputEvent(value: string): Event {
+  const input = document.createElement('input');
+  const event = new Event('input');
 
-  select.add(new Option(value, value));
-  select.value = value;
-  Object.defineProperty(event, 'target', { value: select });
+  input.value = value;
+  Object.defineProperty(event, 'target', { value: input });
 
   return event;
 }

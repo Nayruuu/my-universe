@@ -157,13 +157,13 @@ function catalog(stars) {
 
 function createCatalogBuffer(stars) {
   const headerBytes = 40;
-  const recordBytes = 36;
+  const recordBytes = 48;
   const stringTableBytes = 1;
   const stringTableOffset = headerBytes + stars.length * recordBytes;
   const buffer = Buffer.alloc(stringTableOffset + stringTableBytes);
 
   buffer.write('UMSC', 0, 'ascii');
-  buffer.writeUInt16LE(2, 4);
+  buffer.writeUInt16LE(3, 4);
   buffer.writeUInt16LE(headerBytes, 6);
   buffer.writeUInt16LE(recordBytes, 8);
   buffer.writeUInt32LE(stars.length, 12);

@@ -34,38 +34,33 @@ export class CoordinateSystem {
     frame: ReferenceFrame,
   ): Vector3Like {
     const [x, y, z] = position;
-    const length = Math.hypot(x, y, z);
+    const scale = this.getRenderPositionScale(x, y, z, unit, frame);
 
-    if (length === 0) {
+    if (scale === 0) {
       return { x: 0, y: 0, z: 0 };
     }
 
-    if (
-      frame === 'solar-system' ||
-      frame === 'local-group' ||
-      frame === 'nearby-universe' ||
-      frame === 'cosmic-web'
-    ) {
-      const scale = this.toSceneDistance(1, unit, frame);
-
-      return { x: x * scale, y: y * scale, z: z * scale };
-    }
-
-    const scientificDistance =
-      frame === 'stellar'
-        ? convertDistance(length, unit, 'light-year')
-        : convertDistance(length, unit, 'kiloparsec');
-    const compressedRadius =
-      frame === 'stellar'
-        ? 420 + Math.log1p(scientificDistance) * 250
-        : 1_600 + Math.log1p(scientificDistance) * 460;
-    const normalizedScale = compressedRadius / length;
-
     return {
-      x: x * normalizedScale,
-      y: y * normalizedScale,
-      z: z * normalizedScale,
+      x: x * scale,
+      y: y * scale,
+      z: z * scale,
     };
+  }
+
+  public writeRenderPosition(
+    x: number,
+    y: number,
+    z: number,
+    unit: DistanceUnit,
+    frame: ReferenceFrame,
+    target: Float32Array,
+    offset: number,
+  ): void {
+    const scale = this.getRenderPositionScale(x, y, z, unit, frame);
+
+    target[offset] = x * scale;
+    target[offset + 1] = y * scale;
+    target[offset + 2] = z * scale;
   }
 
   public getLinearMotionScale(unit: DistanceUnit, frame: ReferenceFrame): number {
@@ -87,5 +82,38 @@ export class CoordinateSystem {
 
   public sceneUnitsToAstronomicalUnits(value: number): number {
     return value / SOLAR_SCENE_UNITS_PER_AU;
+  }
+
+  private getRenderPositionScale(
+    x: number,
+    y: number,
+    z: number,
+    unit: DistanceUnit,
+    frame: ReferenceFrame,
+  ): number {
+    const length = Math.hypot(x, y, z);
+
+    if (length === 0) {
+      return 0;
+    }
+    if (
+      frame === 'solar-system' ||
+      frame === 'local-group' ||
+      frame === 'nearby-universe' ||
+      frame === 'cosmic-web'
+    ) {
+      return this.toSceneDistance(1, unit, frame);
+    }
+
+    const scientificDistance =
+      frame === 'stellar'
+        ? convertDistance(length, unit, 'light-year')
+        : convertDistance(length, unit, 'kiloparsec');
+    const compressedRadius =
+      frame === 'stellar'
+        ? 420 + Math.log1p(scientificDistance) * 250
+        : 1_600 + Math.log1p(scientificDistance) * 460;
+
+    return compressedRadius / length;
   }
 }

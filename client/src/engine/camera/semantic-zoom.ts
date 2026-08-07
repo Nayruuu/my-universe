@@ -1,12 +1,17 @@
 import { NAVIGATION_SCALES } from './navigation-scales';
+import { MAX_NAVIGATION_DISTANCE } from './navigation-policy';
 
 export interface SemanticZoomStep {
   handled: boolean;
   distance: number;
+  remainingDeltaY?: number;
 }
 
 const WHEEL_DELTA_PER_SCALE = 480;
-const SCALE_DISTANCES = NAVIGATION_SCALES.map((scale) => scale.distance);
+const SCALE_DISTANCES = [
+  ...NAVIGATION_SCALES.map((scale) => scale.distance),
+  MAX_NAVIGATION_DISTANCE,
+];
 const OUTER_DISTANCE = SCALE_DISTANCES.at(-1)!;
 
 export class SemanticZoomJourney {
@@ -40,17 +45,21 @@ export class SemanticZoomJourney {
       return { handled: false, distance: currentDistance };
     }
 
-    this.progress = Math.max(
-      0,
-      Math.min(maximumProgress, this.progress + deltaY / WHEEL_DELTA_PER_SCALE),
-    );
+    const requestedProgress = this.progress + deltaY / WHEEL_DELTA_PER_SCALE;
+    const boundedProgress = Math.max(0, Math.min(maximumProgress, requestedProgress));
+    const consumedDeltaY = (boundedProgress - this.progress) * WHEEL_DELTA_PER_SCALE;
+    const remainingDeltaY = deltaY - consumedDeltaY;
+
+    this.progress = boundedProgress;
     const distance = interpolateLogarithmically(distances, this.progress);
 
     if (this.progress === 0 && deltaY < 0) {
       this.reset();
     }
 
-    return { handled: true, distance };
+    return Math.abs(remainingDeltaY) > Number.EPSILON
+      ? { handled: true, distance, remainingDeltaY }
+      : { handled: true, distance };
   }
 
   public reset(): void {

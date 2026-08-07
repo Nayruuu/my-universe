@@ -1,0 +1,5 @@
+{
+  "logScalePerNormalizedWheelUnit": 0.0015,
+  "maximumZoomOctavesPerSecond": 1.8,
+  "maximumZoomOctavesPerImpulse": 0.125
+}

@@ -80,6 +80,19 @@ describe('validation des données statiques', () => {
             type: 'cosmic-web-volume',
             format: 'cosmic-web-volume-v1',
           },
+          {
+            id: 'tempel-filament-spines',
+            url: '/structures/tempel-filament-spines.bin',
+            type: 'tempel-filament-spine-catalog',
+            format: 'tempel-filament-spines-v1',
+          },
+          {
+            id: 'nasa-exoplanets',
+            url: '/exoplanets/catalog.bin',
+            metadataUrl: '/exoplanets/catalog.json',
+            type: 'exoplanet-catalog',
+            format: 'exoplanet-catalog-v1',
+          },
         ],
       }).datasets,
     ).toEqual([
@@ -128,6 +141,19 @@ describe('validation des données statiques', () => {
         type: 'cosmic-web-volume',
         format: 'cosmic-web-volume-v1',
       },
+      {
+        id: 'tempel-filament-spines',
+        url: '/structures/tempel-filament-spines.bin',
+        type: 'tempel-filament-spine-catalog',
+        format: 'tempel-filament-spines-v1',
+      },
+      {
+        id: 'nasa-exoplanets',
+        url: '/exoplanets/catalog.bin',
+        metadataUrl: '/exoplanets/catalog.json',
+        type: 'exoplanet-catalog',
+        format: 'exoplanet-catalog-v1',
+      },
     ]);
   });
 
@@ -156,6 +182,36 @@ describe('validation des données statiques', () => {
         datasets: [{ id: 'x', url: '/x', type: 'binary', format: 'v1' }],
       }),
     ).toThrow('Format binaire invalide');
+  });
+
+  it('rejette un catalogue d’exoplanètes sans format ou métadonnées valides', () => {
+    expect(() =>
+      parseManifest({
+        version: '1',
+        datasets: [
+          {
+            id: 'x',
+            url: '/x',
+            metadataUrl: '/x.json',
+            type: 'exoplanet-catalog',
+            format: 'exoplanet-catalog-v0',
+          },
+        ],
+      }),
+    ).toThrow('Format de catalogue d’exoplanètes invalide');
+    expect(() =>
+      parseManifest({
+        version: '1',
+        datasets: [
+          {
+            id: 'x',
+            url: '/x',
+            type: 'exoplanet-catalog',
+            format: 'exoplanet-catalog-v1',
+          },
+        ],
+      }),
+    ).toThrow('Métadonnées d’exoplanètes manquantes');
   });
 
   it('rejette un format de tuiles inconnu', () => {
@@ -275,6 +331,22 @@ describe('validation des données statiques', () => {
     ).toThrow('Format de volume cosmique invalide');
   });
 
+  it('rejette un format d’épines Tempel inconnu', () => {
+    expect(() =>
+      parseManifest({
+        version: '1',
+        datasets: [
+          {
+            id: 'tempel-filament-spines',
+            url: '/spines.bin',
+            type: 'tempel-filament-spine-catalog',
+            format: 'tempel-filament-spines-v2',
+          },
+        ],
+      }),
+    ).toThrow('Format d’épines Tempel invalide');
+  });
+
   it('rejette une unité ou une échelle visuelle inconnue', () => {
     expect(() =>
       parseUniverseDataset(
@@ -333,6 +405,79 @@ describe('validation des données statiques', () => {
     );
 
     expect(dataset.objects[0]?.positionProvider.type).toBe('ephemeris');
+  });
+
+  it('valide une exoplanète confirmée avec une orbite visuelle explicitement illustrative', () => {
+    const dataset = parseUniverseDataset(
+      {
+        version: '1.0.0',
+        objects: [
+          {
+            id: 'kepler-452-b',
+            name: 'Kepler-452 b',
+            type: 'exoplanet',
+            parentId: 'kepler-452',
+            referenceFrame: 'stellar',
+            scientificConfidence: 'observed',
+            visual: {
+              visualRadius: 0.55,
+              scaleMode: 'adaptive',
+            },
+            positionProvider: {
+              type: 'illustrative-orbit',
+              semiMajorAxis: 1.046,
+              orbitalPeriodDays: 384.843,
+              epochJulianDay: 2_451_545,
+              visualPhaseAtEpochDegrees: 42,
+              visualInclinationDegrees: 4,
+              unit: 'astronomical-unit',
+              distanceScale: 3_800,
+            },
+          },
+        ],
+      },
+      'test',
+    );
+
+    expect(dataset.objects[0]).toMatchObject({
+      type: 'exoplanet',
+      positionProvider: { type: 'illustrative-orbit', semiMajorAxis: 1.046 },
+    });
+  });
+
+  it.each([
+    { semiMajorAxis: 0 },
+    { orbitalPeriodDays: 0 },
+    { epochJulianDay: Number.NaN },
+    { visualPhaseAtEpochDegrees: Number.NaN },
+    { visualInclinationDegrees: Number.POSITIVE_INFINITY },
+    { distanceScale: 0 },
+  ])('rejette une orbite exoplanétaire illustrative invalide', (override) => {
+    expect(() =>
+      parseUniverseDataset(
+        {
+          version: '1.0.0',
+          objects: [
+            {
+              ...baseObject(),
+              id: 'invalid-exoplanet',
+              type: 'exoplanet',
+              positionProvider: {
+                type: 'illustrative-orbit',
+                semiMajorAxis: 1,
+                orbitalPeriodDays: 365,
+                epochJulianDay: 2_451_545,
+                visualPhaseAtEpochDegrees: 0,
+                visualInclinationDegrees: 0,
+                unit: 'astronomical-unit',
+                ...override,
+              },
+            },
+          ],
+        },
+        'test',
+      ),
+    ).toThrow('Fournisseur de position invalide');
   });
 
   it('valide une galaxie du référentiel du Groupe local et sa silhouette', () => {
@@ -618,6 +763,141 @@ describe('validation des données statiques', () => {
     expect(parsed.objects[0]?.aliases).toEqual(['Test', 'Alias']);
   });
 
+  it('accepte une définition de rotation scientifique séparée du rendu', () => {
+    const parsed = datasetWith({
+      ...baseObject(),
+      rotation: {
+        siderealPeriodHours: 23.9344696,
+        direction: 'prograde',
+        bodyFixedFrame: 'EARTH_GEOGRAPHIC',
+        orientationModel: 'earth-geographic',
+        scientificConfidence: 'calculated',
+        source: 'Astronomy Engine',
+      },
+    });
+
+    expect(parsed.objects[0]?.rotation?.bodyFixedFrame).toBe('EARTH_GEOGRAPHIC');
+  });
+
+  it('accepte un modèle d’activité cométaire explicitement illustratif', () => {
+    const parsed = datasetWith({
+      ...baseObject(),
+      type: 'comet',
+      cometActivity: {
+        activationDistanceAu: 5,
+        saturatedDistanceAu: 0.575,
+        scientificConfidence: 'illustrative',
+        source: 'NASA comet activity overview',
+      },
+    });
+
+    expect(parsed.objects[0]?.cometActivity).toMatchObject({
+      activationDistanceAu: 5,
+      saturatedDistanceAu: 0.575,
+      scientificConfidence: 'illustrative',
+    });
+  });
+
+  it.each([
+    null,
+    {},
+    { activationDistanceAu: 0, saturatedDistanceAu: 0.5 },
+    { activationDistanceAu: Number.POSITIVE_INFINITY, saturatedDistanceAu: 0.5 },
+    { activationDistanceAu: 5, saturatedDistanceAu: -1 },
+    { activationDistanceAu: 5, saturatedDistanceAu: Number.NaN },
+    { activationDistanceAu: 1, saturatedDistanceAu: 1 },
+    { activationDistanceAu: 1, saturatedDistanceAu: 2 },
+    { activationDistanceAu: 5, saturatedDistanceAu: 1, scientificConfidence: 'certain' },
+    { activationDistanceAu: 5, saturatedDistanceAu: 1, scientificConfidence: 'illustrative' },
+    {
+      activationDistanceAu: 5,
+      saturatedDistanceAu: 1,
+      scientificConfidence: 'illustrative',
+      source: '',
+    },
+  ])('rejette un modèle d’activité cométaire invalide', (cometActivity) => {
+    expect(() =>
+      datasetWith({
+        ...baseObject(),
+        type: 'comet',
+        cometActivity,
+      }),
+    ).toThrow('Activité cométaire invalide');
+  });
+
+  it('accepte une forme tri-axiale scientifique séparée de l’échelle visuelle', () => {
+    const parsed = datasetWith({
+      ...baseObject(),
+      physical: {
+        radiusKm: 11.08,
+        shape: {
+          type: 'triaxial-ellipsoid',
+          dimensionsKm: [26.06, 22.8, 18.28],
+          scientificConfidence: 'observed',
+          source: 'NASA Planetary Data System',
+        },
+      },
+    });
+
+    expect(parsed.objects[0]?.physical?.shape?.dimensionsKm).toEqual([26.06, 22.8, 18.28]);
+  });
+
+  it.each([
+    null,
+    [],
+    {},
+    { type: 'mesh' },
+    { type: 'triaxial-ellipsoid', dimensionsKm: [1, 2] },
+    { type: 'triaxial-ellipsoid', dimensionsKm: [1, 2, 3, 4] },
+    { type: 'triaxial-ellipsoid', dimensionsKm: [0, 2, 3] },
+    { type: 'triaxial-ellipsoid', dimensionsKm: [1, Number.POSITIVE_INFINITY, 3] },
+    { type: 'triaxial-ellipsoid', dimensionsKm: [1, '2', 3] },
+    {
+      type: 'triaxial-ellipsoid',
+      dimensionsKm: [1, 2, 3],
+      scientificConfidence: 'certain',
+      source: 'NASA',
+    },
+    {
+      type: 'triaxial-ellipsoid',
+      dimensionsKm: [1, 2, 3],
+      scientificConfidence: 'observed',
+      source: '',
+    },
+  ])('rejette une forme physique invalide', (shape) => {
+    expect(() =>
+      datasetWith({
+        ...baseObject(),
+        physical: { radiusKm: 1, shape },
+      }),
+    ).toThrow('Forme physique invalide');
+  });
+
+  it.each([
+    { siderealPeriodHours: 0 },
+    { siderealPeriodHours: Number.NaN },
+    { direction: 'clockwise' },
+    { bodyFixedFrame: '' },
+    { orientationModel: 'invented' },
+    { scientificConfidence: 'certain' },
+    { source: '' },
+  ])('rejette une définition de rotation invalide', (invalidPart) => {
+    expect(() =>
+      datasetWith({
+        ...baseObject(),
+        rotation: {
+          siderealPeriodHours: 24,
+          direction: 'prograde',
+          bodyFixedFrame: 'IAU_TEST',
+          orientationModel: 'iau-wgccre-2015',
+          scientificConfidence: 'calculated',
+          source: 'NASA/JPL',
+          ...invalidPart,
+        },
+      }),
+    ).toThrow('Rotation invalide');
+  });
+
   it.each([{ aliases: 'Alias' }, { aliases: ['Alias', 42] }, { parentId: 42 }])(
     'rejette des alias ou un parent invalides',
     (part) => {
@@ -762,6 +1042,40 @@ describe('validation des données statiques', () => {
     for (const distanceScale of [0, Number.POSITIVE_INFINITY, 'large']) {
       expectInvalidProvider({ ...keplerianProvider(), distanceScale });
     }
+  });
+
+  it('accepte un plan orbital défini par son pôle équatorial J2000', () => {
+    expect(
+      datasetWith({
+        ...baseObject(),
+        positionProvider: {
+          ...keplerianProvider(),
+          referencePlanePole: {
+            rightAscensionDegrees: 40.6,
+            declinationDegrees: 83.5,
+          },
+        },
+      }).objects[0]?.positionProvider,
+    ).toMatchObject({
+      type: 'keplerian',
+      referencePlanePole: {
+        rightAscensionDegrees: 40.6,
+        declinationDegrees: 83.5,
+      },
+    });
+  });
+
+  it.each([
+    null,
+    {},
+    { rightAscensionDegrees: -0.1, declinationDegrees: 0 },
+    { rightAscensionDegrees: 360, declinationDegrees: 0 },
+    { rightAscensionDegrees: 40.6, declinationDegrees: -90.1 },
+    { rightAscensionDegrees: 40.6, declinationDegrees: 90.1 },
+    { rightAscensionDegrees: Number.NaN, declinationDegrees: 0 },
+    { rightAscensionDegrees: 40.6, declinationDegrees: Number.POSITIVE_INFINITY },
+  ])('rejette un pôle de plan orbital invalide', (referencePlanePole) => {
+    expectInvalidProvider({ ...keplerianProvider(), referencePlanePole });
   });
 
   it.each([

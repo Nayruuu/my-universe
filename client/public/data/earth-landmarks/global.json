@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "regionId": "global",
+  "locations": [
+    [
+      "geonames-2729907",
+      [
+        [
+          "geonames-2729907:q59633",
+          "Svalbard Airport",
+          "Q59633",
+          "transport",
+          78.246111,
+          15.465556,
+          4829,
+          null,
+          "unknown",
+          "observed",
+          "illustrative",
+          "wikimedia-geosearch",
+          "Wikidata · Svalbard Airport",
+          "https://www.wikidata.org/wiki/Q59633",
+          "https://en.wikipedia.org/wiki/Svalbard_Airport"
+        ],
+        [
+          "geonames-2729907:q2597768",
+          "Svalbard Church",
+          "Q2597768",
+          "religious",
+          78.2198,
+          15.618609,
+          753,
+          null,
+          "unknown",
+          "observed",
+          "illustrative",
+          "wikimedia-geosearch",
+          "Wikidata · Svalbard Church",
+          "https://www.wikidata.org/wiki/Q2597768",
+          "https://en.wikipedia.org/wiki/Svalbard_Church"
+        ],
+        [
+          "geonames-2729907:q18796945",
+          "North Pole Expedition Museum",
+          "Q18796945",
+          "museum",
+          78.223347,
+          15.653457,
+          149,
+          null,
+          "unknown",
+          "observed",
+          "illustrative",
+          "wikimedia-geosearch",
+          "Wikidata · North Pole Expedition Museum",
+          "https://www.wikidata.org/wiki/Q18796945",
+          "https://en.wikipedia.org/wiki/North_Pole_Expedition_Museum"
+        ],
+        [
+          "geonames-2729907:q1327658",
+          "Svalbard Museum",
+          "Q1327658",
+          "museum",
+          78.222359,
+          15.652997,
+          176,
+          null,
+          "unknown",
+          "observed",
+          "illustrative",
+          "wikimedia-geosearch",
+          "Wikidata · Svalbard Museum",
+          "https://www.wikidata.org/wiki/Q1327658",
+          "https://en.wikipedia.org/wiki/Svalbard_Museum"
+        ]
+      ]
+    ]
+  ]
+}

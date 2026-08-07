@@ -1,0 +1,105 @@
+@let t = i18n.content();
+@let text = t.stellarObservation;
+<section
+  id="stellar-observation-panel"
+  class="stellar-observation"
+  tabindex="-1"
+  [attr.aria-label]="localizedTitle()"
+>
+  <header>
+    <span>{{ text.eyebrow }}</span>
+    <strong>{{ localizedTitle() }}</strong>
+  </header>
+
+  <app-earth-observer-location-picker
+    class="location-picker"
+    [locations]="availableLocations()"
+    [selectedLocationId]="selectedLocationId()"
+    [label]="text.location"
+    [ariaLabel]="text.locationAria"
+    [customLabel]="t.eclipses.customCoordinates"
+    [geolocationEnabled]="true"
+    (locationChange)="changeLocation($event)"
+    (currentPositionChange)="changeCurrentPosition($event)"
+  />
+
+  @if (customLocationSelected()) {
+    <div class="custom-coordinates">
+      <label>
+        <span>{{ t.eclipses.latitude }}</span>
+        <input
+          type="number"
+          inputmode="decimal"
+          min="-90"
+          max="90"
+          step="any"
+          placeholder="48.8566"
+          [attr.aria-label]="t.eclipses.latitudeAria"
+          [attr.aria-invalid]="customLocationResult().issue !== null"
+          [value]="customLatitudeInput()"
+          (input)="changeCustomLatitude($event)"
+        />
+      </label>
+      <label>
+        <span>{{ t.eclipses.longitude }}</span>
+        <input
+          type="number"
+          inputmode="decimal"
+          min="-180"
+          max="180"
+          step="any"
+          placeholder="2.3522"
+          [attr.aria-label]="t.eclipses.longitudeAria"
+          [attr.aria-invalid]="customLocationResult().issue !== null"
+          [value]="customLongitudeInput()"
+          (input)="changeCustomLongitude($event)"
+        />
+      </label>
+    </div>
+    @if (customLocationMessage(); as message) {
+      <p class="location-message" role="status">{{ message }}</p>
+    }
+  }
+
+  @if (!coordinates()) {
+    <p class="observation-message">{{ text.coordinatesUnavailable }}</p>
+  } @else if (selectedLocation() && observation(); as result) {
+    <app-local-sky-map
+      [targetName]="localizedObjectName()"
+      [altitudeDegrees]="result.altitudeDegrees"
+      [azimuthDegrees]="result.azimuthDegrees"
+    />
+
+    <div
+      class="horizon-indicator"
+      [class.horizon-indicator--visible]="result.isAboveHorizon"
+      [class.horizon-indicator--below]="!result.isAboveHorizon"
+    >
+      <div>
+        <strong>{{ result.isAboveHorizon ? text.aboveHorizon : text.belowHorizon }}</strong>
+        <span>{{ selectedLocation()?.name }}</span>
+      </div>
+    </div>
+
+    <dl class="observation-values">
+      <div>
+        <dt>{{ text.altitude }}</dt>
+        <dd>{{ i18n.formatNumber(result.altitudeDegrees, 1) }}°</dd>
+      </div>
+      <div>
+        <dt>{{ text.azimuth }}</dt>
+        <dd>{{ i18n.formatNumber(result.azimuthDegrees, 1) }}°</dd>
+      </div>
+      <div>
+        <dt>{{ text.direction }}</dt>
+        <dd>{{ directionLabel(result.compassDirection) }}</dd>
+      </div>
+    </dl>
+
+    <p class="visibility-note">{{ text.visibilityNote }}</p>
+    <p class="scientific-note">{{ text.scientificNote }}</p>
+    <small>{{ text.onDevice }}</small>
+  } @else if (selectedLocation()) {
+    <p class="observation-message">{{ text.unsupportedTime }}</p>
+  }
+</section>

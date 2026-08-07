@@ -16,7 +16,7 @@
 
 .topbar {
   position: absolute;
-  z-index: 12;
+  z-index: 16;
   top: 16px;
   right: 18px;
   left: 18px;
@@ -86,7 +86,7 @@
 }
 
 .brand__name {
-  font-size: 0.92rem;
+  font-size: 0.96rem;
   font-weight: 360;
   letter-spacing: 0.015em;
   white-space: nowrap;
@@ -100,8 +100,8 @@
   padding: 3px 5px;
   border: 1px solid rgb(158 197 230 / 13%);
   border-radius: 5px;
-  color: rgb(186 211 233 / 42%);
-  font-size: 0.5rem;
+  color: var(--ui-text-muted);
+  font-size: var(--ui-font-micro);
   font-weight: 650;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -109,8 +109,48 @@
 
 .topbar__actions {
   display: flex;
+  align-items: center;
   justify-self: end;
   gap: 7px;
+}
+
+.language-selector {
+  position: relative;
+
+  &::after {
+    position: absolute;
+    top: 50%;
+    right: 9px;
+    width: 5px;
+    height: 5px;
+    border-right: 1px solid currentcolor;
+    border-bottom: 1px solid currentcolor;
+    color: rgb(215 231 246 / 55%);
+    content: '';
+    pointer-events: none;
+    transform: translateY(-70%) rotate(45deg);
+  }
+
+  select {
+    height: 38px;
+    padding: 0 23px 0 10px;
+    border: 1px solid rgb(174 203 233 / 12%);
+    border-radius: 12px;
+    color: var(--ui-text-secondary);
+    background: rgb(6 11 22 / 58%);
+    font: 650 var(--ui-font-caption) / 1 inherit;
+    letter-spacing: 0.08em;
+    appearance: none;
+    cursor: pointer;
+    backdrop-filter: blur(16px);
+
+    &:hover,
+    &:focus-visible {
+      border-color: rgb(125 196 239 / 25%);
+      color: #e7f6ff;
+      outline: 0;
+    }
+  }
 }
 
 .icon-button {
@@ -120,7 +160,7 @@
   place-items: center;
   border: 1px solid rgb(174 203 233 / 12%);
   border-radius: 12px;
-  color: rgb(215 231 246 / 58%);
+  color: var(--ui-text-secondary);
   background: rgb(6 11 22 / 58%);
   box-shadow: 0 10px 32px rgb(0 0 0 / 16%);
   font: inherit;
@@ -186,8 +226,8 @@
 
   p {
     margin: 7px 0 0;
-    color: rgb(177 203 226 / 45%);
-    font-size: 0.7rem;
+    color: var(--ui-text-muted);
+    font-size: var(--ui-font-small);
   }
 }
 
@@ -263,36 +303,6 @@
   }
 }
 
-.notice {
-  position: absolute;
-  z-index: 40;
-  top: 78px;
-  left: 50%;
-  display: flex;
-  max-width: min(560px, calc(100vw - 32px));
-  min-height: 36px;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border: 1px solid rgb(217 177 112 / 20%);
-  border-radius: 11px;
-  color: rgb(234 212 176 / 80%);
-  background: rgb(30 22 10 / 86%);
-  box-shadow: 0 15px 45px rgb(0 0 0 / 32%);
-  font: inherit;
-  font-size: 0.66rem;
-  cursor: pointer;
-  transform: translateX(-50%);
-  backdrop-filter: blur(18px);
-
-  &--success {
-    border-color: rgb(105 205 166 / 22%);
-    color: rgb(192 237 218 / 86%);
-    background: rgb(8 29 23 / 90%);
-    pointer-events: none;
-  }
-}
-
 .navigation-hint {
   position: absolute;
   z-index: 6;
@@ -304,7 +314,7 @@
   padding: 9px 12px 9px 10px;
   border: 1px solid rgb(174 203 233 / 12%);
   border-radius: 13px;
-  color: rgb(218 232 246 / 68%);
+  color: var(--ui-text-secondary);
   background: rgb(5 10 20 / 62%);
   font: inherit;
   text-align: left;
@@ -316,11 +326,11 @@
   > span:nth-child(2) {
     display: grid;
     gap: 2px;
-    font-size: 0.62rem;
+    font-size: var(--ui-font-caption);
 
     strong {
-      color: rgb(232 241 250 / 83%);
-      font-size: 0.7rem;
+      color: var(--ui-text-primary);
+      font-size: var(--ui-font-small);
       font-weight: 570;
     }
   }
@@ -360,8 +370,8 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: rgb(178 202 224 / 33%);
-  font-size: 0.53rem;
+  color: var(--ui-text-subtle);
+  font-size: var(--ui-font-micro);
   letter-spacing: 0.025em;
   pointer-events: none;
 }
@@ -384,9 +394,9 @@
   padding: 9px 11px;
   border: 1px solid rgb(112 198 242 / 12%);
   border-radius: 11px;
-  color: rgb(202 226 244 / 55%);
+  color: var(--ui-text-muted);
   background: rgb(4 10 22 / 48%);
-  font-size: 0.55rem;
+  font-size: var(--ui-font-micro);
   pointer-events: auto;
   backdrop-filter: blur(12px);
 
@@ -398,8 +408,8 @@
     margin-bottom: 4px;
 
     strong {
-      color: rgb(222 237 249 / 72%);
-      font-size: 0.57rem;
+      color: var(--ui-text-secondary);
+      font-size: var(--ui-font-caption);
       font-weight: 590;
       letter-spacing: 0.045em;
       text-transform: uppercase;
@@ -408,8 +418,8 @@
 
   small {
     margin-top: 3px;
-    color: rgb(174 200 222 / 34%);
-    font-size: 0.49rem;
+    color: var(--ui-text-subtle);
+    font-size: var(--ui-font-micro);
     line-height: 1.35;
   }
 }
@@ -418,10 +428,10 @@
   padding: 3px 6px;
   border: 1px solid rgb(128 196 235 / 14%);
   border-radius: 6px;
-  color: rgb(187 216 236 / 52%);
+  color: var(--ui-text-muted);
   background: rgb(73 139 180 / 8%);
   font: inherit;
-  font-size: 0.48rem;
+  font-size: var(--ui-font-micro);
   cursor: pointer;
 
   &:hover,
@@ -440,13 +450,13 @@
   padding: 2px 4px;
   border: 1px solid transparent;
   border-radius: 6px;
-  color: rgb(189 211 229 / 34%);
+  color: var(--ui-text-subtle);
   background: transparent;
   font: inherit;
-  font-size: 0.54rem;
+  font-size: var(--ui-font-micro);
   text-align: left;
   cursor: pointer;
-  opacity: 0.58;
+  opacity: 0.82;
   transition:
     border-color 140ms ease,
     color 140ms ease,
@@ -511,11 +521,17 @@
 }
 
 .cosmic-map-key__void {
-  width: 8px;
-  height: 8px;
-  border: 1px solid #6da4ff;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  box-shadow: 0 0 6px rgb(88 145 255 / 45%);
+  background: radial-gradient(
+    circle at 45% 42%,
+    rgb(55 112 222 / 82%) 0%,
+    rgb(37 81 178 / 64%) 46%,
+    rgb(18 49 119 / 34%) 78%,
+    transparent 100%
+  );
+  box-shadow: 0 0 9px rgb(76 132 224 / 38%);
 }
 
 .cosmic-map-key__filament {
@@ -557,54 +573,5 @@
   from {
     opacity: 0;
     transform: translate(-50%, 6px);
-  }
-}
-
-@media (width <= 720px) {
-  .topbar {
-    top: 10px;
-    right: 10px;
-    left: 10px;
-    grid-template-columns: 1fr auto;
-    gap: 7px;
-  }
-
-  .brand {
-    padding-left: 1px;
-  }
-
-  .brand__mark {
-    width: 31px;
-    height: 31px;
-  }
-
-  .brand__edition,
-  .topbar__actions .icon-button:first-child {
-    display: none;
-  }
-
-  .topbar__actions {
-    grid-column: 2;
-    grid-row: 1;
-  }
-
-  app-universe-search {
-    grid-column: 1 / -1;
-  }
-
-  .navigation-hint {
-    display: none;
-  }
-
-  .science-caption {
-    display: none;
-  }
-
-  .cosmic-map-key {
-    display: none;
-  }
-
-  .notice {
-    top: 116px;
   }
 }

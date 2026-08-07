@@ -1,10 +1,34 @@
 import * as THREE from 'three';
-import { SearchEntry, SpaceObject } from '../../data/models/universe.models';
+import {
+  type ConstellationCatalog,
+  SearchEntry,
+  SpaceObject,
+  type TemporalMode,
+  type UniverseTime,
+} from '../../data/models/universe.models';
 import { CoordinateSystem } from '../coordinates/coordinate-system';
-import { equatorialJ2000ToGalacticScene } from '../coordinates/galactic-reference-frame';
+import {
+  equatorialJ2000ToGalacticScene,
+  writeEquatorialJ2000ToGalacticScene,
+} from '../coordinates/galactic-reference-frame';
 import { convertDistance } from '../coordinates/unit-conversion';
 import type { StarCatalog } from '../loaders/star-catalog';
 import { colorIndexToCssColor } from '../materials/star-color';
+import {
+  equatorialCoordinatesFromCartesian,
+  type StellarObservationCatalogEntry,
+  type StellarObservationConstellation,
+} from '../simulation/stellar-observation';
+import {
+  HYG_STELLAR_VELOCITY_SOURCE_URL,
+  STELLAR_MOTION_MAX_ABSOLUTE_YEARS,
+  type StellarMotionEpoch,
+  UNIFORM_RECTILINEAR_MOTION_SOURCE_URL,
+  propagateReceivedStellarCatalogPositions,
+  propagateStellarCatalogPositions,
+  resolveStellarMotionEpoch,
+} from '../simulation/stellar-space-motion';
+import { HYG_REFERENCE_POSITION_METADATA_KEYS } from '../simulation/received-light-time';
 import type { LabelObject } from './label-manager';
 
 const DEFAULT_MAXIMUM_LABEL_RANK = 3_000;
@@ -17,11 +41,20 @@ export class StarCatalogRegistry {
   public readonly renderPositions: Float32Array;
   public readonly objectIds: string[];
 
+  private readonly currentPositionsParsec: Float64Array;
   private readonly indexByObjectId = new Map<string, number>();
   private readonly definitions = new Map<string, SpaceObject>();
   private readonly resolvedCatalogObjects = new Map<string, SpaceObject>();
   private readonly catalogBackedObjectIds = new Set<string>();
   private searchEntries: readonly SearchEntry[] | null = null;
+  private stellarObservationCatalog: readonly StellarObservationCatalogEntry[] | null = null;
+  private stellarObservationConstellations = new WeakMap<
+    ConstellationCatalog,
+    readonly StellarObservationConstellation[]
+  >();
+  private currentMotionEpoch: StellarMotionEpoch;
+  private currentTemporalMode: TemporalMode = 'state';
+  private currentReceivedLightClampedStarCount = 0;
 
   constructor(
     public readonly catalog: StarCatalog,
@@ -29,6 +62,11 @@ export class StarCatalogRegistry {
     catalogObjects: readonly SpaceObject[] = [],
   ) {
     this.renderPositions = new Float32Array(catalog.count * 3);
+    this.currentPositionsParsec = new Float64Array(catalog.positionsParsec);
+    this.currentMotionEpoch = resolveStellarMotionEpoch(
+      catalog.referenceEpochJulianDay,
+      catalog.referenceEpochJulianDay,
+    );
     this.objectIds = Array.from(
       { length: catalog.count },
       (_, index) => `hyg-${catalog.catalogIds[index]}`,
@@ -36,23 +74,60 @@ export class StarCatalogRegistry {
 
     for (let index = 0; index < catalog.count; index += 1) {
       this.indexByObjectId.set(rawCatalogObjectId(catalog.catalogIds[index]!), index);
-      const offset = index * 3;
-      const galacticPosition = equatorialJ2000ToGalacticScene({
-        x: catalog.positionsParsec[offset]!,
-        y: catalog.positionsParsec[offset + 1]!,
-        z: catalog.positionsParsec[offset + 2]!,
-      });
-      const position = coordinateSystem.toRenderPosition(
-        [galacticPosition.x, galacticPosition.y, galacticPosition.z],
-        'parsec',
-        'stellar',
+    }
+    this.projectCurrentPositions();
+    this.linkCatalogObjects(catalogObjects);
+  }
+
+  public get stellarMotionEpoch(): StellarMotionEpoch {
+    return this.currentMotionEpoch;
+  }
+
+  public get receivedLightClampedStarCount(): number {
+    return this.currentReceivedLightClampedStarCount;
+  }
+
+  public updateTime(time: UniverseTime, temporalMode: TemporalMode = 'state'): boolean {
+    const nextEpoch = resolveStellarMotionEpoch(
+      time.julianDay,
+      this.catalog.referenceEpochJulianDay,
+    );
+    const modeChanged = temporalMode !== this.currentTemporalMode;
+    const positionsChanged =
+      modeChanged ||
+      (temporalMode === 'observable'
+        ? nextEpoch.requestedJulianDay !== this.currentMotionEpoch.requestedJulianDay
+        : nextEpoch.appliedElapsedYears !== this.currentMotionEpoch.appliedElapsedYears);
+
+    this.currentMotionEpoch = nextEpoch;
+    this.currentTemporalMode = temporalMode;
+    if (!positionsChanged) {
+      return false;
+    }
+
+    if (temporalMode === 'observable') {
+      const propagation = propagateReceivedStellarCatalogPositions(
+        this.catalog.positionsParsec,
+        this.catalog.velocitiesParsecPerYear,
+        nextEpoch.requestedElapsedYears,
+        this.currentPositionsParsec,
       );
 
-      this.renderPositions[offset] = position.x;
-      this.renderPositions[offset + 1] = position.y;
-      this.renderPositions[offset + 2] = position.z;
+      this.currentReceivedLightClampedStarCount = propagation.clampedStarCount;
+    } else {
+      propagateStellarCatalogPositions(
+        this.catalog.positionsParsec,
+        this.catalog.velocitiesParsecPerYear,
+        nextEpoch.appliedElapsedYears,
+        this.currentPositionsParsec,
+      );
+      this.currentReceivedLightClampedStarCount = 0;
     }
-    this.linkCatalogObjects(catalogObjects);
+    this.projectCurrentPositions();
+    this.stellarObservationCatalog = null;
+    this.stellarObservationConstellations = new WeakMap();
+
+    return true;
   }
 
   public has(objectId: string): boolean {
@@ -147,6 +222,43 @@ export class StarCatalogRegistry {
     return labels;
   }
 
+  public getStellarObservationCatalog(
+    maximumCount: number,
+  ): readonly StellarObservationCatalogEntry[] {
+    const limit = Math.min(this.catalog.count, Math.max(0, Math.floor(maximumCount)));
+
+    if (limit === 0) {
+      return [];
+    }
+    const observations = this.ensureStellarObservationCatalog();
+
+    return observations.slice(0, limit);
+  }
+
+  public getStellarObservationConstellations(
+    catalog: ConstellationCatalog,
+  ): readonly StellarObservationConstellation[] {
+    const cached = this.stellarObservationConstellations.get(catalog);
+
+    if (cached) {
+      return cached;
+    }
+    const observations = this.ensureStellarObservationCatalog();
+    const constellations = catalog.figures.map((figure) => ({
+      id: `constellation-${figure.id}`,
+      name: figure.name,
+      abbreviation: figure.abbreviation,
+      segments: figure.segments.map(([fromId, toId]) => ({
+        from: this.requireObservationEntry(fromId, figure.id, observations),
+        to: this.requireObservationEntry(toId, figure.id, observations),
+      })),
+    }));
+
+    this.stellarObservationConstellations.set(catalog, constellations);
+
+    return constellations;
+  }
+
   public resolveCatalogObjects(objects: readonly SpaceObject[]): SpaceObject[] {
     return objects.map((object) => this.resolvedCatalogObjects.get(object.id) ?? object);
   }
@@ -189,7 +301,15 @@ export class StarCatalogRegistry {
     const sourceX = catalog.positionsParsec[offset]!;
     const sourceY = catalog.positionsParsec[offset + 1]!;
     const sourceZ = catalog.positionsParsec[offset + 2]!;
+    const velocityX = catalog.velocitiesParsecPerYear[offset]!;
+    const velocityY = catalog.velocitiesParsecPerYear[offset + 1]!;
+    const velocityZ = catalog.velocitiesParsecPerYear[offset + 2]!;
     const galacticPosition = equatorialJ2000ToGalacticScene({
+      x: sourceX,
+      y: sourceY,
+      z: sourceZ,
+    });
+    const equatorialCoordinates = equatorialCoordinatesFromCartesian({
       x: sourceX,
       y: sourceY,
       z: sourceZ,
@@ -204,9 +324,9 @@ export class StarCatalogRegistry {
       type: 'star',
       parentId: 'milky-way',
       referenceFrame: 'stellar',
-      scientificConfidence: 'observed',
+      scientificConfidence: 'extrapolated',
       description:
-        'Étoile du catalogue HYG v4.1. Sa position cartésienne, sa magnitude apparente et son indice de couleur sont référencés à l’époque J2000.',
+        'Étoile du catalogue HYG v4.1. Sa position J2000 observée est propagée par mouvement rectiligne uniforme dans un domaine temporel borné.',
       referenceEpoch: catalog.referenceEpochJulianDay,
       physical: spectralType ? { spectralType } : undefined,
       visual: {
@@ -220,17 +340,68 @@ export class StarCatalogRegistry {
         unit: 'parsec',
       },
       metadata: {
-        source: 'HYG Database v4.1 · J2000',
+        source: 'HYG Database v4.1 · position et vitesse J2000',
         distanceLy: convertDistance(distanceParsec, 'parsec', 'light-year'),
         apparentMagnitude: catalog.apparentMagnitudes[index]!,
         colorIndexBv: catalog.colorIndicesBv[index]!,
         hygId: catalog.catalogIds[index]!,
         catalogRecordIndex: index,
+        rightAscensionDegrees: equatorialCoordinates.rightAscensionDegrees,
+        declinationDegrees: equatorialCoordinates.declinationDegrees,
+        skyCoordinateEpoch: 'J2000',
+        properMotionApplied: true,
+        properMotionModel: 'Uniform rectilinear motion relative to the solar-system barycenter',
+        properMotionVelocityUnit: 'parsec/year',
+        properMotionMaximumAbsoluteYears: STELLAR_MOTION_MAX_ABSOLUTE_YEARS,
+        properMotionOutsideDomain: 'Clamped to the nearest validity boundary',
+        properMotionSourceUrl: HYG_STELLAR_VELOCITY_SOURCE_URL,
+        properMotionModelSourceUrl: UNIFORM_RECTILINEAR_MOTION_SOURCE_URL,
+        [HYG_REFERENCE_POSITION_METADATA_KEYS.x]: sourceX,
+        [HYG_REFERENCE_POSITION_METADATA_KEYS.y]: sourceY,
+        [HYG_REFERENCE_POSITION_METADATA_KEYS.z]: sourceZ,
+        [HYG_REFERENCE_POSITION_METADATA_KEYS.velocityX]: velocityX,
+        [HYG_REFERENCE_POSITION_METADATA_KEYS.velocityY]: velocityY,
+        [HYG_REFERENCE_POSITION_METADATA_KEYS.velocityZ]: velocityZ,
+        sourcePositionConfidence: 'observed',
+        temporalPositionConfidence: 'extrapolated',
         sourceReferenceFrame: 'J2000 equatorial Cartesian',
         renderReferenceFrame: 'Galactic heliocentric, north Galactic pole on +Y',
         visualAdaptation: 'Distance comprimée, taille et couleur adaptées au rendu',
       },
     };
+  }
+
+  private ensureStellarObservationCatalog(): readonly StellarObservationCatalogEntry[] {
+    return (this.stellarObservationCatalog ??= this.catalog.names.map((name, index) => {
+      const offset = index * 3;
+
+      return {
+        id: this.objectIds[index]!,
+        name,
+        coordinates: equatorialCoordinatesFromCartesian({
+          x: this.currentPositionsParsec[offset]!,
+          y: this.currentPositionsParsec[offset + 1]!,
+          z: this.currentPositionsParsec[offset + 2]!,
+        }),
+        apparentMagnitude: this.catalog.apparentMagnitudes[index]!,
+        color: colorIndexToCssColor(this.catalog.colorIndicesBv[index]!),
+      };
+    }));
+  }
+
+  private requireObservationEntry(
+    catalogId: number,
+    constellationId: string,
+    observations: readonly StellarObservationCatalogEntry[],
+  ): StellarObservationCatalogEntry {
+    const index = this.getIndex(rawCatalogObjectId(catalogId));
+    const entry = index === null ? undefined : observations[index];
+
+    if (!entry) {
+      throw new Error(`Étoile HYG ${catalogId} introuvable pour le tracé de ${constellationId}.`);
+    }
+
+    return entry;
   }
 
   private linkCatalogObjects(objects: readonly SpaceObject[]): void {
@@ -299,6 +470,7 @@ export class StarCatalogRegistry {
       ...object,
       aliases: [...new Set(aliases)],
       referenceEpoch: this.catalog.referenceEpochJulianDay,
+      scientificConfidence: catalogDefinition.scientificConfidence,
       physical: {
         ...(catalogDefinition.physical ?? {}),
         ...(object.physical ?? {}),
@@ -307,12 +479,37 @@ export class StarCatalogRegistry {
       metadata: {
         ...(object.metadata ?? {}),
         ...catalogDefinition.metadata,
-        source: 'HYG Database v4.1 · J2000',
+        source: 'HYG Database v4.1 · position et vitesse J2000',
         catalogId: HYG_STAR_CATALOG_ID,
         catalogIdentifier,
         catalogPointRepresentation: true,
       },
     };
+  }
+
+  private projectCurrentPositions(): void {
+    for (let offset = 0; offset < this.currentPositionsParsec.length; offset += 3) {
+      writeEquatorialJ2000ToGalacticScene(
+        this.currentPositionsParsec[offset]!,
+        this.currentPositionsParsec[offset + 1]!,
+        this.currentPositionsParsec[offset + 2]!,
+        this.renderPositions,
+        offset,
+      );
+      const galacticX = this.renderPositions[offset]!;
+      const galacticY = this.renderPositions[offset + 1]!;
+      const galacticZ = this.renderPositions[offset + 2]!;
+
+      this.coordinateSystem.writeRenderPosition(
+        galacticX,
+        galacticY,
+        galacticZ,
+        'parsec',
+        'stellar',
+        this.renderPositions,
+        offset,
+      );
+    }
   }
 }
 

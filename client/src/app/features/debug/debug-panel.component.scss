@@ -36,6 +36,46 @@ header {
   }
 }
 
+.trace-tools {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgb(99 222 183 / 14%);
+  pointer-events: auto;
+
+  > span,
+  output {
+    color: rgb(170 216 202 / 62%);
+  }
+
+  output {
+    font-size: 0.56rem;
+  }
+}
+
+.trace-actions {
+  display: flex;
+  gap: 5px;
+
+  button {
+    flex: 1;
+    min-height: 24px;
+    border: 1px solid rgb(99 222 183 / 22%);
+    border-radius: 6px;
+    color: rgb(205 244 232 / 82%);
+    background: rgb(34 83 75 / 36%);
+    font: inherit;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      border-color: rgb(116 225 186 / 52%);
+      color: #dffcf2;
+      background: rgb(45 112 99 / 50%);
+    }
+  }
+}
+
 dl {
   display: grid;
   grid-template-columns: 1fr 1fr;

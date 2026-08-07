@@ -1,0 +1,18 @@
+{
+  "version": "1.0.0",
+  "filamentCount": 15421,
+  "pointCount": 275599,
+  "segmentCount": 260178,
+  "referenceEpochJulianDay": 2451545,
+  "referenceFrame": "equatorial-j2000",
+  "distanceUnit": "megaparsec",
+  "sourceUnit": "megaparsec-per-h",
+  "hubbleReducedParameter": 0.7,
+  "scientificConfidence": "calculated",
+  "source": "Tempel et al. (2014), MNRAS 438, 3465 · table2",
+  "sourceUrl": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/MNRAS/438/3465",
+  "sourceSha256": "65808180bc2fd42bd46af92a484db7cde4a343892701699d8e6cb99b687d9e76",
+  "pointSpacingMpcPerH": 0.5,
+  "metrics": ["visit-map", "weighted-density", "orientation-strength"],
+  "representation": "published-filament-spine-points"
+}

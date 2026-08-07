@@ -1,0 +1,92 @@
+---
+title: Roadmap
+description: See what Universe Map has delivered, what is being improved now, and which scientific and performance work remains deliberately deferred.
+---
+
+# Roadmap
+
+_Last reviewed: 27 August 2026._
+
+This page is the canonical public roadmap for Universe Map. It describes outcomes and evidence gates
+rather than promising release dates. Scientific accuracy, readable navigation, stable frame time,
+and a fully static browser architecture remain constraints for every item.
+
+## How to read the roadmap
+
+| Status    | Meaning                                                                  |
+| --------- | ------------------------------------------------------------------------ |
+| Delivered | Available in the current application and covered by automated tests      |
+| Current   | The next improvements to the existing experience                         |
+| Next      | Work that first needs a scientific contract or physical measurements     |
+| Deferred  | Useful only when new evidence, source data, or a denser catalogue exists |
+
+## Delivered
+
+- The **Earth-observer planetarium** provides a freely pannable 10,000-star HYG sky, modern
+  constellations, altitude and azimuth, a 102°–2° pointer-anchored field of view, 461 URL-restorable
+  observing places, consent-based browser geolocation rounded to three decimal degrees, and
+  illustrative local scene contexts.
+- Every fixed catalogue location has a 360° obstruction profile calculated from the authoritative
+  NOAA/NCEI ETOPO 2022 v1 60-arc-second surface-relief product. The compact profiles load lazily and
+  can hide stars, the Moon, and planets behind modelled terrain; buildings, vegetation, microrelief,
+  and custom-coordinate locations remain explicitly outside that model. Three calculated distance
+  envelopes (0–30, 30–100, and 100–300 km) give the silhouette depth; colour and lighting are
+  stylistic.
+- The Moon and seven visible planets reuse their existing Three.js objects, materials, lighting,
+  and deferred textures in the observer view. Their topocentric directions and angular diameters are
+  calculated; a bounded readability floor remains explicitly illustrative.
+- Stellar points and the Milky Way now gain useful detail continuously under zoom instead of relying
+  on a fixed pixel footprint. Navigation also clears stale targets and selections when their visual
+  context disappears.
+- HYG J2000 Cartesian velocities now propagate the shared star catalogue, observer sky, and
+  constellation figures through time with explicit extrapolated confidence and a ±10,000-Julian-year
+  validity clamp.
+- The **Received light** temporal mode now treats the selected date as reception time. It backdates
+  the Sun, Moon, and planets from an Earth observer with Astronomy Engine, and solves an individual
+  retarded epoch for every HYG star from the Solar System barycentre. Supported axial rotations use
+  that emission epoch, object cards expose delay and emission date, and the HYG model keeps its
+  explicit ±10,000-Julian-year clamp.
+- Galilean moons now use Astronomy Engine at their Earth-received epoch. Other documented
+  satellites, dwarf planets, asteroids, and comets iteratively solve geometric light time with their
+  existing JPL two-body elements; their confidence remains extrapolated and visual distance
+  amplification stays outside the scientific calculation.
+- Documented exoplanet systems now share a barycentric delay derived from the NASA-published host
+  distance. The static host direction is unchanged, and each local planetary orbit is evaluated at
+  that emission epoch while its phase remains explicitly illustrative; systems without a published
+  distance stay simultaneous.
+- Published walls, probabilistic basins, attractors, and repellers retain separate provenance and
+  visual semantics rather than being merged into the Tempel filament network.
+- Cold startup, Tempel transition, resource stability, and frame stability have repeatable browser
+  benchmarks.
+
+## Current priorities
+
+- Define source-appropriate received-light contracts for galaxies and large-scale structures. They
+  need cosmological lookback and redshift semantics rather than a naive distance divided by light
+  speed.
+
+The observer planetarium remains a separate topocentric projection of the selected observing place.
+The temporal Received light map uses an Earth observer for supported Solar System bodies and the
+Solar System barycentre for HYG stars and documented exoplanet systems.
+
+## Next measured investments
+
+- Run the Tempel cold-transition and startup, memory, and frame-rate benchmarks on representative
+  physical low-, medium-, and high-end devices. Shader precompilation or heavier fallbacks will only
+  be added when those measurements justify their cost.
+
+## Deliberately deferred
+
+- The prepared stellar aggregate hierarchy stays dormant until a denser source catalogue needs a
+  visible cross-scale representation. Any activation must move preparation to a Web Worker and avoid
+  invisible network or GPU work.
+- Additional irregular-body silhouettes or polygonal models will only ship when an authoritative
+  shape product justifies the download, decoding, attribution, and rendering cost.
+
+## Product boundary
+
+This roadmap does not promise an exhaustive Universe, live weather, ground exploration, full
+gravitational simulation, or relativistic ray tracing. See [Scientific confidence](/scientific-confidence/)
+and [Performance and limits](/performance-and-limits/) for the current contract.
+
+Continue with [About the project](/about/).

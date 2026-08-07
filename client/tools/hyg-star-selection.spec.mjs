@@ -91,22 +91,33 @@ function star(id, name, magnitude) {
 }
 
 function decodeBinaryIdentifiers(buffer) {
+  const headerBytes = buffer.readUInt16LE(6);
+  const recordBytes = buffer.readUInt16LE(8);
   const count = buffer.readUInt32LE(12);
   const stringTableOffset = buffer.readUInt32LE(28);
+  const stringTableBytes = buffer.readUInt32LE(32);
+  const stringTableEnd = stringTableOffset + stringTableBytes;
   const identifiers = new Set();
   const decodeString = (offset) => {
     const start = stringTableOffset + offset;
-    let end = start;
+    let stringEnd = start;
 
-    while (buffer[end] !== 0) {
-      end += 1;
+    assert.ok(start >= stringTableOffset && start < stringTableEnd, 'invalid string offset');
+    while (stringEnd < stringTableEnd && buffer[stringEnd] !== 0) {
+      stringEnd += 1;
     }
+    assert.ok(stringEnd < stringTableEnd, 'unterminated string');
 
-    return buffer.toString('utf8', start, end);
+    return buffer.toString('utf8', start, stringEnd);
   };
 
+  assert.equal(headerBytes, 40);
+  assert.equal(recordBytes, 48);
+  assert.equal(stringTableOffset, headerBytes + count * recordBytes);
+  assert.equal(stringTableEnd, buffer.length);
+
   for (let index = 0; index < count; index += 1) {
-    const offset = 40 + index * 36;
+    const offset = headerBytes + index * recordBytes;
     const values = [
       decodeString(buffer.readUInt32LE(offset + 24)),
       ...decodeString(buffer.readUInt32LE(offset + 28)).split('\u001f'),

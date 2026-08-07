@@ -1,19 +1,35 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { UniverseEngineFacade } from '../engine/universe-engine.facade';
+import { EarthSkyViewState } from '../../features/stellar-observation/earth-sky-view-state';
 import { KeyboardShortcutService } from './keyboard-shortcut.service';
 
 describe('KeyboardShortcutService', () => {
+  const selectedId = signal<string | null>('earth');
+  const phase = signal<'closed' | 'travelling' | 'open'>('closed');
   const facade = {
+    selectedId,
     togglePlaying: vi.fn(),
     focusSelected: vi.fn(),
     closeDetails: vi.fn(),
     cycleSpeed: vi.fn(),
+    setTemporalMode: vi.fn(),
+  };
+  const earthSkyViewState = {
+    phase,
+    close: vi.fn(() => phase.set('closed')),
   };
 
   beforeEach(() => {
+    selectedId.set('earth');
+    phase.set('closed');
     vi.clearAllMocks();
     TestBed.configureTestingModule({
-      providers: [KeyboardShortcutService, { provide: UniverseEngineFacade, useValue: facade }],
+      providers: [
+        KeyboardShortcutService,
+        { provide: UniverseEngineFacade, useValue: facade },
+        { provide: EarthSkyViewState, useValue: earthSkyViewState },
+      ],
     });
   });
 
@@ -57,6 +73,40 @@ describe('KeyboardShortcutService', () => {
     expect(facade.cycleSpeed).toHaveBeenNthCalledWith(1, 1);
     expect(facade.cycleSpeed).toHaveBeenNthCalledWith(2, 1);
     expect(facade.cycleSpeed).toHaveBeenNthCalledWith(3, -1);
+  });
+
+  it('quitte entièrement la vue observable avant de cadrer la sélection', () => {
+    phase.set('open');
+    selectedId.set('jupiter');
+    const service = TestBed.inject(KeyboardShortcutService);
+
+    service.start();
+    dispatchKey(document.body, 'f');
+    service.stop();
+
+    expect(earthSkyViewState.close).toHaveBeenCalledOnce();
+    expect(facade.setTemporalMode).toHaveBeenCalledWith('state');
+    expect(facade.focusSelected).toHaveBeenCalledOnce();
+    expect(earthSkyViewState.close.mock.invocationCallOrder[0]).toBeLessThan(
+      facade.setTemporalMode.mock.invocationCallOrder[0],
+    );
+    expect(facade.setTemporalMode.mock.invocationCallOrder[0]).toBeLessThan(
+      facade.focusSelected.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('ne quitte pas la vue observable lorsque rien n’est sélectionné', () => {
+    phase.set('open');
+    selectedId.set(null);
+    const service = TestBed.inject(KeyboardShortcutService);
+
+    service.start();
+    dispatchKey(document.body, 'f');
+    service.stop();
+
+    expect(earthSkyViewState.close).not.toHaveBeenCalled();
+    expect(facade.setTemporalMode).not.toHaveBeenCalled();
+    expect(facade.focusSelected).not.toHaveBeenCalled();
   });
 
   it.each([

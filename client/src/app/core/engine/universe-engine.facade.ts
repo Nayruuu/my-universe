@@ -12,33 +12,64 @@ import {
   UniverseTime,
 } from '../../../data/models/universe.models';
 import { type NavigationScaleDefinition } from '../../../engine/camera/navigation-scales';
-import { UniverseEngine } from '../../../engine/core/universe-engine';
+import type { EarthObserverFraming } from '../../../engine/camera/earth-observer-camera-control';
+import type { EarthObserverCelestialPresentation } from '../../../engine/objects/earth-observer-celestial-presenter';
+import type { ObjectVisualDiagnostics } from '../../../engine/objects/object-visual-diagnostics';
 import {
   type CosmicMapLayer,
   type CosmicMapLayers,
   DEFAULT_COSMIC_MAP_LAYERS,
 } from '../../../engine/rendering/cosmic-map-policy';
 import { type EarthEclipseEvent } from '../../../engine/simulation/earth-eclipse';
-import { MAX_EARTH_VISUAL_DAYS_PER_SECOND } from '../../../engine/simulation/earth-rotation-playback';
+import { UniverseStartupPerformanceTrace } from '../../../engine/performance/universe-startup-performance-trace';
 import { type SolarEclipseObserverLocation } from '../../../engine/simulation/solar-eclipse-locations';
+import type {
+  StellarObservationCatalogEntry,
+  StellarObservationConstellation,
+} from '../../../engine/simulation/stellar-observation';
 import {
   currentUniverseTime,
   formatUniverseClock,
-  isoDateTimeToUniverseTime,
   localTimeZone,
   universeTimeToIsoDateTime,
 } from '../../../engine/simulation/time-utils';
 import { SearchService } from '../search/search.service';
-import { findSpeedIndex, TIME_SPEED_OPTIONS } from '../settings/time-speeds';
+import { I18nService } from '../i18n/i18n.service';
 import { NavigationUrlService } from '../url/navigation-url.service';
+import { UniverseDisplayCommandRuntime } from './universe-display-command-runtime';
+import { UniverseEclipsePresenter } from './universe-eclipse-presentation';
+import { UniverseEclipseRuntime } from './universe-eclipse-runtime';
+import { UniverseEngineEventBridge } from './universe-engine-event-bridge';
+import { UniverseEngineFacadeLifecycle } from './universe-engine-facade-lifecycle';
+import { LazyUniverseEngineClient, type UniverseEngineClient } from './lazy-universe-engine-client';
+import {
+  type NavigationDebugCopyResult,
+  serializeNavigationDebugReport,
+} from './navigation-debug-report';
+import {
+  installUniverseEngineObservability,
+  shouldInstallUniverseEngineObservability,
+} from './universe-engine-observability';
+import { UniverseNavigationStateSynchronizer } from './universe-navigation-state-synchronizer';
+import { UniverseShellRuntime } from './universe-shell-runtime';
+import { UniverseTimeCommandRuntime } from './universe-time-command-runtime';
+import { UniverseViewCommandRuntime } from './universe-view-command-runtime';
 
 type EarthEclipseCatalogModule = typeof import('../../../engine/simulation/earth-eclipse-catalog');
 type LocalSolarEclipseCalculatorModule =
   typeof import('../../../engine/simulation/local-solar-eclipse-calculator');
 
-export const UNIVERSE_ENGINE = new InjectionToken<UniverseEngine>('UniverseEngine', {
+export async function loadUniverseEngine(
+  startupPerformance = new UniverseStartupPerformanceTrace(),
+): Promise<UniverseEngineClient> {
+  const { UniverseEngine } = await import('../../../engine/core/universe-engine');
+
+  return new UniverseEngine(undefined, startupPerformance);
+}
+
+export const UNIVERSE_ENGINE = new InjectionToken<UniverseEngineClient>('UniverseEngine', {
   providedIn: 'root',
-  factory: () => new UniverseEngine(),
+  factory: () => new LazyUniverseEngineClient(loadUniverseEngine),
 });
 
 export const EARTH_ECLIPSE_CATALOG_LOADER = new InjectionToken<
@@ -77,6 +108,7 @@ export class UniverseEngineFacade {
   public readonly eclipseEventsLoading = signal(false);
   public readonly localEclipseLoading = signal(false);
   public readonly upcomingEclipses = signal<readonly EarthEclipseEvent[]>([]);
+  public readonly eclipseCatalogAtPresent = signal(true);
   public readonly activeSolarEclipse = signal<EarthEclipseEvent | null>(null);
   public readonly solarEclipseState = signal<SolarEclipseState>({
     phase: 'none',
@@ -104,95 +136,52 @@ export class UniverseEngineFacade {
 
     return this.objects().find((object) => object.id === selectedId) ?? this.selectedEventObject();
   });
-  public readonly earthRotationStabilized = computed(
-    () => this.playing() && Math.abs(this.speed()) > MAX_EARTH_VISUAL_DAYS_PER_SECOND,
-  );
   public readonly browserTimeZone = localTimeZone();
   public readonly currentIsoDateTime = computed(() =>
     universeTimeToIsoDateTime(this.currentTime()),
   );
   public readonly currentLocalClock = computed(() =>
-    formatUniverseClock(this.currentTime(), this.browserTimeZone),
+    formatUniverseClock(this.currentTime(), this.browserTimeZone, this.i18n.locale()),
   );
-  public readonly currentSolarEclipse = computed<EarthEclipseEvent | null>(() => {
-    const state = this.solarEclipseState();
-
-    if (state.phase === 'none') {
-      return null;
-    }
-    const time = this.currentTime();
-
-    return {
-      id: `solar-current-${Math.round(time.julianDay * 1_440)}`,
-      family: 'solar',
-      kind: state.phase,
-      scope: 'instant',
-      peak: time,
-      obscuration: null,
-      durationMinutes: null,
-      latitude: state.centralLatitude,
-      longitude: state.centralLongitude,
-      observerName: null,
-      observerTimeZone: null,
-      sunAltitudeDegrees: null,
-    };
-  });
-  public readonly timelineSolarEclipse = computed<EarthEclipseEvent | null>(() => {
-    const current = this.currentSolarEclipse();
-    const active = this.activeSolarEclipse();
-
-    if (!current) {
-      return null;
-    }
-
-    return active && Math.abs(active.peak.julianDay - current.peak.julianDay) < 0.5
-      ? active
-      : current;
-  });
-  public readonly solarObserverLocation = computed(() => {
-    const event = this.timelineSolarEclipse();
-    const coordinates = event
-      ? formatCoordinates(event.latitude, event.longitude)
-      : 'Point central';
-
-    return event?.observerName ? `${event.observerName} · ${coordinates}` : coordinates;
-  });
-  public readonly eclipseContextLabel = computed(() => {
-    if (this.solarObserverActive()) {
-      return 'Observation locale';
-    }
-    const event = this.timelineSolarEclipse();
-
-    if (event?.scope === 'local') {
-      return `Maximum local · ${event.observerName ?? 'lieu choisi'}`;
-    }
-
-    return event?.scope === 'global' ? 'Maximum mondial' : 'Phénomène en cours';
-  });
-  public readonly localEclipseSummary = computed(() => {
-    const event = this.timelineSolarEclipse();
-
-    if (event?.scope !== 'local') {
-      return null;
-    }
-    const obscuration =
-      event.obscuration === null
-        ? 'occultation indisponible'
-        : `${new Intl.NumberFormat('fr-FR', {
-            maximumFractionDigits: 1,
-          }).format(event.obscuration * 100)} % occulté`;
-    const clock = formatUniverseClock(event.peak, event.observerTimeZone ?? this.browserTimeZone);
-    const altitude =
-      event.sunAltitudeDegrees === null
-        ? ''
-        : ` · Soleil à ${new Intl.NumberFormat('fr-FR', {
-            maximumFractionDigits: 1,
-          }).format(event.sunAltitudeDegrees)}°`;
-
-    return `${obscuration} · ${clock}${altitude}`;
-  });
+  public readonly currentSolarEclipse = computed<EarthEclipseEvent | null>(() =>
+    this.eclipsePresenter.createCurrentEvent(this.solarEclipseState(), this.currentTime()),
+  );
+  public readonly timelineSolarEclipse = computed<EarthEclipseEvent | null>(() =>
+    this.eclipsePresenter.selectTimelineEvent(
+      this.currentSolarEclipse(),
+      this.activeSolarEclipse(),
+    ),
+  );
+  public readonly solarObserverLocation = computed(() =>
+    this.eclipsePresenter.formatObserverLocation(this.timelineSolarEclipse()),
+  );
+  public readonly eclipseContextLabel = computed(() =>
+    this.eclipsePresenter.formatContextLabel(
+      this.solarObserverActive(),
+      this.timelineSolarEclipse(),
+    ),
+  );
+  public readonly localEclipseSummary = computed(() =>
+    this.eclipsePresenter.formatLocalSummary(this.timelineSolarEclipse()),
+  );
+  public readonly localEclipseContactsSummary = computed(() =>
+    this.eclipsePresenter.formatContactSummary(this.timelineSolarEclipse()),
+  );
 
   private readonly engine = inject(UNIVERSE_ENGINE);
+  private readonly removeEngineObservability = installUniverseEngineObservability(
+    this.engine,
+    shouldInstallUniverseEngineObservability(new URL(window.location.href)),
+  );
+  private readonly i18n = inject(I18nService);
+  private readonly eclipsePresenter = new UniverseEclipsePresenter({
+    browserTimeZone: this.browserTimeZone,
+    getContent: () => this.i18n.content(),
+    getLocale: () => this.i18n.locale(),
+    interpolate: (template, values) => this.i18n.interpolate(template, values),
+    formatNumber: (value, maximumFractionDigits) =>
+      this.i18n.formatNumber(value, maximumFractionDigits),
+  });
   private readonly eclipseCatalogLoader = inject(EARTH_ECLIPSE_CATALOG_LOADER);
   private readonly localSolarEclipseCalculatorLoader = inject(
     LOCAL_SOLAR_ECLIPSE_CALCULATOR_LOADER,
@@ -200,458 +189,408 @@ export class UniverseEngineFacade {
   private readonly searchService = inject(SearchService);
   private readonly urlService = inject(NavigationUrlService);
   private readonly selectedEventObject = signal<SpaceObject | null>(null);
-  private unsubscribeEngine: (() => void) | null = null;
-  private initialization: Promise<void> | null = null;
-  private initialNavigation: Partial<NavigationState> = {};
+  private readonly eventBridge = new UniverseEngineEventBridge({
+    setObjects: (objects) => this.objects.set(objects),
+    setSearchData: (objects, catalogEntries) => this.searchService.setData(objects, catalogEntries),
+    setSelection: (objectId, object) => {
+      this.selectedId.set(objectId);
+      this.selectedEventObject.set(object);
+    },
+    setTarget: (objectId) => this.targetId.set(objectId),
+    setCameraDistance: (zoom) => this.cameraDistance.set(zoom),
+    setTime: (time) => this.currentTime.set(time),
+    setSolarEclipseState: (state) => this.solarEclipseState.set(state),
+    setLodLevel: (level) => this.lodLevel.set(level),
+    setLoading: (loading) => {
+      if (loading || this.ready()) {
+        this.loading.set(loading);
+      }
+    },
+    setPerformanceWarning: (message) => this.performanceWarning.set(message),
+    setDebugStats: (stats) => this.debugStats.set(stats),
+    setError: (message) => this.error.set(message),
+    scheduleNavigationWrite: () => this.scheduleUrlUpdate(),
+  });
+  private readonly navigationStateSynchronizer = new UniverseNavigationStateSynchronizer({
+    isReady: () => this.ready(),
+    getTargetId: () => this.targetId(),
+    getSelectedId: () => this.selectedId(),
+    getTime: () => this.currentTime(),
+    getCameraDistance: () => this.cameraDistance(),
+    getEngineCameraDistance: () => this.engine.cameraDistance,
+    getDisplayOptions: () => this.displayOptions(),
+    scheduleWrite: (state) => this.urlService.scheduleWrite(state),
+  });
+  private readonly eclipseRuntime = new UniverseEclipseRuntime(
+    this.engine,
+    this.eclipseCatalogLoader,
+    this.localSolarEclipseCalculatorLoader,
+    {
+      getCurrentTime: () => this.currentTime(),
+      getUpcomingEclipses: () => this.upcomingEclipses(),
+      getActiveSolarEclipse: () => this.activeSolarEclipse(),
+      getCurrentSolarEclipse: () => this.currentSolarEclipse(),
+      isSolarPathVisible: () => this.solarPathVisible(),
+      setUpcomingEclipses: (events) => this.upcomingEclipses.set(events),
+      setCatalogAtPresent: (atPresent) => this.eclipseCatalogAtPresent.set(atPresent),
+      setEventsLoading: (loading) => this.eclipseEventsLoading.set(loading),
+      setLocalLoading: (loading) => this.localEclipseLoading.set(loading),
+      setPlaying: (playing) => this.playing.set(playing),
+      setBrowserOpen: (open) => this.eclipseBrowserOpen.set(open),
+      setActiveSolarEclipse: (event) => this.activeSolarEclipse.set(event),
+      setSolarPathVisible: (visible) => this.solarPathVisible.set(visible),
+      setSolarObserverActive: (active) => this.solarObserverActive.set(active),
+      focus: (objectId) => this.focus(objectId),
+      setError: (message) => this.error.set(message),
+      setPerformanceWarning: (message) => this.performanceWarning.set(message),
+      getCatalogUnavailableMessage: () => this.i18n.content().facade.eclipseCatalogUnavailable,
+      describeEclipseViewError: (error) =>
+        error instanceof Error ? error.message : this.i18n.content().facade.eclipseViewUnavailable,
+      describeObserverError: (error) =>
+        error instanceof Error ? error.message : this.i18n.content().facade.observerUnavailable,
+      describeLocalMaximumError: (error, location) =>
+        error instanceof Error
+          ? error.message
+          : this.i18n.interpolate(this.i18n.content().facade.localMaximumUnavailable, {
+              location: location.name,
+            }),
+    },
+  );
+  private readonly shellRuntime = new UniverseShellRuntime({
+    isSettingsOpen: () => this.settingsOpen(),
+    setSettingsOpen: (open) => this.settingsOpen.set(open),
+    isHelpOpen: () => this.helpOpen(),
+    setHelpOpen: (open) => this.helpOpen.set(open),
+    isEclipseBrowserOpen: () => this.eclipseBrowserOpen(),
+    setEclipseBrowserOpen: (open) => this.eclipseBrowserOpen.set(open),
+    returnToCurrentEclipses: () => this.returnToCurrentEclipses(),
+    createShareUrl: () => this.urlService.createShareUrl(this.createNavigationState()),
+    writeClipboardText: (url) => navigator.clipboard.writeText(url),
+    setShareNotice: (notice) => this.shareNotice.set(notice),
+    getShareCopiedMessage: () => this.i18n.content().facade.shareCopied,
+    getShareFailedMessage: () => this.i18n.content().facade.shareFailed,
+  });
+  private readonly displayCommandRuntime = new UniverseDisplayCommandRuntime(this.engine, {
+    getDisplayOptions: () => this.displayOptions(),
+    setDisplayOptions: (options) => this.displayOptions.set(options),
+    getCosmicMapLayers: () => this.cosmicMapLayers(),
+    setCosmicMapLayers: (layers) => this.cosmicMapLayers.set(layers),
+    scheduleUrlUpdate: () => this.scheduleUrlUpdate(),
+    setPerformanceWarning: (message) => this.performanceWarning.set(message),
+    getObservableWarning: () => this.i18n.content().facade.observableWarning,
+  });
+  private readonly viewCommandRuntime = new UniverseViewCommandRuntime(this.engine, {
+    getSelectedId: () => this.selectedId(),
+    areOrbitsVisible: () => this.displayOptions().showOrbits,
+    resetPresentation: () => this.resetSolarEclipsePresentation(),
+    showOrbits: () => this.displayCommandRuntime.updateDisplayOptions({ showOrbits: true }),
+    setError: (message) => this.error.set(message),
+    describeTargetError: (error) =>
+      error instanceof Error ? error.message : this.i18n.content().facade.targetUnavailable,
+    describeRotationError: (error) =>
+      error instanceof Error ? error.message : this.i18n.content().facade.rotationUnavailable,
+    describeOrbitError: (error) =>
+      error instanceof Error ? error.message : this.i18n.content().facade.orbitUnavailable,
+    getScaleUnavailableMessage: () => this.i18n.content().facade.scaleUnavailable,
+  });
+  private readonly timeCommandRuntime = new UniverseTimeCommandRuntime(this.engine, {
+    isPlaying: () => this.playing(),
+    isPresentationActive: () => Boolean(this.activeSolarEclipse()) || this.solarObserverActive(),
+    getSpeed: () => this.speed(),
+    getTargetId: () => this.targetId(),
+    getPresentTime: () => currentUniverseTime(),
+    setPlaying: (playing) => this.playing.set(playing),
+    setSpeed: (speed) => this.speed.set(speed),
+    resetPresentation: () => this.resetSolarEclipsePresentation(),
+    presentCurrentSolarEclipse: () => this.presentCurrentSolarEclipse(),
+  });
+  private readonly lifecycle = new UniverseEngineFacadeLifecycle(this.engine, {
+    readNavigation: () => this.urlService.read(),
+    setDisplayOptions: (options) => this.displayOptions.set(options),
+    getCosmicMapLayers: () => this.cosmicMapLayers(),
+    getSpeed: () => this.speed(),
+    setCurrentTime: (time) => this.currentTime.set(time),
+    handleEngineEvent: (event) => this.handleEngineEvent(event),
+    presentCurrentSolarEclipse: () => this.presentCurrentSolarEclipse(),
+    setReady: (ready) => {
+      this.ready.set(ready);
+      if (ready) {
+        this.loading.set(false);
+      }
+    },
+    setLoading: (loading) => this.loading.set(loading),
+    setError: (message) => this.error.set(message),
+    scheduleNavigationWrite: () => this.scheduleUrlUpdate(),
+    describeInitializationError: (error) =>
+      error instanceof Error ? error.message : this.i18n.content().facade.initializationUnavailable,
+  });
+
+  constructor() {
+    this.engine.setNavigationDebugTracing(this.debugEnabled());
+    this.engine.setLabelNameResolver((objectId, fallback) =>
+      this.i18n.objectName(objectId, fallback),
+    );
+  }
+
+  public targetVisualDiagnostics(): ObjectVisualDiagnostics | null {
+    const objectId = this.targetId();
+
+    return objectId ? this.engine.getObjectVisualDiagnostics(objectId) : null;
+  }
+
+  public navigationDebugTraceCount(): number {
+    return this.engine.getNavigationDebugTrace().length;
+  }
+
+  public clearNavigationDebugTrace(): void {
+    this.engine.clearNavigationDebugTrace();
+  }
+
+  public async copyNavigationDebugTrace(): Promise<NavigationDebugCopyResult> {
+    const entries = this.engine.getNavigationDebugTrace();
+
+    if (entries.length === 0) {
+      return 'empty';
+    }
+    const report = serializeNavigationDebugReport({
+      capturedAt: new Date().toISOString(),
+      pageUrl: window.location.href,
+      userAgent: navigator.userAgent,
+      viewport: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+        devicePixelRatio: window.devicePixelRatio,
+      },
+      state: {
+        targetId: this.targetId(),
+        selectedId: this.selectedId(),
+        cameraDistance: this.cameraDistance(),
+        time: this.currentTime(),
+        displayOptions: this.displayOptions(),
+      },
+      entries,
+    });
+
+    try {
+      await navigator.clipboard.writeText(report);
+
+      return 'copied';
+    } catch {
+      return 'failed';
+    }
+  }
 
   public initialize(container: HTMLElement): Promise<void> {
-    if (this.initialization) {
-      return this.initialization;
-    }
-
-    this.initialization = this.initializeEngine(container);
-
-    return this.initialization;
+    return this.lifecycle.initialize(container);
   }
 
   public dispose(): void {
-    this.unsubscribeEngine?.();
-    this.unsubscribeEngine = null;
-    this.engine.dispose();
-    this.initialization = null;
-    this.ready.set(false);
+    this.eclipseRuntime.cancelPendingRequests();
+    this.shellRuntime.dispose();
+    this.lifecycle.dispose();
+    this.removeEngineObservability();
   }
 
   public async focus(objectId: string): Promise<void> {
-    try {
-      this.resetSolarEclipsePresentation();
-      await this.engine.setTarget(objectId);
-    } catch (error) {
-      this.error.set(error instanceof Error ? error.message : 'Cible inaccessible.');
-    }
+    await this.viewCommandRuntime.focus(objectId);
+  }
+
+  public prepareEarthObservation(
+    objectId: string,
+    framing?: EarthObserverFraming,
+    selectedObjectId?: string | null,
+  ): Promise<void> {
+    return this.engine.prepareEarthObservation(objectId, framing, selectedObjectId);
+  }
+
+  public exitEarthObservation(): void {
+    this.engine.exitEarthObservation();
+  }
+
+  public setEarthObserverCelestialPresentations(
+    presentations: readonly EarthObserverCelestialPresentation[],
+  ): void {
+    this.engine.setEarthObserverCelestialPresentations(presentations);
+  }
+
+  public resolveObject(objectId: string): Promise<SpaceObject | null> {
+    return this.engine.resolveObject(objectId);
+  }
+
+  public isCameraTransitioning(): boolean {
+    return this.engine.cameraTransitioning;
   }
 
   public focusSelected(): void {
-    const selectedId = this.selectedId();
+    this.viewCommandRuntime.focusSelected();
+  }
 
-    if (selectedId) {
-      void this.focus(selectedId);
-    }
+  public selectObject(objectId: string | null): void {
+    this.engine.selectObject(objectId);
+  }
+
+  public async viewRotation(objectId: string): Promise<void> {
+    await this.viewCommandRuntime.viewRotation(objectId);
   }
 
   public viewOrbit(objectId: string): void {
-    this.resetSolarEclipsePresentation();
-    if (!this.displayOptions().showOrbits) {
-      this.updateDisplayOptions({ showOrbits: true });
-    }
-    try {
-      this.engine.viewOrbit(objectId);
-    } catch (error) {
-      this.error.set(error instanceof Error ? error.message : 'Orbite inaccessible.');
-    }
+    this.viewCommandRuntime.viewOrbit(objectId);
   }
 
   public viewScale(scale: NavigationScaleDefinition): void {
-    this.resetSolarEclipsePresentation();
-    try {
-      this.engine.viewScale(scale);
-    } catch {
-      this.error.set('Échelle inaccessible.');
-    }
+    this.viewCommandRuntime.viewScale(scale);
   }
 
   public closeDetails(): void {
-    this.engine.selectObject(null);
+    this.viewCommandRuntime.closeDetails();
   }
 
   public togglePlaying(): void {
-    const playing = !this.playing();
-
-    if (playing && (this.activeSolarEclipse() || this.solarObserverActive())) {
-      this.resetSolarEclipsePresentation();
-    }
-    this.playing.set(playing);
-    this.engine.setPlaying(playing);
+    this.timeCommandRuntime.togglePlaying();
   }
 
   public setSpeed(daysPerSecond: number): void {
-    this.speed.set(daysPerSecond);
-    this.engine.setTimeSpeed(daysPerSecond);
+    this.timeCommandRuntime.setSpeed(daysPerSecond);
   }
 
   public cycleSpeed(direction: 1 | -1): void {
-    const currentIndex = findSpeedIndex(this.speed());
-    const nextIndex = Math.max(
-      0,
-      Math.min(TIME_SPEED_OPTIONS.length - 1, currentIndex + direction),
-    );
-
-    this.setSpeed(TIME_SPEED_OPTIONS[nextIndex]!.daysPerSecond);
+    this.timeCommandRuntime.cycleSpeed(direction);
   }
 
   public setDateTime(isoDateTime: string): void {
-    const time = isoDateTimeToUniverseTime(isoDateTime);
-
-    if (time) {
-      this.resetSolarEclipsePresentation();
-      this.engine.setTime(time);
-      if (this.targetId() === 'earth') {
-        this.presentCurrentSolarEclipse();
-      }
-    }
+    this.timeCommandRuntime.setDateTime(isoDateTime);
   }
 
   public setTime(time: UniverseTime): void {
-    this.resetSolarEclipsePresentation();
-    this.engine.setTime(time);
+    this.timeCommandRuntime.setTime(time);
   }
 
   public returnToPresent(): void {
-    this.resetSolarEclipsePresentation();
-    this.engine.setTime(currentUniverseTime());
+    this.timeCommandRuntime.returnToPresent();
   }
 
   public zoomIn(): void {
-    this.engine.zoomBy(0.72);
+    this.viewCommandRuntime.zoomIn();
   }
 
   public zoomOut(): void {
-    this.engine.zoomBy(1.38);
+    this.viewCommandRuntime.zoomOut();
   }
 
   public resize(width: number, height: number): void {
-    this.engine.resize(width, height);
+    this.viewCommandRuntime.resize(width, height);
   }
 
   public toggleOrbits(): void {
-    this.updateDisplayOptions({ showOrbits: !this.displayOptions().showOrbits });
+    this.displayCommandRuntime.toggleOrbits();
   }
 
   public toggleLabels(): void {
-    this.updateDisplayOptions({ showLabels: !this.displayOptions().showLabels });
+    this.displayCommandRuntime.toggleLabels();
   }
 
   public toggleConstellations(): void {
-    this.updateDisplayOptions({
-      showConstellations: !this.displayOptions().showConstellations,
-    });
+    this.displayCommandRuntime.toggleConstellations();
   }
 
   public setQuality(quality: GraphicQuality): void {
-    this.updateDisplayOptions({ quality });
+    this.displayCommandRuntime.setQuality(quality);
   }
 
   public setLabelDensity(labelDensity: LabelDensity): void {
-    this.updateDisplayOptions({ labelDensity });
+    this.displayCommandRuntime.setLabelDensity(labelDensity);
   }
 
   public setTemporalMode(temporalMode: TemporalMode): void {
-    this.updateDisplayOptions({ temporalMode });
-    if (temporalMode === 'observable') {
-      this.performanceWarning.set(
-        'La Vue observable est préparée dans l’architecture ; ce prototype affiche encore un état simultané.',
-      );
-    }
+    this.displayCommandRuntime.setTemporalMode(temporalMode);
+  }
+
+  public getStellarObservationCatalog(
+    maximumCount: number,
+  ): readonly StellarObservationCatalogEntry[] {
+    return this.engine.getStellarObservationCatalog(maximumCount);
+  }
+
+  public getStellarObservationConstellations(): readonly StellarObservationConstellation[] {
+    return this.engine.getStellarObservationConstellations();
   }
 
   public toggleCosmicMapLayer(layer: CosmicMapLayer): void {
-    const current = this.cosmicMapLayers();
-    const layers: CosmicMapLayers = { ...current, [layer]: !current[layer] };
-
-    this.cosmicMapLayers.set(layers);
-    this.engine.setCosmicMapLayers(layers);
+    this.displayCommandRuntime.toggleCosmicMapLayer(layer);
   }
 
   public resetCosmicMapLayers(): void {
-    const layers = { ...DEFAULT_COSMIC_MAP_LAYERS };
-
-    this.cosmicMapLayers.set(layers);
-    this.engine.setCosmicMapLayers(layers);
+    this.displayCommandRuntime.resetCosmicMapLayers();
   }
 
   public toggleSettings(): void {
-    this.settingsOpen.update((open) => !open);
-    this.helpOpen.set(false);
-    this.eclipseBrowserOpen.set(false);
+    this.shellRuntime.toggleSettings();
   }
 
   public toggleHelp(): void {
-    this.helpOpen.update((open) => !open);
-    this.settingsOpen.set(false);
-    this.eclipseBrowserOpen.set(false);
+    this.shellRuntime.toggleHelp();
   }
 
   public toggleEclipseBrowser(): void {
-    const open = !this.eclipseBrowserOpen();
+    this.shellRuntime.toggleEclipseBrowser();
+  }
 
-    this.eclipseBrowserOpen.set(open);
-    this.settingsOpen.set(false);
-    this.helpOpen.set(false);
-    if (open) {
-      void this.loadUpcomingEclipses();
-    }
+  public browseEarlierEclipses(): void {
+    void this.eclipseRuntime.browseEarlierEclipses();
+  }
+
+  public browseLaterEclipses(): void {
+    void this.eclipseRuntime.browseLaterEclipses();
+  }
+
+  public returnToCurrentEclipses(): void {
+    void this.eclipseRuntime.returnToCurrentEclipses();
   }
 
   public async viewEarthEclipse(event: EarthEclipseEvent): Promise<void> {
-    this.playing.set(false);
-    this.engine.setPlaying(false);
-    this.eclipseBrowserOpen.set(false);
-    this.solarPathVisible.set(false);
-    if (event.family === 'lunar') {
-      this.activeSolarEclipse.set(null);
-      this.solarObserverActive.set(false);
-      this.engine.setTime(event.peak);
-      await this.focus('moon');
-
-      return;
-    }
-
-    try {
-      this.activeSolarEclipse.set(event);
-      this.solarObserverActive.set(false);
-      this.engine.viewSolarEclipse(event);
-    } catch (error) {
-      this.error.set(
-        error instanceof Error ? error.message : 'Visualisation de l’éclipse impossible.',
-      );
-    }
+    await this.eclipseRuntime.viewEarthEclipse(event);
   }
 
   public observeEarthEclipse(event: EarthEclipseEvent): void {
-    if (event.family !== 'solar') {
-      return;
-    }
-
-    this.playing.set(false);
-    this.engine.setPlaying(false);
-    this.eclipseBrowserOpen.set(false);
-    this.solarPathVisible.set(false);
-    try {
-      this.activeSolarEclipse.set(event);
-      this.solarObserverActive.set(true);
-      this.engine.observeSolarEclipse(event);
-    } catch (error) {
-      this.solarObserverActive.set(false);
-      this.error.set(error instanceof Error ? error.message : 'Point d’observation inaccessible.');
-    }
+    this.eclipseRuntime.observeEarthEclipse(event);
   }
 
   public async viewLocalSolarEclipse(
     event: EarthEclipseEvent,
     location: SolarEclipseObserverLocation,
   ): Promise<void> {
-    this.localEclipseLoading.set(true);
-    try {
-      const { calculateLocalSolarEclipse } = await this.localSolarEclipseCalculatorLoader();
-      const localEvent = calculateLocalSolarEclipse(event, location);
-
-      await this.viewEarthEclipse(localEvent);
-    } catch (error) {
-      this.performanceWarning.set(
-        error instanceof Error
-          ? error.message
-          : `Le maximum local est indisponible pour ${location.name}.`,
-      );
-    } finally {
-      this.localEclipseLoading.set(false);
-    }
+    await this.eclipseRuntime.viewLocalSolarEclipse(event, location);
   }
 
   public showSolarShadow(): void {
-    const event = this.activeSolarEclipse();
-
-    if (!event) {
-      return;
-    }
-
-    this.solarObserverActive.set(false);
-    this.engine.viewSolarEclipse(event);
+    this.eclipseRuntime.showSolarShadow();
   }
 
   public toggleSolarPath(event: EarthEclipseEvent): void {
-    const visible = !this.solarPathVisible();
-
-    this.activeSolarEclipse.set(event);
-    this.solarPathVisible.set(visible);
-    this.engine.setSolarEclipsePathVisible(event, visible);
+    this.eclipseRuntime.toggleSolarPath(event);
   }
 
   public async copyShareUrl(): Promise<void> {
-    const url = this.urlService.createShareUrl(this.createNavigationState());
-
-    try {
-      await navigator.clipboard.writeText(url);
-      this.shareNotice.set('Lien copié');
-    } catch {
-      this.shareNotice.set('Copie impossible — utilisez l’URL du navigateur');
-    }
-    window.setTimeout(() => this.shareNotice.set(null), 2_400);
-  }
-
-  private async initializeEngine(container: HTMLElement): Promise<void> {
-    this.initialNavigation = this.urlService.read();
-    this.unsubscribeEngine = this.engine.subscribe((event) => this.handleEngineEvent(event));
-    const options: DisplayOptions = {
-      showOrbits: this.initialNavigation.showOrbits ?? true,
-      showConstellations: this.initialNavigation.showConstellations ?? true,
-      showLabels: this.initialNavigation.showLabels ?? true,
-      quality: this.initialNavigation.quality ?? this.engine.recommendedQuality,
-      labelDensity: this.initialNavigation.labelDensity ?? 'balanced',
-      temporalMode: this.initialNavigation.mode ?? 'state',
-    };
-
-    this.displayOptions.set(options);
-
-    try {
-      await this.engine.initialize(container, options);
-      this.engine.setCosmicMapLayers(this.cosmicMapLayers());
-
-      if (this.initialNavigation.julianDay) {
-        this.engine.setTime({ julianDay: this.initialNavigation.julianDay });
-      } else {
-        this.currentTime.set(this.engine.currentTime);
-      }
-      this.engine.setTimeSpeed(this.speed());
-
-      const requestedTarget = this.initialNavigation.targetId ?? 'earth';
-      const target = this.engine.hasObject(requestedTarget) ? requestedTarget : 'earth';
-
-      await this.engine.setTarget(target, this.initialNavigation.zoom);
-      this.engine.completeTargetTransition();
-
-      if (
-        this.initialNavigation.selectedId === null ||
-        (this.initialNavigation.selectedId &&
-          this.initialNavigation.selectedId !== this.initialNavigation.targetId)
-      ) {
-        this.engine.selectObject(this.initialNavigation.selectedId ?? null);
-      }
-      if (target === 'earth') {
-        this.presentCurrentSolarEclipse();
-      }
-
-      this.engine.start();
-      this.ready.set(true);
-      this.scheduleUrlUpdate();
-    } catch (error) {
-      this.error.set(error instanceof Error ? error.message : 'Initialisation impossible.');
-      this.loading.set(false);
-    }
-  }
-
-  private async loadUpcomingEclipses(): Promise<void> {
-    this.eclipseEventsLoading.set(true);
-    try {
-      const { findUpcomingEarthEclipses } = await this.eclipseCatalogLoader();
-
-      this.upcomingEclipses.set(findUpcomingEarthEclipses(this.currentTime(), 6));
-    } catch {
-      this.performanceWarning.set('Le catalogue des éclipses n’a pas pu être calculé.');
-    } finally {
-      this.eclipseEventsLoading.set(false);
-    }
+    await this.shellRuntime.copyShareUrl();
   }
 
   private handleEngineEvent(event: UniverseEngineEvent): void {
-    switch (event.type) {
-      case 'data-ready':
-        this.objects.set(event.objects);
-        this.searchService.setData(event.objects, event.catalogEntries);
-        break;
-      case 'objects-changed':
-        this.objects.set(event.objects);
-        break;
-      case 'object-selected':
-        this.selectedId.set(event.objectId);
-        this.selectedEventObject.set(event.object);
-        this.scheduleUrlUpdate();
-        break;
-      case 'target-changed':
-        this.targetId.set(event.objectId);
-        this.scheduleUrlUpdate();
-        break;
-      case 'camera-changed':
-        this.cameraDistance.set(event.zoom);
-        this.scheduleUrlUpdate();
-        break;
-      case 'time-changed':
-        this.currentTime.set(event.time);
-        this.scheduleUrlUpdate();
-        break;
-      case 'solar-eclipse-state':
-        this.solarEclipseState.set(event.state);
-        break;
-      case 'lod-changed':
-        this.lodLevel.set(event.level);
-        break;
-      case 'loading-state':
-        this.loading.set(event.loading);
-        break;
-      case 'performance-warning':
-        this.performanceWarning.set(event.message);
-        break;
-      case 'debug-stats':
-        this.debugStats.set(event.stats);
-        break;
-      case 'error':
-        this.error.set(event.message);
-        break;
-    }
-  }
-
-  private updateDisplayOptions(changes: Partial<DisplayOptions>): void {
-    const options = { ...this.displayOptions(), ...changes };
-
-    this.displayOptions.set(options);
-    this.engine.setDisplayOptions(options);
-    this.scheduleUrlUpdate();
+    this.eventBridge.handle(event);
   }
 
   private scheduleUrlUpdate(): void {
-    if (!this.ready()) {
-      return;
-    }
-    this.urlService.scheduleWrite(this.createNavigationState());
+    this.navigationStateSynchronizer.schedule();
   }
 
   private createNavigationState(): NavigationState {
-    return {
-      targetId: this.targetId(),
-      selectedId: this.selectedId(),
-      julianDay: this.currentTime().julianDay,
-      zoom: this.cameraDistance() || this.engine.cameraDistance || 24,
-      mode: this.displayOptions().temporalMode,
-      quality: this.displayOptions().quality,
-      labelDensity: this.displayOptions().labelDensity,
-      showOrbits: this.displayOptions().showOrbits,
-      showConstellations: this.displayOptions().showConstellations,
-      showLabels: this.displayOptions().showLabels,
-    };
+    return this.navigationStateSynchronizer.create();
   }
 
   private resetSolarEclipsePresentation(): void {
-    this.activeSolarEclipse.set(null);
-    this.solarObserverActive.set(false);
-    this.solarPathVisible.set(false);
-    this.engine.clearSolarEclipsePresentation();
+    this.eclipseRuntime.resetPresentation();
   }
 
   private presentCurrentSolarEclipse(): void {
-    const eclipse = this.currentSolarEclipse();
-
-    if (eclipse) {
-      void this.viewEarthEclipse(eclipse);
-    }
+    this.eclipseRuntime.presentCurrentSolarEclipse();
   }
-}
-
-function formatCoordinates(latitude: number | null, longitude: number | null): string {
-  if (latitude === null || longitude === null) {
-    return 'Point central calculé';
-  }
-
-  const latitudeSuffix = latitude >= 0 ? 'N' : 'S';
-  const longitudeSuffix = longitude >= 0 ? 'E' : 'O';
-
-  return `${Math.abs(latitude).toFixed(1)}° ${latitudeSuffix} · ${Math.abs(longitude).toFixed(1)}° ${longitudeSuffix}`;
 }

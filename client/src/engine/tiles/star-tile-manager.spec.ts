@@ -217,6 +217,7 @@ function catalog(): StarCatalog {
     count: 4,
     referenceEpochJulianDay: 2_451_545,
     positionsParsec: new Float32Array(12),
+    velocitiesParsecPerYear: new Float32Array(12),
     apparentMagnitudes: new Float32Array(4),
     colorIndicesBv: new Float32Array(4),
     catalogIds: new Uint32Array([1, 2, 3, 4]),

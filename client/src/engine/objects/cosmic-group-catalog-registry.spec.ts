@@ -39,6 +39,8 @@ describe('CosmicGroupCatalogRegistry', () => {
         distanceModulusError: expect.closeTo(0.41, 4),
         velocityCmbKmPerSecond: 6_179,
         source: 'Cosmicflows-4 · Tully et al. (2023)',
+        visualAdaptation:
+          'Position du groupe calculée ; silhouettes, orientations, luminosités et membres non résolus illustratifs',
       },
     });
     expect(registry.getDefinition('cf4-pgc-12')).toBe(group);

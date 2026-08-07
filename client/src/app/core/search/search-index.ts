@@ -7,6 +7,12 @@ interface IndexedSearchEntry {
   normalizedKeywords: string[];
 }
 
+export interface ProgressiveSearchIndexBuildOptions {
+  readonly chunkSize: number;
+  readonly isCurrent: () => boolean;
+  readonly yieldControl: () => Promise<void>;
+}
+
 const GREEK_SEARCH_NAMES: Readonly<Record<string, string>> = {
   α: 'alpha',
   β: 'beta',
@@ -41,21 +47,37 @@ export class LocalSearchIndex {
     objects: readonly SpaceObject[],
     additionalEntries: readonly SearchEntry[] = [],
   ): void {
-    const names = new Map(objects.map((object) => [object.id, object.name]));
-    const objectEntries = objects.map((object): SearchEntry => ({
-      id: object.id,
-      name: object.name,
-      aliases: object.aliases ?? [],
-      type: object.type,
-      parentName: object.parentId ? names.get(object.parentId) : undefined,
-      keywords: [
-        object.type,
-        object.referenceFrame,
-        ...(object.metadata?.['keywords'] ? String(object.metadata['keywords']).split(/\s+/) : []),
-      ],
-    }));
+    this.entries = createSearchEntries(objects, additionalEntries).map(indexEntry);
+  }
 
-    this.entries = [...objectEntries, ...additionalEntries].map(indexEntry);
+  public async buildProgressively(
+    objects: readonly SpaceObject[],
+    additionalEntries: readonly SearchEntry[],
+    options: ProgressiveSearchIndexBuildOptions,
+  ): Promise<boolean> {
+    const sourceEntries = createSearchEntries(objects, additionalEntries);
+    const indexedEntries = new Array<IndexedSearchEntry>(sourceEntries.length);
+
+    for (let offset = 0; offset < sourceEntries.length; offset += options.chunkSize) {
+      if (!options.isCurrent()) {
+        return false;
+      }
+      const end = Math.min(offset + options.chunkSize, sourceEntries.length);
+
+      for (let entryIndex = offset; entryIndex < end; entryIndex += 1) {
+        indexedEntries[entryIndex] = indexEntry(sourceEntries[entryIndex]!);
+      }
+      if (end < sourceEntries.length) {
+        await options.yieldControl();
+      }
+    }
+
+    if (!options.isCurrent()) {
+      return false;
+    }
+    this.entries = indexedEntries;
+
+    return true;
   }
 
   public search(query: string, limit = 8): SearchEntry[] {
@@ -80,6 +102,28 @@ export class LocalSearchIndex {
 
     return matches.map((result) => result.entry);
   }
+}
+
+function createSearchEntries(
+  objects: readonly SpaceObject[],
+  additionalEntries: readonly SearchEntry[],
+): SearchEntry[] {
+  const names = new Map(objects.map((object) => [object.id, object.name]));
+  const objectEntries = objects.map((object): SearchEntry => ({
+    id: object.id,
+    name: object.name,
+    aliases: object.aliases ?? [],
+    type: object.type,
+    parentName: object.parentId ? names.get(object.parentId) : undefined,
+    keywords: [
+      object.type,
+      object.referenceFrame,
+      ...(object.metadata?.['keywords'] ? String(object.metadata['keywords']).split(/\s+/) : []),
+    ],
+    metadata: object.metadata,
+  }));
+
+  return [...objectEntries, ...additionalEntries];
 }
 
 function indexEntry(entry: SearchEntry): IndexedSearchEntry {
@@ -116,7 +160,7 @@ function compareResults(
 
 export function normalizeSearchText(value: string): string {
   return value
-    .toLocaleLowerCase('fr')
+    .toLowerCase()
     .replace(/[α-ω]/gu, (letter) => ` ${GREEK_SEARCH_NAMES[letter] ?? letter} `)
     .normalize('NFD')
     .replace(/\p{Diacritic}/gu, '')

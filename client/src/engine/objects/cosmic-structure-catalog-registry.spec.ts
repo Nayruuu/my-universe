@@ -110,6 +110,30 @@ describe('CosmicStructureCatalogRegistry', () => {
     expect(registry.getLabelObjects(2).map(({ id }) => id)).toEqual(registry.objectIds);
   });
 
+  it('préserve le nom, les alias et le sens scientifique d’un bassin nommé', () => {
+    const registry = createNamedLandmarkRegistry();
+    const definition = registry.getDefinition('lss-valade-pboa-shapley-basin');
+    const entry = registry.getSearchEntries()[0];
+
+    expect(entry).toMatchObject({
+      name: 'Bassin de Shapley',
+      aliases: expect.arrayContaining(['Shapley p-BoA', 'shapley-basin']),
+      type: 'cosmic-basin',
+    });
+    expect(definition).toMatchObject({
+      name: 'Bassin de Shapley',
+      aliases: expect.arrayContaining(['Shapley p-BoA', 'shapley-basin']),
+      scientificConfidence: 'calculated',
+      description: expect.stringContaining('Bassin d’attraction probabiliste'),
+      metadata: {
+        catalogConfidenceMeaning: 'Intrinsic p-BoA probability',
+        extentMeaning: 'Equivalent spherical display radius',
+        mapPriority: 'landmark',
+      },
+    });
+    expect(registry.getLabelObjects(1)[0]?.name).toBe('Bassin de Shapley');
+  });
+
   it('retourne une position locale dans un vecteur réutilisable', () => {
     const registry = createRegistry();
     const target = new THREE.Vector3();
@@ -128,13 +152,13 @@ describe('CosmicStructureCatalogRegistry', () => {
       type: 'cosmic-filament',
       metadata: {
         lengthMpc: expect.closeTo(24.8, 4),
-        surveyEdge: true,
       },
     });
-    expect(filament?.description).toContain('Filament extrait');
+    expect(filament?.description).toContain('épine publiée');
     expect(filament?.metadata?.['effectiveRadiusMpc']).toBeUndefined();
     expect(filament?.metadata?.['memberGalaxyCount']).toBeUndefined();
-    expect(filament?.metadata?.['visualAdaptation']).toContain('spine continue');
+    expect(filament?.metadata?.['surveyEdge']).toBeUndefined();
+    expect(filament?.metadata?.['visualAdaptation']).toContain('points publiés');
 
     const clusterRegistry = createSingleStructureRegistry('cluster', 'PSZ2 G000.04+45.13', 0, 0, 0);
     const cluster = clusterRegistry.getDefinition('lss-test-cluster-psz2-g000-04-45-13');
@@ -256,6 +280,55 @@ function createSingleStructureRegistry(
           method: 'Documented test method',
           objectNamePrefix: structureType === 'filament' ? 'Filament test' : 'Amas test',
           scientificConfidence: 'calculated',
+          recordCount: 1,
+        },
+      ],
+    },
+  };
+
+  return new CosmicStructureCatalogRegistry(catalog, new CoordinateSystem());
+}
+
+function createNamedLandmarkRegistry(): CosmicStructureCatalogRegistry {
+  const catalog: CosmicStructureCatalog = {
+    count: 1,
+    referenceEpochJulianDay: 2_451_545,
+    minimumDistanceMpc: 220,
+    maximumDistanceMpc: 220,
+    positionsMpc: new Float32Array([220, 0, 0]),
+    distancesMpc: new Float32Array([220]),
+    radiiMpc: new Float32Array([100]),
+    confidences: new Float32Array([0.9]),
+    densityContrasts: new Float32Array([Number.NaN]),
+    boundaryDistancesMpc: new Float32Array([Number.NaN]),
+    galaxyCounts: new Uint32Array([0]),
+    sourceIndices: new Uint16Array([0]),
+    catalogNumericIds: new Uint16Array([4]),
+    flags: new Uint8Array([128]),
+    identifiers: ['shapley-basin'],
+    structureTypes: ['basin'],
+    metadata: {
+      version: '1.0.0',
+      recordCount: 1,
+      referenceEpochJulianDay: 2_451_545,
+      referenceFrame: 'equatorial-j2000',
+      distanceUnit: 'megaparsec',
+      scientificConfidence: 'calculated',
+      sources: [
+        {
+          id: 'valade-pboa',
+          name: 'Probabilistic basins',
+          citation: 'Valade et al. (2024)',
+          sourceUrl: 'https://example.test/pboa',
+          structureType: 'basin',
+          method: 'Constrained probabilistic reconstruction',
+          objectNamePrefix: 'Bassin',
+          scientificConfidence: 'calculated',
+          confidenceMeaning: 'Intrinsic p-BoA probability',
+          extentMeaning: 'Equivalent spherical display radius',
+          mapPriority: 'landmark',
+          recordNames: { 'shapley-basin': 'Bassin de Shapley' },
+          recordAliases: { 'shapley-basin': ['Shapley p-BoA'] },
           recordCount: 1,
         },
       ],

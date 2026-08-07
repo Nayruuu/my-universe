@@ -32,6 +32,8 @@ describe('ConstellationBatch', () => {
     const secondStar = new THREE.Vector3().fromBufferAttribute(positions, 1);
 
     expect(firstStar.distanceTo(secondStar)).toBeGreaterThan(0);
+    batch.updatePositions();
+    expect(batch.lines.geometry.getAttribute('position')).toBe(positions);
     batch.dispose();
   });
 
@@ -79,7 +81,10 @@ describe('ConstellationBatch', () => {
     expect(batch.highlightLines.visible).toBe(true);
     expect(batch.highlightLines.geometry.drawRange.count).toBe(4);
     expect(batch.highlightLines.userData['objectId']).toBe('constellation-orion');
-    expect(batch.highlightLines.material.opacity).toBeGreaterThan(batch.lines.material.opacity);
+    expect(batch.highlightLines.material.opacity).toBeGreaterThan(0.9);
+    expect(batch.highlightLines.material.blending).toBe(THREE.AdditiveBlending);
+    expect(batch.highlightLines.material.color.b).toBeGreaterThan(0.95);
+    expect(batch.highlightLines.userData['visualStyle']).toBe('additive-target-highlight');
 
     batch.hover('constellation-inconnue');
     expect(batch.highlightLines.userData['objectId']).toBe('constellation-orion');
@@ -87,6 +92,10 @@ describe('ConstellationBatch', () => {
     expect(batch.highlightLines.userData['objectId']).toBe('constellation-orion');
     batch.select(null);
     expect(batch.highlightLines.userData['objectId']).toBe('constellation-orion');
+    batch.updateLod(2, 10);
+    expect(batch.highlightLines.material.opacity).toBeGreaterThan(0.7);
+    expect(batch.highlightLines.material.opacity).toBeLessThan(0.8);
+    expect(batch.highlightLines.material.color.getHex()).toBe(0xaee5ff);
     batch.hover(null);
     expect(batch.highlightLines.geometry.drawRange.count).toBe(0);
     expect(batch.highlightLines.visible).toBe(false);
@@ -119,7 +128,8 @@ describe('ConstellationBatch', () => {
     expect(batch.lines.visible).toBe(false);
     batch.updateLod(2, 10);
     expect(batch.lines.visible).toBe(true);
-    expect(batch.lines.material.opacity).toBeGreaterThan(0.35);
+    expect(batch.lines.material.opacity).toBeGreaterThan(0.18);
+    expect(batch.lines.material.opacity).toBeLessThan(0.28);
     expect(batch.getPickables()).toEqual([batch.lines]);
 
     batch.updateLod(3, 10);
@@ -238,6 +248,7 @@ function createRegistry(): StarCatalogRegistry {
     count: 3,
     referenceEpochJulianDay: 2_451_545,
     positionsParsec: new Float32Array([1, 0, 0, 0, 2, 0, 0, 0, 3]),
+    velocitiesParsecPerYear: new Float32Array(9),
     apparentMagnitudes: new Float32Array([1, 2, 3]),
     colorIndicesBv: new Float32Array([0.2, 0.5, 0.8]),
     catalogIds: new Uint32Array([10, 20, 30]),

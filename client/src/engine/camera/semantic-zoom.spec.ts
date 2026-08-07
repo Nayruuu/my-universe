@@ -1,11 +1,11 @@
 import { SemanticZoomJourney } from './semantic-zoom';
 
 describe('SemanticZoomJourney', () => {
-  it('parcourt les sept échelles puis revient exactement à son ancre', () => {
+  it('parcourt les sept échelles et la limite extérieure puis revient exactement à son ancre', () => {
     const journey = new SemanticZoomJourney();
     let distance = 4.8;
 
-    for (const expected of [520, 1_400, 9_600, 17_000, 120_000, 420_000]) {
+    for (const expected of [520, 1_400, 9_600, 17_000, 120_000, 420_000, 600_000]) {
       const step = journey.step(distance, 480);
 
       expect(step.handled).toBe(true);
@@ -14,7 +14,7 @@ describe('SemanticZoomJourney', () => {
     }
     expect(journey.active).toBe(true);
 
-    for (const expected of [120_000, 17_000, 9_600, 1_400, 520, 4.8]) {
+    for (const expected of [420_000, 120_000, 17_000, 9_600, 1_400, 520, 4.8]) {
       const step = journey.step(distance, -480);
 
       expect(step.handled).toBe(true);
@@ -46,14 +46,14 @@ describe('SemanticZoomJourney', () => {
   it('ne crée pas un trajet bloqué lorsqu’aucune échelle extérieure ne reste', () => {
     const journey = new SemanticZoomJourney();
 
-    expect(journey.step(420_000, 480)).toEqual({
+    expect(journey.step(600_000, 480)).toEqual({
       handled: false,
-      distance: 420_000,
+      distance: 600_000,
     });
     expect(journey.active).toBe(false);
-    expect(journey.step(420_000, -480)).toEqual({
+    expect(journey.step(600_000, -480)).toEqual({
       handled: false,
-      distance: 420_000,
+      distance: 600_000,
     });
   });
 
@@ -75,15 +75,25 @@ describe('SemanticZoomJourney', () => {
 
     expect(halfway.distance).toBeGreaterThan(4.8);
     expect(halfway.distance).toBeLessThan(520);
-    expect(journey.step(halfway.distance, 10_000).distance).toBe(420_000);
-    expect(journey.step(420_000, 480)).toEqual({
+    expect(journey.step(halfway.distance, 10_000).distance).toBe(600_000);
+    expect(journey.step(600_000, 480)).toEqual({
       handled: false,
-      distance: 420_000,
+      distance: 600_000,
     });
     expect(journey.active).toBe(false);
-    expect(journey.step(420_000, -10_000)).toEqual({
+    expect(journey.step(600_000, -10_000)).toEqual({
       handled: false,
-      distance: 420_000,
+      distance: 600_000,
     });
+  });
+
+  it('restitue le surplus lorsque le geste traverse son ancre intérieure', () => {
+    const journey = new SemanticZoomJourney();
+    const outward = journey.step(24, 1);
+    const inward = journey.step(outward.distance, -121);
+
+    expect(inward.distance).toBe(24);
+    expect(inward.remainingDeltaY).toBeCloseTo(-120, 12);
+    expect(journey.active).toBe(false);
   });
 });

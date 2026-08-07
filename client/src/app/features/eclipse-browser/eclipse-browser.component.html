@@ -1,43 +1,99 @@
+@let t = i18n.content();
 @if (facade.eclipseBrowserOpen()) {
-  <section class="eclipse-browser" aria-label="Éclipses terrestres">
+  <section class="eclipse-browser" [attr.aria-label]="t.eclipses.aria">
     <header>
       <div>
-        <span class="eyebrow">Terre · Soleil · Lune</span>
-        <h2>Événements astronomiques</h2>
+        <span class="eyebrow">{{ t.eclipses.eyebrow }}</span>
+        <h2>{{ t.eclipses.title }}</h2>
       </div>
       <button
         type="button"
         class="close-button"
-        aria-label="Fermer les éclipses"
+        [attr.aria-label]="t.eclipses.close"
         (click)="facade.toggleEclipseBrowser()"
       >
         ×
       </button>
     </header>
 
-    <p class="introduction">
-      Choisissez une éclipse pour régler la date et la cadrer. L’ombre reste ensuite visible dans la
-      navigation orbitale ; sa trajectoire est optionnelle.
-    </p>
+    <p class="introduction">{{ t.eclipses.introduction }}</p>
 
     <div class="observer-picker">
-      <label>
-        <span>Maximum local depuis</span>
-        <select
-          aria-label="Ville d’observation de l’éclipse"
-          [value]="selectedLocationId()"
-          (change)="changeLocation($event)"
-        >
-          @for (location of observerLocations; track location.id) {
-            <option [value]="location.id">{{ location.name }}</option>
+      <div class="observer-picker__header">
+        <app-earth-observer-location-picker
+          [locations]="observerLocations"
+          [selectedLocationId]="selectedLocationId()"
+          [label]="t.eclipses.localMaximumFrom"
+          [ariaLabel]="t.eclipses.cityAria"
+          [customLabel]="t.eclipses.customCoordinates"
+          (locationChange)="changeLocation($event)"
+        />
+        <p>{{ t.eclipses.localCalculation }}</p>
+      </div>
+
+      @if (customLocationSelected()) {
+        <div class="observer-coordinates">
+          <label>
+            <span>{{ t.eclipses.latitude }}</span>
+            <input
+              type="number"
+              inputmode="decimal"
+              min="-90"
+              max="90"
+              step="any"
+              placeholder="48.8566"
+              [attr.aria-label]="t.eclipses.latitudeAria"
+              [attr.aria-invalid]="customLocationIssue() !== null"
+              [value]="customLatitudeInput()"
+              (input)="changeCustomLatitude($event)"
+            />
+          </label>
+          <label>
+            <span>{{ t.eclipses.longitude }}</span>
+            <input
+              type="number"
+              inputmode="decimal"
+              min="-180"
+              max="180"
+              step="any"
+              placeholder="2.3522"
+              [attr.aria-label]="t.eclipses.longitudeAria"
+              [attr.aria-invalid]="customLocationIssue() !== null"
+              [value]="customLongitudeInput()"
+              (input)="changeCustomLongitude($event)"
+            />
+          </label>
+          @if (customLocationMessage(); as message) {
+            <p class="observer-coordinates__message" role="status">{{ message }}</p>
+          } @else {
+            <p class="observer-coordinates__message">{{ t.eclipses.customTimeZone }}</p>
           }
-        </select>
-      </label>
-      <p>Calcul embarqué · aucune géolocalisation</p>
+        </div>
+      }
     </div>
 
+    <nav class="catalog-navigation" [attr.aria-label]="t.eclipses.navigationAria">
+      <button type="button" [attr.aria-label]="t.eclipses.earlierAria" (click)="browseEarlier()">
+        <span aria-hidden="true">←</span>
+        {{ t.eclipses.earlier }}
+      </button>
+      <button
+        type="button"
+        class="catalog-navigation__present"
+        [attr.aria-label]="t.eclipses.chosenDateAria"
+        [disabled]="facade.eclipseCatalogAtPresent()"
+        (click)="returnToCurrent()"
+      >
+        {{ t.eclipses.chosenDate }}
+      </button>
+      <button type="button" [attr.aria-label]="t.eclipses.laterAria" (click)="browseLater()">
+        {{ t.eclipses.later }}
+        <span aria-hidden="true">→</span>
+      </button>
+    </nav>
+
     @if (facade.eclipseEventsLoading()) {
-      <div class="catalog-loading" role="status">Calcul des prochains alignements…</div>
+      <div class="catalog-loading" role="status">{{ t.eclipses.loading }}</div>
     } @else {
       <ul class="event-list">
         @for (event of facade.upcomingEclipses(); track event.id) {
@@ -54,18 +110,18 @@
               </span>
               <span class="event-card__content">
                 <span class="event-card__badges">
-                  <span>{{ event.family === 'lunar' ? 'Lunaire' : 'Solaire' }}</span>
+                  <span>{{ event.family === 'lunar' ? t.eclipses.lunar : t.eclipses.solar }}</span>
                   <span>{{ kindLabel(event.kind) }}</span>
                 </span>
                 <strong>{{ eventTitle(event) }}</strong>
                 <time>
                   {{ peakLabel(event) }} UTC
-                  <span>· {{ localPeakLabel(event) }} heure locale</span>
+                  <span>· {{ localPeakLabel(event) }} {{ t.eclipses.localHour }}</span>
                 </time>
                 <small>
-                  Maximum mondial · {{ obscurationLabel(event) }}
+                  {{ t.eclipses.globalMaximum }} · {{ obscurationLabel(event) }}
                   @if (durationLabel(event); as duration) {
-                    · phase {{ duration }}
+                    · {{ t.eclipses.phase }} {{ duration }}
                   }
                 </small>
               </span>
@@ -78,13 +134,13 @@
                     type="button"
                     class="observer-action"
                     [attr.aria-label]="
-                      'Observer ' + eventTitle(event) + ' depuis le corridor central'
+                      i18n.interpolate(t.eclipses.observeCentral, { event: eventTitle(event) })
                     "
                     (click)="observe(event)"
                   >
                     <span aria-hidden="true">◎</span>
                     <span>
-                      <strong>Vue depuis le sol</strong>
+                      <strong>{{ t.eclipses.groundView }}</strong>
                       <small>{{ coordinatesLabel(event) }}</small>
                     </span>
                   </button>
@@ -92,25 +148,30 @@
                 <button
                   type="button"
                   class="observer-action observer-action--local"
-                  [disabled]="facade.localEclipseLoading()"
+                  [disabled]="facade.localEclipseLoading() || !selectedLocation()"
                   [attr.aria-label]="
-                    'Voir le maximum local de ' +
-                    eventTitle(event) +
-                    ', ' +
-                    peakLabel(event) +
-                    ' UTC, depuis ' +
-                    selectedLocation().name
+                    i18n.interpolate(t.eclipses.localMaximumAria, {
+                      event: eventTitle(event),
+                      date: peakLabel(event),
+                      location: selectedLocationName(),
+                    })
                   "
                   (click)="viewLocal(event)"
                 >
                   <span aria-hidden="true">⌖</span>
                   <span>
-                    <strong>Maximum depuis {{ selectedLocation().name }}</strong>
+                    <strong>
+                      {{
+                        i18n.interpolate(t.eclipses.maximumFrom, {
+                          location: selectedLocationName(),
+                        })
+                      }}
+                    </strong>
                     <small>
                       {{
                         facade.localEclipseLoading()
-                          ? 'Calcul en cours…'
-                          : 'Horaire et occultation locale'
+                          ? t.eclipses.calculating
+                          : t.eclipses.localTimeAndObscuration
                       }}
                     </small>
                   </span>
@@ -122,8 +183,6 @@
       </ul>
     }
 
-    <footer>
-      Positions calculées · reconstruction approximative · événements terrestres uniquement
-    </footer>
+    <footer>{{ t.eclipses.footer }}</footer>
   </section>
 }

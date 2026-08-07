@@ -19,9 +19,12 @@ describe('URL partageable', () => {
     showOrbits: true,
     showConstellations: false,
     showLabels: false,
+    view: 'planetarium',
+    observerLocationId: 'geonames-1850147',
   };
 
   beforeEach(() => {
+    window.history.replaceState(null, '', '/');
     TestBed.configureTestingModule({ providers: [NavigationUrlService] });
   });
 
@@ -36,6 +39,8 @@ describe('URL partageable', () => {
     expect(url.searchParams.get('labels')).toBe('0');
     expect(url.searchParams.get('density')).toBe('dense');
     expect(url.searchParams.get('constellations')).toBe('0');
+    expect(url.searchParams.get('view')).toBe('planetarium');
+    expect(url.searchParams.get('observer')).toBe('geonames-1850147');
     expect(url.searchParams.get('debug')).toBe('true');
   });
 
@@ -48,6 +53,8 @@ describe('URL partageable', () => {
     expect(parsed.julianDay).toBeCloseTo(state.julianDay, 6);
     expect(parsed.quality).toBe('medium');
     expect(parsed.labelDensity).toBe('dense');
+    expect(parsed.view).toBe('planetarium');
+    expect(parsed.observerLocationId).toBe('geonames-1850147');
   });
 
   it('accepte directement un jour julien', () => {
@@ -76,7 +83,7 @@ describe('URL partageable', () => {
     expect(
       parseNavigationState(
         new URL(
-          'https://example.test/?target=&selected=&time=incorrect&zoom=0&mode=other&quality=ultra&density=packed&orbits=0&constellations=1&labels=1',
+          'https://example.test/?target=&selected=&time=incorrect&zoom=0&mode=other&quality=ultra&density=packed&orbits=0&constellations=1&labels=1&view=other&observer=',
         ),
       ),
     ).toEqual({
@@ -85,14 +92,15 @@ describe('URL partageable', () => {
       showOrbits: false,
       showConstellations: true,
       showLabels: true,
+      observerLocationId: null,
     });
     expect(
       parseNavigationState(
         new URL(
-          'https://example.test/?time=2026-08-12T17:45:00Z&zoom=Infinity&mode=state&quality=low',
+          'https://example.test/?time=2026-08-12T17:45:00Z&zoom=Infinity&mode=state&quality=low&view=map',
         ),
       ),
-    ).toMatchObject({ mode: 'state', quality: 'low' });
+    ).toMatchObject({ mode: 'state', quality: 'low', view: 'map' });
     expect(
       parseNavigationState(
         new URL('https://example.test/?quality=high&density=balanced&orbits=1&labels=0'),
@@ -148,6 +156,43 @@ describe('URL partageable', () => {
       replaceState.mockRestore();
       vi.useRealTimers();
     }
+  });
+
+  it('conserve la vue la plus récente malgré une écriture de caméra déjà planifiée', () => {
+    vi.useFakeTimers();
+    const service = TestBed.inject(NavigationUrlService);
+
+    try {
+      service.scheduleWrite({ ...state, view: 'map', observerLocationId: 'paris' });
+      service.updateViewContext('planetarium', 'geonames-1850147');
+
+      expect(new URL(window.location.href).searchParams.get('view')).toBe('planetarium');
+      expect(new URL(window.location.href).searchParams.get('observer')).toBe('geonames-1850147');
+
+      vi.advanceTimersByTime(350);
+
+      expect(new URL(window.location.href).searchParams.get('view')).toBe('planetarium');
+      expect(new URL(window.location.href).searchParams.get('observer')).toBe('geonames-1850147');
+      expect(
+        new URL(service.createShareUrl({ ...state, view: 'map' })).searchParams.get('view'),
+      ).toBe('planetarium');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('préserve les paramètres de vue si un ancien état ne les fournit pas', () => {
+    const legacyState: NavigationState = { ...state };
+
+    delete legacyState.view;
+    delete legacyState.observerLocationId;
+    const url = serializeNavigationState(
+      legacyState,
+      new URL('https://example.test/?view=planetarium&observer=paris'),
+    );
+
+    expect(url.searchParams.get('view')).toBe('planetarium');
+    expect(url.searchParams.get('observer')).toBe('paris');
   });
 
   it('annule une écriture différée déjà vidée et accepte un flush sans état', () => {

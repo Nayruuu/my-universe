@@ -8,6 +8,12 @@ import {
 import { CoordinateSystem } from '../coordinates/coordinate-system';
 import type { CosmicStructureCatalog } from '../loaders/cosmic-structure-catalog';
 import type { LabelObject } from './label-manager';
+import {
+  cosmicStructureAliases,
+  cosmicStructureDescription,
+  cosmicStructureName,
+  cosmicStructureScore,
+} from './cosmic-structure-catalog-presentation';
 
 const DEFAULT_MAXIMUM_LABEL_RANK = 600;
 const STRUCTURE_COLORS = {
@@ -87,8 +93,8 @@ export class CosmicStructureCatalogRegistry {
 
       return {
         id,
-        name: `${source.objectNamePrefix} ${identifier}`,
-        aliases: [identifier, `${source.id} ${identifier}`],
+        name: cosmicStructureName(source, identifier),
+        aliases: cosmicStructureAliases(source, identifier),
         type: toSpaceObjectType(structureType),
         parentName: `Réseau cosmique · ${source.name}`,
         keywords: [
@@ -115,7 +121,7 @@ export class CosmicStructureCatalogRegistry {
 
       return {
         id: this.objectIds[recordIndex]!,
-        name: `${source.objectNamePrefix} ${this.catalog.identifiers[recordIndex]!}`,
+        name: cosmicStructureName(source, this.catalog.identifiers[recordIndex]!),
         type: toSpaceObjectType(structureType),
         metadata: {
           cosmicStructureRank: rank,
@@ -145,13 +151,13 @@ export class CosmicStructureCatalogRegistry {
 
     return {
       id: this.objectIds[index]!,
-      name: `${source.objectNamePrefix} ${identifier}`,
-      aliases: [identifier, `${source.id} ${identifier}`],
+      name: cosmicStructureName(source, identifier),
+      aliases: cosmicStructureAliases(source, identifier),
       type: toSpaceObjectType(structureType),
       parentId: 'cosmic-web',
       referenceFrame: 'cosmic-web',
       scientificConfidence: source.scientificConfidence,
-      description: structureDescription(structureType),
+      description: cosmicStructureDescription(structureType),
       referenceEpoch: catalog.referenceEpochJulianDay,
       visual: {
         color: STRUCTURE_COLORS[structureType],
@@ -185,13 +191,18 @@ export class CosmicStructureCatalogRegistry {
           ? { memberGalaxyCount: catalog.galaxyCounts[index]! }
           : {}),
         catalogConfidence: catalog.confidences[index]!,
-        surveyEdge: (catalog.flags[index]! & 1) === 1,
+        ...(source.confidenceMeaning ? { catalogConfidenceMeaning: source.confidenceMeaning } : {}),
+        ...(source.extentMeaning ? { extentMeaning: source.extentMeaning } : {}),
+        ...(source.mapPriority ? { mapPriority: source.mapPriority } : {}),
+        ...(structureType === 'supercluster'
+          ? { surveyEdge: (catalog.flags[index]! & 1) === 1 }
+          : {}),
         ...(Number.isNaN(densityContrast) ? {} : { densityContrast }),
         ...(Number.isNaN(boundaryDistanceMpc) ? {} : { boundaryDistanceMpc }),
         ...(sample ? { sample } : {}),
         visualAdaptation:
           structureType === 'filament'
-            ? 'Centre de l’enveloppe et symbole GPU adaptés ; la spine continue n’est pas représentée par ce symbole.'
+            ? 'Centre et symbole GPU adaptés ; l’épine 3D relie les points publiés sans lisser ni prétendre représenter la largeur physique.'
             : 'Symbole GPU et rayon de cadrage adaptés ; la détection source reste distincte des autres catalogues.',
       },
     };
@@ -213,21 +224,11 @@ function createObjectId(sourceId: string, identifier: string): string {
 
 function createLabelRanking(catalog: CosmicStructureCatalog): readonly number[] {
   return Array.from({ length: catalog.count }, (_, index) => index).sort((left, right) => {
-    const scoreDifference = structureScore(catalog, right) - structureScore(catalog, left);
+    const scoreDifference =
+      cosmicStructureScore(catalog, right) - cosmicStructureScore(catalog, left);
 
     return scoreDifference || left - right;
   });
-}
-
-function structureScore(catalog: CosmicStructureCatalog, index: number): number {
-  const typeWeight = catalog.structureTypes[index] === 'supercluster' ? 1.25 : 1;
-
-  return (
-    typeWeight *
-    (1 + Math.log1p(catalog.galaxyCounts[index]!)) *
-    (1 + catalog.radiiMpc[index]! / 25) *
-    catalog.confidences[index]!
-  );
 }
 
 function toSpaceObjectType(structureType: CosmicStructureType): SpaceObjectType {
@@ -243,17 +244,6 @@ function toSpaceObjectType(structureType: CosmicStructureType): SpaceObjectType 
   };
 
   return types[structureType];
-}
-
-function structureDescription(structureType: CosmicStructureType): string {
-  if (structureType === 'void') {
-    return 'Région sous-dense identifiée dans un relevé de galaxies par une méthode statistique documentée. Son centre et son rayon dépendent du relevé, du modèle cosmologique et de l’algorithme employés.';
-  }
-  if (structureType === 'filament') {
-    return 'Filament extrait de la distribution tridimensionnelle des galaxies par une méthode statistique publiée. Le symbole indique le centre de son enveloppe cataloguée, pas la largeur physique du filament.';
-  }
-
-  return 'Structure de galaxies identifiée dans un champ de densité publié. Cette fiche représente une détection de catalogue, qui peut recouvrir des détections issues d’autres méthodes.';
 }
 
 function voidSample(identifier: string): string {

@@ -39,6 +39,13 @@ describe('MilkyWayVolume', () => {
     expect(sample.scale).toBeGreaterThan(0.16);
     expect(sample.scale).toBeLessThan(1);
 
+    sampleMilkyWayVolume(14_500, sample);
+    expect(sample.opacity).toBeGreaterThan(0.15);
+    expect(sample.scale).toBeGreaterThan(0.28);
+
+    sampleMilkyWayVolume(15_000, sample);
+    expect(sample.opacity).toBeGreaterThan(0.08);
+
     sampleMilkyWayVolume(17_000, sample);
     expect(sample.opacity).toBe(0);
     expect(sample.scale).toBeCloseTo(0.16, 6);
@@ -64,11 +71,14 @@ describe('MilkyWayVolume', () => {
 
     expect(volume.root.userData['scientificConfidence']).toBe('illustrative');
     expect(volume.root.userData['visualStructure']).toBe(
-      'cinematic-volume-with-view-parallax-and-dust-absorption',
+      'asymmetric-continuous-four-arm-galactic-disc',
     );
     expect(volume.root.userData['atlasUrl']).toBe(MILKY_WAY_ATLAS_URL);
     expect(volume.root.userData['depthTechnique']).toBe(
-      'view-dependent-atlas-parallax-and-three-offset-discs',
+      'domain-warped-atlas-parallax-with-dust-rifts',
+    );
+    expect(volume.root.userData['morphologyModel']).toBe(
+      'barred-spiral-with-two-major-and-two-minor-arms',
     );
     expect(base).toBeInstanceOf(THREE.Mesh);
     expect(upper).toBeInstanceOf(THREE.Mesh);
@@ -105,17 +115,17 @@ describe('MilkyWayVolume', () => {
     volume.update(9_600, 10);
     volume.setQuality('low');
     expect(volume.visibleDiscLayerCount).toBe(1);
-    expect(texture.anisotropy).toBe(1);
+    expect(texture.anisotropy).toBe(2);
     const lowProfile = readCinematicUniforms(volume);
 
     volume.setQuality('medium');
     expect(volume.visibleDiscLayerCount).toBe(2);
-    expect(texture.anisotropy).toBe(2);
+    expect(texture.anisotropy).toBe(8);
     const mediumProfile = readCinematicUniforms(volume);
 
     volume.setQuality('high');
     expect(volume.visibleDiscLayerCount).toBe(3);
-    expect(texture.anisotropy).toBe(4);
+    expect(texture.anisotropy).toBe(16);
     expect(volume.drawMeshCount).toBe(4);
     const highProfile = readCinematicUniforms(volume);
 
@@ -130,6 +140,10 @@ describe('MilkyWayVolume', () => {
     >;
 
     expect(base.material.fragmentShader).toContain('viewParallax');
+    expect(base.material.fragmentShader).toContain('domainWarp');
+    expect(base.material.fragmentShader).toContain('spiralPhase');
+    expect(base.material.fragmentShader).toContain('continuousEmission');
+    expect(base.material.fragmentShader).toContain('dustRift');
     expect(base.material.fragmentShader).toContain('dustAbsorption');
     expect(base.material.fragmentShader).toContain('colorGradeStrength');
 

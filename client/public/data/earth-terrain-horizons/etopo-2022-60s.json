@@ -1,0 +1,3728 @@
+{
+  "schema": "universe-map/earth-terrain-horizons@2",
+  "generatedAt": "2026-08-26T00:00:00.000Z",
+  "dataClassification": "calculated-from-measured-global-relief-model",
+  "source": {
+    "id": "noaa-ncei-etopo-2022-v1-60s-surface",
+    "title": "NOAA/NCEI ETOPO 2022 v1 60 arc-second surface elevation",
+    "productUrl": "https://www.ncei.noaa.gov/products/etopo-global-relief-model",
+    "dataUrl": "https://www.ngdc.noaa.gov/mgg/global/relief/ETOPO2022/data/60s/60s_surface_elev_gtif/ETOPO_2022_v1_60s_N90W180_surface.tif",
+    "doi": "https://doi.org/10.25921/fd45-gt74",
+    "horizontalDatum": "WGS 84 geographic coordinates",
+    "verticalDatum": "EGM2008",
+    "resolutionArcSeconds": 60
+  },
+  "calculation": {
+    "model": "spherical-geometric-line-of-sight",
+    "earthRadiusMeters": 6371008.8,
+    "observerEyeHeightMeters": 2,
+    "maximumDistanceMeters": 300000,
+    "sampleStepMeters": 1852,
+    "azimuthStepDegrees": 1,
+    "distanceBands": [
+      { "id": "near", "minimumDistanceMeters": 0, "maximumDistanceMeters": 30000 },
+      { "id": "mid", "minimumDistanceMeters": 30000, "maximumDistanceMeters": 100000 },
+      { "id": "far", "minimumDistanceMeters": 100000, "maximumDistanceMeters": 300000 }
+    ],
+    "atmosphericRefraction": "excluded",
+    "terrainInterpolation": "bilinear",
+    "locationAnchor": "catalogued-city-center"
+  },
+  "binary": {
+    "file": "etopo-2022-60s.bin",
+    "byteLength": 995760,
+    "sha256": "007faf15741991374d5d0dd34bb430dcc9f0ed3c64f426c6413fc1d0a2827569",
+    "encoding": "int16-le-centidegrees-distance-band-major"
+  },
+  "profileCount": 461,
+  "profiles": [
+    {
+      "locationId": "paris",
+      "latitude": 48.8566,
+      "longitude": 2.3522,
+      "observerElevationMeters": 43,
+      "sampleOffset": 0,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3041563",
+      "latitude": 42.50779,
+      "longitude": 1.52109,
+      "observerElevationMeters": 1219.8,
+      "sampleOffset": 1080,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-292968",
+      "latitude": 24.45118,
+      "longitude": 54.39696,
+      "observerElevationMeters": 5.2,
+      "sampleOffset": 2160,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1138958",
+      "latitude": 34.52813,
+      "longitude": 69.17233,
+      "observerElevationMeters": 1813.2,
+      "sampleOffset": 3240,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1140026",
+      "latitude": 34.34817,
+      "longitude": 62.19967,
+      "observerElevationMeters": 929.9,
+      "sampleOffset": 4320,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3576022",
+      "latitude": 17.12096,
+      "longitude": -61.84329,
+      "observerElevationMeters": 16.6,
+      "sampleOffset": 5400,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3573374",
+      "latitude": 18.21704,
+      "longitude": -63.05783,
+      "observerElevationMeters": 35.1,
+      "sampleOffset": 6480,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3183875",
+      "latitude": 41.32744,
+      "longitude": 19.81866,
+      "observerElevationMeters": 111.5,
+      "sampleOffset": 7560,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-616052",
+      "latitude": 40.17765,
+      "longitude": 44.5126,
+      "observerElevationMeters": 1005.4,
+      "sampleOffset": 8640,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2240449",
+      "latitude": -8.83682,
+      "longitude": 13.23432,
+      "observerElevationMeters": 61,
+      "sampleOffset": 9720,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3347762",
+      "latitude": -14.91717,
+      "longitude": 13.4925,
+      "observerElevationMeters": 1763,
+      "sampleOffset": 10800,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3435910",
+      "latitude": -34.61315,
+      "longitude": -58.37723,
+      "observerElevationMeters": 21.8,
+      "sampleOffset": 11880,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3860259",
+      "latitude": -31.40648,
+      "longitude": -64.18853,
+      "observerElevationMeters": 402.8,
+      "sampleOffset": 12960,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3838583",
+      "latitude": -32.94682,
+      "longitude": -60.63932,
+      "observerElevationMeters": 25.5,
+      "sampleOffset": 14040,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3430863",
+      "latitude": -38.00042,
+      "longitude": -57.5562,
+      "observerElevationMeters": 16.7,
+      "sampleOffset": 15120,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-5881576",
+      "latitude": -14.27806,
+      "longitude": -170.7025,
+      "observerElevationMeters": 128.1,
+      "sampleOffset": 16200,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2761369",
+      "latitude": 48.20849,
+      "longitude": 16.37208,
+      "observerElevationMeters": 183.4,
+      "sampleOffset": 17280,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2172517",
+      "latitude": -35.28346,
+      "longitude": 149.12807,
+      "observerElevationMeters": 568.4,
+      "sampleOffset": 18360,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2147714",
+      "latitude": -33.86785,
+      "longitude": 151.20732,
+      "observerElevationMeters": 21.1,
+      "sampleOffset": 19440,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2158177",
+      "latitude": -37.814,
+      "longitude": 144.96332,
+      "observerElevationMeters": 25.4,
+      "sampleOffset": 20520,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2174003",
+      "latitude": -27.46794,
+      "longitude": 153.02809,
+      "observerElevationMeters": 21,
+      "sampleOffset": 21600,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2063523",
+      "latitude": -31.95224,
+      "longitude": 115.8614,
+      "observerElevationMeters": 14.9,
+      "sampleOffset": 22680,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2078025",
+      "latitude": -34.92866,
+      "longitude": 138.59863,
+      "observerElevationMeters": 42.1,
+      "sampleOffset": 23760,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2163355",
+      "latitude": -42.87936,
+      "longitude": 147.32941,
+      "observerElevationMeters": 22,
+      "sampleOffset": 24840,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2146142",
+      "latitude": -19.26639,
+      "longitude": 146.80569,
+      "observerElevationMeters": 31.7,
+      "sampleOffset": 25920,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3577154",
+      "latitude": 12.52398,
+      "longitude": -70.02703,
+      "observerElevationMeters": 12.1,
+      "sampleOffset": 27000,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3041732",
+      "latitude": 60.09726,
+      "longitude": 19.93481,
+      "observerElevationMeters": 11.1,
+      "sampleOffset": 28080,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-587084",
+      "latitude": 40.37767,
+      "longitude": 49.89201,
+      "observerElevationMeters": -16.8,
+      "sampleOffset": 29160,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-586523",
+      "latitude": 40.68157,
+      "longitude": 46.36134,
+      "observerElevationMeters": 420.1,
+      "sampleOffset": 30240,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3191281",
+      "latitude": 43.84864,
+      "longitude": 18.35644,
+      "observerElevationMeters": 569.6,
+      "sampleOffset": 31320,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3374036",
+      "latitude": 13.10732,
+      "longitude": -59.62021,
+      "observerElevationMeters": 5.7,
+      "sampleOffset": 32400,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1185241",
+      "latitude": 23.7104,
+      "longitude": 90.40744,
+      "observerElevationMeters": 11.3,
+      "sampleOffset": 33480,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1205733",
+      "latitude": 22.3384,
+      "longitude": 91.83168,
+      "observerElevationMeters": 14.2,
+      "sampleOffset": 34560,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1336135",
+      "latitude": 22.80979,
+      "longitude": 89.56439,
+      "observerElevationMeters": 6.2,
+      "sampleOffset": 35640,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1185188",
+      "latitude": 25.74664,
+      "longitude": 89.25166,
+      "observerElevationMeters": 34.7,
+      "sampleOffset": 36720,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1185128",
+      "latitude": 24.374,
+      "longitude": 88.60114,
+      "observerElevationMeters": 20.5,
+      "sampleOffset": 37800,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1185186",
+      "latitude": 23.46186,
+      "longitude": 91.18503,
+      "observerElevationMeters": 11.6,
+      "sampleOffset": 38880,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1185107",
+      "latitude": 25.00146,
+      "longitude": 89.32266,
+      "observerElevationMeters": 21.1,
+      "sampleOffset": 39960,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1336134",
+      "latitude": 21.43973,
+      "longitude": 92.00955,
+      "observerElevationMeters": 5.5,
+      "sampleOffset": 41040,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2800866",
+      "latitude": 50.85045,
+      "longitude": 4.34878,
+      "observerElevationMeters": 30,
+      "sampleOffset": 42120,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2803138",
+      "latitude": 51.22047,
+      "longitude": 4.40026,
+      "observerElevationMeters": 6.9,
+      "sampleOffset": 43200,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2357048",
+      "latitude": 12.36566,
+      "longitude": -1.53388,
+      "observerElevationMeters": 300.2,
+      "sampleOffset": 44280,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2362344",
+      "latitude": 11.18064,
+      "longitude": -4.29489,
+      "observerElevationMeters": 422.2,
+      "sampleOffset": 45360,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-727011",
+      "latitude": 42.69751,
+      "longitude": 23.32415,
+      "observerElevationMeters": 549.1,
+      "sampleOffset": 46440,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-290340",
+      "latitude": 26.22787,
+      "longitude": 50.58565,
+      "observerElevationMeters": 5.3,
+      "sampleOffset": 47520,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-426272",
+      "latitude": -3.42708,
+      "longitude": 29.92463,
+      "observerElevationMeters": 1658.7,
+      "sampleOffset": 48600,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-425378",
+      "latitude": -3.38193,
+      "longitude": 29.36142,
+      "observerElevationMeters": 799.8,
+      "sampleOffset": 49680,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2392087",
+      "latitude": 6.49646,
+      "longitude": 2.60359,
+      "observerElevationMeters": 18.5,
+      "sampleOffset": 50760,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2392204",
+      "latitude": 9.33716,
+      "longitude": 2.63031,
+      "observerElevationMeters": 362.9,
+      "sampleOffset": 51840,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3579132",
+      "latitude": 17.89618,
+      "longitude": -62.84978,
+      "observerElevationMeters": 30,
+      "sampleOffset": 52920,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3573197",
+      "latitude": 32.2949,
+      "longitude": -64.78303,
+      "observerElevationMeters": 10.2,
+      "sampleOffset": 54000,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1820906",
+      "latitude": 4.89035,
+      "longitude": 114.94006,
+      "observerElevationMeters": 15.2,
+      "sampleOffset": 55080,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3903987",
+      "latitude": -19.03332,
+      "longitude": -65.26274,
+      "observerElevationMeters": 2813.9,
+      "sampleOffset": 56160,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3911925",
+      "latitude": -16.5,
+      "longitude": -68.15,
+      "observerElevationMeters": 3836.4,
+      "sampleOffset": 57240,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3513563",
+      "latitude": 12.15,
+      "longitude": -68.26667,
+      "observerElevationMeters": -3.8,
+      "sampleOffset": 58320,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3469058",
+      "latitude": -15.77972,
+      "longitude": -47.92972,
+      "observerElevationMeters": 1140.5,
+      "sampleOffset": 59400,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3448439",
+      "latitude": -23.5475,
+      "longitude": -46.63611,
+      "observerElevationMeters": 749.7,
+      "sampleOffset": 60480,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3451190",
+      "latitude": -22.90642,
+      "longitude": -43.18223,
+      "observerElevationMeters": 11.2,
+      "sampleOffset": 61560,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3470127",
+      "latitude": -19.92083,
+      "longitude": -43.93778,
+      "observerElevationMeters": 864.6,
+      "sampleOffset": 62640,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3450554",
+      "latitude": -12.97563,
+      "longitude": -38.49096,
+      "observerElevationMeters": 43.4,
+      "sampleOffset": 63720,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3399415",
+      "latitude": -3.71722,
+      "longitude": -38.54306,
+      "observerElevationMeters": 8.5,
+      "sampleOffset": 64800,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3663517",
+      "latitude": -3.10194,
+      "longitude": -60.025,
+      "observerElevationMeters": 39.9,
+      "sampleOffset": 65880,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3464975",
+      "latitude": -25.42778,
+      "longitude": -49.27306,
+      "observerElevationMeters": 912.5,
+      "sampleOffset": 66960,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3571824",
+      "latitude": 25.05823,
+      "longitude": -77.34306,
+      "observerElevationMeters": 4.5,
+      "sampleOffset": 68040,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1252416",
+      "latitude": 27.46609,
+      "longitude": 89.64191,
+      "observerElevationMeters": 2408.5,
+      "sampleOffset": 69120,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-933773",
+      "latitude": -24.65451,
+      "longitude": 25.90859,
+      "observerElevationMeters": 1007.1,
+      "sampleOffset": 70200,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-933778",
+      "latitude": -21.17,
+      "longitude": 27.50778,
+      "observerElevationMeters": 990.5,
+      "sampleOffset": 71280,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-625144",
+      "latitude": 53.90019,
+      "longitude": 27.56653,
+      "observerElevationMeters": 207.3,
+      "sampleOffset": 72360,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3582672",
+      "latitude": 17.25376,
+      "longitude": -88.76401,
+      "observerElevationMeters": 61.5,
+      "sampleOffset": 73440,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-6094817",
+      "latitude": 45.41117,
+      "longitude": -75.69812,
+      "observerElevationMeters": 68.8,
+      "sampleOffset": 74520,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-6167865",
+      "latitude": 43.70643,
+      "longitude": -79.39864,
+      "observerElevationMeters": 164.9,
+      "sampleOffset": 75600,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-6077243",
+      "latitude": 45.50884,
+      "longitude": -73.58781,
+      "observerElevationMeters": 130.8,
+      "sampleOffset": 76680,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-5913490",
+      "latitude": 51.05011,
+      "longitude": -114.08529,
+      "observerElevationMeters": 1060.4,
+      "sampleOffset": 77760,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-5946768",
+      "latitude": 53.55014,
+      "longitude": -113.46871,
+      "observerElevationMeters": 648.9,
+      "sampleOffset": 78840,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-6183235",
+      "latitude": 49.8844,
+      "longitude": -97.14704,
+      "observerElevationMeters": 234,
+      "sampleOffset": 79920,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-6173331",
+      "latitude": 49.24966,
+      "longitude": -123.11934,
+      "observerElevationMeters": 69.3,
+      "sampleOffset": 81000,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-6325494",
+      "latitude": 46.81228,
+      "longitude": -71.21454,
+      "observerElevationMeters": 42.2,
+      "sampleOffset": 82080,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-7304591",
+      "latitude": -12.15681,
+      "longitude": 96.82251,
+      "observerElevationMeters": -137.3,
+      "sampleOffset": 83160,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2314302",
+      "latitude": -4.32758,
+      "longitude": 15.31357,
+      "observerElevationMeters": 282.6,
+      "sampleOffset": 84240,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-922704",
+      "latitude": -11.66089,
+      "longitude": 27.47938,
+      "observerElevationMeters": 1247.6,
+      "sampleOffset": 85320,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-209228",
+      "latitude": -6.13603,
+      "longitude": 23.58979,
+      "observerElevationMeters": 632.3,
+      "sampleOffset": 86400,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-212730",
+      "latitude": 0.51528,
+      "longitude": 25.19099,
+      "observerElevationMeters": 389.9,
+      "sampleOffset": 87480,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2389853",
+      "latitude": 4.36122,
+      "longitude": 18.55496,
+      "observerElevationMeters": 348.4,
+      "sampleOffset": 88560,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2387495",
+      "latitude": 4.94273,
+      "longitude": 15.87735,
+      "observerElevationMeters": 533.9,
+      "sampleOffset": 89640,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2260535",
+      "latitude": -4.26613,
+      "longitude": 15.28318,
+      "observerElevationMeters": 284.6,
+      "sampleOffset": 90720,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2661552",
+      "latitude": 46.94809,
+      "longitude": 7.44744,
+      "observerElevationMeters": 540.2,
+      "sampleOffset": 91800,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2279755",
+      "latitude": 6.82055,
+      "longitude": -5.27674,
+      "observerElevationMeters": 210,
+      "sampleOffset": 92880,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2293538",
+      "latitude": 5.35444,
+      "longitude": -4.00167,
+      "observerElevationMeters": 46.2,
+      "sampleOffset": 93960,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-4035715",
+      "latitude": -21.2075,
+      "longitude": -159.77546,
+      "observerElevationMeters": 1.6,
+      "sampleOffset": 95040,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3871336",
+      "latitude": -33.45694,
+      "longitude": -70.64827,
+      "observerElevationMeters": 547.9,
+      "sampleOffset": 96120,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3899539",
+      "latitude": -23.65094,
+      "longitude": -70.39752,
+      "observerElevationMeters": 40.8,
+      "sampleOffset": 97200,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2220957",
+      "latitude": 3.86667,
+      "longitude": 11.51667,
+      "observerElevationMeters": 730.9,
+      "sampleOffset": 98280,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2232593",
+      "latitude": 4.04827,
+      "longitude": 9.70428,
+      "observerElevationMeters": 14.1,
+      "sampleOffset": 99360,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1816670",
+      "latitude": 39.9075,
+      "longitude": 116.39723,
+      "observerElevationMeters": 46.9,
+      "sampleOffset": 100440,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1796236",
+      "latitude": 31.22222,
+      "longitude": 121.45806,
+      "observerElevationMeters": 4.8,
+      "sampleOffset": 101520,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1795565",
+      "latitude": 22.54554,
+      "longitude": 114.0683,
+      "observerElevationMeters": 15.6,
+      "sampleOffset": 102600,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1815286",
+      "latitude": 30.66667,
+      "longitude": 104.06667,
+      "observerElevationMeters": 499.5,
+      "sampleOffset": 103680,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1791247",
+      "latitude": 30.58333,
+      "longitude": 114.26667,
+      "observerElevationMeters": 25.5,
+      "sampleOffset": 104760,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1790630",
+      "latitude": 34.25833,
+      "longitude": 108.92861,
+      "observerElevationMeters": 408.2,
+      "sampleOffset": 105840,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1799962",
+      "latitude": 32.06167,
+      "longitude": 118.77778,
+      "observerElevationMeters": 15.4,
+      "sampleOffset": 106920,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1808926",
+      "latitude": 30.29365,
+      "longitude": 120.16142,
+      "observerElevationMeters": 8.1,
+      "sampleOffset": 108000,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3688689",
+      "latitude": 4.60971,
+      "longitude": -74.08175,
+      "observerElevationMeters": 2585.8,
+      "sampleOffset": 109080,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3687925",
+      "latitude": 3.43054,
+      "longitude": -76.5199,
+      "observerElevationMeters": 961.6,
+      "sampleOffset": 110160,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3621849",
+      "latitude": 9.93388,
+      "longitude": -84.08489,
+      "observerElevationMeters": 1140.9,
+      "sampleOffset": 111240,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3553478",
+      "latitude": 23.13302,
+      "longitude": -82.38304,
+      "observerElevationMeters": 14.5,
+      "sampleOffset": 112320,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3536729",
+      "latitude": 20.02287,
+      "longitude": -75.82171,
+      "observerElevationMeters": 33.5,
+      "sampleOffset": 113400,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3374333",
+      "latitude": 14.93152,
+      "longitude": -23.51254,
+      "observerElevationMeters": 56.6,
+      "sampleOffset": 114480,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3513090",
+      "latitude": 12.12246,
+      "longitude": -68.88641,
+      "observerElevationMeters": 24.5,
+      "sampleOffset": 115560,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2078127",
+      "latitude": -10.42172,
+      "longitude": 105.67912,
+      "observerElevationMeters": 131.2,
+      "sampleOffset": 116640,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-146268",
+      "latitude": 35.17284,
+      "longitude": 33.35397,
+      "observerElevationMeters": 153.2,
+      "sampleOffset": 117720,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3067696",
+      "latitude": 50.08804,
+      "longitude": 14.42076,
+      "observerElevationMeters": 210.9,
+      "sampleOffset": 118800,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3078610",
+      "latitude": 49.19522,
+      "longitude": 16.60796,
+      "observerElevationMeters": 218.5,
+      "sampleOffset": 119880,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2950159",
+      "latitude": 52.52437,
+      "longitude": 13.41053,
+      "observerElevationMeters": 43.5,
+      "sampleOffset": 120960,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2911298",
+      "latitude": 53.55073,
+      "longitude": 9.99302,
+      "observerElevationMeters": 9.4,
+      "sampleOffset": 122040,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2867714",
+      "latitude": 48.13743,
+      "longitude": 11.57549,
+      "observerElevationMeters": 522.8,
+      "sampleOffset": 123120,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2886242",
+      "latitude": 50.93333,
+      "longitude": 6.95,
+      "observerElevationMeters": 54.2,
+      "sampleOffset": 124200,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-223817",
+      "latitude": 11.58901,
+      "longitude": 43.14503,
+      "observerElevationMeters": 4.3,
+      "sampleOffset": 125280,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2618425",
+      "latitude": 55.67594,
+      "longitude": 12.56553,
+      "observerElevationMeters": 8.4,
+      "sampleOffset": 126360,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3575635",
+      "latitude": 15.30174,
+      "longitude": -61.38808,
+      "observerElevationMeters": -69.1,
+      "sampleOffset": 127440,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3492908",
+      "latitude": 18.47186,
+      "longitude": -69.89232,
+      "observerElevationMeters": 3.2,
+      "sampleOffset": 128520,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3492914",
+      "latitude": 19.45036,
+      "longitude": -70.69085,
+      "observerElevationMeters": 191.2,
+      "sampleOffset": 129600,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2507480",
+      "latitude": 36.73225,
+      "longitude": 3.08746,
+      "observerElevationMeters": 68.3,
+      "sampleOffset": 130680,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2485926",
+      "latitude": 35.69906,
+      "longitude": -0.63588,
+      "observerElevationMeters": 79,
+      "sampleOffset": 131760,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2501152",
+      "latitude": 36.365,
+      "longitude": 6.61472,
+      "observerElevationMeters": 587.8,
+      "sampleOffset": 132840,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2500017",
+      "latitude": 34.67279,
+      "longitude": 3.263,
+      "observerElevationMeters": 1146.9,
+      "sampleOffset": 133920,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3652462",
+      "latitude": -0.22985,
+      "longitude": -78.52495,
+      "observerElevationMeters": 2923.4,
+      "sampleOffset": 135000,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3657509",
+      "latitude": -2.19616,
+      "longitude": -79.88621,
+      "observerElevationMeters": 6.1,
+      "sampleOffset": 136080,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-588409",
+      "latitude": 59.43696,
+      "longitude": 24.75353,
+      "observerElevationMeters": 12.7,
+      "sampleOffset": 137160,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-360630",
+      "latitude": 30.06263,
+      "longitude": 31.24967,
+      "observerElevationMeters": 25.8,
+      "sampleOffset": 138240,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-361058",
+      "latitude": 31.20176,
+      "longitude": 29.91582,
+      "observerElevationMeters": 10.1,
+      "sampleOffset": 139320,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-358619",
+      "latitude": 31.26531,
+      "longitude": 32.3019,
+      "observerElevationMeters": 0.3,
+      "sampleOffset": 140400,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-359783",
+      "latitude": 27.18096,
+      "longitude": 31.18368,
+      "observerElevationMeters": 56.2,
+      "sampleOffset": 141480,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2462881",
+      "latitude": 27.1418,
+      "longitude": -13.18797,
+      "observerElevationMeters": 73.5,
+      "sampleOffset": 142560,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-343300",
+      "latitude": 15.33805,
+      "longitude": 38.93184,
+      "observerElevationMeters": 2334.4,
+      "sampleOffset": 143640,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3117735",
+      "latitude": 40.4165,
+      "longitude": -3.70256,
+      "observerElevationMeters": 646.3,
+      "sampleOffset": 144720,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3128760",
+      "latitude": 41.38879,
+      "longitude": 2.15899,
+      "observerElevationMeters": 41.9,
+      "sampleOffset": 145800,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-344979",
+      "latitude": 9.02497,
+      "longitude": 38.74689,
+      "observerElevationMeters": 2403.8,
+      "sampleOffset": 146880,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-333795",
+      "latitude": 9.35,
+      "longitude": 42.8,
+      "observerElevationMeters": 1648.4,
+      "sampleOffset": 147960,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-336014",
+      "latitude": 12.6,
+      "longitude": 37.46667,
+      "observerElevationMeters": 2127.7,
+      "sampleOffset": 149040,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-331180",
+      "latitude": 13.49667,
+      "longitude": 39.47528,
+      "observerElevationMeters": 2069.8,
+      "sampleOffset": 150120,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-658225",
+      "latitude": 60.16952,
+      "longitude": 24.93545,
+      "observerElevationMeters": 12.6,
+      "sampleOffset": 151200,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2198148",
+      "latitude": -18.13683,
+      "longitude": 178.42531,
+      "observerElevationMeters": 5.1,
+      "sampleOffset": 152280,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3426691",
+      "latitude": -51.69382,
+      "longitude": -57.85701,
+      "observerElevationMeters": 21.5,
+      "sampleOffset": 153360,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2081986",
+      "latitude": 6.92477,
+      "longitude": 158.16109,
+      "observerElevationMeters": 102.9,
+      "sampleOffset": 154440,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2611396",
+      "latitude": 62.00973,
+      "longitude": -6.77164,
+      "observerElevationMeters": 21.4,
+      "sampleOffset": 155520,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "marseille",
+      "latitude": 43.2965,
+      "longitude": 5.3698,
+      "observerElevationMeters": 21.6,
+      "sampleOffset": 156600,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "lyon",
+      "latitude": 45.764,
+      "longitude": 4.8357,
+      "observerElevationMeters": 190.2,
+      "sampleOffset": 157680,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "toulouse",
+      "latitude": 43.6047,
+      "longitude": 1.4442,
+      "observerElevationMeters": 147.5,
+      "sampleOffset": 158760,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "nantes",
+      "latitude": 47.2184,
+      "longitude": -1.5536,
+      "observerElevationMeters": 17.5,
+      "sampleOffset": 159840,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "strasbourg",
+      "latitude": 48.5734,
+      "longitude": 7.7521,
+      "observerElevationMeters": 142.5,
+      "sampleOffset": 160920,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "bordeaux",
+      "latitude": 44.8378,
+      "longitude": -0.5792,
+      "observerElevationMeters": 15.2,
+      "sampleOffset": 162000,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "grenoble",
+      "latitude": 45.1885,
+      "longitude": 5.7245,
+      "observerElevationMeters": 237.9,
+      "sampleOffset": 163080,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "clermont-ferrand",
+      "latitude": 45.7772,
+      "longitude": 3.087,
+      "observerElevationMeters": 387.6,
+      "sampleOffset": 164160,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "biarritz",
+      "latitude": 43.4832,
+      "longitude": -1.5586,
+      "observerElevationMeters": 28.1,
+      "sampleOffset": 165240,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2399697",
+      "latitude": 0.39241,
+      "longitude": 9.45356,
+      "observerElevationMeters": 12.8,
+      "sampleOffset": 166320,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2643743",
+      "latitude": 51.50853,
+      "longitude": -0.12574,
+      "observerElevationMeters": 19.4,
+      "sampleOffset": 167400,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2655603",
+      "latitude": 52.48142,
+      "longitude": -1.89983,
+      "observerElevationMeters": 124.2,
+      "sampleOffset": 168480,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2648579",
+      "latitude": 55.86515,
+      "longitude": -4.25763,
+      "observerElevationMeters": 32.5,
+      "sampleOffset": 169560,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2643123",
+      "latitude": 53.48095,
+      "longitude": -2.23743,
+      "observerElevationMeters": 43.9,
+      "sampleOffset": 170640,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3579925",
+      "latitude": 12.05288,
+      "longitude": -61.75226,
+      "observerElevationMeters": 26.3,
+      "sampleOffset": 171720,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-611717",
+      "latitude": 41.69143,
+      "longitude": 44.83412,
+      "observerElevationMeters": 457.6,
+      "sampleOffset": 172800,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3382160",
+      "latitude": 4.9381,
+      "longitude": -52.33455,
+      "observerElevationMeters": 5.2,
+      "sampleOffset": 173880,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3042287",
+      "latitude": 49.45981,
+      "longitude": -2.53527,
+      "observerElevationMeters": 24.7,
+      "sampleOffset": 174960,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2306104",
+      "latitude": 5.55602,
+      "longitude": -0.1969,
+      "observerElevationMeters": 21.2,
+      "sampleOffset": 176040,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2298890",
+      "latitude": 6.68848,
+      "longitude": -1.62443,
+      "observerElevationMeters": 268.9,
+      "sampleOffset": 177120,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2411585",
+      "latitude": 36.14474,
+      "longitude": -5.35257,
+      "observerElevationMeters": 21.2,
+      "sampleOffset": 178200,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3421319",
+      "latitude": 64.18347,
+      "longitude": -51.72157,
+      "observerElevationMeters": 5.9,
+      "sampleOffset": 179280,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3419842",
+      "latitude": 66.93946,
+      "longitude": -53.6735,
+      "observerElevationMeters": 22.2,
+      "sampleOffset": 180360,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3423146",
+      "latitude": 69.21981,
+      "longitude": -51.09861,
+      "observerElevationMeters": 29.8,
+      "sampleOffset": 181440,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3420846",
+      "latitude": 60.71839,
+      "longitude": -46.03561,
+      "observerElevationMeters": 26.1,
+      "sampleOffset": 182520,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2413876",
+      "latitude": 13.45274,
+      "longitude": -16.57803,
+      "observerElevationMeters": -2.1,
+      "sampleOffset": 183600,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2422465",
+      "latitude": 9.53795,
+      "longitude": -13.67729,
+      "observerElevationMeters": 8.2,
+      "sampleOffset": 184680,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2416969",
+      "latitude": 7.75624,
+      "longitude": -8.8179,
+      "observerElevationMeters": 476.6,
+      "sampleOffset": 185760,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3579732",
+      "latitude": 15.99714,
+      "longitude": -61.73214,
+      "observerElevationMeters": -34,
+      "sampleOffset": 186840,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-12226438",
+      "latitude": 1.5925,
+      "longitude": 10.82361,
+      "observerElevationMeters": 642.2,
+      "sampleOffset": 187920,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-264371",
+      "latitude": 37.98376,
+      "longitude": 23.72784,
+      "observerElevationMeters": 84.1,
+      "sampleOffset": 189000,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-734077",
+      "latitude": 40.64072,
+      "longitude": 22.93493,
+      "observerElevationMeters": 23,
+      "sampleOffset": 190080,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3426466",
+      "latitude": -54.28111,
+      "longitude": -36.5092,
+      "observerElevationMeters": 135.3,
+      "sampleOffset": 191160,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3598132",
+      "latitude": 14.64072,
+      "longitude": -90.51327,
+      "observerElevationMeters": 1488.5,
+      "sampleOffset": 192240,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3598119",
+      "latitude": 15.47025,
+      "longitude": -90.37455,
+      "observerElevationMeters": 1330.2,
+      "sampleOffset": 193320,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-4044012",
+      "latitude": 13.47567,
+      "longitude": 144.74886,
+      "observerElevationMeters": 8.1,
+      "sampleOffset": 194400,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2374775",
+      "latitude": 11.86357,
+      "longitude": -15.59767,
+      "observerElevationMeters": 19,
+      "sampleOffset": 195480,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3378644",
+      "latitude": 6.80448,
+      "longitude": -58.15527,
+      "observerElevationMeters": 3.1,
+      "sampleOffset": 196560,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1819729",
+      "latitude": 22.27832,
+      "longitude": 114.17469,
+      "observerElevationMeters": 60.7,
+      "sampleOffset": 197640,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3600949",
+      "latitude": 14.0818,
+      "longitude": -87.20681,
+      "observerElevationMeters": 962.4,
+      "sampleOffset": 198720,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3186886",
+      "latitude": 45.81444,
+      "longitude": 15.97798,
+      "observerElevationMeters": 141,
+      "sampleOffset": 199800,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3718426",
+      "latitude": 18.54349,
+      "longitude": -72.33881,
+      "observerElevationMeters": 26.4,
+      "sampleOffset": 200880,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3718420",
+      "latitude": 19.93984,
+      "longitude": -72.83037,
+      "observerElevationMeters": 1.6,
+      "sampleOffset": 201960,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3054643",
+      "latitude": 47.49835,
+      "longitude": 19.04045,
+      "observerElevationMeters": 131.9,
+      "sampleOffset": 203040,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1642911",
+      "latitude": -6.21462,
+      "longitude": 106.84513,
+      "observerElevationMeters": 14.6,
+      "sampleOffset": 204120,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1625822",
+      "latitude": -7.24917,
+      "longitude": 112.75083,
+      "observerElevationMeters": 5.7,
+      "sampleOffset": 205200,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1214520",
+      "latitude": 3.58333,
+      "longitude": 98.66667,
+      "observerElevationMeters": 26.4,
+      "sampleOffset": 206280,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1633070",
+      "latitude": -2.91673,
+      "longitude": 104.7458,
+      "observerElevationMeters": 8.2,
+      "sampleOffset": 207360,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1627896",
+      "latitude": -6.99306,
+      "longitude": 110.42083,
+      "observerElevationMeters": 14.9,
+      "sampleOffset": 208440,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1622786",
+      "latitude": -5.14861,
+      "longitude": 119.43194,
+      "observerElevationMeters": 5.6,
+      "sampleOffset": 209520,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-6295587",
+      "latitude": 1.14937,
+      "longitude": 104.02491,
+      "observerElevationMeters": 24.6,
+      "sampleOffset": 210600,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1631761",
+      "latitude": 0.51667,
+      "longitude": 101.44167,
+      "observerElevationMeters": 15.3,
+      "sampleOffset": 211680,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2964574",
+      "latitude": 53.33306,
+      "longitude": -6.24889,
+      "observerElevationMeters": 14.9,
+      "sampleOffset": 212760,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-281184",
+      "latitude": 31.76904,
+      "longitude": 35.21633,
+      "observerElevationMeters": 761.6,
+      "sampleOffset": 213840,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3042237",
+      "latitude": 54.15,
+      "longitude": -4.48333,
+      "observerElevationMeters": 45.5,
+      "sampleOffset": 214920,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1261481",
+      "latitude": 28.62137,
+      "longitude": 77.2148,
+      "observerElevationMeters": 217.3,
+      "sampleOffset": 216000,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1275339",
+      "latitude": 19.07283,
+      "longitude": 72.88261,
+      "observerElevationMeters": 7.2,
+      "sampleOffset": 217080,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1277333",
+      "latitude": 12.97194,
+      "longitude": 77.59369,
+      "observerElevationMeters": 913.1,
+      "sampleOffset": 218160,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1269843",
+      "latitude": 17.38405,
+      "longitude": 78.45636,
+      "observerElevationMeters": 511.7,
+      "sampleOffset": 219240,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1279233",
+      "latitude": 23.02579,
+      "longitude": 72.58727,
+      "observerElevationMeters": 52.7,
+      "sampleOffset": 220320,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1264527",
+      "latitude": 13.08784,
+      "longitude": 80.27847,
+      "observerElevationMeters": 7.5,
+      "sampleOffset": 221400,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1275004",
+      "latitude": 22.56263,
+      "longitude": 88.36304,
+      "observerElevationMeters": 9.3,
+      "sampleOffset": 222480,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1255364",
+      "latitude": 21.19594,
+      "longitude": 72.83023,
+      "observerElevationMeters": 14.8,
+      "sampleOffset": 223560,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-7503195",
+      "latitude": -7.26229,
+      "longitude": 72.37676,
+      "observerElevationMeters": -12.9,
+      "sampleOffset": 224640,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-98182",
+      "latitude": 33.34058,
+      "longitude": 44.40088,
+      "observerElevationMeters": 37.4,
+      "sampleOffset": 225720,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-99071",
+      "latitude": 36.33271,
+      "longitude": 43.10555,
+      "observerElevationMeters": 249.2,
+      "sampleOffset": 226800,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-112931",
+      "latitude": 35.69439,
+      "longitude": 51.42151,
+      "observerElevationMeters": 1177.1,
+      "sampleOffset": 227880,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-124665",
+      "latitude": 36.29807,
+      "longitude": 59.60567,
+      "observerElevationMeters": 983.5,
+      "sampleOffset": 228960,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-418863",
+      "latitude": 32.65246,
+      "longitude": 51.67462,
+      "observerElevationMeters": 1574.5,
+      "sampleOffset": 230040,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-113646",
+      "latitude": 38.08,
+      "longitude": 46.2919,
+      "observerElevationMeters": 1393.8,
+      "sampleOffset": 231120,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3413829",
+      "latitude": 64.13548,
+      "longitude": -21.89541,
+      "observerElevationMeters": 27.3,
+      "sampleOffset": 232200,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3169070",
+      "latitude": 41.89193,
+      "longitude": 12.51133,
+      "observerElevationMeters": 49.9,
+      "sampleOffset": 233280,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3173435",
+      "latitude": 45.46427,
+      "longitude": 9.18951,
+      "observerElevationMeters": 127.5,
+      "sampleOffset": 234360,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3172394",
+      "latitude": 40.85216,
+      "longitude": 14.26811,
+      "observerElevationMeters": 25.5,
+      "sampleOffset": 235440,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3165524",
+      "latitude": 45.07049,
+      "longitude": 7.68682,
+      "observerElevationMeters": 238.2,
+      "sampleOffset": 236520,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3042091",
+      "latitude": 49.18804,
+      "longitude": -2.10491,
+      "observerElevationMeters": 28.7,
+      "sampleOffset": 237600,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3489854",
+      "latitude": 17.99702,
+      "longitude": -76.79358,
+      "observerElevationMeters": 60.2,
+      "sampleOffset": 238680,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-250441",
+      "latitude": 31.95522,
+      "longitude": 35.94503,
+      "observerElevationMeters": 807.1,
+      "sampleOffset": 239760,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1850147",
+      "latitude": 35.6895,
+      "longitude": 139.69171,
+      "observerElevationMeters": 39.5,
+      "sampleOffset": 240840,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1853909",
+      "latitude": 34.69379,
+      "longitude": 135.50107,
+      "observerElevationMeters": 8.1,
+      "sampleOffset": 241920,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1856057",
+      "latitude": 35.18147,
+      "longitude": 136.90641,
+      "observerElevationMeters": 12.5,
+      "sampleOffset": 243000,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2128295",
+      "latitude": 43.06667,
+      "longitude": 141.35,
+      "observerElevationMeters": 20.9,
+      "sampleOffset": 244080,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-184745",
+      "latitude": -1.28333,
+      "longitude": 36.81667,
+      "observerElevationMeters": 1686.7,
+      "sampleOffset": 245160,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-195272",
+      "latitude": 0.28422,
+      "longitude": 34.75229,
+      "observerElevationMeters": 1534.4,
+      "sampleOffset": 246240,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-186301",
+      "latitude": -4.05466,
+      "longitude": 39.66359,
+      "observerElevationMeters": 18.7,
+      "sampleOffset": 247320,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-197745",
+      "latitude": -0.45275,
+      "longitude": 39.64601,
+      "observerElevationMeters": 150.4,
+      "sampleOffset": 248400,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1528675",
+      "latitude": 42.87,
+      "longitude": 74.59,
+      "observerElevationMeters": 765.7,
+      "sampleOffset": 249480,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1821306",
+      "latitude": 11.56245,
+      "longitude": 104.91601,
+      "observerElevationMeters": 13,
+      "sampleOffset": 250560,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1822214",
+      "latitude": 13.36179,
+      "longitude": 103.86056,
+      "observerElevationMeters": 17.9,
+      "sampleOffset": 251640,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2110257",
+      "latitude": 1.3278,
+      "longitude": 172.97696,
+      "observerElevationMeters": -170.6,
+      "sampleOffset": 252720,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-921772",
+      "latitude": -11.70216,
+      "longitude": 43.25506,
+      "observerElevationMeters": 74,
+      "sampleOffset": 253800,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3575551",
+      "latitude": 17.2955,
+      "longitude": -62.72499,
+      "observerElevationMeters": 19.2,
+      "sampleOffset": 254880,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1871859",
+      "latitude": 39.03385,
+      "longitude": 125.75432,
+      "observerElevationMeters": 22.3,
+      "sampleOffset": 255960,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1877449",
+      "latitude": 39.91833,
+      "longitude": 127.53639,
+      "observerElevationMeters": 25.3,
+      "sampleOffset": 257040,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1835848",
+      "latitude": 37.566,
+      "longitude": 126.9784,
+      "observerElevationMeters": 47.1,
+      "sampleOffset": 258120,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1838524",
+      "latitude": 35.10168,
+      "longitude": 129.03004,
+      "observerElevationMeters": 38.3,
+      "sampleOffset": 259200,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1835329",
+      "latitude": 35.87028,
+      "longitude": 128.59111,
+      "observerElevationMeters": 44.5,
+      "sampleOffset": 260280,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1835235",
+      "latitude": 36.34913,
+      "longitude": 127.38493,
+      "observerElevationMeters": 54.5,
+      "sampleOffset": 261360,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-285787",
+      "latitude": 29.367,
+      "longitude": 47.97429,
+      "observerElevationMeters": 10.8,
+      "sampleOffset": 262440,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3580661",
+      "latitude": 19.2866,
+      "longitude": -81.37436,
+      "observerElevationMeters": 5.1,
+      "sampleOffset": 263520,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1526273",
+      "latitude": 51.1801,
+      "longitude": 71.44598,
+      "observerElevationMeters": 358.9,
+      "sampleOffset": 264600,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1526384",
+      "latitude": 43.25249,
+      "longitude": 76.9115,
+      "observerElevationMeters": 792.2,
+      "sampleOffset": 265680,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1518980",
+      "latitude": 42.30988,
+      "longitude": 69.60042,
+      "observerElevationMeters": 519,
+      "sampleOffset": 266760,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-610611",
+      "latitude": 50.27969,
+      "longitude": 57.20718,
+      "observerElevationMeters": 213.5,
+      "sampleOffset": 267840,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1651944",
+      "latitude": 17.96667,
+      "longitude": 102.6,
+      "observerElevationMeters": 171.2,
+      "sampleOffset": 268920,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-276781",
+      "latitude": 33.89332,
+      "longitude": 35.50157,
+      "observerElevationMeters": 48.6,
+      "sampleOffset": 270000,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3576812",
+      "latitude": 13.9957,
+      "longitude": -61.00614,
+      "observerElevationMeters": 62.9,
+      "sampleOffset": 271080,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3042030",
+      "latitude": 47.14151,
+      "longitude": 9.52154,
+      "observerElevationMeters": 584.8,
+      "sampleOffset": 272160,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1248991",
+      "latitude": 6.93548,
+      "longitude": 79.84868,
+      "observerElevationMeters": 2.5,
+      "sampleOffset": 273240,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1242833",
+      "latitude": 9.66845,
+      "longitude": 80.00742,
+      "observerElevationMeters": 5.3,
+      "sampleOffset": 274320,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2274895",
+      "latitude": 6.30054,
+      "longitude": -10.7969,
+      "observerElevationMeters": 4.3,
+      "sampleOffset": 275400,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-932505",
+      "latitude": -29.31667,
+      "longitude": 27.48333,
+      "observerElevationMeters": 1543.2,
+      "sampleOffset": 276480,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-593116",
+      "latitude": 54.68916,
+      "longitude": 25.2798,
+      "observerElevationMeters": 111.8,
+      "sampleOffset": 277560,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2960316",
+      "latitude": 49.60982,
+      "longitude": 6.13268,
+      "observerElevationMeters": 289.5,
+      "sampleOffset": 278640,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-456172",
+      "latitude": 56.946,
+      "longitude": 24.10589,
+      "observerElevationMeters": 6.2,
+      "sampleOffset": 279720,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2210247",
+      "latitude": 32.88743,
+      "longitude": 13.18733,
+      "observerElevationMeters": 13.2,
+      "sampleOffset": 280800,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-88319",
+      "latitude": 32.11486,
+      "longitude": 20.06859,
+      "observerElevationMeters": 4.5,
+      "sampleOffset": 281880,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2538475",
+      "latitude": 34.01325,
+      "longitude": -6.83255,
+      "observerElevationMeters": 36.6,
+      "sampleOffset": 282960,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2553604",
+      "latitude": 33.58831,
+      "longitude": -7.61138,
+      "observerElevationMeters": 24.4,
+      "sampleOffset": 284040,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2993458",
+      "latitude": 43.73718,
+      "longitude": 7.42145,
+      "observerElevationMeters": 109.8,
+      "sampleOffset": 285120,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-618426",
+      "latitude": 47.00902,
+      "longitude": 28.85938,
+      "observerElevationMeters": 62.7,
+      "sampleOffset": 286200,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3193044",
+      "latitude": 42.44124,
+      "longitude": 19.26309,
+      "observerElevationMeters": 51.6,
+      "sampleOffset": 287280,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3578851",
+      "latitude": 18.06819,
+      "longitude": -63.08302,
+      "observerElevationMeters": 36.6,
+      "sampleOffset": 288360,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1070940",
+      "latitude": -18.91368,
+      "longitude": 47.53613,
+      "observerElevationMeters": 1286.8,
+      "sampleOffset": 289440,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1053384",
+      "latitude": -18.1492,
+      "longitude": 49.40234,
+      "observerElevationMeters": 8.8,
+      "sampleOffset": 290520,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2113779",
+      "latitude": 7.08971,
+      "longitude": 171.38027,
+      "observerElevationMeters": -163.7,
+      "sampleOffset": 291600,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-785842",
+      "latitude": 41.99646,
+      "longitude": 21.43141,
+      "observerElevationMeters": 257.4,
+      "sampleOffset": 292680,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2460596",
+      "latitude": 12.60915,
+      "longitude": -7.97522,
+      "observerElevationMeters": 331.6,
+      "sampleOffset": 293760,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2451185",
+      "latitude": 11.31755,
+      "longitude": -5.66654,
+      "observerElevationMeters": 367.2,
+      "sampleOffset": 294840,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-6611854",
+      "latitude": 19.745,
+      "longitude": 96.12972,
+      "observerElevationMeters": 118.8,
+      "sampleOffset": 295920,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1298824",
+      "latitude": 16.80528,
+      "longitude": 96.15611,
+      "observerElevationMeters": 25.6,
+      "sampleOffset": 297000,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1311874",
+      "latitude": 21.97473,
+      "longitude": 96.08359,
+      "observerElevationMeters": 77.6,
+      "sampleOffset": 298080,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1308465",
+      "latitude": 16.49051,
+      "longitude": 97.62825,
+      "observerElevationMeters": 14.5,
+      "sampleOffset": 299160,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2028462",
+      "latitude": 47.90771,
+      "longitude": 106.88324,
+      "observerElevationMeters": 1285.8,
+      "sampleOffset": 300240,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2031405",
+      "latitude": 49.03333,
+      "longitude": 104.08333,
+      "observerElevationMeters": 1324.2,
+      "sampleOffset": 301320,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1821274",
+      "latitude": 22.20056,
+      "longitude": 113.54611,
+      "observerElevationMeters": 10.8,
+      "sampleOffset": 302400,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-7828758",
+      "latitude": 15.21233,
+      "longitude": 145.7545,
+      "observerElevationMeters": 165.9,
+      "sampleOffset": 303480,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3570675",
+      "latitude": 14.60365,
+      "longitude": -61.07418,
+      "observerElevationMeters": 23,
+      "sampleOffset": 304560,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2377450",
+      "latitude": 18.08581,
+      "longitude": -15.9785,
+      "observerElevationMeters": 5.6,
+      "sampleOffset": 305640,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2377457",
+      "latitude": 20.94188,
+      "longitude": -17.03842,
+      "observerElevationMeters": 11.3,
+      "sampleOffset": 306720,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3578069",
+      "latitude": 16.70555,
+      "longitude": -62.21292,
+      "observerElevationMeters": 57.8,
+      "sampleOffset": 307800,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2562305",
+      "latitude": 35.89968,
+      "longitude": 14.5148,
+      "observerElevationMeters": 4.2,
+      "sampleOffset": 308880,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-934154",
+      "latitude": -20.16194,
+      "longitude": 57.49889,
+      "observerElevationMeters": 32.1,
+      "sampleOffset": 309960,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1282027",
+      "latitude": 4.17521,
+      "longitude": 73.50916,
+      "observerElevationMeters": -5.6,
+      "sampleOffset": 311040,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-927967",
+      "latitude": -13.96692,
+      "longitude": 33.78725,
+      "observerElevationMeters": 1051,
+      "sampleOffset": 312120,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-931755",
+      "latitude": -15.78499,
+      "longitude": 35.00854,
+      "observerElevationMeters": 1033.7,
+      "sampleOffset": 313200,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3530597",
+      "latitude": 19.42847,
+      "longitude": -99.12766,
+      "observerElevationMeters": 2230.8,
+      "sampleOffset": 314280,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3981609",
+      "latitude": 32.5027,
+      "longitude": -117.00371,
+      "observerElevationMeters": 104,
+      "sampleOffset": 315360,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3991164",
+      "latitude": 20.58806,
+      "longitude": -100.38806,
+      "observerElevationMeters": 1830.5,
+      "sampleOffset": 316440,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3998655",
+      "latitude": 21.12183,
+      "longitude": -101.68253,
+      "observerElevationMeters": 1809.2,
+      "sampleOffset": 317520,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1735161",
+      "latitude": 3.1412,
+      "longitude": 101.68653,
+      "observerElevationMeters": 52.9,
+      "sampleOffset": 318600,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1732752",
+      "latitude": 1.4655,
+      "longitude": 103.7578,
+      "observerElevationMeters": 17.8,
+      "sampleOffset": 319680,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1040652",
+      "latitude": -25.96553,
+      "longitude": 32.58322,
+      "observerElevationMeters": 39.4,
+      "sampleOffset": 320760,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1033356",
+      "latitude": -15.11646,
+      "longitude": 39.2666,
+      "observerElevationMeters": 415.9,
+      "sampleOffset": 321840,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3352136",
+      "latitude": -22.55941,
+      "longitude": 17.08323,
+      "observerElevationMeters": 1668.3,
+      "sampleOffset": 322920,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3353383",
+      "latitude": -17.91796,
+      "longitude": 19.77314,
+      "observerElevationMeters": 1100.1,
+      "sampleOffset": 324000,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2139521",
+      "latitude": -22.27407,
+      "longitude": 166.44884,
+      "observerElevationMeters": 18.7,
+      "sampleOffset": 325080,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2440485",
+      "latitude": 13.51366,
+      "longitude": 2.1098,
+      "observerElevationMeters": 200.7,
+      "sampleOffset": 326160,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2441291",
+      "latitude": 13.5,
+      "longitude": 7.10174,
+      "observerElevationMeters": 357,
+      "sampleOffset": 327240,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2161314",
+      "latitude": -29.05459,
+      "longitude": 167.96628,
+      "observerElevationMeters": 50.8,
+      "sampleOffset": 328320,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2352778",
+      "latitude": 9.05785,
+      "longitude": 7.49508,
+      "observerElevationMeters": 488.1,
+      "sampleOffset": 329400,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2332459",
+      "latitude": 6.45407,
+      "longitude": 3.39467,
+      "observerElevationMeters": 3,
+      "sampleOffset": 330480,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2335204",
+      "latitude": 12.00012,
+      "longitude": 8.51672,
+      "observerElevationMeters": 479.8,
+      "sampleOffset": 331560,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2324774",
+      "latitude": 4.77742,
+      "longitude": 7.0134,
+      "observerElevationMeters": 8.9,
+      "sampleOffset": 332640,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2335727",
+      "latitude": 10.52641,
+      "longitude": 7.43879,
+      "observerElevationMeters": 612.9,
+      "sampleOffset": 333720,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2347283",
+      "latitude": 6.33815,
+      "longitude": 5.62575,
+      "observerElevationMeters": 85.6,
+      "sampleOffset": 334800,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2331447",
+      "latitude": 11.84692,
+      "longitude": 13.15712,
+      "observerElevationMeters": 321.5,
+      "sampleOffset": 335880,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2337639",
+      "latitude": 8.49664,
+      "longitude": 4.54214,
+      "observerElevationMeters": 305.9,
+      "sampleOffset": 336960,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3617763",
+      "latitude": 12.13282,
+      "longitude": -86.2504,
+      "observerElevationMeters": 104.9,
+      "sampleOffset": 338040,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2759794",
+      "latitude": 52.37403,
+      "longitude": 4.88969,
+      "observerElevationMeters": 6.3,
+      "sampleOffset": 339120,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2747891",
+      "latitude": 51.9225,
+      "longitude": 4.47917,
+      "observerElevationMeters": 3.7,
+      "sampleOffset": 340200,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3143244",
+      "latitude": 59.91273,
+      "longitude": 10.74609,
+      "observerElevationMeters": 18.1,
+      "sampleOffset": 341280,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1283240",
+      "latitude": 27.70169,
+      "longitude": 85.3206,
+      "observerElevationMeters": 1297.3,
+      "sampleOffset": 342360,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1282898",
+      "latitude": 28.26689,
+      "longitude": 83.96851,
+      "observerElevationMeters": 1032.9,
+      "sampleOffset": 343440,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-7626461",
+      "latitude": -0.55085,
+      "longitude": 166.9252,
+      "observerElevationMeters": -104.4,
+      "sampleOffset": 344520,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-4036284",
+      "latitude": -19.05294,
+      "longitude": -169.91957,
+      "observerElevationMeters": -46.6,
+      "sampleOffset": 345600,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2179537",
+      "latitude": -41.28664,
+      "longitude": 174.77557,
+      "observerElevationMeters": 43,
+      "sampleOffset": 346680,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-287286",
+      "latitude": 23.58413,
+      "longitude": 58.40778,
+      "observerElevationMeters": 23.1,
+      "sampleOffset": 347760,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3703443",
+      "latitude": 8.9936,
+      "longitude": -79.51973,
+      "observerElevationMeters": 24.8,
+      "sampleOffset": 348840,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3936456",
+      "latitude": -12.04318,
+      "longitude": -77.02824,
+      "observerElevationMeters": 161.8,
+      "sampleOffset": 349920,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3947322",
+      "latitude": -16.39899,
+      "longitude": -71.53747,
+      "observerElevationMeters": 2345,
+      "sampleOffset": 351000,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-4033936",
+      "latitude": -17.5347,
+      "longitude": -149.56843,
+      "observerElevationMeters": -33.8,
+      "sampleOffset": 352080,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2088122",
+      "latitude": -9.47723,
+      "longitude": 147.15089,
+      "observerElevationMeters": 20.4,
+      "sampleOffset": 353160,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1701668",
+      "latitude": 14.6042,
+      "longitude": 120.9822,
+      "observerElevationMeters": 6.9,
+      "sampleOffset": 354240,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1715348",
+      "latitude": 7.07306,
+      "longitude": 125.61278,
+      "observerElevationMeters": 3.2,
+      "sampleOffset": 355320,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1723510",
+      "latitude": 7.20417,
+      "longitude": 124.43972,
+      "observerElevationMeters": 6.6,
+      "sampleOffset": 356400,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1679432",
+      "latitude": 6.91028,
+      "longitude": 122.07389,
+      "observerElevationMeters": 3.5,
+      "sampleOffset": 357480,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1176615",
+      "latitude": 33.72148,
+      "longitude": 73.04329,
+      "observerElevationMeters": 584.1,
+      "sampleOffset": 358560,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1172451",
+      "latitude": 31.558,
+      "longitude": 74.35071,
+      "observerElevationMeters": 218.6,
+      "sampleOffset": 359640,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1174872",
+      "latitude": 24.8608,
+      "longitude": 67.0104,
+      "observerElevationMeters": 9.5,
+      "sampleOffset": 360720,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1169825",
+      "latitude": 30.19679,
+      "longitude": 71.47824,
+      "observerElevationMeters": 128.2,
+      "sampleOffset": 361800,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1176734",
+      "latitude": 25.39689,
+      "longitude": 68.37718,
+      "observerElevationMeters": 27.5,
+      "sampleOffset": 362880,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1167528",
+      "latitude": 30.18414,
+      "longitude": 67.00141,
+      "observerElevationMeters": 1683.7,
+      "sampleOffset": 363960,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1183460",
+      "latitude": 32.98527,
+      "longitude": 70.60403,
+      "observerElevationMeters": 377.6,
+      "sampleOffset": 365040,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1166000",
+      "latitude": 32.08586,
+      "longitude": 72.67418,
+      "observerElevationMeters": 190.9,
+      "sampleOffset": 366120,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-756135",
+      "latitude": 52.22977,
+      "longitude": 21.01178,
+      "observerElevationMeters": 113.3,
+      "sampleOffset": 367200,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3094802",
+      "latitude": 50.06143,
+      "longitude": 19.93658,
+      "observerElevationMeters": 213.2,
+      "sampleOffset": 368280,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3424934",
+      "latitude": 46.77914,
+      "longitude": -56.1773,
+      "observerElevationMeters": 39.3,
+      "sampleOffset": 369360,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-4030723",
+      "latitude": -25.06597,
+      "longitude": -130.10147,
+      "observerElevationMeters": -49,
+      "sampleOffset": 370440,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-4568127",
+      "latitude": 18.46633,
+      "longitude": -66.10572,
+      "observerElevationMeters": -11.6,
+      "sampleOffset": 371520,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-7303419",
+      "latitude": 31.78336,
+      "longitude": 35.23388,
+      "observerElevationMeters": 756.6,
+      "sampleOffset": 372600,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2267057",
+      "latitude": 38.72509,
+      "longitude": -9.1498,
+      "observerElevationMeters": 76.5,
+      "sampleOffset": 373680,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2735943",
+      "latitude": 41.1485,
+      "longitude": -8.61097,
+      "observerElevationMeters": 86.8,
+      "sampleOffset": 374760,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-8063361",
+      "latitude": 7.50077,
+      "longitude": 134.6238,
+      "observerElevationMeters": 27.1,
+      "sampleOffset": 375840,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3439389",
+      "latitude": -25.28646,
+      "longitude": -57.647,
+      "observerElevationMeters": 93.5,
+      "sampleOffset": 376920,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-290030",
+      "latitude": 25.28545,
+      "longitude": 51.53096,
+      "observerElevationMeters": 8,
+      "sampleOffset": 378000,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-935264",
+      "latitude": -20.88231,
+      "longitude": 55.4504,
+      "observerElevationMeters": 68,
+      "sampleOffset": 379080,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-683506",
+      "latitude": 44.43225,
+      "longitude": 26.10626,
+      "observerElevationMeters": 79.4,
+      "sampleOffset": 380160,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-675810",
+      "latitude": 47.16667,
+      "longitude": 27.6,
+      "observerElevationMeters": 71.1,
+      "sampleOffset": 381240,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-792680",
+      "latitude": 44.80401,
+      "longitude": 20.46513,
+      "observerElevationMeters": 112.9,
+      "sampleOffset": 382320,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-524901",
+      "latitude": 55.75204,
+      "longitude": 37.61781,
+      "observerElevationMeters": 143,
+      "sampleOffset": 383400,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-498817",
+      "latitude": 59.93863,
+      "longitude": 30.31413,
+      "observerElevationMeters": 9.7,
+      "sampleOffset": 384480,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1496747",
+      "latitude": 55.02259,
+      "longitude": 82.93175,
+      "observerElevationMeters": 137.5,
+      "sampleOffset": 385560,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1486209",
+      "latitude": 56.85733,
+      "longitude": 60.61529,
+      "observerElevationMeters": 268,
+      "sampleOffset": 386640,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-520555",
+      "latitude": 56.32867,
+      "longitude": 44.00205,
+      "observerElevationMeters": 115.2,
+      "sampleOffset": 387720,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-551487",
+      "latitude": 55.78874,
+      "longitude": 49.12214,
+      "observerElevationMeters": 71,
+      "sampleOffset": 388800,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1508291",
+      "latitude": 55.1611,
+      "longitude": 61.42877,
+      "observerElevationMeters": 227.8,
+      "sampleOffset": 389880,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1496153",
+      "latitude": 54.99244,
+      "longitude": 73.36859,
+      "observerElevationMeters": 87.8,
+      "sampleOffset": 390960,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-202061",
+      "latitude": -1.94995,
+      "longitude": 30.05885,
+      "observerElevationMeters": 1473.7,
+      "sampleOffset": 392040,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-202905",
+      "latitude": -1.70278,
+      "longitude": 29.25639,
+      "observerElevationMeters": 1483.6,
+      "sampleOffset": 393120,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-108410",
+      "latitude": 24.68773,
+      "longitude": 46.72185,
+      "observerElevationMeters": 608.5,
+      "sampleOffset": 394200,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-105343",
+      "latitude": 21.49012,
+      "longitude": 39.18624,
+      "observerElevationMeters": 7.7,
+      "sampleOffset": 395280,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2108502",
+      "latitude": -9.43333,
+      "longitude": 159.95,
+      "observerElevationMeters": 17.5,
+      "sampleOffset": 396360,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-241131",
+      "latitude": -4.62001,
+      "longitude": 55.45501,
+      "observerElevationMeters": 64.4,
+      "sampleOffset": 397440,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-379252",
+      "latitude": 15.55177,
+      "longitude": 32.53241,
+      "observerElevationMeters": 384.5,
+      "sampleOffset": 398520,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-369004",
+      "latitude": 12.04888,
+      "longitude": 24.88069,
+      "observerElevationMeters": 662.9,
+      "sampleOffset": 399600,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2673730",
+      "latitude": 59.32938,
+      "longitude": 18.06871,
+      "observerElevationMeters": 19.5,
+      "sampleOffset": 400680,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2711537",
+      "latitude": 57.70716,
+      "longitude": 11.96679,
+      "observerElevationMeters": 8.2,
+      "sampleOffset": 401760,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1880252",
+      "latitude": 1.28967,
+      "longitude": 103.85007,
+      "observerElevationMeters": 11.7,
+      "sampleOffset": 402840,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3370903",
+      "latitude": -15.92488,
+      "longitude": -5.71816,
+      "observerElevationMeters": 366.8,
+      "sampleOffset": 403920,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3196359",
+      "latitude": 46.05108,
+      "longitude": 14.50513,
+      "observerElevationMeters": 303.3,
+      "sampleOffset": 405000,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2729907",
+      "latitude": 78.22334,
+      "longitude": 15.64689,
+      "observerElevationMeters": 19.5,
+      "sampleOffset": 406080,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3060972",
+      "latitude": 48.14816,
+      "longitude": 17.10674,
+      "observerElevationMeters": 169.8,
+      "sampleOffset": 407160,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2409306",
+      "latitude": 8.48714,
+      "longitude": -13.2356,
+      "observerElevationMeters": 32.8,
+      "sampleOffset": 408240,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3168070",
+      "latitude": 43.93667,
+      "longitude": 12.44639,
+      "observerElevationMeters": 441.9,
+      "sampleOffset": 409320,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2253354",
+      "latitude": 14.6937,
+      "longitude": -17.44406,
+      "observerElevationMeters": 8.8,
+      "sampleOffset": 410400,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2244322",
+      "latitude": 14.86229,
+      "longitude": -15.87532,
+      "observerElevationMeters": 44.7,
+      "sampleOffset": 411480,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-53654",
+      "latitude": 2.03711,
+      "longitude": 45.34375,
+      "observerElevationMeters": 15.8,
+      "sampleOffset": 412560,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-64021",
+      "latitude": 9.93611,
+      "longitude": 43.18278,
+      "observerElevationMeters": 1453.2,
+      "sampleOffset": 413640,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3383330",
+      "latitude": 5.86638,
+      "longitude": -55.16682,
+      "observerElevationMeters": 4.9,
+      "sampleOffset": 414720,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-373303",
+      "latitude": 4.85165,
+      "longitude": 31.58247,
+      "observerElevationMeters": 492,
+      "sampleOffset": 415800,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-363807",
+      "latitude": 9.01222,
+      "longitude": 27.57081,
+      "observerElevationMeters": 421.4,
+      "sampleOffset": 416880,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2410763",
+      "latitude": 0.33756,
+      "longitude": 6.7299,
+      "observerElevationMeters": 13.7,
+      "sampleOffset": 417960,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3583361",
+      "latitude": 13.68935,
+      "longitude": -89.18718,
+      "observerElevationMeters": 662.6,
+      "sampleOffset": 419040,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3513392",
+      "latitude": 18.026,
+      "longitude": -63.04582,
+      "observerElevationMeters": 30.5,
+      "sampleOffset": 420120,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-170654",
+      "latitude": 33.5102,
+      "longitude": 36.29128,
+      "observerElevationMeters": 700.9,
+      "sampleOffset": 421200,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-170063",
+      "latitude": 36.20124,
+      "longitude": 37.16117,
+      "observerElevationMeters": 392.2,
+      "sampleOffset": 422280,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-934985",
+      "latitude": -26.31667,
+      "longitude": 31.13333,
+      "observerElevationMeters": 1210.7,
+      "sampleOffset": 423360,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3576994",
+      "latitude": 21.46122,
+      "longitude": -71.14188,
+      "observerElevationMeters": -0.1,
+      "sampleOffset": 424440,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2427123",
+      "latitude": 12.10672,
+      "longitude": 15.0444,
+      "observerElevationMeters": 295.9,
+      "sampleOffset": 425520,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2427455",
+      "latitude": 8.57437,
+      "longitude": 16.07722,
+      "observerElevationMeters": 401,
+      "sampleOffset": 426600,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1546102",
+      "latitude": -49.34916,
+      "longitude": 70.21937,
+      "observerElevationMeters": 16.6,
+      "sampleOffset": 427680,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2365267",
+      "latitude": 6.12874,
+      "longitude": 1.22154,
+      "observerElevationMeters": 7.6,
+      "sampleOffset": 428760,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1609350",
+      "latitude": 13.75398,
+      "longitude": 100.50144,
+      "observerElevationMeters": 6.3,
+      "sampleOffset": 429840,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1610780",
+      "latitude": 7.00836,
+      "longitude": 100.47668,
+      "observerElevationMeters": 12.1,
+      "sampleOffset": 430920,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1152473",
+      "latitude": 18.29232,
+      "longitude": 99.49277,
+      "observerElevationMeters": 237.6,
+      "sampleOffset": 432000,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1150515",
+      "latitude": 9.14011,
+      "longitude": 99.33311,
+      "observerElevationMeters": 8.6,
+      "sampleOffset": 433080,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1221874",
+      "latitude": 38.53575,
+      "longitude": 68.77905,
+      "observerElevationMeters": 770.7,
+      "sampleOffset": 434160,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-7522181",
+      "latitude": -9.20045,
+      "longitude": -171.84804,
+      "observerElevationMeters": -226.9,
+      "sampleOffset": 435240,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1645457",
+      "latitude": -8.55861,
+      "longitude": 125.57361,
+      "observerElevationMeters": 8.9,
+      "sampleOffset": 436320,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-162183",
+      "latitude": 37.95,
+      "longitude": 58.38333,
+      "observerElevationMeters": 221.7,
+      "sampleOffset": 437400,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2464470",
+      "latitude": 36.81897,
+      "longitude": 10.16579,
+      "observerElevationMeters": 34.7,
+      "sampleOffset": 438480,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2467454",
+      "latitude": 34.74056,
+      "longitude": 10.76028,
+      "observerElevationMeters": 7.4,
+      "sampleOffset": 439560,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-4032402",
+      "latitude": -21.13683,
+      "longitude": -175.20114,
+      "observerElevationMeters": 1.1,
+      "sampleOffset": 440640,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-323786",
+      "latitude": 39.91987,
+      "longitude": 32.85427,
+      "observerElevationMeters": 885,
+      "sampleOffset": 441720,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-745044",
+      "latitude": 41.01384,
+      "longitude": 28.94966,
+      "observerElevationMeters": 30.8,
+      "sampleOffset": 442800,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-311046",
+      "latitude": 38.41273,
+      "longitude": 27.13838,
+      "observerElevationMeters": 72.7,
+      "sampleOffset": 443880,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-314830",
+      "latitude": 37.05944,
+      "longitude": 37.3825,
+      "observerElevationMeters": 852.9,
+      "sampleOffset": 444960,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3573890",
+      "latitude": 10.66668,
+      "longitude": -61.51889,
+      "observerElevationMeters": 27.8,
+      "sampleOffset": 446040,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2110394",
+      "latitude": -8.52425,
+      "longitude": 179.19417,
+      "observerElevationMeters": -87.6,
+      "sampleOffset": 447120,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1668341",
+      "latitude": 25.05306,
+      "longitude": 121.52639,
+      "observerElevationMeters": 10.6,
+      "sampleOffset": 448200,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1668399",
+      "latitude": 24.1469,
+      "longitude": 120.6839,
+      "observerElevationMeters": 89.4,
+      "sampleOffset": 449280,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-160196",
+      "latitude": -6.17221,
+      "longitude": 35.73947,
+      "observerElevationMeters": 1127.7,
+      "sampleOffset": 450360,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-160263",
+      "latitude": -6.82349,
+      "longitude": 39.26951,
+      "observerElevationMeters": 16.6,
+      "sampleOffset": 451440,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-152224",
+      "latitude": -2.51667,
+      "longitude": 32.9,
+      "observerElevationMeters": 1170.8,
+      "sampleOffset": 452520,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-161325",
+      "latitude": -3.36667,
+      "longitude": 36.68333,
+      "observerElevationMeters": 1412.5,
+      "sampleOffset": 453600,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-703448",
+      "latitude": 50.45466,
+      "longitude": 30.5238,
+      "observerElevationMeters": 142.6,
+      "sampleOffset": 454680,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-706483",
+      "latitude": 49.98177,
+      "longitude": 36.25475,
+      "observerElevationMeters": 113.6,
+      "sampleOffset": 455760,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-232422",
+      "latitude": 0.31628,
+      "longitude": 32.58219,
+      "observerElevationMeters": 1186.1,
+      "sampleOffset": 456840,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-229268",
+      "latitude": -0.60467,
+      "longitude": 30.64851,
+      "observerElevationMeters": 1421,
+      "sampleOffset": 457920,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-4140963",
+      "latitude": 38.89511,
+      "longitude": -77.03637,
+      "observerElevationMeters": 12.9,
+      "sampleOffset": 459000,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-5128581",
+      "latitude": 40.71427,
+      "longitude": -74.00597,
+      "observerElevationMeters": 4.3,
+      "sampleOffset": 460080,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-5368361",
+      "latitude": 34.05223,
+      "longitude": -118.24368,
+      "observerElevationMeters": 95,
+      "sampleOffset": 461160,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-4887398",
+      "latitude": 41.85003,
+      "longitude": -87.65005,
+      "observerElevationMeters": 181.5,
+      "sampleOffset": 462240,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-4699066",
+      "latitude": 29.76328,
+      "longitude": -95.36327,
+      "observerElevationMeters": 14.6,
+      "sampleOffset": 463320,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-5308655",
+      "latitude": 33.44838,
+      "longitude": -112.07404,
+      "observerElevationMeters": 332.6,
+      "sampleOffset": 464400,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-4726206",
+      "latitude": 29.42412,
+      "longitude": -98.49363,
+      "observerElevationMeters": 201.1,
+      "sampleOffset": 465480,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-5391811",
+      "latitude": 32.71571,
+      "longitude": -117.16472,
+      "observerElevationMeters": 17,
+      "sampleOffset": 466560,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3441575",
+      "latitude": -34.90328,
+      "longitude": -56.18816,
+      "observerElevationMeters": 21.3,
+      "sampleOffset": 467640,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1512569",
+      "latitude": 41.26465,
+      "longitude": 69.21627,
+      "observerElevationMeters": 427.7,
+      "sampleOffset": 468720,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1514588",
+      "latitude": 40.78338,
+      "longitude": 72.35067,
+      "observerElevationMeters": 496,
+      "sampleOffset": 469800,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-6691831",
+      "latitude": 41.90268,
+      "longitude": 12.45414,
+      "observerElevationMeters": 42.5,
+      "sampleOffset": 470880,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3577887",
+      "latitude": 13.15527,
+      "longitude": -61.22742,
+      "observerElevationMeters": 32,
+      "sampleOffset": 471960,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3646738",
+      "latitude": 10.48801,
+      "longitude": -66.87919,
+      "observerElevationMeters": 896.7,
+      "sampleOffset": 473040,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3633009",
+      "latitude": 10.64232,
+      "longitude": -71.61089,
+      "observerElevationMeters": 7.5,
+      "sampleOffset": 474120,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3577430",
+      "latitude": 18.42693,
+      "longitude": -64.62079,
+      "observerElevationMeters": 102.3,
+      "sampleOffset": 475200,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-4795467",
+      "latitude": 18.3419,
+      "longitude": -64.9307,
+      "observerElevationMeters": 52.4,
+      "sampleOffset": 476280,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1581130",
+      "latitude": 21.0245,
+      "longitude": 105.84117,
+      "observerElevationMeters": 14.8,
+      "sampleOffset": 477360,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1566083",
+      "latitude": 10.82302,
+      "longitude": 106.62965,
+      "observerElevationMeters": 7.4,
+      "sampleOffset": 478440,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1581298",
+      "latitude": 20.86481,
+      "longitude": 106.68345,
+      "observerElevationMeters": 5.8,
+      "sampleOffset": 479520,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1586203",
+      "latitude": 10.03711,
+      "longitude": 105.78825,
+      "observerElevationMeters": 1.2,
+      "sampleOffset": 480600,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-2135171",
+      "latitude": -17.73648,
+      "longitude": 168.31366,
+      "observerElevationMeters": 22.9,
+      "sampleOffset": 481680,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-4034821",
+      "latitude": -13.28163,
+      "longitude": -176.17453,
+      "observerElevationMeters": 33.6,
+      "sampleOffset": 482760,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-4035413",
+      "latitude": -13.83333,
+      "longitude": -171.76666,
+      "observerElevationMeters": -2.1,
+      "sampleOffset": 483840,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-786714",
+      "latitude": 42.67272,
+      "longitude": 21.16688,
+      "observerElevationMeters": 631.8,
+      "sampleOffset": 484920,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-71137",
+      "latitude": 15.35452,
+      "longitude": 44.20646,
+      "observerElevationMeters": 2254.7,
+      "sampleOffset": 486000,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-415189",
+      "latitude": 12.77957,
+      "longitude": 45.03852,
+      "observerElevationMeters": 42.3,
+      "sampleOffset": 487080,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-921815",
+      "latitude": -12.78234,
+      "longitude": 45.22878,
+      "observerElevationMeters": 11.1,
+      "sampleOffset": 488160,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-964137",
+      "latitude": -25.74486,
+      "longitude": 28.18783,
+      "observerElevationMeters": 1318,
+      "sampleOffset": 489240,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-3369157",
+      "latitude": -33.92584,
+      "longitude": 18.42322,
+      "observerElevationMeters": 36.5,
+      "sampleOffset": 490320,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-1007311",
+      "latitude": -29.8579,
+      "longitude": 31.0292,
+      "observerElevationMeters": 7.7,
+      "sampleOffset": 491400,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-964420",
+      "latitude": -33.96109,
+      "longitude": 25.61494,
+      "observerElevationMeters": 42.1,
+      "sampleOffset": 492480,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-909137",
+      "latitude": -15.40669,
+      "longitude": 28.28713,
+      "observerElevationMeters": 1275.8,
+      "sampleOffset": 493560,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-911148",
+      "latitude": -12.80243,
+      "longitude": 28.21323,
+      "observerElevationMeters": 1227,
+      "sampleOffset": 494640,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-890299",
+      "latitude": -17.82772,
+      "longitude": 31.05337,
+      "observerElevationMeters": 1480.3,
+      "sampleOffset": 495720,
+      "sampleCount": 360
+    },
+    {
+      "locationId": "geonames-894701",
+      "latitude": -20.15,
+      "longitude": 28.58333,
+      "observerElevationMeters": 1342.2,
+      "sampleOffset": 496800,
+      "sampleCount": 360
+    }
+  ]
+}

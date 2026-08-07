@@ -1,0 +1,261 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.earth-observer-picker {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  color: var(--ui-text-primary);
+}
+
+.earth-observer-picker__label {
+  color: var(--ui-text-muted);
+  font-size: var(--ui-font-micro);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+details {
+  position: relative;
+  min-width: 0;
+
+  &[open] summary {
+    border-color: rgb(126 198 240 / 42%);
+  }
+}
+
+summary {
+  display: flex;
+  min-height: 36px;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 10px;
+  border: 1px solid rgb(160 197 228 / 16%);
+  border-radius: 9px;
+  color: var(--ui-text-primary);
+  background: rgb(2 8 17 / 76%);
+  cursor: pointer;
+  list-style: none;
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+
+  > span {
+    display: grid;
+    min-width: 0;
+  }
+
+  strong,
+  small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  strong {
+    font-size: var(--ui-font-caption);
+    font-weight: 650;
+  }
+
+  small {
+    color: var(--ui-text-muted);
+    font-size: var(--ui-font-micro);
+  }
+
+  i {
+    color: rgb(142 205 239 / 62%);
+    font-style: normal;
+  }
+}
+
+.earth-observer-picker__panel {
+  display: grid;
+  gap: 7px;
+  margin-top: 6px;
+  padding: 8px;
+  border: 1px solid rgb(137 194 231 / 20%);
+  border-radius: 11px;
+  background: rgb(3 9 20 / 96%);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 35%);
+  backdrop-filter: blur(18px);
+}
+
+.earth-observer-picker__search {
+  display: flex;
+  height: 34px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 9px;
+  border: 1px solid rgb(160 197 228 / 16%);
+  border-radius: 8px;
+  color: rgb(126 201 236 / 60%);
+  background: rgb(0 4 11 / 70%);
+
+  &:focus-within {
+    border-color: rgb(126 198 240 / 42%);
+  }
+
+  input {
+    width: 100%;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    color: var(--ui-text-primary);
+    background: transparent;
+    font: inherit;
+    font-size: var(--ui-font-caption);
+
+    &::placeholder {
+      color: var(--ui-text-subtle);
+    }
+  }
+}
+
+.earth-observer-picker__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--ui-text-subtle);
+  font-size: var(--ui-font-micro);
+
+  a {
+    color: rgb(126 201 236 / 58%);
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+      outline: 0;
+      color: rgb(174 223 249 / 86%);
+      text-decoration: underline;
+    }
+  }
+}
+
+.earth-observer-picker__results {
+  display: grid;
+  max-height: 190px;
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+  scrollbar-color: rgb(126 190 229 / 24%) transparent;
+  scrollbar-width: thin;
+
+  button {
+    display: grid;
+    min-height: 36px;
+    justify-items: start;
+    padding: 5px 8px;
+    border: 0;
+    border-radius: 7px;
+    color: var(--ui-text-secondary);
+    background: transparent;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible,
+    &[aria-selected='true'] {
+      outline: 0;
+      color: var(--ui-text-primary);
+      background: rgb(67 145 192 / 15%);
+    }
+
+    span {
+      font-size: var(--ui-font-caption);
+      font-weight: 650;
+    }
+
+    small {
+      color: var(--ui-text-muted);
+      font-size: var(--ui-font-micro);
+    }
+  }
+
+  p {
+    margin: 10px 7px;
+    color: var(--ui-text-muted);
+    font-size: var(--ui-font-caption);
+  }
+}
+
+.earth-observer-picker__custom,
+.earth-observer-picker__geolocation {
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 8px;
+  border: 1px solid rgb(126 198 240 / 12%);
+  border-radius: 8px;
+  color: var(--ui-text-secondary);
+  background: rgb(39 100 139 / 10%);
+  font: inherit;
+  font-size: var(--ui-font-caption);
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    border-color: rgb(126 198 240 / 28%);
+    outline: 0;
+    color: var(--ui-text-primary);
+  }
+}
+
+.earth-observer-picker__geolocation {
+  border-color: rgb(100 211 181 / 18%);
+  color: rgb(174 231 213 / 82%);
+  background: rgb(37 129 105 / 12%);
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.72;
+  }
+}
+
+.earth-observer-picker__geolocation-status {
+  margin: 0;
+  color: var(--ui-text-muted);
+  font-size: var(--ui-font-micro);
+  line-height: 1.4;
+
+  &[data-state='located'] {
+    color: rgb(153 222 201 / 82%);
+  }
+
+  &:not([data-state='locating'], [data-state='located']) {
+    color: #e1b982;
+  }
+}
+
+.earth-observer-picker--compact {
+  .earth-observer-picker__label {
+    position: absolute;
+    overflow: hidden;
+    width: 1px;
+    height: 1px;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  summary {
+    min-width: 164px;
+    min-height: 32px;
+    padding-block: 3px;
+    background: rgb(4 12 25 / 70%);
+    backdrop-filter: blur(12px);
+  }
+
+  .earth-observer-picker__panel {
+    position: absolute;
+    z-index: 8;
+    top: 100%;
+    left: 0;
+    width: min(300px, calc(100vw - 48px));
+  }
+}

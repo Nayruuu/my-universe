@@ -33,6 +33,10 @@ export class NavigationContextJourney {
       : resolveHierarchyTargets(objectId, this.getObject);
   }
 
+  public adoptObjectTarget(objectId: string): void {
+    this.targets = resolveHierarchyTargets(objectId, this.getObject);
+  }
+
   public clear(): void {
     this.targets = NAVIGATION_SCALES.map(() => null);
   }

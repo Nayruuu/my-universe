@@ -2,6 +2,7 @@ export interface StarCatalog {
   readonly count: number;
   readonly referenceEpochJulianDay: number;
   readonly positionsParsec: Float32Array;
+  readonly velocitiesParsecPerYear: Float32Array;
   readonly apparentMagnitudes: Float32Array;
   readonly colorIndicesBv: Float32Array;
   readonly catalogIds: Uint32Array;
@@ -11,9 +12,9 @@ export interface StarCatalog {
 }
 
 export const STAR_CATALOG_MAGIC = 'UMSC';
-export const STAR_CATALOG_VERSION = 2;
+export const STAR_CATALOG_VERSION = 3;
 export const STAR_CATALOG_HEADER_BYTES = 40;
-export const STAR_CATALOG_RECORD_BYTES = 36;
+export const STAR_CATALOG_RECORD_BYTES = 48;
 
 const EQUATORIAL_CARTESIAN_FRAME = 1;
 const MAXIMUM_RECORD_COUNT = 1_000_000;
@@ -92,6 +93,7 @@ function decodeRecords(
   stringTableBytes: number,
 ): StarCatalog {
   const positionsParsec = new Float32Array(count * 3);
+  const velocitiesParsecPerYear = new Float32Array(count * 3);
   const apparentMagnitudes = new Float32Array(count);
   const colorIndicesBv = new Float32Array(count);
   const catalogIds = new Uint32Array(count);
@@ -116,6 +118,9 @@ function decodeRecords(
     const nameOffset = view.getUint32(inputOffset + 24, true);
     const aliasesOffset = view.getUint32(inputOffset + 28, true);
     const spectralTypeOffset = view.getUint32(inputOffset + 32, true);
+    const vx = view.getFloat32(inputOffset + 36, true);
+    const vy = view.getFloat32(inputOffset + 40, true);
+    const vz = view.getFloat32(inputOffset + 44, true);
     const name = decodeString(stringTable, nameOffset, decoder, decodedStrings, index);
     const aliasesValue = decodeString(stringTable, aliasesOffset, decoder, decodedStrings, index);
     const spectralType = decodeString(
@@ -133,6 +138,9 @@ function decodeRecords(
       Math.hypot(x, y, z) === 0 ||
       !Number.isFinite(magnitude) ||
       !Number.isFinite(colorIndex) ||
+      !Number.isFinite(vx) ||
+      !Number.isFinite(vy) ||
+      !Number.isFinite(vz) ||
       catalogId === 0 ||
       !name
     ) {
@@ -148,6 +156,9 @@ function decodeRecords(
     positionsParsec[outputOffset] = x;
     positionsParsec[outputOffset + 1] = y;
     positionsParsec[outputOffset + 2] = z;
+    velocitiesParsecPerYear[outputOffset] = vx;
+    velocitiesParsecPerYear[outputOffset + 1] = vy;
+    velocitiesParsecPerYear[outputOffset + 2] = vz;
     apparentMagnitudes[index] = magnitude;
     colorIndicesBv[index] = colorIndex;
     catalogIds[index] = catalogId;
@@ -162,6 +173,7 @@ function decodeRecords(
     count,
     referenceEpochJulianDay,
     positionsParsec,
+    velocitiesParsecPerYear,
     apparentMagnitudes,
     colorIndicesBv,
     catalogIds,

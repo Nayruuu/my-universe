@@ -11,15 +11,19 @@ import {
   CosmicStructureCatalogMetadata,
 } from '../loaders/cosmic-structure-catalog';
 import { type CosmicWebVolume } from '../loaders/cosmic-web-volume';
+import { TempelFilamentSpineCatalog } from '../loaders/tempel-filament-spine-catalog';
+import { ExoplanetCatalog } from '../loaders/exoplanet-catalog';
 import { StarCatalog } from '../loaders/star-catalog';
 import { CosmicGroupCatalogRegistry } from '../objects/cosmic-group-catalog-registry';
 import { CosmicStructureCatalogRegistry } from '../objects/cosmic-structure-catalog-registry';
+import { ExoplanetCatalogRegistry } from '../objects/exoplanet-catalog-registry';
 import { StarCatalogRegistry } from '../objects/star-catalog-registry';
 import { PerformanceManager } from '../performance/performance-manager';
 import { getNavigationScale } from '../camera/navigation-scales';
 import { ALL_COSMIC_MAP_LAYERS, DEFAULT_COSMIC_MAP_LAYERS } from './cosmic-map-policy';
 import { getCosmicWebVolumeProfile } from './cosmic-web-volume';
 import { getPhotographicProfile } from './photographic-profile';
+import { LOCAL_MILKY_WAY_PANORAMA_URL } from './local-space-environment';
 import { UniverseScene } from './universe-scene';
 
 describe('UniverseScene', () => {
@@ -47,11 +51,11 @@ describe('UniverseScene', () => {
     const scene = new UniverseScene(new PerformanceManager());
     const milkyWay = scene.spaceRoot.getObjectByName('illustrative-milky-way') as THREE.Points<
       THREE.BufferGeometry,
-      THREE.PointsMaterial
+      THREE.ShaderMaterial
     >;
 
     expect(milkyWay.visible).toBe(false);
-    expect(milkyWay.material.opacity).toBe(0);
+    expect(milkyWay.material.uniforms['opacity']!.value).toBe(0);
     expect(milkyWay.userData['scientificConfidence']).toBe('illustrative');
     expect(milkyWay.userData['visualStructure']).toBe('illustrative-galactocentric-four-arm-disk');
     expect(milkyWay.userData['structureOrigin']).toBe('galactic-center');
@@ -62,47 +66,169 @@ describe('UniverseScene', () => {
 
     scene.updateLod(3, 1, 9_600);
     expect(milkyWay.visible).toBe(true);
-    expect(milkyWay.material.opacity).toBeGreaterThan(0.08);
-    expect(milkyWay.material.opacity).toBeLessThan(0.14);
+    expect(milkyWay.material.uniforms['opacity']!.value).toBeGreaterThan(0.015);
+    expect(milkyWay.material.uniforms['opacity']!.value).toBeLessThan(0.05);
     const detailedScale = milkyWay.scale.x;
 
     scene.updateLod(3, 10, 13_300);
-    expect(milkyWay.material.opacity).toBeGreaterThan(0);
-    expect(milkyWay.material.opacity).toBeLessThan(0.24);
+    expect(milkyWay.material.uniforms['opacity']!.value).toBeGreaterThan(0);
+    expect(milkyWay.material.uniforms['opacity']!.value).toBeLessThan(0.24);
     expect(milkyWay.scale.x).toBeLessThan(detailedScale);
 
     scene.updateLod(4, 10, 17_000);
     expect(milkyWay.visible).toBe(false);
-    expect(milkyWay.material.opacity).toBeLessThan(0.004);
+    expect(milkyWay.material.uniforms['opacity']!.value).toBeLessThan(0.004);
 
     scene.dispose();
   });
 
   it('superpose un atlas différé sur plusieurs profondeurs au disque galactique', async () => {
-    const texture = new THREE.Texture(document.createElement('img'));
+    const volumeTexture = new THREE.Texture(document.createElement('img'));
+    const panoramaTexture = new THREE.Texture(document.createElement('img'));
     const loadAsync = vi
       .spyOn(THREE.TextureLoader.prototype, 'loadAsync')
-      .mockResolvedValue(texture);
+      .mockResolvedValueOnce(volumeTexture)
+      .mockResolvedValueOnce(panoramaTexture);
     const scene = new UniverseScene(new PerformanceManager());
     const volume = scene.spaceRoot.getObjectByName('illustrative-milky-way-volume');
 
     expect(volume).toBeInstanceOf(THREE.Group);
     expect(volume?.userData['scientificConfidence']).toBe('illustrative');
     expect(scene.milkyWayAtlasStatus).toBe('idle');
+    expect(scene.localMilkyWayPanoramaStatus).toBe('idle');
 
     scene.setQuality('high');
     await expect(scene.ensureMilkyWayAtlas()).resolves.toBe(true);
     scene.updateLod(3, 10, 9_600);
 
-    expect(loadAsync).toHaveBeenCalledOnce();
+    expect(loadAsync).toHaveBeenCalledTimes(2);
+    expect(loadAsync).toHaveBeenNthCalledWith(1, '/textures/milky-way-emissive-1254-v2.jpg');
+    expect(loadAsync).toHaveBeenNthCalledWith(2, LOCAL_MILKY_WAY_PANORAMA_URL);
     expect(scene.milkyWayAtlasStatus).toBe('ready');
+    expect(scene.localMilkyWayPanoramaStatus).toBe('ready');
     expect(scene.milkyWayVolumeDrawMeshCount).toBe(4);
     expect(volume?.visible).toBe(true);
     expect(volume?.scale.x).toBeCloseTo(1, 4);
+    expect(scene.spaceRoot.getObjectByName('illustrative-milky-way')?.visible).toBe(true);
 
     scene.updateLod(4, 10, 17_000);
     expect(scene.milkyWayVolumeDrawMeshCount).toBe(0);
     expect(volume?.visible).toBe(false);
+
+    scene.dispose();
+  });
+
+  it('préchauffe les textures galactiques sur le GPU avant leur première apparition', async () => {
+    const volumeTexture = new THREE.Texture(document.createElement('img'));
+    const panoramaTexture = new THREE.Texture(document.createElement('img'));
+
+    vi.spyOn(THREE.TextureLoader.prototype, 'loadAsync')
+      .mockResolvedValueOnce(volumeTexture)
+      .mockResolvedValueOnce(panoramaTexture);
+    const target = { initTexture: vi.fn<(texture: THREE.Texture) => void>() };
+    const scene = new UniverseScene(new PerformanceManager());
+
+    await expect(scene.prewarmMilkyWayAssets(target)).resolves.toBe(true);
+
+    expect(target.initTexture).toHaveBeenCalledTimes(2);
+    expect(target.initTexture).toHaveBeenNthCalledWith(1, volumeTexture);
+    expect(target.initTexture).toHaveBeenNthCalledWith(2, panoramaTexture);
+
+    scene.dispose();
+  });
+
+  it('compile tous les matériaux avant d’autoriser la première navigation', async () => {
+    const volumeTexture = new THREE.Texture(document.createElement('img'));
+    const panoramaTexture = new THREE.Texture(document.createElement('img'));
+
+    vi.spyOn(THREE.TextureLoader.prototype, 'loadAsync')
+      .mockResolvedValueOnce(volumeTexture)
+      .mockResolvedValueOnce(panoramaTexture);
+    const camera = new THREE.PerspectiveCamera();
+    const target = {
+      initTexture: vi.fn<(texture: THREE.Texture) => void>(),
+      compileAsync: vi.fn(async (root: THREE.Object3D) => root),
+    };
+    const scene = new UniverseScene(new PerformanceManager());
+
+    await expect(scene.prewarmRendering(target, camera)).resolves.toBe(true);
+
+    expect(target.initTexture).toHaveBeenCalledTimes(2);
+    expect(target.compileAsync).toHaveBeenCalledOnce();
+    expect(target.compileAsync).toHaveBeenCalledWith(scene.scene, camera);
+
+    scene.dispose();
+  });
+
+  it('préchauffe le premier rendu sans bloquer sur les textures galactiques différées', async () => {
+    const pendingTexture = new Promise<THREE.Texture<HTMLImageElement>>(() => undefined);
+    const loadAsync = vi
+      .spyOn(THREE.TextureLoader.prototype, 'loadAsync')
+      .mockReturnValue(pendingTexture);
+    const camera = new THREE.PerspectiveCamera();
+    const target = {
+      initTexture: vi.fn<(texture: THREE.Texture) => void>(),
+      compileAsync: vi.fn(async (root: THREE.Object3D) => root),
+    };
+    const scene = new UniverseScene(new PerformanceManager());
+    const loadsBeforePrewarm = loadAsync.mock.calls.length;
+
+    await expect(scene.prewarmInitialRendering(target, camera)).resolves.toBe(true);
+
+    expect(target.initTexture).not.toHaveBeenCalled();
+    expect(target.compileAsync).toHaveBeenCalledWith(scene.scene, camera);
+    expect(loadAsync.mock.calls.length - loadsBeforePrewarm).toBe(2);
+    expect(scene.milkyWayAtlasStatus).toBe('loading');
+    expect(scene.localMilkyWayPanoramaStatus).toBe('loading');
+
+    scene.dispose();
+  });
+
+  it('conserve la scène lorsque la précompilation des matériaux échoue', async () => {
+    vi.spyOn(THREE.TextureLoader.prototype, 'loadAsync')
+      .mockResolvedValueOnce(new THREE.Texture(document.createElement('img')))
+      .mockResolvedValueOnce(new THREE.Texture(document.createElement('img')));
+    const target = {
+      initTexture: vi.fn<(texture: THREE.Texture) => void>(),
+      compileAsync: vi.fn<() => Promise<THREE.Object3D>>(() =>
+        Promise.reject(new Error('compilation indisponible')),
+      ),
+    };
+    const scene = new UniverseScene(new PerformanceManager());
+
+    await expect(scene.prewarmRendering(target, new THREE.PerspectiveCamera())).resolves.toBe(
+      false,
+    );
+
+    scene.dispose();
+  });
+
+  it('conserve le fallback procédural lorsque le préchauffage GPU échoue', async () => {
+    vi.spyOn(THREE.TextureLoader.prototype, 'loadAsync')
+      .mockResolvedValueOnce(new THREE.Texture(document.createElement('img')))
+      .mockResolvedValueOnce(new THREE.Texture(document.createElement('img')));
+    const target = {
+      initTexture: vi.fn<(texture: THREE.Texture) => void>(() => {
+        throw new Error('contexte WebGL indisponible');
+      }),
+    };
+    const scene = new UniverseScene(new PerformanceManager());
+
+    await expect(scene.prewarmMilkyWayAssets(target)).resolves.toBe(false);
+
+    scene.dispose();
+  });
+
+  it('conserve le fallback procédural lorsque les textures à préchauffer sont indisponibles', async () => {
+    const target = { initTexture: vi.fn<(texture: THREE.Texture) => void>() };
+
+    vi.spyOn(THREE.TextureLoader.prototype, 'loadAsync').mockRejectedValue(
+      new Error('texture indisponible'),
+    );
+    const scene = new UniverseScene(new PerformanceManager());
+
+    await expect(scene.prewarmMilkyWayAssets(target)).resolves.toBe(false);
+    expect(target.initTexture).not.toHaveBeenCalled();
 
     scene.dispose();
   });
@@ -112,12 +238,12 @@ describe('UniverseScene', () => {
     const target = new THREE.Vector3();
     const milkyWay = scene.spaceRoot.getObjectByName('illustrative-milky-way') as THREE.Points<
       THREE.BufferGeometry,
-      THREE.PointsMaterial
+      THREE.ShaderMaterial
     >;
 
     milkyWay.geometry.computeBoundingSphere();
-    expect(milkyWay.material.sizeAttenuation).toBe(false);
-    expect(milkyWay.material.size).toBeLessThanOrEqual(2);
+    expect(milkyWay.material.vertexShader).toContain('stellarPointProximityGrowth');
+    expect(milkyWay.material.uniforms['opacity']!.value).toBe(0);
     expect(getNavigationScale('milky-way').distance).toBeGreaterThan(
       milkyWay.geometry.boundingSphere!.radius * 1.4,
     );
@@ -133,6 +259,9 @@ describe('UniverseScene', () => {
     expect(scene.getCatalogPickables()).toEqual([]);
     expect(scene.visibleCatalogStarCount).toBe(0);
     expect(scene.catalogStarCount).toBe(0);
+    expect(scene.exoplanetHostCount).toBe(0);
+    expect(scene.exoplanetCount).toBe(0);
+    expect(scene.visibleExoplanetHostCount).toBe(0);
     expect(scene.visibleCosmicGroupCount).toBe(0);
     expect(scene.visibleNearbyGalaxyOverviewCount).toBe(0);
     expect(scene.cosmicGroupCount).toBe(0);
@@ -141,6 +270,11 @@ describe('UniverseScene', () => {
     expect(scene.cosmicFilamentCount).toBe(0);
     expect(scene.cosmicStructureCount).toBe(0);
     expect(scene.visibleCosmicStructureCount).toBe(0);
+    expect(scene.tempelFilamentSpineTileCount).toBe(0);
+    expect(scene.tempelFilamentSpineCount).toBe(0);
+    expect(scene.tempelFilamentSpinePointCount).toBe(0);
+    expect(scene.tempelFilamentSpineSegmentCount).toBe(0);
+    expect(scene.visibleTempelFilamentSpineSegmentCount).toBe(0);
     expect(scene.isCatalogObjectVisibleForLabels('unknown')).toBeNull();
     expect(scene.visibleStarClusterCount).toBe(0);
     expect(scene.starClusterRepresentationCount).toBe(0);
@@ -164,6 +298,11 @@ describe('UniverseScene', () => {
 
     scene.setPixelRatio(1.25);
     scene.setQuality('high');
+    scene.updateLod(4, 10, 17_000);
+
+    expect(scene.visibleNearbyGalaxyOverviewCount).toBe(2);
+    expect(firstPoints?.material.uniforms['catalogOpacity']!.value).toBeGreaterThan(0.54);
+
     scene.updateLod(5, 10, 120_000);
 
     expect(scene.visibleNearbyGalaxyOverviewCount).toBe(2);
@@ -201,13 +340,22 @@ describe('UniverseScene', () => {
 
     await scene.setCosmicGroupCatalog(first);
     const firstPoints = scene.spaceRoot.getObjectByName('calculated-cosmicflows4-groups');
+    const firstDepthBackdrop = scene.spaceRoot.getObjectByName(
+      'calculated-local-volume-depth-backdrop',
+    ) as THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial> | undefined;
 
     expect(firstPoints).toBeInstanceOf(THREE.Points);
+    expect(firstDepthBackdrop).toBeInstanceOf(THREE.Points);
     const firstGeometryDispose = vi.spyOn((firstPoints as THREE.Points).geometry, 'dispose');
+    const firstDepthGeometryDispose = vi.spyOn(firstDepthBackdrop!.geometry, 'dispose');
 
     await scene.setCosmicGroupCatalog(second);
     expect(firstGeometryDispose).toHaveBeenCalledOnce();
+    expect(firstDepthGeometryDispose).toHaveBeenCalledOnce();
     const activePoints = scene.spaceRoot.getObjectByName('calculated-cosmicflows4-groups');
+    const activeDepthBackdrop = scene.spaceRoot.getObjectByName(
+      'calculated-local-volume-depth-backdrop',
+    ) as THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial>;
 
     scene.setQuality('high');
     scene.setPixelRatio(1.25);
@@ -226,12 +374,18 @@ describe('UniverseScene', () => {
         'radiance'
       ]!.value,
     ).toBe(getPhotographicProfile(6, 'high').galaxyRadiance);
+    expect(activeDepthBackdrop.material.uniforms['pixelRatio']!.value).toBe(1.25);
+    expect(activeDepthBackdrop.material.uniforms['radiance']!.value).toBe(
+      getPhotographicProfile(6, 'high').galaxyRadiance,
+    );
+    expect(activeDepthBackdrop.visible).toBe(false);
     expect(scene.getCatalogWorldPosition('cf4-pgc-84')).toBeInstanceOf(THREE.Vector3);
     expect(scene.getCatalogPickables()).toHaveLength(2);
     expect(scene.isCatalogObjectVisibleForLabels('cf4-pgc-84')).toBe(true);
 
     scene.setCosmicMapLayers({ ...DEFAULT_COSMIC_MAP_LAYERS, groups: false });
     expect(scene.visibleCosmicGroupCount).toBe(0);
+    expect(activeDepthBackdrop.visible).toBe(false);
     expect(scene.isCatalogObjectVisibleForLabels('cf4-pgc-84')).toBe(false);
     scene.setCosmicMapLayers(DEFAULT_COSMIC_MAP_LAYERS);
 
@@ -240,9 +394,18 @@ describe('UniverseScene', () => {
 
     scene.updateLod(4, 10, 17_000);
     expect(scene.visibleCosmicGroupCount).toBe(0);
+    expect(activeDepthBackdrop.visible).toBe(true);
+    expect(activeDepthBackdrop.userData['activeCount']).toBe(1);
+    scene.setCosmicMapLayers({ ...DEFAULT_COSMIC_MAP_LAYERS, groups: false });
+    expect(activeDepthBackdrop.visible).toBe(false);
+    scene.setCosmicMapLayers(DEFAULT_COSMIC_MAP_LAYERS);
+    expect(activeDepthBackdrop.visible).toBe(true);
     scene.selectCatalogObject(null);
     scene.dispose();
     expect(scene.cosmicGroupCount).toBe(0);
+    expect(
+      scene.spaceRoot.getObjectByName('calculated-local-volume-depth-backdrop'),
+    ).toBeUndefined();
   });
 
   it('installe, pilote, masque, remplace et détruit le volume simulé du réseau cosmique', async () => {
@@ -325,22 +488,38 @@ describe('UniverseScene', () => {
     const scene = new UniverseScene(new PerformanceManager());
     const backdrop = scene.spaceRoot.getObjectByName('distant-star-field') as THREE.Points<
       THREE.BufferGeometry,
-      THREE.PointsMaterial
+      THREE.ShaderMaterial
     >;
 
     expect(backdrop).toBeDefined();
     expect(backdrop.userData['scientificConfidence']).toBe('procedural');
     expect(backdrop.userData['visualRole']).toBe('decorative');
+    expect(backdrop.userData['visualStyle']).toBe('integrated-galactic-sky-depth');
+    expect(backdrop.userData['distribution']).toBe('isotropic-plus-galactic-plane');
+    expect(backdrop.geometry.getAttribute('position').count).toBe(14_000);
+    expect(backdrop.geometry.getAttribute('color').count).toBe(14_000);
+    expect(backdrop.geometry.getAttribute('pointSize').count).toBe(14_000);
+    expect(backdrop.geometry.getAttribute('pointAlpha').count).toBe(14_000);
+    expect(backdrop.material.fragmentShader).toContain('stellarHalo');
+
+    scene.setQuality('low');
+    expect(backdrop.geometry.drawRange.count).toBe(3_000);
+    scene.setQuality('medium');
+    expect(backdrop.geometry.drawRange.count).toBe(7_000);
+    scene.setQuality('high');
+    expect(backdrop.geometry.drawRange.count).toBe(14_000);
+    scene.setPixelRatio(1.25);
+    expect(backdrop.material.uniforms['pixelRatio']!.value).toBe(1.25);
 
     scene.updateLod(0, 10);
     expect(backdrop.visible).toBe(true);
-    expect(backdrop.material.opacity).toBeGreaterThan(0.25);
-    expect(backdrop.material.opacity).toBeLessThan(0.35);
+    expect(backdrop.material.opacity).toBeGreaterThan(0.22);
+    expect(backdrop.material.opacity).toBeLessThan(0.34);
 
     scene.updateLod(2, 1);
     expect(backdrop.visible).toBe(true);
-    expect(backdrop.material.opacity).toBeGreaterThan(0.04);
-    expect(backdrop.material.opacity).toBeLessThan(0.08);
+    expect(backdrop.material.opacity).toBeGreaterThan(0.14);
+    expect(backdrop.material.opacity).toBeLessThan(0.24);
 
     scene.updateLod(4, 1);
     expect(backdrop.visible).toBe(false);
@@ -352,8 +531,50 @@ describe('UniverseScene', () => {
 
     scene.updateLod(1, 1);
     expect(backdrop.visible).toBe(true);
-    expect(backdrop.material.opacity).toBeGreaterThan(0.18);
-    expect(backdrop.material.opacity).toBeLessThan(0.24);
+    expect(backdrop.material.opacity).toBeGreaterThan(0.28);
+    expect(backdrop.material.opacity).toBeLessThan(0.4);
+    scene.dispose();
+  });
+
+  it('ancre la lumière locale sur le Soleil et la masque avant la Voie lactée', () => {
+    const scene = new UniverseScene(new PerformanceManager());
+    const stellarRoot = scene.spaceRoot.getObjectByName('solar-neighborhood-reference');
+    const environment = scene.spaceRoot.getObjectByName('illustrative-local-space-environment');
+    const band = scene.spaceRoot.getObjectByName('illustrative-local-milky-way-sky');
+    const zodiacal = scene.spaceRoot.getObjectByName('illustrative-zodiacal-light');
+    const corona = scene.spaceRoot.getObjectByName('illustrative-solar-corona');
+
+    expect(environment?.parent).toBe(stellarRoot);
+    expect(environment?.userData['scientificConfidence']).toBe('illustrative');
+    scene.setQuality('high');
+    scene.updateLod(0, 10, 4.8);
+    expect(band?.visible).toBe(true);
+    expect(zodiacal?.visible).toBe(false);
+    expect(corona?.visible).toBe(false);
+    expect(environment?.userData['drawMeshCount']).toBe(1);
+
+    scene.updateLod(1, 10, 520);
+    expect(band?.visible).toBe(true);
+    expect(zodiacal?.visible).toBe(true);
+    expect(corona?.visible).toBe(true);
+    expect(environment?.userData['drawMeshCount']).toBe(3);
+
+    scene.updateLod(1, 10, 520, undefined, true);
+    expect(band?.visible).toBe(true);
+    expect(zodiacal?.visible).toBe(false);
+    expect(corona?.visible).toBe(false);
+    expect(environment?.userData['drawMeshCount']).toBe(1);
+
+    scene.updateLod(0, 10, 22, { x: 7_200, y: 0, z: 0 });
+    expect(band?.visible).toBe(false);
+    expect(environment?.userData['observerDistance']).toBeCloseTo(7_200, 8);
+    expect(environment?.userData['observerLocalityOpacity']).toBe(0);
+
+    scene.updateLod(3, 10, 9_600);
+    expect(band?.visible).toBe(false);
+    expect(zodiacal?.visible).toBe(false);
+    expect(corona?.visible).toBe(false);
+    expect(environment?.userData['drawMeshCount']).toBe(0);
     scene.dispose();
   });
 
@@ -405,6 +626,54 @@ describe('UniverseScene', () => {
     expect(scene.cosmicStructureCount).toBe(0);
   });
 
+  it('installe, survole, sélectionne, remplace et détruit les épines Tempel publiées', async () => {
+    const scene = new UniverseScene(new PerformanceManager());
+    const registry = tempelStructureRegistry();
+    const catalog = tempelSpineCatalog();
+
+    await scene.setCosmicStructureCatalog(registry);
+    await scene.setTempelFilamentSpineCatalog(catalog, registry, new CoordinateSystem());
+    const firstTile = scene.spaceRoot.getObjectByName(
+      'calculated-tempel-filament-spine-tile-7',
+    ) as THREE.LineSegments<THREE.BufferGeometry, THREE.ShaderMaterial>;
+
+    expect(firstTile).toBeInstanceOf(THREE.LineSegments);
+    expect(scene.tempelFilamentSpineTileCount).toBe(2);
+    expect(scene.tempelFilamentSpineCount).toBe(2);
+    expect(scene.tempelFilamentSpinePointCount).toBe(4);
+    expect(scene.tempelFilamentSpineSegmentCount).toBe(2);
+    expect(scene.visibleTempelFilamentSpineSegmentCount).toBe(0);
+    const firstGeometryDispose = vi.spyOn(firstTile.geometry, 'dispose');
+
+    scene.setCosmicMapLayers(ALL_COSMIC_MAP_LAYERS);
+    scene.setQuality('high');
+    scene.updateLod(6, 10, 170_000);
+    scene.hoverCatalogObject('lss-sdss-dr8-tempel-filaments-f1');
+    scene.selectCatalogObject('lss-sdss-dr8-tempel-filaments-f2');
+
+    expect(scene.visibleTempelFilamentSpineSegmentCount).toBe(2);
+    expect(scene.getCatalogPickables()).toContain(firstTile);
+    expect(
+      scene.spaceRoot.getObjectByName('hovered-tempel-filament-spine')?.userData['objectId'],
+    ).toBe('lss-sdss-dr8-tempel-filaments-f1');
+    expect(
+      scene.spaceRoot.getObjectByName('selected-tempel-filament-spine')?.userData['objectId'],
+    ).toBe('lss-sdss-dr8-tempel-filaments-f2');
+    expect(firstTile.material.uniforms['radiance']!.value).toBe(
+      getPhotographicProfile(6, 'high').galaxyRadiance,
+    );
+
+    await scene.setTempelFilamentSpineCatalog(catalog, registry, new CoordinateSystem());
+    expect(firstGeometryDispose).toHaveBeenCalledOnce();
+    scene.setCosmicMapLayers(DEFAULT_COSMIC_MAP_LAYERS);
+    expect(scene.visibleTempelFilamentSpineSegmentCount).toBe(0);
+    scene.hoverCatalogObject(null);
+    scene.selectCatalogObject(null);
+    scene.dispose();
+    expect(scene.tempelFilamentSpineTileCount).toBe(0);
+    expect(scene.tempelFilamentSpineCount).toBe(0);
+  });
+
   it('intègre un fond cosmique illustratif piloté par la distance plutôt que le LOD', () => {
     const scene = new UniverseScene(new PerformanceManager());
     const background = scene.scene.getObjectByName('scale-aware-cosmic-background') as THREE.Mesh<
@@ -429,7 +698,10 @@ describe('UniverseScene', () => {
   });
 
   it('installe, remplace, sélectionne et détruit un catalogue stellaire', async () => {
-    const scene = new UniverseScene(new PerformanceManager());
+    const performanceManager = new PerformanceManager();
+
+    vi.spyOn(performanceManager, 'getPixelRatio').mockReturnValue(1.375);
+    const scene = new UniverseScene(performanceManager);
     const first = catalogRegistry(3_229);
     const second = catalogRegistry(6_960);
 
@@ -450,9 +722,11 @@ describe('UniverseScene', () => {
       first,
     );
     await scene.setStarCatalog(second);
+    second.catalog.velocitiesParsecPerYear[0] = 0.01;
+    scene.updateStellarCatalog({ julianDay: 2_451_545 + 10 * 365.25 });
     expect(scene.activeStarTileCount).toBe(0);
     scene.setQuality('high');
-    scene.updateLod(1, 1);
+    scene.updateLod(1, 1, 520, undefined, false, 'hyg-6960');
     scene.selectCatalogObject('hyg-6960');
     const points = scene.spaceRoot.getObjectByName('observed-hyg-star-catalog') as THREE.Points<
       THREE.BufferGeometry,
@@ -468,11 +742,57 @@ describe('UniverseScene', () => {
     expect(points.material.uniforms['radiance']!.value).toBe(
       getPhotographicProfile(1, 'high').starRadiance,
     );
+    expect(points.userData['quality']).toBe('high');
+    expect(points.material.uniforms['pixelRatio']!.value).toBe(1.375);
+    expect(points.material.uniforms['airyStrength']!.value).toBeGreaterThan(0.2);
     expect(points.parent?.parent).toBe(stellarRoot);
+    expect(scene.spaceRoot.getObjectByName('active-hyg-star-detail')?.userData).toMatchObject({
+      objectId: 'hyg-6960',
+      activation: 'navigation-target',
+    });
 
     scene.selectCatalogObject(null);
+    expect(scene.spaceRoot.getObjectByName('active-hyg-star-detail')?.visible).toBe(true);
+    scene.updateLod(1, 1, 520, undefined, false, null);
+    expect(scene.spaceRoot.getObjectByName('active-hyg-star-detail')?.visible).toBe(false);
     scene.dispose();
     expect(scene.catalogStarCount).toBe(0);
+  });
+
+  it('installe, estompe, sélectionne et remplace le catalogue des systèmes exoplanétaires', async () => {
+    const scene = new UniverseScene(new PerformanceManager());
+    const first = exoplanetRegistry('First Host');
+    const second = exoplanetRegistry('Second Host');
+
+    await scene.setExoplanetCatalog(first);
+    const firstPoints = scene.spaceRoot.getObjectByName(
+      'observed-nasa-exoplanet-hosts',
+    ) as THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial>;
+    const firstGeometryDispose = vi.spyOn(firstPoints.geometry, 'dispose');
+
+    expect(firstPoints).toBeInstanceOf(THREE.Points);
+    expect(firstPoints.parent?.parent?.name).toBe('solar-neighborhood-reference');
+    scene.setQuality('high');
+    scene.setPixelRatio(1.25);
+    scene.updateLod(2, 10);
+    scene.selectCatalogObject(first.getPlanetObjectId(0));
+    expect(scene.exoplanetHostCount).toBe(1);
+    expect(scene.exoplanetCount).toBe(1);
+    expect(scene.visibleExoplanetHostCount).toBe(1);
+    expect(scene.getCatalogWorldPosition(first.getPlanetObjectId(0))).toBeInstanceOf(THREE.Vector3);
+    expect(scene.getCatalogPickables()).toHaveLength(2);
+    expect(scene.isCatalogObjectVisibleForLabels(first.getPlanetObjectId(0))).toBe(true);
+    expect(firstPoints.material.uniforms['pixelRatio']!.value).toBe(1.25);
+    expect(firstPoints.material.uniforms['radiance']!.value).toBe(
+      getPhotographicProfile(2, 'high').starRadiance,
+    );
+
+    await scene.setExoplanetCatalog(second);
+    expect(firstGeometryDispose).toHaveBeenCalledOnce();
+    expect(scene.getCatalogWorldPosition(first.getPlanetObjectId(0))).toBeNull();
+    scene.dispose();
+    expect(scene.exoplanetHostCount).toBe(0);
+    expect(scene.exoplanetCount).toBe(0);
   });
 
   it('garde les cellules stellaires masquées tout en adaptant leur cache à la qualité', async () => {
@@ -640,6 +960,7 @@ function catalogRegistry(id: number): StarCatalogRegistry {
     referenceEpochJulianDay: 2_451_545,
     catalogIds: new Uint32Array([id]),
     positionsParsec: new Float32Array([1, 2, 3]),
+    velocitiesParsecPerYear: new Float32Array(3),
     apparentMagnitudes: new Float32Array([0.5]),
     colorIndicesBv: new Float32Array([0.2]),
     names: [`Étoile ${id}`],
@@ -648,6 +969,60 @@ function catalogRegistry(id: number): StarCatalogRegistry {
   };
 
   return new StarCatalogRegistry(catalog, new CoordinateSystem());
+}
+
+function exoplanetRegistry(hostName: string): ExoplanetCatalogRegistry {
+  const catalog: ExoplanetCatalog = {
+    hostCount: 1,
+    planetCount: 1,
+    hostNames: [hostName],
+    hostAliases: [[]],
+    hostSpectralTypes: ['G2 V'],
+    hostFirstPlanetIndices: new Uint32Array([0]),
+    hostPlanetCounts: new Uint16Array([1]),
+    hostStarCounts: new Uint8Array([1]),
+    hostCircumbinaryFlags: new Uint8Array([0]),
+    hostRightAscensionDegrees: new Float64Array([12]),
+    hostDeclinationDegrees: new Float64Array([24]),
+    hostDistancesParsec: new Float64Array([10]),
+    hostTemperaturesKelvin: new Float32Array([5_700]),
+    hostRadiiSolar: new Float32Array([1]),
+    hostMassesSolar: new Float32Array([1]),
+    hostApparentMagnitudes: new Float32Array([8]),
+    planetNames: [`${hostName} b`],
+    planetLetters: ['b'],
+    planetDiscoveryMethods: ['Transit'],
+    planetDiscoveryFacilities: ['Kepler'],
+    planetMassProvenances: ['Mass'],
+    planetHostIndices: new Uint32Array([0]),
+    planetOrbitalPeriodsDays: new Float64Array([20]),
+    planetSemiMajorAxesAu: new Float64Array([0.2]),
+    planetRadiiEarth: new Float32Array([1.2]),
+    planetMassesEarth: new Float32Array([1.5]),
+    planetEquilibriumTemperaturesKelvin: new Float32Array([280]),
+    planetEccentricities: new Float32Array([0.02]),
+    planetInclinationsDegrees: new Float32Array([89]),
+    planetInsolationsEarth: new Float32Array([1]),
+    planetDiscoveryYears: new Uint16Array([2020]),
+    planetControversialFlags: new Uint8Array([0]),
+    metadata: {
+      version: '1.0.0',
+      format: 'exoplanet-catalog-v1',
+      source: {
+        name: 'NASA Exoplanet Archive',
+        url: 'https://exoplanetarchive.ipac.caltech.edu/',
+        tapUrl: 'https://exoplanetarchive.ipac.caltech.edu/TAP/sync',
+        table: 'PSCompPars',
+        query: 'select ... from pscomppars',
+        snapshotDate: '2026-08-05',
+        sha256: 'a'.repeat(64),
+      },
+      counts: { hosts: 1, planets: 1, positionedHosts: 1, positionedPlanets: 1 },
+      missingDistanceFallbackParsec: 1_000,
+    },
+  };
+
+  return new ExoplanetCatalogRegistry(catalog, new CoordinateSystem());
 }
 
 function cosmicWebVolume(resolution: number): CosmicWebVolume {
@@ -749,6 +1124,73 @@ function cosmicStructureRegistry(identifier: string): CosmicStructureCatalogRegi
   return new CosmicStructureCatalogRegistry(catalog, new CoordinateSystem());
 }
 
+function tempelStructureRegistry(): CosmicStructureCatalogRegistry {
+  const metadata: CosmicStructureCatalogMetadata = {
+    version: '1.0.0',
+    recordCount: 2,
+    referenceEpochJulianDay: 2_451_545,
+    referenceFrame: 'equatorial-j2000',
+    distanceUnit: 'megaparsec',
+    scientificConfidence: 'calculated',
+    sources: [
+      {
+        id: 'sdss-dr8-tempel-filaments',
+        name: 'SDSS DR8 Bisous cosmic filaments',
+        citation: 'Tempel et al. (2014), MNRAS 438, 3465',
+        sourceUrl: 'https://example.test/tempel',
+        structureType: 'filament',
+        method: 'Bisous',
+        objectNamePrefix: 'Filament SDSS',
+        scientificConfidence: 'calculated',
+        recordCount: 2,
+      },
+    ],
+  };
+  const positions = new Float32Array([10.5, 10.5, 10.5, -20.5, -20.5, -20.5]);
+  const distances = new Float32Array([
+    Math.hypot(10.5, 10.5, 10.5),
+    Math.hypot(-20.5, -20.5, -20.5),
+  ]);
+  const catalog: CosmicStructureCatalog = {
+    count: 2,
+    referenceEpochJulianDay: 2_451_545,
+    minimumDistanceMpc: distances[0]!,
+    maximumDistanceMpc: distances[1]!,
+    positionsMpc: positions,
+    distancesMpc: distances,
+    radiiMpc: new Float32Array([1, 1]),
+    confidences: new Float32Array([1, 1]),
+    densityContrasts: new Float32Array([Number.NaN, Number.NaN]),
+    boundaryDistancesMpc: new Float32Array([Number.NaN, Number.NaN]),
+    galaxyCounts: new Uint32Array(2),
+    sourceIndices: new Uint16Array(2),
+    catalogNumericIds: new Uint16Array([1, 2]),
+    flags: new Uint8Array(2),
+    identifiers: ['F1', 'F2'],
+    structureTypes: ['filament', 'filament'],
+    metadata,
+  };
+
+  return new CosmicStructureCatalogRegistry(catalog, new CoordinateSystem());
+}
+
+function tempelSpineCatalog(): TempelFilamentSpineCatalog {
+  return {
+    filamentCount: 2,
+    pointCount: 4,
+    segmentCount: 2,
+    referenceEpochJulianDay: 2_451_545,
+    minimumDistanceMpc: Math.sqrt(300),
+    maximumDistanceMpc: Math.sqrt(1_323),
+    filamentIds: new Uint16Array([1, 2]),
+    pointOffsets: new Uint32Array([0, 2, 4]),
+    positionsMpc: new Float32Array([10, 10, 10, 11, 11, 11, -20, -20, -20, -21, -21, -21]),
+    visitMap: new Uint8Array([96, 112, 128, 144]),
+    density: new Uint8Array([120, 136, 152, 168]),
+    orientationStrength: new Uint8Array([180, 196, 212, 228]),
+  };
+}
+
 function connectedCosmicGroupRegistry(): CosmicGroupCatalogRegistry {
   const positions = new Float32Array([
     12, 0, 0, 18, 1, 0, 24, -1, 1, 24, 7, 0, 30, 1, -1, 36, 0, 0,
@@ -798,6 +1240,7 @@ function constellationRegistry(): StarCatalogRegistry {
     referenceEpochJulianDay: 2_451_545,
     catalogIds: new Uint32Array([3_229, 6_960]),
     positionsParsec: new Float32Array([1, 2, 3, -2, 1, 4]),
+    velocitiesParsecPerYear: new Float32Array(6),
     apparentMagnitudes: new Float32Array([0.5, 1.2]),
     colorIndicesBv: new Float32Array([0.2, 0.6]),
     names: ['Alpha', 'Beta'],

@@ -33,7 +33,7 @@
   height: 40px;
   place-items: center;
   border: 0;
-  color: rgb(213 229 244 / 62%);
+  color: var(--ui-text-secondary);
   background: transparent;
   cursor: pointer;
   transition:
@@ -179,8 +179,8 @@
 }
 
 .popover__eyebrow {
-  color: rgb(150 197 232 / 52%);
-  font-size: 0.57rem;
+  color: rgb(164 211 243 / 72%);
+  font-size: var(--ui-font-micro);
   font-weight: 650;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -202,13 +202,13 @@
   }
 
   strong {
-    font-size: 0.74rem;
+    font-size: var(--ui-font-small);
     font-weight: 560;
   }
 
   small {
-    color: rgb(187 209 230 / 44%);
-    font-size: 0.62rem;
+    color: var(--ui-text-muted);
+    font-size: var(--ui-font-caption);
     line-height: 1.35;
   }
 
@@ -217,11 +217,11 @@
     height: 32px;
     border: 1px solid rgb(174 203 233 / 13%);
     border-radius: 8px;
-    color: rgb(225 237 248 / 76%);
+    color: var(--ui-text-primary);
     color-scheme: dark;
     background: rgb(1 5 12 / 45%);
     font: inherit;
-    font-size: 0.65rem;
+    font-size: var(--ui-font-caption);
   }
 }
 
@@ -241,10 +241,10 @@
     min-height: 31px;
     border: 0;
     border-right: 1px solid rgb(174 203 233 / 9%);
-    color: rgb(207 224 239 / 52%);
+    color: var(--ui-text-muted);
     background: rgb(255 255 255 / 1.5%);
     font: inherit;
-    font-size: 0.64rem;
+    font-size: var(--ui-font-caption);
     cursor: pointer;
 
     &:last-child {
@@ -282,8 +282,8 @@
 
   p {
     margin: 0;
-    color: rgb(206 222 237 / 62%);
-    font-size: 0.68rem;
+    color: var(--ui-text-secondary);
+    font-size: var(--ui-font-caption);
   }
 }
 
@@ -292,17 +292,115 @@
   padding: 4px 7px;
   border: 1px solid rgb(174 203 233 / 14%);
   border-radius: 6px;
-  color: rgb(225 237 248 / 72%);
+  color: var(--ui-text-secondary);
   background: rgb(255 255 255 / 2.5%);
-  font-size: 0.59rem;
+  font-size: var(--ui-font-micro);
 }
 
 .touch-help {
   margin: 0;
-  padding: 12px 16px 16px;
-  color: rgb(174 200 224 / 48%);
-  font-size: 0.64rem;
+  padding: 12px 16px;
+  color: var(--ui-text-muted);
+  font-size: var(--ui-font-caption);
   line-height: 1.45;
+}
+
+.help-popover {
+  max-height: calc(100dvh - 94px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: rgb(123 174 210 / 32%) transparent;
+  scrollbar-width: thin;
+}
+
+.creator-card {
+  display: grid;
+  gap: 5px;
+  margin: 0 16px 12px;
+  padding: 13px;
+  border: 1px solid rgb(126 190 231 / 14%);
+  border-radius: 11px;
+  background:
+    radial-gradient(circle at 100% 0, rgb(100 174 224 / 12%), transparent 58%),
+    rgb(255 255 255 / 2%);
+
+  > strong {
+    color: rgb(234 244 253 / 90%);
+    font-size: 0.76rem;
+    font-weight: 590;
+  }
+
+  > p {
+    margin: 0;
+    color: var(--ui-text-muted);
+    font-size: var(--ui-font-caption);
+    line-height: 1.5;
+  }
+}
+
+.creator-card__eyebrow {
+  color: rgb(126 197 238 / 58%);
+  font-size: var(--ui-font-micro);
+  font-weight: 680;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.creator-card__actions {
+  margin-top: 6px;
+}
+
+.creator-link {
+  display: flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  padding: 7px 9px;
+  border: 1px solid rgb(111 193 239 / 18%);
+  border-radius: 8px;
+  color: rgb(211 239 253 / 86%);
+  background: rgb(76 157 205 / 9%);
+  font-size: var(--ui-font-caption);
+  font-weight: 570;
+  text-decoration: none;
+  transition:
+    border-color 140ms ease,
+    color 140ms ease,
+    background 140ms ease;
+
+  &:hover,
+  &:focus-visible {
+    border-color: rgb(111 193 239 / 34%);
+    color: #effaff;
+    background: rgb(76 157 205 / 15%);
+    outline: none;
+  }
+}
+
+.documentation-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 16px 16px;
+  padding: 10px 11px;
+  border: 1px solid rgb(111 193 239 / 18%);
+  border-radius: 9px;
+  color: rgb(203 235 252 / 84%);
+  background: rgb(76 157 205 / 9%);
+  font-size: var(--ui-font-caption);
+  font-weight: 560;
+  text-decoration: none;
+  transition:
+    border-color 140ms ease,
+    color 140ms ease,
+    background 140ms ease;
+
+  &:hover {
+    border-color: rgb(111 193 239 / 34%);
+    color: #effaff;
+    background: rgb(76 157 205 / 15%);
+  }
 }
 
 @keyframes popover-in {
@@ -315,8 +413,8 @@
 @media (width <= 720px) {
   .controls {
     top: auto;
-    right: 10px;
-    bottom: 112px;
+    right: max(10px, var(--mobile-right-safe, 0px));
+    bottom: var(--mobile-timeline-clearance, 132px);
     display: flex;
     transform: none;
 
@@ -336,8 +434,8 @@
   }
 
   .controls button {
-    width: 38px;
-    height: 38px;
+    width: 44px;
+    height: 44px;
   }
 
   .control-group:nth-child(3) {
@@ -345,7 +443,87 @@
   }
 
   .popover {
-    top: 126px;
-    right: 10px;
+    top: calc(126px + var(--mobile-top-safe, 0px));
+    right: max(10px, var(--mobile-right-safe, 0px));
+    bottom: var(--mobile-timeline-clearance, 132px);
+    width: min(
+      330px,
+      calc(100vw - 20px - var(--mobile-left-safe, 0px) - var(--mobile-right-safe, 0px))
+    );
+    max-height: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .help-popover {
+    max-height: none;
+  }
+
+  .popover header button {
+    width: 44px;
+    height: 44px;
+    margin: -7px;
+  }
+
+  .setting-row select,
+  .segmented-control button {
+    min-height: 44px;
+  }
+
+  .toggle-row input {
+    width: 44px;
+    height: 24px;
+  }
+
+  .creator-link,
+  .documentation-link {
+    min-height: 44px;
+  }
+}
+
+@media (height <= 520px) and (width > 720px) and (width <= 1000px) {
+  .controls {
+    top: auto;
+    right: max(12px, var(--landscape-right-safe, 0px));
+    bottom: var(--landscape-timeline-clearance, 82px);
+    display: flex;
+    gap: 8px;
+    transform: none;
+
+    &--details {
+      display: none;
+    }
+  }
+
+  .control-group {
+    display: flex;
+  }
+
+  .separator {
+    width: 1px;
+    height: auto;
+    margin: 8px 0;
+  }
+
+  .controls button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .popover {
+    top: calc(70px + var(--landscape-top-safe, 0px));
+    right: max(12px, var(--landscape-right-safe, 0px));
+    bottom: var(--landscape-timeline-clearance, 82px);
+    max-height: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .popover header button,
+  .setting-row select,
+  .segmented-control button,
+  .creator-link,
+  .documentation-link {
+    min-height: 44px;
   }
 }

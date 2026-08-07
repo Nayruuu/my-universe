@@ -3,6 +3,7 @@ import {
   GraphicQuality,
   LabelDensity,
   NavigationState,
+  NavigationViewMode,
   TemporalMode,
 } from '../../../data/models/universe.models';
 import { dateToJulianDay, julianDayToDate } from '../../../engine/simulation/time-utils';
@@ -12,13 +13,14 @@ export class NavigationUrlService {
   private debounceId: number | null = null;
   private maximumWaitId: number | null = null;
   private pendingState: NavigationState | null = null;
+  private viewContext = readViewContext(new URL(window.location.href));
 
   public read(): Partial<NavigationState> {
     return parseNavigationState(new URL(window.location.href));
   }
 
   public scheduleWrite(state: NavigationState): void {
-    this.pendingState = { ...state };
+    this.pendingState = { ...state, ...this.viewContext };
     if (this.debounceId !== null) {
       window.clearTimeout(this.debounceId);
     }
@@ -27,7 +29,20 @@ export class NavigationUrlService {
   }
 
   public createShareUrl(state: NavigationState): string {
-    return serializeNavigationState(state, new URL(window.location.href)).toString();
+    return serializeNavigationState(
+      { ...state, ...this.viewContext },
+      new URL(window.location.href),
+    ).toString();
+  }
+
+  public updateViewContext(view: NavigationViewMode, observerLocationId: string | null): void {
+    this.viewContext = { view, observerLocationId };
+    if (this.pendingState) {
+      this.pendingState = { ...this.pendingState, ...this.viewContext };
+    }
+    const url = serializeNavigationViewContext(this.viewContext, new URL(window.location.href));
+
+    window.history.replaceState(null, '', url);
   }
 
   private flushScheduledWrite(): void {
@@ -57,6 +72,7 @@ export function parseNavigationState(url: URL): Partial<NavigationState> {
   const labelDensity = parseLabelDensity(params.get('density'));
   const time = parseTime(params.get('time'));
   const zoom = parseFiniteNumber(params.get('zoom'));
+  const view = parseView(params.get('view'));
 
   return {
     ...(params.has('target') ? { targetId: params.get('target') || null } : {}),
@@ -71,6 +87,8 @@ export function parseNavigationState(url: URL): Partial<NavigationState> {
       ? { showConstellations: params.get('constellations') !== '0' }
       : {}),
     ...(params.has('labels') ? { showLabels: params.get('labels') !== '0' } : {}),
+    ...(view ? { view } : {}),
+    ...(params.has('observer') ? { observerLocationId: params.get('observer') || null } : {}),
   };
 }
 
@@ -92,6 +110,35 @@ export function serializeNavigationState(state: NavigationState, baseUrl: URL): 
   params.set('orbits', state.showOrbits ? '1' : '0');
   params.set('constellations', state.showConstellations ? '1' : '0');
   params.set('labels', state.showLabels ? '1' : '0');
+  if (state.view !== undefined) {
+    params.set('view', state.view);
+  }
+  if (state.observerLocationId !== undefined) {
+    setNullable(params, 'observer', state.observerLocationId);
+  }
+
+  return url;
+}
+
+interface NavigationViewContext {
+  readonly view: NavigationViewMode;
+  readonly observerLocationId: string | null;
+}
+
+function readViewContext(url: URL): NavigationViewContext {
+  const navigation = parseNavigationState(url);
+
+  return {
+    view: navigation.view ?? 'map',
+    observerLocationId: navigation.observerLocationId ?? null,
+  };
+}
+
+function serializeNavigationViewContext(context: NavigationViewContext, baseUrl: URL): URL {
+  const url = new URL(baseUrl);
+
+  url.searchParams.set('view', context.view);
+  setNullable(url.searchParams, 'observer', context.observerLocationId);
 
   return url;
 }
@@ -112,6 +159,10 @@ function parseTime(value: string | null): number | null {
 
 function parseMode(value: string | null): TemporalMode | null {
   return value === 'state' || value === 'observable' ? value : null;
+}
+
+function parseView(value: string | null): NavigationViewMode | null {
+  return value === 'map' || value === 'planetarium' ? value : null;
 }
 
 function parseQuality(value: string | null): GraphicQuality | null {

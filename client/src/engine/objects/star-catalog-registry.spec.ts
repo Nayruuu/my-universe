@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { SpaceObject } from '../../data/models/universe.models';
+import { ConstellationCatalog, SpaceObject } from '../../data/models/universe.models';
 import { CoordinateSystem } from '../coordinates/coordinate-system';
 import { StarCatalog } from '../loaders/star-catalog';
 import { StarCatalogRegistry } from './star-catalog-registry';
@@ -24,10 +24,17 @@ describe('StarCatalogRegistry', () => {
       aliases: ['HIP 32349', 'HD 48915'],
       type: 'star',
       parentId: 'milky-way',
-      scientificConfidence: 'observed',
+      scientificConfidence: 'extrapolated',
       physical: { spectralType: 'A0m' },
       metadata: {
         hygId: 32263,
+        rightAscensionDegrees: expect.closeTo(101.287, 3),
+        declinationDegrees: expect.closeTo(-16.716, 3),
+        skyCoordinateEpoch: 'J2000',
+        properMotionApplied: true,
+        properMotionVelocityUnit: 'parsec/year',
+        stellarReferencePositionParsecX: expect.closeTo(-0.494_323, 6),
+        stellarVelocityParsecPerYearX: expect.closeTo(0.000_009_53, 9),
       },
     });
     expect(sirius?.metadata?.['apparentMagnitude']).toBeCloseTo(-1.44, 5);
@@ -57,6 +64,104 @@ describe('StarCatalogRegistry', () => {
     const target = new THREE.Vector3();
 
     expect(registry.getLocalPosition('hyg-32263', target)).toBe(target);
+  });
+
+  it('expose à la demande un catalogue léger pour le ciel terrestre', () => {
+    const registry = new StarCatalogRegistry(createCatalog(), new CoordinateSystem());
+    const brightest = registry.getStellarObservationCatalog(1);
+
+    expect(brightest).toEqual([
+      {
+        id: 'hyg-32263',
+        name: 'Sirius',
+        coordinates: {
+          rightAscensionDegrees: expect.closeTo(101.287, 3),
+          declinationDegrees: expect.closeTo(-16.716, 3),
+        },
+        apparentMagnitude: expect.closeTo(-1.44, 5),
+        color: expect.stringMatching(/^#[0-9a-f]{6}$/u),
+      },
+    ]);
+    expect(registry.getStellarObservationCatalog(-2)).toEqual([]);
+    expect(registry.getStellarObservationCatalog(1.8)).toHaveLength(1);
+    expect(registry.getStellarObservationCatalog(100)).toHaveLength(2);
+  });
+
+  it('propage le même catalogue groupé et les directions observables à la date choisie', () => {
+    const registry = new StarCatalogRegistry(createCatalog(), new CoordinateSystem());
+    const constellation = constellationCatalog();
+    const initialRenderPosition = registry.renderPositions.slice(0, 3);
+    const initialObservationCatalog = registry.getStellarObservationCatalog(2);
+    const initialConstellations = registry.getStellarObservationConstellations(constellation);
+    const futureTime = { julianDay: 2_451_545 + 50 * 365.25 };
+
+    expect(registry.updateTime(futureTime)).toBe(true);
+    expect(registry.stellarMotionEpoch).toMatchObject({
+      requestedJulianDay: futureTime.julianDay,
+      appliedElapsedYears: 50,
+      status: 'within-model-domain',
+    });
+    expect(registry.renderPositions.slice(0, 3)).not.toEqual(initialRenderPosition);
+    expect(registry.getStellarObservationCatalog(2)).not.toBe(initialObservationCatalog);
+    expect(registry.getStellarObservationCatalog(1)[0]?.coordinates).not.toEqual(
+      initialObservationCatalog[0]?.coordinates,
+    );
+    expect(registry.getStellarObservationConstellations(constellation)).not.toBe(
+      initialConstellations,
+    );
+    expect(registry.updateTime(futureTime)).toBe(false);
+  });
+
+  it('n’applique le temps de regard propre à chaque étoile qu’en mode observable', () => {
+    const registry = new StarCatalogRegistry(createCatalog(), new CoordinateSystem());
+    const time = { julianDay: 2_451_545 };
+    const simultaneous = registry.renderPositions.slice();
+
+    expect(registry.updateTime(time, 'observable')).toBe(true);
+    expect(registry.renderPositions).not.toEqual(simultaneous);
+    expect(registry.receivedLightClampedStarCount).toBe(0);
+    expect(registry.updateTime(time, 'observable')).toBe(false);
+
+    expect(registry.updateTime(time, 'state')).toBe(true);
+    expect(registry.renderPositions).toEqual(simultaneous);
+    expect(registry.receivedLightClampedStarCount).toBe(0);
+
+    const remoteCatalog = createCatalog();
+
+    remoteCatalog.positionsParsec[0] = 4_000;
+    const remoteRegistry = new StarCatalogRegistry(remoteCatalog, new CoordinateSystem());
+
+    expect(remoteRegistry.updateTime(time, 'observable')).toBe(true);
+    expect(remoteRegistry.receivedLightClampedStarCount).toBe(1);
+  });
+
+  it('relie les figures de constellation aux entrées légères du ciel terrestre', () => {
+    const registry = new StarCatalogRegistry(createCatalog(), new CoordinateSystem(), [
+      catalogLinkedSirius(),
+    ]);
+    const catalog = constellationCatalog();
+    const constellations = registry.getStellarObservationConstellations(catalog);
+
+    expect(constellations).toEqual([
+      {
+        id: 'constellation-test',
+        name: 'Test',
+        abbreviation: 'Tst',
+        segments: [
+          {
+            from: expect.objectContaining({ id: 'sirius', name: 'Sirius' }),
+            to: expect.objectContaining({ id: 'hyg-30365', name: 'Canopus' }),
+          },
+        ],
+      },
+    ]);
+    expect(registry.getStellarObservationConstellations(catalog)).toBe(constellations);
+    expect(() =>
+      registry.getStellarObservationConstellations({
+        ...catalog,
+        figures: [{ ...catalog.figures[0]!, segments: [[99_999, 30_365]] }],
+      }),
+    ).toThrow('HYG 99999');
   });
 
   it('prépare des labels légers par luminosité sans dupliquer les étoiles déjà nommées', () => {
@@ -233,12 +338,33 @@ function catalogLinkedSirius(): SpaceObject {
   };
 }
 
+function constellationCatalog(): ConstellationCatalog {
+  return {
+    version: '1.0.0',
+    source: { name: 'Test', url: 'https://example.test', license: 'CC0' },
+    referenceFrame: 'equatorial-j2000',
+    scientificConfidence: 'illustrative',
+    starCatalog: 'HYG test',
+    figures: [
+      {
+        id: 'test',
+        name: 'Test',
+        abbreviation: 'Tst',
+        segments: [[32_263, 30_365]],
+      },
+    ],
+  };
+}
+
 function createCatalog(): StarCatalog {
   return {
     count: 2,
     referenceEpochJulianDay: 2_451_545,
     positionsParsec: new Float32Array([
       -0.494323, 2.476731, -0.758485, -0.086_008, -0.195_067, -1.386_851,
+    ]),
+    velocitiesParsecPerYear: new Float32Array([
+      0.000_009_53, -0.000_012_07, -0.000_012_21, 0, 0, 0,
     ]),
     apparentMagnitudes: new Float32Array([-1.44, -0.62]),
     colorIndicesBv: new Float32Array([0.009, 0.164]),
@@ -260,6 +386,7 @@ function createLargeCatalog(count: number): StarCatalog {
     count,
     referenceEpochJulianDay: 2_451_545,
     positionsParsec,
+    velocitiesParsecPerYear: new Float32Array(count * 3),
     apparentMagnitudes: Float32Array.from({ length: count }, (_, index) => index / count),
     colorIndicesBv: new Float32Array(count),
     catalogIds: Uint32Array.from({ length: count }, (_, index) => index + 1),

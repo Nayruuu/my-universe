@@ -7,40 +7,141 @@ import {
   SpaceObjectType,
 } from '../../../data/models/universe.models';
 import { UniverseEngineFacade } from '../../core/engine/universe-engine.facade';
+import { I18nService } from '../../core/i18n/i18n.service';
+import { EarthSkyJourney } from '../stellar-observation/earth-sky-journey';
+import { EarthSkyViewState } from '../stellar-observation/earth-sky-view-state';
 import { ObjectDetailsComponent } from './object-details.component';
+import type { ObjectDetailsPresenter } from './object-details.presenter';
 
 describe('ObjectDetailsComponent', () => {
   const sun = object({ id: 'sun', name: 'Soleil', type: 'star' });
   const objects = signal<readonly SpaceObject[]>([sun]);
+  const currentTime = signal({ julianDay: 2_461_056.416_666_666_5 });
+  const displayOptions = signal({
+    showOrbits: true,
+    showConstellations: true,
+    showLabels: true,
+    quality: 'medium' as const,
+    labelDensity: 'balanced' as const,
+    temporalMode: 'state' as 'state' | 'observable',
+  });
   const facade = {
     selectedObject: signal<SpaceObject | null>(null),
     objects,
+    currentTime,
+    displayOptions,
     closeDetails: vi.fn(),
     focus: vi.fn(() => Promise.resolve()),
+    viewRotation: vi.fn(() => Promise.resolve()),
     viewOrbit: vi.fn(),
+    setTime: vi.fn(),
+    setTemporalMode: vi.fn((temporalMode: 'state' | 'observable') =>
+      displayOptions.update((options) => ({ ...options, temporalMode })),
+    ),
+  };
+  const earthSkyJourney = {
+    start: vi.fn(() => Promise.resolve()),
+    retarget: vi.fn(() => Promise.resolve()),
   };
 
   beforeEach(() => {
+    window.history.replaceState(null, '', '/fr/');
     objects.set([sun]);
     facade.selectedObject.set(null);
+    displayOptions.update((options) => ({ ...options, temporalMode: 'state' }));
     vi.clearAllMocks();
     TestBed.configureTestingModule({
       imports: [ObjectDetailsComponent],
-      providers: [{ provide: UniverseEngineFacade, useValue: facade }],
+      providers: [
+        { provide: UniverseEngineFacade, useValue: facade },
+        { provide: EarthSkyJourney, useValue: earthSkyJourney },
+      ],
     });
+    TestBed.inject(EarthSkyViewState).close();
   });
 
   afterEach(() => TestBed.resetTestingModule());
 
-  it('délègue le focus et le cadrage orbital', () => {
+  it('délègue le focus, la rotation et le cadrage orbital', () => {
     const component = createComponent();
     const earth = object({ id: 'earth', name: 'Terre', parentId: 'sun' });
 
     component.focus(earth);
+    component.viewRotation(earth);
     component.viewOrbit(earth);
 
     expect(facade.focus).toHaveBeenCalledWith('earth');
+    expect(facade.viewRotation).toHaveBeenCalledWith('earth');
     expect(facade.viewOrbit).toHaveBeenCalledWith('earth');
+  });
+
+  it('recentre une autre étoile sans quitter le planétarium', () => {
+    const component = createComponent();
+    const sirius = observableStar('sirius', 'Sirius', 101.287_155, -16.716_116);
+    const betelgeuse = observableStar('betelgeuse', 'Bételgeuse', 88.792_939, 7.407_064);
+
+    TestBed.inject(EarthSkyViewState).open('sirius', 'Sirius', sirius);
+    component.focus(betelgeuse);
+
+    expect(earthSkyJourney.retarget).toHaveBeenCalledWith(betelgeuse);
+    expect(facade.focus).not.toHaveBeenCalled();
+
+    component.focus(object({ id: 'earth', name: 'Terre' }));
+    expect(facade.focus).toHaveBeenCalledWith('earth');
+  });
+
+  it('ouvre le localisateur terrestre uniquement pour une étoile dotée de coordonnées J2000', () => {
+    const component = createComponent();
+    const sirius = object({
+      id: 'sirius',
+      name: 'Sirius',
+      type: 'star',
+      metadata: {
+        rightAscensionDegrees: 101.287_161_3,
+        declinationDegrees: -16.716_122,
+        skyCoordinateEpoch: 'J2000',
+      },
+    });
+
+    expect(component.canObserveFromEarth(sirius)).toBe(true);
+    expect(component.canObserveFromEarth(object({ type: 'star' }))).toBe(false);
+    expect(
+      component.canObserveFromEarth(
+        object({
+          type: 'star',
+          metadata: {
+            rightAscensionDegrees: 101.287_161_3,
+            declinationDegrees: -16.716_122,
+            skyCoordinateEpoch: 'B1950',
+          },
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      component.canObserveFromEarth(object({ type: 'planet', metadata: sirius.metadata })),
+    ).toBe(false);
+
+    component.observeFromEarth(sirius);
+    expect(earthSkyJourney.start).toHaveBeenCalledWith(sirius);
+    expect(facade.setTemporalMode).not.toHaveBeenCalled();
+
+    const fixture = TestBed.createComponent(ObjectDetailsComponent);
+
+    facade.selectedObject.set(sirius);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('app-stellar-observation')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.observation-action')).not.toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Localiser Sirius');
+
+    const earthSkyViewState = TestBed.inject(EarthSkyViewState);
+
+    earthSkyViewState.open('sirius', 'Sirius', sirius);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.observation-action')).toBeNull();
+
+    earthSkyViewState.close();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.observation-action')).not.toBeNull();
   });
 
   it('détecte les orbites képlériennes et les éphémérides', () => {
@@ -49,30 +150,174 @@ describe('ObjectDetailsComponent', () => {
     const staticChild = object({ parentId: 'sun', positionProvider: staticProvider() });
     const keplerian = object({ parentId: 'sun', positionProvider: keplerianProvider(365.25) });
     const ephemeris = object({ parentId: 'sun', positionProvider: ephemerisProvider(730.5) });
+    const illustrative = object({
+      parentId: 'sun',
+      positionProvider: illustrativeOrbitProvider(384.843),
+    });
 
     expect(component.hasOrbit(withoutParent)).toBe(false);
     expect(component.hasOrbit(staticChild)).toBe(false);
     expect(component.hasOrbit(keplerian)).toBe(true);
     expect(component.hasOrbit(ephemeris)).toBe(true);
+    expect(component.hasOrbit(illustrative)).toBe(true);
     expect(component.orbitPeriodLabel(staticChild)).toBeNull();
     expect(component.orbitPeriodLabel(keplerian)).toContain('365,25 jours');
     expect(component.orbitPeriodLabel(ephemeris)).toContain('2 ans');
+    expect(component.orbitPeriodLabel(illustrative)).toContain('384,84 jours');
+  });
+
+  it('présente et ouvre l’époque historique d’une supernova sans la déclarer exacte', () => {
+    const component = createComponent();
+    const supernova = object({
+      id: 'sn-1987a',
+      type: 'supernova',
+      metadata: {
+        eventDateLabel: '23 février 1987 · découverte',
+        visualPeakJulianDay: 2_446_849.5,
+        visualDateConfidence: 'discovery-anchor',
+        supernovaType: 'II-pec',
+        appearanceConfidence: 'illustrative',
+      },
+    });
+    const undatedRemnant = object({
+      id: 'cassiopeia-a',
+      type: 'supernova-remnant',
+      metadata: { eventDateLabel: 'Vers 1680 · date incertaine' },
+    });
+
+    expect(component.supernovaEventLabel(supernova)).toBe('23 février 1987 · découverte');
+    expect(component.supernovaTypeLabel(supernova)).toBe('II-pec');
+    expect(component.hasIllustrativeAppearance(supernova)).toBe(true);
+    expect(component.hasSupernovaEvent(supernova)).toBe(true);
+    expect(component.hasSupernovaEvent(undatedRemnant)).toBe(false);
+    expect(component.supernovaTypeLabel(undatedRemnant)).toBeNull();
+    expect(component.hasIllustrativeAppearance(undatedRemnant)).toBe(false);
+
+    component.viewSupernovaEvent(supernova);
+    component.viewSupernovaEvent(undatedRemnant);
+
+    expect(facade.setTime).toHaveBeenCalledOnce();
+    expect(facade.setTime).toHaveBeenCalledWith({ julianDay: 2_446_849.5 });
+    expect(facade.focus).toHaveBeenCalledWith('sn-1987a');
+  });
+
+  it('affiche le retard lumineux et l’époque d’émission uniquement en mode observable', () => {
+    const fixture = TestBed.createComponent(ObjectDetailsComponent);
+
+    facade.selectedObject.set(sun);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).not.toContain('Temps de trajet lumineux');
+
+    facade.setTemporalMode('observable');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Temps de trajet lumineux');
+    expect(fixture.nativeElement.textContent).toContain('Époque d’émission');
+    expect(fixture.nativeElement.textContent).toMatch(/8[,.]\d+ min/u);
+    expect(fixture.nativeElement.textContent).toContain('2026');
+  });
+
+  it('explique les paramètres spécifiques d’une exoplanète sans confondre mesure et rendu', () => {
+    const component = createComponent();
+    const exoplanet = object({
+      type: 'exoplanet',
+      positionProvider: illustrativeOrbitProvider(384.843),
+      metadata: {
+        equilibriumTemperatureK: 265,
+        discoveryYear: 2015,
+        massProvenance: 'M-R relationship',
+      },
+    });
+
+    expect(component.hasIllustrativeOrbit(exoplanet)).toBe(true);
+    expect(component.hasIllustrativeOrbit(object())).toBe(false);
+    expect(component.equilibriumTemperatureLabel(exoplanet)).toBe('265 K');
+    expect(component.equilibriumTemperatureLabel(object())).toBeNull();
+    expect(component.discoveryYearLabel(exoplanet)).toBe('2 015');
+    expect(component.discoveryYearLabel(object())).toBeNull();
+    expect(component.massProvenanceLabel(exoplanet)).toBe('Estimée par relation masse–rayon');
+    expect(component.massProvenanceLabel(object({ metadata: { massProvenance: 'Mass' } }))).toBe(
+      'Masse mesurée',
+    );
+    expect(component.massProvenanceLabel(object())).toBeNull();
+    expect(
+      component.semiMajorAxisLabel(
+        object({ metadata: { semiMajorAxisAu: 1.046, distanceLy: 1799.49 } }),
+      ),
+    ).toBe('1,046 UA');
+    expect(component.semiMajorAxisLabel(object())).toBeNull();
+    expect(
+      component.orbitApproximationNote(
+        object({
+          type: 'exoplanet',
+          positionProvider: illustrativeOrbitProvider(20),
+          metadata: {
+            semiMajorAxisSource: 'NASA Exoplanet Archive',
+            orbitalPeriodSource: 'NASA Exoplanet Archive',
+          },
+        }),
+      ),
+    ).toContain('proviennent du catalogue');
+    expect(
+      component.orbitApproximationNote(
+        object({
+          type: 'exoplanet',
+          positionProvider: illustrativeOrbitProvider(20),
+          metadata: {
+            semiMajorAxisSource: 'Illustrative map spacing',
+            orbitalPeriodSource: 'Illustrative map timing',
+          },
+        }),
+      ),
+    ).toContain('espacement et la période sont illustratifs');
+    expect(
+      component.orbitApproximationNote(
+        object({
+          type: 'exoplanet',
+          positionProvider: illustrativeOrbitProvider(20),
+          metadata: {
+            semiMajorAxisSource: 'Calculated from Kepler’s third law',
+            orbitalPeriodSource: 'NASA Exoplanet Archive',
+          },
+        }),
+      ),
+    ).toContain('troisième loi de Kepler');
+    expect(
+      component.orbitApproximationNote(
+        object({
+          type: 'exoplanet',
+          positionProvider: illustrativeOrbitProvider(20),
+          metadata: {
+            semiMajorAxisSource: 'Illustrative map spacing',
+            orbitalPeriodSource: 'NASA Exoplanet Archive',
+          },
+        }),
+      ),
+    ).toContain('Un paramètre orbital absent');
+    expect(
+      component.mapDistanceNotice(
+        object({
+          metadata: {
+            mapDistanceUnavailable: true,
+            mapDistanceFallbackPc: 1_000,
+          },
+        }),
+      ),
+    ).toContain('1 000 pc');
+    expect(
+      component.mapDistanceNotice(object({ metadata: { mapDistanceUnavailable: true } })),
+    ).toContain('profondeur illustrative de inconnue pc');
+    expect(component.mapDistanceNotice(object())).toBeNull();
   });
 
   it('formate la période et le sens de rotation', () => {
     const component = createComponent();
 
     expect(component.rotationPeriodLabel(object())).toBeNull();
-    expect(component.rotationPeriodLabel(object({ rotationPeriodHours: 23.5 }))).toBe(
-      '23 h 30 min',
-    );
-    expect(component.rotationPeriodLabel(object({ rotationPeriodHours: -48 }))).toContain(
-      '2 jours',
-    );
-    expect(component.rotationDirectionLabel(object({ rotationPeriodHours: -10 }))).toBe(
-      'Rétrograde',
-    );
-    expect(component.rotationDirectionLabel(object({ rotationPeriodHours: 10 }))).toBe('Prograde');
+    expect(component.rotationPeriodLabel(object({ rotationHours: 23.5 }))).toBe('23 h 30 min');
+    expect(component.rotationPeriodLabel(object({ rotationHours: -48 }))).toContain('2 jours');
+    expect(component.rotationDirectionLabel(object({ rotationHours: -10 }))).toBe('Rétrograde');
+    expect(component.rotationDirectionLabel(object({ rotationHours: 10 }))).toBe('Prograde');
     expect(component.rotationDirectionLabel(object())).toBe('Prograde');
   });
 
@@ -93,6 +338,7 @@ describe('ObjectDetailsComponent', () => {
     const types: readonly [SpaceObjectType, string][] = [
       ['star', 'Étoile'],
       ['planet', 'Planète'],
+      ['exoplanet', 'Exoplanète confirmée'],
       ['moon', 'Satellite naturel'],
       ['galaxy', 'Galaxie'],
       ['dwarf-planet', 'Planète naine'],
@@ -100,6 +346,8 @@ describe('ObjectDetailsComponent', () => {
       ['comet', 'Comète'],
       ['nebula', 'Nébuleuse'],
       ['black-hole', 'Trou noir'],
+      ['supernova', 'Supernova'],
+      ['supernova-remnant', 'Rémanent de supernova'],
       ['region', 'Région cosmique'],
       ['galaxy-cluster', 'Groupe ou amas de galaxies'],
       ['supercluster', 'Superamas de galaxies'],
@@ -124,6 +372,7 @@ describe('ObjectDetailsComponent', () => {
     for (const [type, label] of types) {
       expect(component.typeLabel(type)).toBe(label);
     }
+    expect(component.typeLabel('unknown' as SpaceObjectType)).toBe('Objet astronomique');
     expect(component.typeLabel('region', { constellationId: 'orion' })).toBe('Constellation');
     for (const confidence of confidences) {
       expect(component.confidenceLabel(confidence)).not.toBe('');
@@ -132,6 +381,30 @@ describe('ObjectDetailsComponent', () => {
     expect(component.isApproximate('observed')).toBe(false);
     expect(component.isApproximate('calculated')).toBe(false);
     expect(component.isApproximate('simulated')).toBe(true);
+  });
+
+  it('localise les descriptions éditoriales sans traduire les données de catalogue', async () => {
+    const component = createComponent();
+    const i18n = TestBed.inject(I18nService);
+    const documented = object({
+      description: 'Description française détaillée.',
+      metadata: {
+        source: 'Scientific catalogue',
+        visualSource: 'Mosaïque instrumentale',
+      },
+    });
+
+    expect(component.description(documented)).toBe('Description française détaillée.');
+    expect(component.appearanceDescription(documented)).toBe('Mosaïque instrumentale');
+
+    await i18n.setLanguage('en');
+
+    expect(component.description(documented)).toContain('Scientific catalogue');
+    expect(component.description(object())).toContain('Prototype static data');
+    expect(component.appearanceDescription(documented)).toContain(
+      'Scientific appearance adapted for visualization',
+    );
+    expect(component.appearanceDescription(object())).toBeNull();
   });
 
   it('formate les nombres usuels et scientifiques', () => {
@@ -265,6 +538,8 @@ describe('ObjectDetailsComponent', () => {
         effectiveRadiusMpc: 46.14,
         memberGalaxyCount: 35,
         catalogConfidence: 0.996,
+        catalogConfidenceMeaning: 'Probabilité intrinsèque publiée',
+        extentMeaning: 'Rayon sphérique visuel équivalent',
         densityContrast: -0.717,
         boundaryDistanceMpc: 75.006,
         detectionMethod: 'ZOBOV watershed',
@@ -276,6 +551,10 @@ describe('ObjectDetailsComponent', () => {
     expect(component.effectiveRadiusLabel(structure)).toBe('46,14 Mpc');
     expect(component.memberGalaxyCountLabel(structure)).toBe('35');
     expect(component.catalogConfidenceLabel(structure)).toBe('99,6 %');
+    expect(component.catalogConfidenceMeaningLabel(structure)).toBe(
+      'Probabilité intrinsèque publiée',
+    );
+    expect(component.extentMeaningLabel(structure)).toBe('Rayon sphérique visuel équivalent');
     expect(component.densityContrastLabel(structure)).toBe('−71,7 %');
     expect(component.boundaryDistanceLabel(structure)).toBe('75,01 Mpc');
     expect(component.detectionMethodLabel(structure)).toBe('ZOBOV watershed');
@@ -286,6 +565,8 @@ describe('ObjectDetailsComponent', () => {
     expect(component.effectiveRadiusLabel(object())).toBeNull();
     expect(component.memberGalaxyCountLabel(object())).toBeNull();
     expect(component.catalogConfidenceLabel(object())).toBeNull();
+    expect(component.catalogConfidenceMeaningLabel(object())).toBeNull();
+    expect(component.extentMeaningLabel(object())).toBeNull();
     expect(component.densityContrastLabel(object())).toBeNull();
     expect(component.boundaryDistanceLabel(object())).toBeNull();
     expect(component.detectionMethodLabel(object())).toBeNull();
@@ -339,14 +620,20 @@ describe('ObjectDetailsComponent', () => {
           massKg: 2e20,
           temperatureK: 300,
           spectralType: 'G2V',
+          shape: {
+            type: 'triaxial-ellipsoid',
+            dimensionsKm: [26.06, 22.8, 18.28],
+            scientificConfidence: 'observed',
+            source: 'NASA Planetary Data System',
+          },
         },
         visual: {
           color: '#abcdef',
           secondaryColor: '#fedcba',
           visualRadius: 2,
           scaleMode: 'physical',
-          rotationPeriodHours: -72,
         },
+        rotation: rotation(-72),
         positionProvider: keplerianProvider(800),
         metadata: {
           distanceLy: 4.2,
@@ -371,6 +658,8 @@ describe('ObjectDetailsComponent', () => {
     expect(fixture.nativeElement.textContent).toMatch(/12.300 pc/u);
     expect(fixture.nativeElement.textContent).toContain('Apparence');
     expect(fixture.nativeElement.textContent).toContain('Mosaïque instrumentale de test');
+    expect(fixture.nativeElement.textContent).toContain('26,06 × 22,8 × 18,28 km');
+    expect(fixture.nativeElement.textContent).toContain('NASA Planetary Data System');
     expect(fixture.nativeElement.querySelector('.approximation-note')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('.orbit-action')).not.toBeNull();
 
@@ -383,55 +672,31 @@ describe('ObjectDetailsComponent', () => {
   });
 });
 
-interface ObjectDetailsAccess {
+type ObjectDetailsAccess = ObjectDetailsPresenter & {
+  canObserveFromEarth(object: SpaceObject): boolean;
   focus(object: SpaceObject): void;
+  observeFromEarth(object: SpaceObject): void;
+  viewRotation(object: SpaceObject): void;
   viewOrbit(object: SpaceObject): void;
-  hasOrbit(object: SpaceObject): boolean;
-  orbitPeriodLabel(object: SpaceObject): string | null;
-  rotationPeriodLabel(object: SpaceObject): string | null;
-  rotationDirectionLabel(object: SpaceObject): string;
-  orbitActionLabel(object: SpaceObject): string;
-  typeLabel(type: SpaceObjectType, metadata?: SpaceObject['metadata']): string;
-  parentName(object: SpaceObject): string | null;
-  confidenceLabel(confidence: ScientificConfidence): string;
-  confidenceDescription(confidence: ScientificConfidence): string;
-  isApproximate(confidence: ScientificConfidence): boolean;
-  formatNumber(value: number, maximumFractionDigits?: number): string;
-  distanceLabel(object: SpaceObject): string | null;
-  apparentMagnitudeLabel(object: SpaceObject): string | null;
-  colorIndexLabel(object: SpaceObject): string | null;
-  catalogIdentifierLabel(object: SpaceObject): string | null;
-  effectiveRadiusLabel(object: SpaceObject): string | null;
-  structureLengthLabel(object: SpaceObject): string | null;
-  memberGalaxyCountLabel(object: SpaceObject): string | null;
-  catalogConfidenceLabel(object: SpaceObject): string | null;
-  densityContrastLabel(object: SpaceObject): string | null;
-  boundaryDistanceLabel(object: SpaceObject): string | null;
-  detectionMethodLabel(object: SpaceObject): string | null;
-  surveyEdgeLabel(object: SpaceObject): string | null;
-  distanceUncertaintyLabel(object: SpaceObject): string | null;
-  cmbVelocityLabel(object: SpaceObject): string | null;
-  morphologyLabel(object: SpaceObject): string | null;
-  diameterLabel(object: SpaceObject): string | null;
-  subgroupLabel(object: SpaceObject): string | null;
-  absoluteMagnitudeLabel(object: SpaceObject): string | null;
-  halfLightRadiusLabel(object: SpaceObject): string | null;
-  constellationAbbreviationLabel(object: SpaceObject): string | null;
-  constellationStarCountLabel(object: SpaceObject): string | null;
-  constellationSegmentCountLabel(object: SpaceObject): string | null;
-  massSolarLabel(object: SpaceObject): string | null;
-  blackHoleActivityLabel(object: SpaceObject): string | null;
-}
+  viewSupernovaEvent(object: SpaceObject): void;
+};
 
 function createComponent(): ObjectDetailsAccess {
-  return TestBed.createComponent(ObjectDetailsComponent)
-    .componentInstance as unknown as ObjectDetailsAccess;
+  const component = TestBed.createComponent(ObjectDetailsComponent).componentInstance;
+  const presenter = Reflect.get(component, 'presenter') as ObjectDetailsPresenter;
+
+  return new Proxy(component as unknown as ObjectDetailsAccess, {
+    get(target, property, receiver) {
+      const source = property in target ? target : presenter;
+      const value = Reflect.get(source, property, source === target ? receiver : source) as unknown;
+
+      return typeof value === 'function' ? value.bind(source) : value;
+    },
+  });
 }
 
-function object(
-  overrides: Partial<SpaceObject> & { rotationPeriodHours?: number } = {},
-): SpaceObject {
-  const { rotationPeriodHours, ...objectOverrides } = overrides;
+function object(overrides: Partial<SpaceObject> & { rotationHours?: number } = {}): SpaceObject {
+  const { rotationHours, ...objectOverrides } = overrides;
 
   return {
     id: 'earth',
@@ -439,13 +704,43 @@ function object(
     type: 'planet',
     referenceFrame: 'solar-system',
     scientificConfidence: 'calculated',
+    ...(rotationHours === undefined ? {} : { rotation: rotation(rotationHours) }),
     visual: {
       visualRadius: 1,
       scaleMode: 'adaptive',
-      ...(rotationPeriodHours === undefined ? {} : { rotationPeriodHours }),
     },
     positionProvider: staticProvider(),
     ...objectOverrides,
+  };
+}
+
+function observableStar(
+  id: string,
+  name: string,
+  rightAscensionDegrees: number,
+  declinationDegrees: number,
+): SpaceObject {
+  return object({
+    id,
+    name,
+    type: 'star',
+    referenceFrame: 'stellar',
+    metadata: {
+      rightAscensionDegrees,
+      declinationDegrees,
+      skyCoordinateEpoch: 'J2000',
+    },
+  });
+}
+
+function rotation(periodHours: number): NonNullable<SpaceObject['rotation']> {
+  return {
+    siderealPeriodHours: Math.abs(periodHours),
+    direction: periodHours < 0 ? 'retrograde' : 'prograde',
+    bodyFixedFrame: 'IAU_TEST',
+    orientationModel: 'iau-wgccre-2015',
+    scientificConfidence: 'calculated',
+    source: 'NASA/JPL test fixture',
   };
 }
 
@@ -479,5 +774,17 @@ function ephemerisProvider(orbitalPeriodDays: number): PositionProviderDefinitio
     origin: 'sun',
     orbitalPeriodDays,
     orbitEpochJulianDay: 2_451_545,
+  };
+}
+
+function illustrativeOrbitProvider(orbitalPeriodDays: number): PositionProviderDefinition {
+  return {
+    type: 'illustrative-orbit',
+    semiMajorAxis: 1,
+    orbitalPeriodDays,
+    epochJulianDay: 2_451_545,
+    visualPhaseAtEpochDegrees: 0,
+    visualInclinationDegrees: 0,
+    unit: 'astronomical-unit',
   };
 }

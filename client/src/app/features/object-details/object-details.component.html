@@ -1,5 +1,8 @@
 @if (object(); as selected) {
-  <aside class="details" aria-label="Informations sur l’objet sélectionné">
+  @let t = i18n.content();
+  @let p = presenter;
+  @let receivedLight = p.receivedLight(selected);
+  <aside class="details" [attr.aria-label]="t.details.aria">
     <div class="details__hero">
       <div
         class="object-orb"
@@ -12,19 +15,19 @@
       <button
         type="button"
         class="close-button"
-        aria-label="Fermer la fiche"
+        [attr.aria-label]="t.details.closeSheet"
         (click)="facade.closeDetails()"
       >
         ×
       </button>
       <div class="details__heading">
         <span class="eyebrow">
-          {{ typeLabel(selected.type, selected.metadata) }}
-          @if (parentName(selected); as parent) {
+          {{ p.typeLabel(selected.type, selected.metadata) }}
+          @if (p.parentName(selected); as parent) {
             · {{ parent }}
           }
         </span>
-        <h2>{{ selected.name }}</h2>
+        <h2>{{ p.objectName(selected) }}</h2>
         @if (selected.aliases?.length) {
           <p class="aliases">{{ selected.aliases?.slice(0, 2)?.join(' · ') }}</p>
         }
@@ -35,239 +38,379 @@
       <div
         class="confidence"
         [attr.data-confidence]="selected.scientificConfidence"
-        [title]="confidenceDescription(selected.scientificConfidence)"
+        [title]="p.confidenceDescription(selected.scientificConfidence)"
       >
         <span class="confidence__dot"></span>
-        <span>{{ confidenceLabel(selected.scientificConfidence) }}</span>
+        <span>{{ p.confidenceLabel(selected.scientificConfidence) }}</span>
       </div>
 
       <p class="description">
-        {{ selected.description ?? 'Aucune description disponible pour cet objet.' }}
+        {{ p.description(selected) }}
       </p>
 
-      @if (isApproximate(selected.scientificConfidence)) {
+      @if (p.hasIllustrativeOrbit(selected)) {
         <div class="approximation-note">
-          Cette vue est une reconstruction approximative. La position ou l’apparence peut être
-          extrapolée ou simulée.
+          {{ p.orbitApproximationNote(selected) }}
         </div>
+      } @else if (p.hasIllustrativeAppearance(selected)) {
+        <div class="approximation-note">
+          {{ t.details.historicalAppearanceNote }}
+        </div>
+      } @else if (p.isApproximate(selected.scientificConfidence)) {
+        <div class="approximation-note">
+          {{ t.details.approximationNote }}
+        </div>
+      }
+      @if (p.mapDistanceNotice(selected); as distanceNotice) {
+        <div class="approximation-note">
+          {{ distanceNotice }}
+        </div>
+      }
+      @if (receivedLight) {
+        @if (receivedLight.modelLimited) {
+          <div class="approximation-note">
+            {{ t.details.receivedLightClampedNote }}
+          </div>
+        }
+      }
+
+      @if (canObserveFromEarth(selected)) {
+        <app-stellar-observation [object]="selected" [time]="facade.currentTime()" />
       }
 
       <dl class="facts">
-        @if (distanceLabel(selected); as distance) {
+        @if (receivedLight) {
+          <div>
+            <dt>{{ t.details.lightTravelTime }}</dt>
+            <dd>{{ receivedLight.lightTravelLabel }}</dd>
+          </div>
+          <div>
+            <dt>{{ t.details.emissionEpoch }}</dt>
+            <dd>{{ receivedLight.emissionEpochLabel }}</dd>
+          </div>
+        }
+        @if (p.distanceLabel(selected); as distance) {
           <div [class.facts__wide]="selected.type === 'black-hole'">
-            <dt>Distance</dt>
+            <dt>{{ t.details.distance }}</dt>
             <dd>{{ distance }}</dd>
           </div>
         }
-        @if (apparentMagnitudeLabel(selected); as magnitude) {
+        @if (p.apparentMagnitudeLabel(selected); as magnitude) {
           <div>
-            <dt>Magnitude apparente</dt>
+            <dt>{{ t.details.apparentMagnitude }}</dt>
             <dd>{{ magnitude }}</dd>
           </div>
         }
-        @if (colorIndexLabel(selected); as colorIndex) {
+        @if (p.colorIndexLabel(selected); as colorIndex) {
           <div>
-            <dt>Indice B−V</dt>
+            <dt>{{ t.details.colorIndex }}</dt>
             <dd>{{ colorIndex }}</dd>
           </div>
         }
-        @if (catalogIdentifierLabel(selected); as catalogIdentifier) {
+        @if (p.catalogIdentifierLabel(selected); as catalogIdentifier) {
           <div>
-            <dt>Identifiant</dt>
+            <dt>{{ t.details.identifier }}</dt>
             <dd>{{ catalogIdentifier }}</dd>
           </div>
         }
-        @if (effectiveRadiusLabel(selected); as radius) {
+        @if (p.effectiveRadiusLabel(selected); as radius) {
           <div>
-            <dt>Rayon effectif</dt>
+            <dt>{{ t.details.effectiveRadius }}</dt>
             <dd>{{ radius }}</dd>
           </div>
         }
-        @if (structureLengthLabel(selected); as length) {
+        @if (p.structureLengthLabel(selected); as length) {
           <div>
-            <dt>Longueur cataloguée</dt>
+            <dt>{{ t.details.catalogLength }}</dt>
             <dd>{{ length }}</dd>
           </div>
         }
-        @if (memberGalaxyCountLabel(selected); as count) {
+        @if (p.memberGalaxyCountLabel(selected); as count) {
           <div>
-            <dt>Galaxies associées</dt>
+            <dt>{{ t.details.associatedGalaxies }}</dt>
             <dd>{{ count }}</dd>
           </div>
         }
-        @if (catalogConfidenceLabel(selected); as confidence) {
+        @if (p.catalogConfidenceLabel(selected); as confidence) {
           <div>
-            <dt>Confiance du catalogue</dt>
+            <dt>{{ t.details.catalogConfidence }}</dt>
             <dd>{{ confidence }}</dd>
           </div>
         }
-        @if (densityContrastLabel(selected); as contrast) {
+        @if (p.catalogConfidenceMeaningLabel(selected); as meaning) {
+          <div class="facts__wide">
+            <dt>{{ t.details.confidenceMeaning }}</dt>
+            <dd>{{ meaning }}</dd>
+          </div>
+        }
+        @if (p.extentMeaningLabel(selected); as meaning) {
+          <div class="facts__wide">
+            <dt>{{ t.details.extentMeaning }}</dt>
+            <dd>{{ meaning }}</dd>
+          </div>
+        }
+        @if (p.densityContrastLabel(selected); as contrast) {
           <div>
-            <dt>Contraste de densité</dt>
+            <dt>{{ t.details.densityContrast }}</dt>
             <dd>{{ contrast }}</dd>
           </div>
         }
-        @if (boundaryDistanceLabel(selected); as boundaryDistance) {
+        @if (p.boundaryDistanceLabel(selected); as boundaryDistance) {
           <div>
-            <dt>Distance à la limite du relevé</dt>
+            <dt>{{ t.details.surveyBoundaryDistance }}</dt>
             <dd>{{ boundaryDistance }}</dd>
           </div>
         }
-        @if (surveyEdgeLabel(selected); as surveyEdge) {
+        @if (p.surveyEdgeLabel(selected); as surveyEdge) {
           <div>
-            <dt>Empreinte du relevé</dt>
+            <dt>{{ t.details.surveyFootprint }}</dt>
             <dd>{{ surveyEdge }}</dd>
           </div>
         }
-        @if (detectionMethodLabel(selected); as method) {
+        @if (p.detectionMethodLabel(selected); as method) {
           <div class="facts__wide">
-            <dt>Méthode de détection</dt>
+            <dt>{{ t.details.detectionMethod }}</dt>
             <dd>{{ method }}</dd>
           </div>
         }
-        @if (distanceUncertaintyLabel(selected); as uncertainty) {
+        @if (p.equilibriumTemperatureLabel(selected); as temperature) {
           <div>
-            <dt>Incertitude de distance</dt>
+            <dt>{{ t.details.equilibriumTemperature }}</dt>
+            <dd>{{ temperature }}</dd>
+          </div>
+        }
+        @if (p.semiMajorAxisLabel(selected); as semiMajorAxis) {
+          <div>
+            <dt>{{ t.details.semiMajorAxis }}</dt>
+            <dd>{{ semiMajorAxis }}</dd>
+          </div>
+        }
+        @if (p.discoveryYearLabel(selected); as year) {
+          <div>
+            <dt>{{ t.details.discovery }}</dt>
+            <dd>{{ year }}</dd>
+          </div>
+        }
+        @if (p.massProvenanceLabel(selected); as provenance) {
+          <div class="facts__wide">
+            <dt>{{ t.details.massProvenance }}</dt>
+            <dd>{{ provenance }}</dd>
+          </div>
+        }
+        @if (p.distanceUncertaintyLabel(selected); as uncertainty) {
+          <div>
+            <dt>{{ t.details.distanceUncertainty }}</dt>
             <dd>{{ uncertainty }}</dd>
           </div>
         }
-        @if (cmbVelocityLabel(selected); as velocity) {
+        @if (p.cmbVelocityLabel(selected); as velocity) {
           <div>
-            <dt>Vitesse · fond cosmologique</dt>
+            <dt>{{ t.details.cmbVelocity }}</dt>
             <dd>{{ velocity }}</dd>
           </div>
         }
-        @if (morphologyLabel(selected); as morphology) {
+        @if (p.morphologyLabel(selected); as morphology) {
           <div>
-            <dt>Morphologie</dt>
+            <dt>{{ t.details.morphology }}</dt>
             <dd>{{ morphology }}</dd>
           </div>
         }
-        @if (diameterLabel(selected); as diameter) {
+        @if (p.diameterLabel(selected); as diameter) {
           <div>
-            <dt>Diamètre</dt>
+            <dt>{{ t.details.diameter }}</dt>
             <dd>{{ diameter }}</dd>
           </div>
         }
-        @if (subgroupLabel(selected); as subgroup) {
+        @if (p.subgroupLabel(selected); as subgroup) {
           <div>
-            <dt>Sous-groupe</dt>
+            <dt>{{ t.details.subgroup }}</dt>
             <dd>{{ subgroup }}</dd>
           </div>
         }
-        @if (absoluteMagnitudeLabel(selected); as absoluteMagnitude) {
+        @if (p.absoluteMagnitudeLabel(selected); as absoluteMagnitude) {
           <div>
-            <dt>Magnitude absolue</dt>
+            <dt>{{ t.details.absoluteMagnitude }}</dt>
             <dd>{{ absoluteMagnitude }}</dd>
           </div>
         }
-        @if (halfLightRadiusLabel(selected); as halfLightRadius) {
+        @if (p.halfLightRadiusLabel(selected); as halfLightRadius) {
           <div>
-            <dt>Rayon de demi-lumière</dt>
+            <dt>{{ t.details.halfLightRadius }}</dt>
             <dd>{{ halfLightRadius }}</dd>
           </div>
         }
-        @if (massSolarLabel(selected); as massSolar) {
+        @if (p.massSolarLabel(selected); as massSolar) {
           <div class="facts__wide">
-            <dt>Masse</dt>
+            <dt>{{ t.details.mass }}</dt>
             <dd>{{ massSolar }}</dd>
           </div>
         }
-        @if (blackHoleActivityLabel(selected); as activity) {
+        @if (p.blackHoleActivityLabel(selected); as activity) {
           <div>
-            <dt>Activité</dt>
+            <dt>{{ t.details.activity }}</dt>
             <dd>{{ activity }}</dd>
           </div>
         }
-        @if (constellationAbbreviationLabel(selected); as abbreviation) {
+        @if (p.supernovaEventLabel(selected); as eventDate) {
+          <div class="facts__wide">
+            <dt>{{ t.details.historicalEpoch }}</dt>
+            <dd>{{ eventDate }}</dd>
+          </div>
+        }
+        @if (p.supernovaTypeLabel(selected); as supernovaType) {
           <div>
-            <dt>Abréviation</dt>
+            <dt>{{ t.details.explosionType }}</dt>
+            <dd>{{ supernovaType }}</dd>
+          </div>
+        }
+        @if (p.constellationAbbreviationLabel(selected); as abbreviation) {
+          <div>
+            <dt>{{ t.details.abbreviation }}</dt>
             <dd>{{ abbreviation }}</dd>
           </div>
         }
-        @if (constellationStarCountLabel(selected); as starCount) {
+        @if (p.constellationStarCountLabel(selected); as starCount) {
           <div>
-            <dt>Étoiles reliées</dt>
+            <dt>{{ t.details.connectedStars }}</dt>
             <dd>{{ starCount }}</dd>
           </div>
         }
-        @if (constellationSegmentCountLabel(selected); as segmentCount) {
+        @if (p.constellationSegmentCountLabel(selected); as segmentCount) {
           <div>
-            <dt>Segments</dt>
+            <dt>{{ t.details.segments }}</dt>
             <dd>{{ segmentCount }}</dd>
+          </div>
+        }
+        @if (p.shapeDimensionsLabel(selected); as dimensions) {
+          <div class="facts__wide">
+            <dt>{{ t.details.dimensions }}</dt>
+            <dd>{{ dimensions }}</dd>
           </div>
         }
         @if (selected.physical?.radiusKm; as radius) {
           <div>
-            <dt>{{ selected.type === 'black-hole' ? 'Rayon de Schwarzschild' : 'Rayon' }}</dt>
-            <dd>{{ formatNumber(radius) }} km</dd>
+            <dt>
+              {{
+                selected.type === 'black-hole' ? t.details.schwarzschildRadius : t.details.radius
+              }}
+            </dt>
+            <dd>{{ p.formatNumber(radius) }} km</dd>
           </div>
         }
         @if (selected.physical?.temperatureK; as temperature) {
           <div>
-            <dt>Température</dt>
-            <dd>{{ formatNumber(temperature, 0) }} K</dd>
+            <dt>{{ t.details.temperature }}</dt>
+            <dd>{{ p.formatNumber(temperature, 0) }} K</dd>
           </div>
         }
         @if (selected.physical?.massKg; as mass) {
           <div>
-            <dt>{{ selected.type === 'black-hole' ? 'Masse · SI' : 'Masse' }}</dt>
-            <dd>{{ formatNumber(mass, 2) }} kg</dd>
+            <dt>{{ selected.type === 'black-hole' ? t.details.massSi : t.details.mass }}</dt>
+            <dd>{{ p.formatNumber(mass, 2) }} kg</dd>
           </div>
         }
-        @if (orbitPeriodLabel(selected); as period) {
+        @if (p.orbitPeriodLabel(selected); as period) {
           <div>
-            <dt>Période orbitale</dt>
+            <dt>{{ t.details.orbitalPeriod }}</dt>
             <dd>{{ period }}</dd>
           </div>
         }
-        @if (rotationPeriodLabel(selected); as rotation) {
+        @if (p.rotationPeriodLabel(selected); as rotation) {
           <div>
-            <dt>Rotation axiale</dt>
-            <dd>{{ rotation }} · {{ rotationDirectionLabel(selected) }}</dd>
+            <dt>{{ t.details.axialRotation }}</dt>
+            <dd>{{ rotation }} · {{ p.rotationDirectionLabel(selected) }}</dd>
           </div>
         }
         @if (selected.physical?.spectralType; as spectralType) {
           <div>
-            <dt>Type spectral</dt>
+            <dt>{{ t.details.spectralType }}</dt>
             <dd>{{ spectralType }}</dd>
           </div>
         }
         <div>
-          <dt>Échelle visuelle</dt>
-          <dd>{{ selected.visual.scaleMode === 'physical' ? 'Physique' : 'Adaptative' }}</dd>
+          <dt>{{ t.details.visualScale }}</dt>
+          <dd>
+            {{ selected.visual.scaleMode === 'physical' ? t.details.physical : t.details.adaptive }}
+          </dd>
         </div>
       </dl>
 
       <div class="details__source">
-        <span>Source</span>
-        <strong>{{ selected.metadata?.['source'] ?? 'Données statiques du prototype' }}</strong>
+        <span>{{ t.common.source }}</span>
+        <strong>{{ selected.metadata?.['source'] ?? t.details.defaultSource }}</strong>
       </div>
-      @if (selected.metadata?.['visualSource']; as visualSource) {
+      @if (p.appearanceDescription(selected); as visualSource) {
         <div class="details__source">
-          <span>Apparence</span>
+          <span>{{ t.common.appearance }}</span>
           <strong>{{ visualSource }}</strong>
+        </div>
+      }
+      @if (selected.rotation; as rotation) {
+        <div class="details__source">
+          <span>{{ t.details.axialRotation }}</span>
+          <strong>
+            {{ rotation.bodyFixedFrame }} · {{ p.confidenceLabel(rotation.scientificConfidence) }} ·
+            {{ rotation.source }}
+          </strong>
+        </div>
+      }
+      @if (selected.physical?.shape; as shape) {
+        <div class="details__source">
+          <span>{{ t.details.shapeModel }}</span>
+          <strong>
+            {{ p.confidenceLabel(shape.scientificConfidence) }} · {{ shape.source }}
+          </strong>
         </div>
       }
     </div>
 
     <div class="details__actions">
-      <button type="button" class="primary-action" (click)="focus(selected)">
-        <span aria-hidden="true">{{ selected.visual.rotationPeriodHours ? '↻' : '◎' }}</span>
-        {{ selected.visual.rotationPeriodHours ? 'Voir la rotation' : 'Centrer la vue' }}
+      <button
+        type="button"
+        class="primary-action"
+        (click)="selected.rotation ? viewRotation(selected) : focus(selected)"
+      >
+        <span aria-hidden="true">{{ selected.rotation ? '↻' : '◎' }}</span>
+        {{ selected.rotation ? t.details.viewRotation : t.details.centerView }}
       </button>
-      @if (hasOrbit(selected)) {
+      @if (p.hasOrbit(selected)) {
         <button
           type="button"
           class="orbit-action"
-          title="Afficher l’orbite complète autour du corps parent"
+          [title]="t.details.fullOrbitTitle"
           (click)="viewOrbit(selected)"
         >
           <span aria-hidden="true">↗</span>
-          {{ orbitActionLabel(selected) }}
+          {{ p.orbitActionLabel(selected) }}
         </button>
       }
-      <button type="button" class="secondary-action" (click)="facade.closeDetails()">Fermer</button>
+      @if (canObserveFromEarth(selected) && earthSkyViewState.phase() === 'closed') {
+        <button
+          type="button"
+          class="orbit-action observation-action"
+          [class.active]="earthSkyViewState.activeTargetId() === selected.id"
+          [attr.aria-expanded]="earthSkyViewState.activeTargetId() === selected.id"
+          aria-controls="earth-sky-view stellar-observation-panel"
+          (click)="observeFromEarth(selected)"
+        >
+          <span aria-hidden="true">⌖</span>
+          {{ t.stellarObservation.action }}
+        </button>
+      }
+      @if (p.hasSupernovaEvent(selected)) {
+        <button
+          type="button"
+          class="orbit-action supernova-action"
+          [title]="t.details.historicalEventTitle"
+          (click)="viewSupernovaEvent(selected)"
+        >
+          <span aria-hidden="true">✦</span>
+          {{ t.details.viewEvent }}
+        </button>
+      }
+      <button type="button" class="secondary-action" (click)="facade.closeDetails()">
+        {{ t.common.close }}
+      </button>
     </div>
   </aside>
 }

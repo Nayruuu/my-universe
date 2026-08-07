@@ -100,6 +100,36 @@ describe('parseCosmicStructureCatalogMetadata', () => {
     );
   });
 
+  it('valide la provenance et les noms propres des repères cosmiques prioritaires', () => {
+    const landmarkMetadata = {
+      ...TEST_METADATA,
+      recordCount: 1,
+      sources: [
+        {
+          ...TEST_METADATA.sources[0],
+          structureType: 'repeller',
+          scientificConfidence: 'extrapolated',
+          confidenceMeaning: 'Published reconstructed extremum, not an existence probability',
+          extentMeaning: 'Fixed map symbol without an asserted physical boundary',
+          mapPriority: 'landmark',
+          recordNames: { 'dipole-repeller': 'Répulseur du dipôle' },
+          recordAliases: { 'dipole-repeller': ['Dipole Repeller'] },
+        },
+      ],
+    };
+
+    expect(parseCosmicStructureCatalogMetadata(landmarkMetadata, 'test')).toEqual(landmarkMetadata);
+    expect(() =>
+      parseCosmicStructureCatalogMetadata(
+        {
+          ...landmarkMetadata,
+          sources: [{ ...landmarkMetadata.sources[0], recordNames: { invalid: '' } }],
+        },
+        'test',
+      ),
+    ).toThrow(/source.*index 0/i);
+  });
+
   it('rejette une racine, une source ou une somme de cardinalités invalide', () => {
     expect(() => parseCosmicStructureCatalogMetadata(null, 'test')).toThrow(/métadonnées/i);
     expect(() =>

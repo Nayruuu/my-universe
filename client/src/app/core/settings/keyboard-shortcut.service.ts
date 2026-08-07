@@ -1,10 +1,12 @@
 import { inject, Injectable } from '@angular/core';
+import { EarthSkyViewState } from '../../features/stellar-observation/earth-sky-view-state';
 import { UniverseEngineFacade } from '../engine/universe-engine.facade';
 
 @Injectable({ providedIn: 'root' })
 export class KeyboardShortcutService {
   private started = false;
   private readonly facade = inject(UniverseEngineFacade);
+  private readonly earthSkyViewState = inject(EarthSkyViewState);
 
   public start(): void {
     if (this.started) {
@@ -40,7 +42,7 @@ export class KeyboardShortcutService {
         this.facade.togglePlaying();
         break;
       case 'f':
-        this.facade.focusSelected();
+        this.focusSelected();
         break;
       case 'escape':
         this.facade.closeDetails();
@@ -54,4 +56,15 @@ export class KeyboardShortcutService {
         break;
     }
   };
+
+  private focusSelected(): void {
+    if (!this.facade.selectedId()) {
+      return;
+    }
+    if (this.earthSkyViewState.phase() !== 'closed') {
+      this.earthSkyViewState.close();
+      this.facade.setTemporalMode('state');
+    }
+    this.facade.focusSelected();
+  }
 }

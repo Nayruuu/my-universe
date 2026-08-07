@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "objects": [
     {
       "id": "sagittarius-a-star",
@@ -50,7 +50,7 @@
       "aliases": ["Cyg X-1", "HDE 226868"],
       "type": "black-hole",
       "parentId": "milky-way",
-      "referenceFrame": "galactic",
+      "referenceFrame": "stellar",
       "scientificConfidence": "calculated",
       "description": "Système binaire X contenant un trou noir stellaire et une étoile supergéante. L’accrétion active permet une représentation plus lumineuse, tandis que les jets restent un indice visuel illustratif.",
       "referenceEpoch": 2451545,
@@ -68,8 +68,8 @@
       },
       "positionProvider": {
         "type": "static",
-        "position": [7.468541, 0.118772, 2.100229],
-        "unit": "kiloparsec"
+        "position": [-709.459, 118.772, 2100.229],
+        "unit": "parsec"
       },
       "metadata": {
         "source": "Miller-Jones et al. 2021, Science · SIMBAD/CDS",
@@ -79,12 +79,17 @@
         "declinationDegrees": 35.201606809,
         "distanceKpc": 2.22,
         "distanceLy": 7240.7,
+        "galactocentricXKpc": 7.468541,
+        "galactocentricYKpc": 0.118772,
+        "galactocentricZKpc": 2.100229,
         "massSolar": 21.2,
         "blackHoleClass": "Stellaire · binaire X active",
         "companion": "HDE 226868 · supergéante O",
         "keywords": "trou noir black hole Cygnus Cyg X-1 binaire rayons X actif",
         "visualSource": "Disque et jets illustratifs guidés par l’activité observée · aucun ray tracing relativiste",
-        "visualAdaptation": "Horizon, disque et jets très fortement agrandis"
+        "sourceReferenceFrame": "ICRS J2000",
+        "renderReferenceFrame": "Galactique héliocentrique, pôle Nord galactique sur +Y",
+        "visualAdaptation": "Distance héliocentrique comprimée ; horizon, disque et jets très fortement agrandis"
       }
     },
     {
@@ -93,7 +98,7 @@
       "aliases": ["Gaia DR3 4373465352415301632", "2MASS J17284110-0034514"],
       "type": "black-hole",
       "parentId": "milky-way",
-      "referenceFrame": "galactic",
+      "referenceFrame": "stellar",
       "scientificConfidence": "calculated",
       "description": "Trou noir stellaire dormant identifié grâce au mouvement orbital de son étoile compagne. Sans disque lumineux détecté, il est représenté par une silhouette et un léger indice de lentille locale.",
       "referenceEpoch": 2451545,
@@ -111,8 +116,8 @@
       },
       "positionProvider": {
         "type": "static",
-        "position": [7.758492, 0.148074, 0.174846],
-        "unit": "kiloparsec"
+        "position": [-419.508, 148.074, 174.846],
+        "unit": "parsec"
       },
       "metadata": {
         "source": "Nagarajan et al. 2024, MNRAS · ESA Gaia",
@@ -121,12 +126,17 @@
         "rightAscensionDegrees": 262.17125,
         "declinationDegrees": -0.580944444,
         "distanceKpc": 0.478,
-        "distanceLy": 1559.8,
+        "distanceLy": 1559,
+        "galactocentricXKpc": 7.758492,
+        "galactocentricYKpc": 0.148074,
+        "galactocentricZKpc": 0.174846,
         "massSolar": 9.27,
         "blackHoleClass": "Stellaire · binaire dormante",
         "keywords": "trou noir black hole Gaia BH1 dormant proche binaire",
         "visualSource": "Silhouette et lentille locale illustratives · aucun disque lumineux ni ray tracing relativiste",
-        "visualAdaptation": "Horizon très fortement agrandi pour rester repérable"
+        "sourceReferenceFrame": "ICRS J2000",
+        "renderReferenceFrame": "Galactique héliocentrique, pôle Nord galactique sur +Y",
+        "visualAdaptation": "Distance héliocentrique comprimée ; horizon très fortement agrandi pour rester repérable"
       }
     }
   ]

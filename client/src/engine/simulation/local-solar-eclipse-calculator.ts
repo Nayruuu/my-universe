@@ -1,5 +1,9 @@
-import { Observer, SearchLocalSolarEclipse } from 'astronomy-engine';
-import { EarthEclipseEvent, mapAstronomyEclipseKind } from './earth-eclipse';
+import {
+  type EclipseEvent as AstronomyEclipseEvent,
+  Observer,
+  SearchLocalSolarEclipse,
+} from 'astronomy-engine';
+import { EarthEclipseEvent, mapAstronomyEclipseKind, SolarEclipseContact } from './earth-eclipse';
 import { SolarEclipseObserverLocation } from './solar-eclipse-locations';
 import { JULIAN_DAY_J2000 } from './time-utils';
 
@@ -39,5 +43,26 @@ export function calculateLocalSolarEclipse(
     observerName: location.name,
     observerTimeZone: location.timeZone,
     sunAltitudeDegrees: localEclipse.peak.altitude,
+    localContacts: {
+      partialBegin: mapContact(localEclipse.partial_begin),
+      centralBegin: mapOptionalContact(localEclipse.total_begin),
+      maximum: mapContact(localEclipse.peak),
+      centralEnd: mapOptionalContact(localEclipse.total_end),
+      partialEnd: mapContact(localEclipse.partial_end),
+    },
+  };
+}
+
+function mapOptionalContact(
+  contact: AstronomyEclipseEvent | undefined,
+): SolarEclipseContact | null {
+  return contact ? mapContact(contact) : null;
+}
+
+function mapContact(contact: AstronomyEclipseEvent): SolarEclipseContact {
+  return {
+    time: { julianDay: JULIAN_DAY_J2000 + contact.time.ut },
+    sunAltitudeDegrees: contact.altitude,
+    aboveHorizon: contact.altitude >= 0,
   };
 }

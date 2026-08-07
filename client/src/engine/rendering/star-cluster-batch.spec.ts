@@ -190,6 +190,7 @@ function registry(): StarCatalogRegistry {
     count: 5,
     referenceEpochJulianDay: 2_451_545,
     positionsParsec: new Float32Array(15),
+    velocitiesParsecPerYear: new Float32Array(15),
     apparentMagnitudes: new Float32Array(5),
     colorIndicesBv: new Float32Array(5),
     catalogIds: new Uint32Array([1, 2, 3, 4, 5]),
