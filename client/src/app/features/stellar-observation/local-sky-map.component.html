@@ -1,0 +1,36 @@
+@let text = i18n.content().stellarObservation;
+<figure role="img" [attr.aria-label]="mapAriaLabel()">
+  <div
+    class="sky-map"
+    aria-hidden="true"
+    [class.sky-map--above]="projection().isAboveHorizon"
+    [class.sky-map--below]="!projection().isAboveHorizon"
+    [style.--target-azimuth]="azimuthStyle()"
+    [style.--target-radius]="projection().radialDistance"
+  >
+    <i class="sky-map__horizon"></i>
+    <i class="sky-map__altitude sky-map__altitude--30"></i>
+    <i class="sky-map__altitude sky-map__altitude--60"></i>
+    <i class="sky-map__axis sky-map__axis--vertical"></i>
+    <i class="sky-map__axis sky-map__axis--horizontal"></i>
+    <i class="sky-map__bearing"></i>
+
+    <span class="sky-map__north">{{ directionInitial('north') }}</span>
+    <span class="sky-map__east">{{ directionInitial('east') }}</span>
+    <span class="sky-map__south">{{ directionInitial('south') }}</span>
+    <span class="sky-map__west">{{ directionInitial('west') }}</span>
+    <span class="sky-map__zenith">{{ text.zenith }}</span>
+    <span class="sky-map__horizon-label">{{ text.horizon }}</span>
+
+    <i
+      class="sky-map__target"
+      [class.sky-map__target--left-label]="projection().x > 0.55"
+      [style.left.%]="targetXPercent()"
+      [style.top.%]="targetYPercent()"
+    >
+      <b></b>
+      <span>{{ targetName() }}</span>
+    </i>
+  </div>
+  <figcaption>{{ text.skyMapCaption }}</figcaption>
+</figure>

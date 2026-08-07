@@ -457,6 +457,21 @@ describe('résolution des objets batchés', () => {
     expect(resolveObjectId(intersection(lines, 2))).toBe('constellation-lyra');
   });
 
+  it('résout un segment volumineux via un index typé sans dupliquer ses identifiants', () => {
+    const lines = new THREE.LineSegments();
+
+    lines.userData['objectIds'] = ['filament-1', 'filament-2'];
+    lines.userData['objectIndices'] = new Uint16Array([1, 1, 0, 0]);
+    lines.userData['visibleIndices'] = new Uint8Array([1, 1, 1, 1]);
+
+    expect(resolveObjectId(intersection(lines, 0))).toBe('filament-2');
+    expect(resolveObjectId(intersection(lines, 2))).toBe('filament-1');
+    lines.userData['objectIndices'] = new Uint32Array([0, 0, 1, 1]);
+    expect(resolveObjectId(intersection(lines, 0))).toBe('filament-1');
+    lines.userData['objectIndices'] = new Uint16Array();
+    expect(resolveObjectId(intersection(lines, 0))).toBeNull();
+  });
+
   it('rejette toutes les métadonnées batchées incomplètes ou invalides', () => {
     const points = new THREE.Points();
 

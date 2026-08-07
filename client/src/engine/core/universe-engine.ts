@@ -1,355 +1,534 @@
 import * as THREE from 'three';
-import {
+import type {
+  AdaptiveRenderingStats,
   DisplayOptions,
-  EngineDebugStats,
   GraphicQuality,
-  SolarEclipseState,
   SpaceObject,
   UniverseEngineEvent,
   UniverseTime,
-  type ZoomDebugStats,
 } from '../../data/models/universe.models';
-import { CameraController, type CameraSettledSource } from '../camera/camera-controller';
-import { NavigationContextJourney } from '../camera/navigation-context';
-import { CAMERA_FAR_DISTANCE, getOrbitOverviewDistance } from '../camera/navigation-policy';
+import type { CameraController, CameraSettledSource } from '../camera/camera-controller';
+import type { EarthObserverFraming } from '../camera/earth-observer-camera-control';
 import type { NavigationScaleDefinition } from '../camera/navigation-scales';
 import { CoordinateSystem } from '../coordinates/coordinate-system';
 import { FloatingOriginManager } from '../coordinates/floating-origin-manager';
 import { LodManager } from '../lod/lod-manager';
-import {
-  getMaximumCatalogLabelPoolRank,
-  getMaximumCosmicLabelRank,
-  LabelManager,
-  type LabelObject,
-} from '../objects/label-manager';
+import type { ActiveObjectAdornmentDiagnostics } from '../objects/active-object-adornment-controller';
+import type { LabelManager, LabelNameResolver, LabelObject } from '../objects/label-manager';
 import { ObjectRegistry } from '../objects/object-registry';
-import type { CosmicGroupCatalogRegistry } from '../objects/cosmic-group-catalog-registry';
-import type { CosmicStructureCatalogRegistry } from '../objects/cosmic-structure-catalog-registry';
-import type { StarCatalogRegistry } from '../objects/star-catalog-registry';
+import type { ObjectVisualDiagnostics } from '../objects/object-visual-diagnostics';
 import { PerformanceManager } from '../performance/performance-manager';
-import {
-  BlackHoleLensingPass,
-  projectBlackHoleLensing,
-} from '../rendering/black-hole-lensing-pass';
-import { UniverseScene } from '../rendering/universe-scene';
-import {
-  dampPhotographicExposure,
-  getPhotographicProfile,
-} from '../rendering/photographic-profile';
+import { TempelFilamentPerformanceTrace } from '../performance/tempel-filament-performance-trace';
+import { UniverseStartupPerformanceTrace } from '../performance/universe-startup-performance-trace';
+import type { BlackHoleLensingPass } from '../rendering/black-hole-lensing-pass';
 import type { CosmicMapLayers } from '../rendering/cosmic-map-policy';
-import { SelectionManager, type ZoomPointer } from '../selection/selection-manager';
-import { EarthEclipseEvent, SolarEclipseAppearance } from '../simulation/earth-eclipse';
-import { calculateEarthObserverDirection } from '../simulation/body-orientation';
-import {
-  calculateSolarEclipseAppearance,
-  calculateSolarObserverDiscRatio,
-} from '../simulation/solar-eclipse-calculator';
-import {
-  EARTH_ROTATION_RECOVERY_RADIANS_PER_SECOND,
-  EarthRotationPlayback,
-} from '../simulation/earth-rotation-playback';
+import type { UniverseScene } from '../rendering/universe-scene';
+import type { SelectionManager, ZoomPointer } from '../selection/selection-manager';
+import type { EarthEclipseEvent } from '../simulation/earth-eclipse';
+import type {
+  StellarObservationCatalogEntry,
+  StellarObservationConstellation,
+} from '../simulation/stellar-observation';
 import { TimeController } from '../simulation/time-controller';
-import type { SpaceTileManager } from '../tiles/space-tile-manager';
-import { createSpaceTileView, type SpaceTileView } from '../tiles/space-tile-selection';
-import type { StarTileManager } from '../tiles/star-tile-manager';
-import { createStarTileView, type StarTileView } from '../tiles/star-tile-selection';
-import { RenderLoop } from './render-loop';
+import type { RenderLoop } from './render-loop';
+import { SolarEclipseStatePublisher } from './solar-eclipse-state-publisher';
+import { SolarEclipsePresentationController } from './solar-eclipse-presentation';
+import { SolarEclipseViewController } from './solar-eclipse-view-controller';
+import type { SpaceStreamingCoordinator } from './space-streaming-coordinator';
+import type { UniverseCatalogRuntime } from './universe-catalog-runtime';
+import { UniverseDebugRuntime } from './universe-debug-runtime';
+import { UniverseDeferredCatalogCoordinator } from './universe-deferred-catalog-coordinator';
+import { UniverseAdaptiveRenderingRuntime } from './universe-adaptive-rendering-runtime';
+import { UniverseDisplayRuntime } from './universe-display-runtime';
+import { UniverseDynamicRegistryCoordinator } from './universe-dynamic-registry-coordinator';
+import { UniverseEngineLifecycle } from './universe-engine-lifecycle';
+import { UniverseFrameContent } from './universe-frame-content';
+import { UniverseFrameNavigation } from './universe-frame-navigation';
+import { UniverseFrameRenderer } from './universe-frame-renderer';
+import { UniverseFrameRuntime } from './universe-frame-runtime';
+import { UniverseFrameSimulation } from './universe-frame-simulation';
+import { UniverseInitializationBootstrap } from './universe-initialization-bootstrap';
+import { UniverseInteractionBootstrap } from './universe-interaction-bootstrap';
+import { UniverseNavigationRuntime } from './universe-navigation-runtime';
+import { UniverseObjectDirectory } from './universe-object-directory';
+import { UniverseObjectRuntime } from './universe-object-runtime';
+import { UniversePrimaryRegistryCoordinator } from './universe-primary-registry-coordinator';
+import {
+  UniverseRenderingBootstrap,
+  type WebGlRendererConstructor,
+} from './universe-rendering-bootstrap';
+import { UniverseRuntimeDisposer } from './universe-runtime-disposer';
+import { UniverseSelectionRuntime } from './universe-selection-runtime';
+import { UniverseStreamingRuntime } from './universe-streaming-runtime';
+import { UniverseTempelFilamentLoader } from './universe-tempel-filament-loader';
+import { UniverseViewController } from './universe-view-controller';
 
 export type UniverseEngineListener = (event: UniverseEngineEvent) => void;
-export type WebGlRendererConstructor = new (
-  parameters: THREE.WebGLRendererParameters,
-) => THREE.WebGLRenderer;
+export type { WebGlRendererConstructor } from './universe-rendering-bootstrap';
+export { UniverseEngineInitializationCancelledError } from './universe-engine-lifecycle';
 
-const EARTH_RADIUS_TO_MEAN_LUNAR_DISTANCE = 6_378.137 / 384_400;
-const SIMULATION_UPDATE_INTERVAL_SECONDS = 1 / 24;
-const CATALOG_STAR_FOCUS_DISTANCE = 800;
-const SPACE_TILE_SYNCHRONIZATION_INTERVAL_SECONDS = 0.25;
-const STAR_TILE_SYNCHRONIZATION_INTERVAL_SECONDS = 0.25;
-
-interface SpaceTileSynchronizationRequest {
-  readonly view: SpaceTileView;
-  readonly retainedObjectIds: readonly string[];
-}
+const DEFERRED_CATALOG_SCALE_TARGETS = new Set(['local-group', 'nearby-universe', 'cosmic-web']);
 
 export class UniverseEngine {
   private readonly listeners = new Set<UniverseEngineListener>();
+  private readonly solarEclipseStatePublisher = new SolarEclipseStatePublisher((state) =>
+    this.emit({ type: 'solar-eclipse-state', state }),
+  );
   private readonly coordinateSystem = new CoordinateSystem();
   private readonly timeController = new TimeController();
   private readonly performanceManager = new PerformanceManager();
+  private readonly tempelFilamentPerformance = new TempelFilamentPerformanceTrace();
   private readonly lodManager = new LodManager();
   private readonly floatingOriginManager = new FloatingOriginManager();
-  private readonly earthRotationPlayback = new EarthRotationPlayback();
-  private readonly blackHoleLensingPosition = new THREE.Vector3();
-  private readonly navigationContextJourney = new NavigationContextJourney((objectId) =>
-    this.getDefinition(objectId),
+  private readonly objectRuntime = new UniverseObjectRuntime();
+  private readonly runtimeDisposer = new UniverseRuntimeDisposer();
+  private readonly lifecycle = new UniverseEngineLifecycle();
+  private readonly interactionBootstrap = new UniverseInteractionBootstrap({
+    handleCameraSettled: (distance, source) => this.handleCameraSettled(distance, source),
+    isObjectVisible: (objectId) => {
+      if (this.universeScene?.hasConstellation(objectId)) {
+        return this.displayOptions.showConstellations;
+      }
+
+      const registry = this.objectRuntime.getRegistry(objectId);
+      const cosmicMapVisible =
+        this.universeScene?.isCatalogObjectVisibleForLabels(objectId) ?? true;
+
+      return cosmicMapVisible && (registry === null || registry.isVisibleForLabels(objectId));
+    },
+    getPickables: () => [
+      ...this.objectRuntime.getPickables(),
+      ...(this.universeScene?.getCatalogPickables() ?? []),
+    ],
+    handlePick: (objectId, focusRequested) => this.handlePick(objectId, focusRequested),
+    handleNavigationIntent: (objectId) => this.handleNavigationIntent(objectId),
+    getReferenceDistance: () => this.cameraController?.distanceToTarget ?? 1,
+    isBackgroundObject: (objectId) =>
+      this.catalogRuntime?.has(objectId) === true ||
+      this.universeScene?.hasConstellation(objectId) === true ||
+      this.getDefinition(objectId)?.type === 'galaxy',
+    hoverObject: (objectId) => {
+      this.universeScene?.hoverConstellation(objectId);
+      this.universeScene?.hoverCatalogObject(objectId);
+    },
+    handleSemanticZoomIntent: (objectId, deltaY, pointer) =>
+      this.handleSemanticZoomIntent(objectId, deltaY, pointer),
+    supportsWheelNavigation: (objectId) =>
+      this.objectRuntime.getRegistry(objectId) !== null ||
+      this.catalogRuntime?.supportsWheelNavigation(objectId) === true,
+    renderFrame: (deltaSeconds) => this.renderFrame(deltaSeconds),
+  });
+  private readonly displayRuntime = new UniverseDisplayRuntime({
+    recommendQuality: () => this.performanceManager.recommendQuality(),
+    setSceneQuality: (quality) => this.universeScene?.setQuality(quality),
+    setConstellationsEnabled: (enabled) => this.universeScene?.setConstellationsEnabled(enabled),
+    setLabelsEnabled: (enabled) => this.labelManager?.setEnabled(enabled),
+    setLabelDensity: (density) => this.labelManager?.setDensity(density),
+    resetPixelRatio: (quality) => this.performanceManager.resetAdaptivePixelRatio(quality),
+    setScenePixelRatio: (pixelRatio) => this.universeScene?.setPixelRatio(pixelRatio),
+    invalidateStreamingViews: () => this.streamingRuntime.coordinator?.invalidateViews(),
+    shouldRebuildRegistry: () =>
+      this.objectRuntime.primaryRegistry !== null && this.universeScene !== null,
+    rebuildRegistry: () => this.rebuildObjectRegistry(),
+    setLabelQuality: (quality) => this.labelManager?.setQuality(quality),
+    applyRenderPixelRatio: (pixelRatio) => {
+      const renderer = this.renderer;
+
+      if (!renderer) {
+        return;
+      }
+      renderer.setPixelRatio(pixelRatio);
+      if (this.container) {
+        this.resize(this.container.clientWidth, this.container.clientHeight);
+      }
+    },
+    getLabelObjects: () => this.getLabelObjects(),
+    setLabelObjects: (objects) => this.labelManager?.setObjects(objects),
+    setObjectDisplayOptions: (options) => this.objectRuntime.setDisplayOptions(options),
+    applyLabelNameResolver: (resolver) => this.labelManager?.setNameResolver(resolver),
+  });
+  private readonly objectDirectory = new UniverseObjectDirectory(this.objectRuntime, {
+    getLoadedObjects: () => this.streamingRuntime.objects,
+    getActiveExoplanetObjects: () => this.streamingRuntime.activeExoplanetSystemObjects,
+    getCatalog: () => this.catalogRuntime,
+    getScene: () => this.universeScene,
+    hasStreamedObject: (objectId) => this.streamingRuntime.hasStreamedObject(objectId),
+    getQuality: () => this.displayOptions.quality,
+    getLabelDensity: () => this.displayOptions.labelDensity,
+  });
+  private readonly selectionRuntime = new UniverseSelectionRuntime({
+    ensureActiveExoplanetSystem: (objectId) =>
+      this.streamingRuntime.ensureActiveExoplanetSystem(objectId),
+    getDefinition: (objectId) => this.getDefinition(objectId),
+    hasDetailedObject: (objectId) => this.objectRuntime.has(objectId),
+    isCatalogObject: (objectId) => this.catalogRuntime?.has(objectId) === true,
+    isConstellation: (objectId) => this.universeScene?.hasConstellation(objectId) === true,
+    selectDetailedObject: (objectId) => this.objectRuntime.select(objectId),
+    selectCatalogObject: (objectId) => this.universeScene?.selectCatalogObject(objectId),
+    selectConstellation: (objectId) => this.universeScene?.selectConstellation(objectId),
+    setTransientObject: (object) => this.labelManager?.setTransientObject(object),
+    setDetailsPanelVisible: (visible) => this.labelManager?.setDetailsPanelVisible(visible),
+    ensureTempelFilamentSpines: () => void this.ensureTempelFilamentSpines(),
+    emitSelected: (objectId, object) => this.emit({ type: 'object-selected', objectId, object }),
+    setTarget: (objectId) => this.setTarget(objectId),
+  });
+  private readonly dynamicRegistryCoordinator = new UniverseDynamicRegistryCoordinator(
+    this.objectRuntime,
+    {
+      createRegistry: (objects) => {
+        const universeScene = this.universeScene;
+
+        return universeScene
+          ? new ObjectRegistry(
+              universeScene.spaceRoot,
+              this.coordinateSystem,
+              objects,
+              this.displayOptions.quality,
+            )
+          : null;
+      },
+      getCurrentTime: () => this.timeController.currentTime,
+      getDisplayOptions: () => this.displayOptions,
+      getTargetId: () => this.targetId,
+      getSelectedId: () => this.selectedId,
+    },
   );
+  private readonly streamingRuntime = new UniverseStreamingRuntime({
+    getExoplanetCatalog: () => this.catalogRuntime?.exoplanetCatalogRegistry ?? null,
+    hasPrimaryObject: (objectId) => this.objectRuntime.primaryRegistry?.has(objectId) === true,
+    hasActiveExoplanetHost: (hostId) =>
+      this.objectRuntime.exoplanetSystemRegistry?.has(hostId) === true,
+    rebuildExoplanetSystem: (objects) =>
+      this.dynamicRegistryCoordinator.rebuildExoplanetSystem(objects),
+    rebuildStreamedObjects: (objects) =>
+      this.dynamicRegistryCoordinator.rebuildStreamedObjects(objects),
+    refreshLabels: () => this.labelManager?.setObjects(this.getLabelObjects()),
+    isInitialized: () => this.initialized,
+    emitObjectsChanged: () =>
+      this.emit({ type: 'objects-changed', objects: this.getPublicObjects() }),
+    emitLoading: (loading) => this.emit({ type: 'loading-state', loading }),
+  });
+  private readonly primaryRegistryCoordinator = new UniversePrimaryRegistryCoordinator(
+    this.objectRuntime,
+    {
+      createRegistry: () => {
+        const universeScene = this.universeScene;
 
-  private displayOptions: DisplayOptions = {
-    showOrbits: true,
-    showConstellations: true,
-    showLabels: true,
-    quality: 'medium',
-    labelDensity: 'balanced',
-    temporalMode: 'state',
-  };
+        return universeScene
+          ? new ObjectRegistry(
+              universeScene.spaceRoot,
+              this.coordinateSystem,
+              this.streamingRuntime.baseObjects,
+              this.displayOptions.quality,
+            )
+          : null;
+      },
+      getCurrentTime: () => this.timeController.currentTime,
+      getDisplayOptions: () => this.displayOptions,
+      getTargetId: () => this.targetId,
+      getSelectedId: () => this.selectedId,
+      isCatalogObject: (objectId) => this.catalogRuntime?.has(objectId) === true,
+      hasConstellation: (objectId) => this.universeScene?.hasConstellation(objectId) === true,
+      selectCatalogObject: (objectId) => this.universeScene?.selectCatalogObject(objectId),
+      selectConstellation: (objectId) => this.universeScene?.selectConstellation(objectId),
+      emitSolarEclipseState: (appearance) =>
+        this.solarEclipseStatePublisher.publish(appearance, true),
+      restoreSolarEclipsePresentation: (registry) =>
+        this.solarEclipsePresentation.restore(registry),
+      rebuildDynamicRegistries: () => this.streamingRuntime.rebuildDynamicRegistries(),
+      followCurrentTarget: () => this.followCurrentTarget(),
+    },
+  );
+  private readonly tempelFilamentLoader = new UniverseTempelFilamentLoader({
+    getContext: () => {
+      const catalogRuntime = this.catalogRuntime;
+      const source = catalogRuntime?.tempelFilamentSpineSource;
+      const scene = this.universeScene;
+      const registry = catalogRuntime?.cosmicStructureCatalogRegistry;
 
+      return catalogRuntime && source && scene && registry && this.initialized
+        ? {
+            runtimeIdentity: catalogRuntime,
+            source,
+            scene,
+            registry,
+            coordinateSystem: this.coordinateSystem,
+          }
+        : null;
+    },
+    isActive: () => this.initialized,
+    isContextCurrent: (context) =>
+      this.initialized &&
+      this.catalogRuntime === context.runtimeIdentity &&
+      this.universeScene === context.scene &&
+      this.catalogRuntime.cosmicStructureCatalogRegistry === context.registry,
+    isSceneCurrent: (scene) => this.initialized && this.universeScene === scene,
+    getSelectedId: () => this.selectedId,
+    loadCatalog: async (source) => {
+      this.tempelFilamentPerformance.begin();
+      const { loadTempelFilamentSpineCatalogOffThread } =
+        await import('../loaders/tempel-filament-spine-worker-loader');
+
+      return loadTempelFilamentSpineCatalogOffThread(source, {
+        onTelemetry: (telemetry) => this.tempelFilamentPerformance.recordLoad(telemetry),
+      });
+    },
+    preloadRenderer: async () => {
+      await import('../rendering/tempel-filament-spine-batch');
+    },
+    recordActivation: () => this.tempelFilamentPerformance.activate(),
+    recordInstallation: (metrics) => this.tempelFilamentPerformance.recordInstallation(metrics),
+    recordFailure: () => this.tempelFilamentPerformance.fail(),
+    emitWarning: (message) => this.emit({ type: 'performance-warning', message }),
+  });
+  private readonly frameContent = new UniverseFrameContent(this.objectRuntime, {
+    getStreamingCoordinator: () => this.streamingRuntime.coordinator,
+    getQuality: () => this.displayOptions.quality,
+    getTargetId: () => this.targetId,
+    getSelectedId: () => this.selectedId,
+    preloadTempelFilamentSpines: () => this.preloadTempelFilamentSpines(),
+    ensureTempelFilamentSpines: () => this.ensureTempelFilamentSpines(),
+  });
+  private readonly frameNavigation = new UniverseFrameNavigation(
+    this.floatingOriginManager,
+    this.lodManager,
+    {
+      getQuality: () => this.displayOptions.quality,
+      getCurrentTime: () => this.timeController.currentTime,
+      emitLodChanged: (level) => this.emit({ type: 'lod-changed', level }),
+    },
+  );
+  private readonly frameSimulation = new UniverseFrameSimulation(this.timeController, {
+    getExoplanetSystemRegistry: () => this.objectRuntime.exoplanetSystemRegistry,
+    emitSolarEclipseState: (appearance, force) =>
+      this.solarEclipseStatePublisher.publish(appearance, force),
+    followCurrentTarget: () => this.followCurrentTarget(),
+    emitTimeChanged: (time) => this.emit({ type: 'time-changed', time }),
+  });
+  private readonly frameRenderer = new UniverseFrameRenderer({
+    getTargetId: () => this.targetId,
+    getSelectedId: () => this.selectedId,
+    getQuality: () => this.displayOptions.quality,
+    labelsAllowed: () => this.solarEclipsePresentation.labelsAllowed,
+    isObserverModeActive: () => this.cameraController?.observerPresentationActive ?? false,
+    isObserverSkyObject: (objectId) =>
+      this.catalogRuntime?.isCatalogStar(objectId) === true ||
+      this.catalogRuntime?.isExoplanetHost(objectId) === true ||
+      this.universeScene?.hasConstellation(objectId) === true,
+    getDefinition: (objectId) => this.getDefinition(objectId),
+    getWorldPosition: (objectId, target) => this.getWorldPosition(objectId, target),
+    getRegistry: (objectId) => this.objectRuntime.getRegistry(objectId),
+    isCameraTransitioning: () => this.cameraController?.isTransitioning ?? false,
+    setLabelsTransitioning: (transitioning) => this.labelManager?.setTransitioning(transitioning),
+    renderLabels: (camera, readWorldPosition, lodLevel, activeObjectId) =>
+      this.labelManager?.render(camera, readWorldPosition, lodLevel, activeObjectId),
+    clearLabels: () => this.labelManager?.clear(),
+  });
+  private readonly frameRuntime = new UniverseFrameRuntime(
+    this.frameSimulation,
+    this.frameNavigation,
+    this.frameContent,
+    this.frameRenderer,
+    {
+      getRenderer: () => this.renderer,
+      getCamera: () => this.camera,
+      getUniverseScene: () => this.universeScene,
+      getRegistry: () => this.objectRuntime.primaryRegistry,
+      getController: () => this.cameraController,
+      getLensingPass: () => this.blackHoleLensingPass,
+      getViewportSize: (renderer) => ({
+        width: this.container?.clientWidth ?? renderer.domElement.clientWidth,
+        height: this.container?.clientHeight ?? renderer.domElement.clientHeight,
+      }),
+      updateAdaptiveRendering: (deltaSeconds) => this.adaptiveRenderingRuntime.update(deltaSeconds),
+      updateDebugStats: (deltaSeconds) => this.debugRuntime.update(deltaSeconds),
+    },
+  );
+  private readonly navigationRuntime = new UniverseNavigationRuntime({
+    hasPrimaryRegistry: () => this.objectRuntime.primaryRegistry !== null,
+    getDefinition: (objectId) => this.getDefinition(objectId),
+    getWorldPosition: (objectId, target) => this.getWorldPosition(objectId, target),
+    setNavigationTarget: (objectId) => this.objectRuntime.setNavigationTarget(objectId),
+    selectLodLevel: (cameraDistance) => this.lodManager.selectLevel(cameraDistance),
+    emitTargetChanged: (objectId) => this.emit({ type: 'target-changed', objectId }),
+  });
+  private readonly adaptiveRenderingRuntime = new UniverseAdaptiveRenderingRuntime(
+    this.performanceManager,
+    {
+      getResources: () => {
+        const renderer = this.renderer;
+        const universeScene = this.universeScene;
+
+        return renderer && universeScene ? { renderer, universeScene } : null;
+      },
+      getQuality: () => this.displayOptions.quality,
+      isSamplingPaused: () =>
+        (this.cameraController?.isTransitioning ?? false) || document.visibilityState !== 'visible',
+      setPixelRatio: (pixelRatio) => {
+        this.renderPixelRatio = pixelRatio;
+      },
+      resize: () => {
+        if (this.container) {
+          this.resize(this.container.clientWidth, this.container.clientHeight);
+        }
+      },
+    },
+  );
+  private readonly debugRuntime = new UniverseDebugRuntime(this.objectRuntime, {
+    getResources: () => {
+      const renderer = this.renderer;
+      const camera = this.camera;
+      const universeScene = this.universeScene;
+
+      return renderer && camera && universeScene && this.objectRuntime.primaryRegistry
+        ? { renderer, camera, universeScene }
+        : null;
+    },
+    getCameraTarget: () => this.cameraController?.controls.target ?? null,
+    getCameraDistance: () => this.cameraController?.distanceToTarget ?? 0,
+    getFloatingOrigin: () => this.floatingOriginManager.accumulatedOrigin,
+    getTargetId: () => this.targetId,
+    getNavigationContext: () => this.navigationRuntime.resolveContext(this.lodManager.level),
+    getLodLevel: () => this.lodManager.level,
+    getJulianDay: () => this.timeController.currentTime.julianDay,
+    getQuality: () => this.displayOptions.quality,
+    getPixelRatio: () => this.renderPixelRatio,
+    getAdaptiveRendering: () => this.adaptiveRenderingRuntime.stats,
+    getStreamingStats: () => this.streamingRuntime.coordinator?.stats ?? null,
+    getZoomDiagnostics: () => this.cameraController?.lastZoomDiagnostics ?? null,
+    getZoomAnchor: () => this.navigationRuntime.lastZoomAnchor,
+    getTempelPerformance: () => this.tempelFilamentPerformance.snapshot,
+    getStartupPerformance: () => this.startupPerformance.snapshot,
+    emitStats: (stats) => this.emit({ type: 'debug-stats', stats }),
+  });
+  private readonly deferredCatalogCoordinator = new UniverseDeferredCatalogCoordinator({
+    getRuntime: () => this.catalogRuntime,
+    hasObject: (objectId) => this.hasObject(objectId),
+    requiresDeferredCatalogs: (objectId) => DEFERRED_CATALOG_SCALE_TARGETS.has(objectId),
+    isRuntimeCurrent: (runtime) => this.initialized && this.catalogRuntime === runtime,
+    refreshCatalogs: () => {
+      const coordinator = this.streamingRuntime.coordinator;
+
+      this.labelManager?.setObjects(this.getLabelObjects());
+      if (coordinator) {
+        this.emitDataReady(coordinator);
+      }
+    },
+    emitWarning: (message) => this.emit({ type: 'performance-warning', message }),
+    schedule: (callback) => window.setTimeout(callback, 400),
+    cancel: (handle) => window.clearTimeout(handle),
+  });
+  private readonly solarEclipsePresentation = new SolarEclipsePresentationController();
+  private readonly solarEclipseViewController = new SolarEclipseViewController(
+    this.solarEclipsePresentation,
+    {
+      getRegistry: () => this.objectRuntime.primaryRegistry,
+      getCameraController: () => this.cameraController,
+      setTime: (time) => this.setTime(time),
+      clearNavigationLock: () => this.selectionManager?.clearNavigationLock(),
+      adoptTarget: (objectId) => this.navigationRuntime.adoptTarget(objectId),
+      resetNavigation: () => this.navigationRuntime.reset(),
+      setNavigationTarget: (objectId) => this.objectRuntime.setNavigationTarget(objectId),
+      selectObject: (objectId) => this.selectObject(objectId),
+      clearLabels: () => this.labelManager?.clear(),
+      emitTargetChanged: (objectId) => this.emit({ type: 'target-changed', objectId }),
+    },
+  );
+  private readonly viewController = new UniverseViewController({
+    hasPrimaryRegistry: () => this.objectRuntime.primaryRegistry !== null,
+    getPrimaryRegistry: () => this.objectRuntime.primaryRegistry,
+    getRegistry: (objectId) => this.objectRuntime.getRegistry(objectId),
+    getCameraController: () => this.cameraController,
+    getVerticalFieldOfView: () => this.camera?.fov ?? null,
+    hasObject: (objectId) => this.hasObject(objectId),
+    getDefinition: (objectId) => this.getDefinition(objectId),
+    getWorldPosition: (objectId) => this.getWorldPosition(objectId),
+    getConstellationFocusRadius: (objectId) =>
+      this.universeScene?.getConstellationFocusRadius(objectId),
+    isExoplanetHost: (objectId) => this.catalogRuntime?.isExoplanetHost(objectId) === true,
+    isCatalogStar: (objectId) => this.catalogRuntime?.isCatalogStar(objectId) === true,
+    ensureSpaceTileObject: (objectId) => this.streamingRuntime.ensureSpaceTileObject(objectId),
+    ensureActiveExoplanetSystem: (objectId) =>
+      this.streamingRuntime.ensureActiveExoplanetSystem(objectId),
+    ensureTempelFilamentSpines: () => this.ensureTempelFilamentSpines(),
+    clearPresentation: () => this.clearSolarEclipsePresentation(),
+    clearNavigationLock: () => this.selectionManager?.clearNavigationLock(),
+    adoptTarget: (objectId) => this.navigationRuntime.adoptTarget(objectId),
+    selectObject: (objectId) => this.selectObject(objectId),
+    emitTargetChanged: (objectId) => this.emit({ type: 'target-changed', objectId }),
+  });
   private renderer: THREE.WebGLRenderer | null = null;
   private camera: THREE.PerspectiveCamera | null = null;
   private universeScene: UniverseScene | null = null;
   private cameraController: CameraController | null = null;
-  private objectRegistry: ObjectRegistry | null = null;
-  private spaceTileObjectRegistry: ObjectRegistry | null = null;
   private labelManager: LabelManager | null = null;
-  private starCatalogRegistry: StarCatalogRegistry | null = null;
-  private cosmicGroupCatalogRegistry: CosmicGroupCatalogRegistry | null = null;
-  private cosmicStructureCatalogRegistry: CosmicStructureCatalogRegistry | null = null;
+  private catalogRuntime: UniverseCatalogRuntime | null = null;
   private selectionManager: SelectionManager | null = null;
   private renderLoop: RenderLoop | null = null;
   private blackHoleLensingPass: BlackHoleLensingPass | null = null;
   private container: HTMLElement | null = null;
-  private baseObjects: SpaceObject[] = [];
-  private objects: SpaceObject[] = [];
-  private spaceTileManager: SpaceTileManager | null = null;
-  private starTileManager: StarTileManager | null = null;
-  private pendingStarTileView: StarTileView | null = null;
-  private starTileSynchronizationRunning = false;
-  private starTileSynchronizationAccumulator = STAR_TILE_SYNCHRONIZATION_INTERVAL_SECONDS;
-  private lastStarTileLod = -1;
-  private lastStarTileWarning: string | null = null;
-  private pendingSpaceTileRequest: SpaceTileSynchronizationRequest | null = null;
-  private spaceTileSynchronizationAccumulator = SPACE_TILE_SYNCHRONIZATION_INTERVAL_SECONDS;
-  private tileSynchronizationRunning = false;
-  private lastSpaceTileContextKey: string | null = null;
-  private targetId: string | null = null;
-  private selectedId: string | null = null;
-  private activeSolarEclipse: EarthEclipseEvent | null = null;
-  private solarEclipsePathVisible = false;
-  private solarObserverActive = false;
-  private solarObserverMoonScale = 1;
-  private simulationAccumulator = 0;
-  private timeEventAccumulator = 0;
-  private statsAccumulator = 0;
-  private statsFrames = 0;
-  private lastFps = 0;
-  private renderPixelRatio = 1;
-  private lastEmittedLodLevel = -1;
-  private lastSolarEclipsePhase: SolarEclipseState['phase'] | null = null;
-  private lastZoomAnchor: Pick<ZoomDebugStats, 'anchorType' | 'anchorObjectId'> | null = null;
-  private initialized = false;
+  private readonly initializationBootstrap: UniverseInitializationBootstrap;
 
-  constructor(private readonly Renderer: WebGlRendererConstructor = THREE.WebGLRenderer) {}
+  constructor(
+    Renderer: WebGlRendererConstructor = THREE.WebGLRenderer,
+    private readonly startupPerformance = new UniverseStartupPerformanceTrace(),
+  ) {
+    this.initializationBootstrap = new UniverseInitializationBootstrap(
+      new UniverseRenderingBootstrap(Renderer, this.performanceManager),
+      this.performanceManager,
+      this.coordinateSystem,
+      undefined,
+      this.startupPerformance,
+    );
+  }
 
-  public async initialize(
+  private get targetId(): string | null {
+    return this.navigationRuntime.targetId;
+  }
+
+  private set targetId(objectId: string | null) {
+    this.navigationRuntime.restoreTarget(objectId);
+  }
+
+  private get selectedId(): string | null {
+    return this.selectionRuntime.selectedId;
+  }
+
+  private set selectedId(objectId: string | null) {
+    this.selectionRuntime.restoreSelectedId(objectId);
+  }
+
+  private get displayOptions(): DisplayOptions {
+    return this.displayRuntime.options;
+  }
+
+  private get renderPixelRatio(): number {
+    return this.displayRuntime.pixelRatio;
+  }
+
+  private set renderPixelRatio(pixelRatio: number) {
+    this.displayRuntime.restorePixelRatio(pixelRatio);
+  }
+
+  private get labelNameResolver(): LabelNameResolver {
+    return this.displayRuntime.labelNameResolver;
+  }
+
+  private get initialized(): boolean {
+    return this.lifecycle.initialized;
+  }
+
+  private set initialized(initialized: boolean) {
+    this.lifecycle.restoreInitialized(initialized);
+  }
+
+  public initialize(
     container: HTMLElement,
     initialOptions?: Partial<DisplayOptions>,
   ): Promise<void> {
-    if (this.initialized) {
-      return;
-    }
-
-    this.container = container;
-    this.emit({ type: 'loading-state', loading: true });
-
-    try {
-      this.displayOptions = {
-        ...this.displayOptions,
-        ...initialOptions,
-        quality: initialOptions?.quality ?? this.performanceManager.recommendQuality(),
-      };
-      const { AssetLoader } = await import('../loaders/asset-loader');
-      const assets = await new AssetLoader().loadAssets();
-
-      this.baseObjects = [...assets.objects];
-      this.objects = [...this.baseObjects];
-      if (assets.spaceTileIndex) {
-        const { SpaceTileManager } = await import('../tiles/space-tile-manager');
-
-        this.spaceTileManager = new SpaceTileManager(assets.spaceTileIndex);
-      } else {
-        this.spaceTileManager = null;
-      }
-
-      const renderer = new this.Renderer({
-        antialias: false,
-        alpha: false,
-        powerPreference: 'high-performance',
-        logarithmicDepthBuffer: true,
-      });
-
-      renderer.domElement.className = 'universe-canvas';
-      renderer.outputColorSpace = THREE.SRGBColorSpace;
-      renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = getPhotographicProfile(
-        0,
-        this.displayOptions.quality,
-      ).exposure;
-      this.renderPixelRatio = this.performanceManager.resetAdaptivePixelRatio(
-        this.displayOptions.quality,
-      );
-      renderer.setPixelRatio(this.renderPixelRatio);
-      container.appendChild(renderer.domElement);
-      this.renderer = renderer;
-      this.blackHoleLensingPass = new BlackHoleLensingPass();
-
-      const camera = new THREE.PerspectiveCamera(48, 1, 0.025, CAMERA_FAR_DISTANCE);
-
-      camera.position.set(28, 17, 30);
-      this.camera = camera;
-
-      const universeScene = new UniverseScene(this.performanceManager);
-
-      if (assets.spaceTileIndex) {
-        await universeScene.setNearbyGalaxyOverview(assets.spaceTileIndex, this.coordinateSystem);
-      }
-
-      if (assets.starCatalog) {
-        const { StarCatalogRegistry } = await import('../objects/star-catalog-registry');
-        const starCatalogRegistry = new StarCatalogRegistry(
-          assets.starCatalog,
-          this.coordinateSystem,
-          this.baseObjects,
-        );
-
-        this.starCatalogRegistry = starCatalogRegistry;
-        this.baseObjects = starCatalogRegistry.resolveCatalogObjects(this.baseObjects);
-        this.objects = [...this.baseObjects];
-        await universeScene.setStarCatalog(starCatalogRegistry);
-        if (assets.starTileSource) {
-          const { StarTileManager } = await import('../tiles/star-tile-manager');
-
-          this.starTileManager = new StarTileManager(assets.starTileSource, starCatalogRegistry);
-        }
-        if (assets.constellationCatalog) {
-          await universeScene.setConstellationCatalog(
-            assets.constellationCatalog,
-            starCatalogRegistry,
-          );
-        }
-      }
-      if (!assets.starCatalog || !assets.starTileSource) {
-        this.starTileManager = null;
-      }
-      if (assets.cosmicGroupCatalog) {
-        const { CosmicGroupCatalogRegistry } =
-          await import('../objects/cosmic-group-catalog-registry');
-        const cosmicGroupCatalogRegistry = new CosmicGroupCatalogRegistry(
-          assets.cosmicGroupCatalog,
-          this.coordinateSystem,
-        );
-
-        this.cosmicGroupCatalogRegistry = cosmicGroupCatalogRegistry;
-        await universeScene.setCosmicGroupCatalog(cosmicGroupCatalogRegistry);
-      }
-      if (assets.cosmicStructureCatalog) {
-        const { CosmicStructureCatalogRegistry } =
-          await import('../objects/cosmic-structure-catalog-registry');
-        const cosmicStructureCatalogRegistry = new CosmicStructureCatalogRegistry(
-          assets.cosmicStructureCatalog,
-          this.coordinateSystem,
-        );
-
-        this.cosmicStructureCatalogRegistry = cosmicStructureCatalogRegistry;
-        await universeScene.setCosmicStructureCatalog(cosmicStructureCatalogRegistry);
-      }
-      if (assets.cosmicWebVolume) {
-        await universeScene.setCosmicWebVolume(assets.cosmicWebVolume, this.coordinateSystem);
-      }
-      universeScene.setQuality(this.displayOptions.quality);
-      universeScene.setPixelRatio(this.renderPixelRatio);
-      universeScene.setConstellationsEnabled(this.displayOptions.showConstellations);
-      this.universeScene = universeScene;
-
-      const cameraController = new CameraController(
-        camera,
-        renderer.domElement,
-        this.handleCameraSettled,
-      );
-
-      this.cameraController = cameraController;
-
-      const registry = new ObjectRegistry(
-        universeScene.spaceRoot,
-        this.coordinateSystem,
-        this.objects,
-        this.displayOptions.quality,
-      );
-
-      const initialTime = this.timeController.currentTime;
-      const solarEclipseAppearance = registry.updatePositions(initialTime);
-
-      universeScene.setStellarOrigin(registry.getSpacePosition('sun') ?? new THREE.Vector3());
-      registry.updateBodyRotations(initialTime);
-      this.earthRotationPlayback.reset(initialTime);
-      this.emitSolarEclipseState(solarEclipseAppearance, true);
-      registry.setDisplayOptions(this.displayOptions);
-      this.objectRegistry = registry;
-
-      const labelObjects = this.getLabelObjects();
-      const labelManager = new LabelManager(
-        container,
-        labelObjects,
-        this.displayOptions.quality,
-        this.displayOptions.labelDensity,
-        (objectId) => {
-          if (this.universeScene?.hasConstellation(objectId)) {
-            return this.displayOptions.showConstellations;
-          }
-
-          const registry = this.getObjectRegistry(objectId);
-          const cosmicMapVisible =
-            this.universeScene?.isCatalogObjectVisibleForLabels(objectId) ?? true;
-
-          return cosmicMapVisible && (registry === null || registry.isVisibleForLabels(objectId));
-        },
-      );
-
-      labelManager.setEnabled(this.displayOptions.showLabels);
-      this.labelManager = labelManager;
-
-      this.selectionManager = new SelectionManager(
-        renderer.domElement,
-        camera,
-        () => [
-          ...(this.objectRegistry?.getPickables() ?? []),
-          ...(this.spaceTileObjectRegistry?.getPickables() ?? []),
-          ...(this.universeScene?.getCatalogPickables() ?? []),
-        ],
-        (clientX, clientY) => this.labelManager?.hitTest(clientX, clientY) ?? null,
-        (objectId, focusRequested) => this.handlePick(objectId, focusRequested),
-        (objectId) => this.handleNavigationIntent(objectId),
-        () => this.cameraController?.distanceToTarget ?? 1,
-        (objectId) =>
-          this.starCatalogRegistry?.has(objectId) === true ||
-          this.cosmicGroupCatalogRegistry?.has(objectId) === true ||
-          this.cosmicStructureCatalogRegistry?.has(objectId) === true ||
-          this.universeScene?.hasConstellation(objectId) === true ||
-          this.getDefinition(objectId)?.type === 'galaxy',
-        (objectId) => {
-          this.labelManager?.setHoveredObject(objectId);
-          this.universeScene?.hoverConstellation(objectId);
-        },
-        this.handleSemanticZoomIntent,
-        (objectId) =>
-          this.getObjectRegistry(objectId) !== null ||
-          this.cosmicGroupCatalogRegistry?.has(objectId) === true ||
-          this.cosmicStructureCatalogRegistry?.has(objectId) === true,
-      );
-      this.renderLoop = new RenderLoop((deltaSeconds) => this.renderFrame(deltaSeconds));
-
-      this.resize(container.clientWidth, container.clientHeight);
-      this.initialized = true;
-      this.emitDataReady();
-      for (const warning of assets.warnings) {
-        this.emit({ type: 'performance-warning', message: warning });
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Erreur inconnue du moteur 3D.';
-
-      this.emit({ type: 'error', message });
-      throw error;
-    } finally {
-      this.emit({ type: 'loading-state', loading: false });
-    }
+    return this.lifecycle.initialize((revision) =>
+      this.initializeRuntime(container, revision, initialOptions),
+    );
   }
 
   public start(): void {
@@ -378,68 +557,12 @@ export class UniverseEngine {
   }
 
   public dispose(): void {
-    this.stop();
-    this.selectionManager?.dispose();
-    this.cameraController?.dispose();
-    this.labelManager?.dispose();
-    this.objectRegistry?.dispose();
-    this.spaceTileObjectRegistry?.dispose();
-    this.universeScene?.dispose();
-    this.blackHoleLensingPass?.dispose();
-    this.renderer?.renderLists.dispose();
-    this.renderer?.dispose();
-    this.renderer?.domElement.remove();
-
-    this.selectionManager = null;
-    this.cameraController = null;
-    this.labelManager = null;
-    this.starCatalogRegistry = null;
-    this.cosmicGroupCatalogRegistry = null;
-    this.cosmicStructureCatalogRegistry = null;
-    this.objectRegistry = null;
-    this.spaceTileObjectRegistry = null;
-    this.universeScene = null;
-    this.renderer = null;
-    this.camera = null;
-    this.renderLoop = null;
-    this.blackHoleLensingPass = null;
-    this.container = null;
-    this.baseObjects = [];
-    this.objects = [];
-    this.spaceTileManager = null;
-    this.starTileManager = null;
-    this.pendingStarTileView = null;
-    this.starTileSynchronizationRunning = false;
-    this.starTileSynchronizationAccumulator = STAR_TILE_SYNCHRONIZATION_INTERVAL_SECONDS;
-    this.lastStarTileLod = -1;
-    this.lastStarTileWarning = null;
-    this.pendingSpaceTileRequest = null;
-    this.spaceTileSynchronizationAccumulator = SPACE_TILE_SYNCHRONIZATION_INTERVAL_SECONDS;
-    this.tileSynchronizationRunning = false;
-    this.lastSpaceTileContextKey = null;
-    this.targetId = null;
-    this.navigationContextJourney.clear();
-    this.selectedId = null;
-    this.activeSolarEclipse = null;
-    this.solarEclipsePathVisible = false;
-    this.solarObserverActive = false;
-    this.solarObserverMoonScale = 1;
-    this.lastSolarEclipsePhase = null;
-    this.initialized = false;
+    this.lifecycle.dispose(() => this.releaseRuntimeResources());
     this.listeners.clear();
   }
 
   public setTime(time: UniverseTime): void {
-    this.timeController.setTime(time);
-    this.earthRotationPlayback.reset(time);
-    const solarEclipseAppearance = this.objectRegistry?.updatePositions(time);
-
-    this.objectRegistry?.updateBodyRotations(time);
-    if (solarEclipseAppearance) {
-      this.emitSolarEclipseState(solarEclipseAppearance, true);
-    }
-    this.followCurrentTarget();
-    this.emit({ type: 'time-changed', time: this.timeController.currentTime });
+    this.frameSimulation.setTime(time, this.objectRuntime.primaryRegistry);
   }
 
   public setPlaying(playing: boolean): void {
@@ -451,326 +574,84 @@ export class UniverseEngine {
   }
 
   public async setTarget(objectId: string, zoom?: number): Promise<void> {
-    const controller = this.cameraController;
+    await this.viewController.setTarget(objectId, zoom);
+  }
 
-    if (!this.objectRegistry || !controller || !this.hasObject(objectId)) {
-      throw new Error(`Objet astronomique introuvable : ${objectId}.`);
-    }
-    await this.ensureSpaceTileObject(objectId);
-    const position = this.getWorldPosition(objectId);
-    const object = this.getDefinition(objectId);
+  public async prepareEarthObservation(
+    objectId: string,
+    framing?: EarthObserverFraming,
+    selectedObjectId?: string | null,
+  ): Promise<void> {
+    await this.viewController.prepareEarthObservation(objectId, framing, selectedObjectId);
+  }
 
-    if (!this.objectRegistry || !position || !object) {
-      throw new Error(`Position indisponible pour ${objectId}.`);
-    }
-
-    this.clearSolarEclipsePresentation();
-    this.selectionManager?.clearNavigationLock();
-    this.targetId = objectId;
-    this.navigationContextJourney.adoptTarget(objectId);
-    this.setNavigationTargetOnRegistries(objectId);
-    this.selectObject(objectId);
-    const constellationRadius = this.universeScene?.getConstellationFocusRadius(objectId);
-
-    if (constellationRadius !== null && constellationRadius !== undefined && this.camera) {
-      const direction = position.clone().negate();
-
-      controller.focusOnFromDirection(
-        position,
-        object,
-        direction,
-        zoom ?? getOrbitOverviewDistance(constellationRadius, this.camera.fov),
-      );
-    } else {
-      controller.focusOn(
-        position,
-        object,
-        zoom ?? (this.starCatalogRegistry?.has(objectId) ? CATALOG_STAR_FOCUS_DISTANCE : undefined),
-      );
-    }
-    this.emit({ type: 'target-changed', objectId });
+  public ensureObjectAvailable(objectId: string): Promise<boolean> {
+    return this.deferredCatalogCoordinator.ensureObjectAvailable(objectId);
   }
 
   public completeTargetTransition(): void {
-    this.cameraController?.completeFocusTransition();
+    this.viewController.completeTargetTransition();
+  }
+
+  public async viewRotation(objectId: string): Promise<void> {
+    await this.viewController.viewRotation(objectId);
   }
 
   public viewOrbit(objectId: string): void {
-    const registry = this.objectRegistry;
-    const controller = this.cameraController;
-    const camera = this.camera;
-    const object = registry?.getDefinition(objectId);
-    const parentId = object?.parentId;
-    const parent = parentId ? registry?.getDefinition(parentId) : undefined;
-    const parentPosition = parentId ? registry?.getWorldPosition(parentId) : null;
-    const orbitRadius = registry?.getOrbitRadius(objectId);
-
-    if (
-      !registry ||
-      !controller ||
-      !camera ||
-      !object ||
-      !parentId ||
-      !parent ||
-      !parentPosition ||
-      typeof orbitRadius !== 'number' ||
-      orbitRadius <= 0
-    ) {
-      throw new Error(`Orbite indisponible pour ${object?.name ?? objectId}.`);
-    }
-
-    this.clearSolarEclipsePresentation();
-    this.selectionManager?.clearNavigationLock();
-    this.targetId = parentId;
-    this.navigationContextJourney.adoptTarget(parentId);
-    registry.setNavigationTarget(parentId);
-    this.selectObject(objectId);
-    controller.focusOnFromDirection(
-      parentPosition,
-      parent,
-      new THREE.Vector3(1, 0.82, 1),
-      getOrbitOverviewDistance(orbitRadius, camera.fov),
-    );
-    this.emit({ type: 'target-changed', objectId: parentId });
+    this.viewController.viewOrbit(objectId);
   }
 
   public viewScale(scale: NavigationScaleDefinition): void {
-    const registry = this.objectRegistry;
-    const controller = this.cameraController;
-    const target = registry?.getDefinition(scale.targetId);
-    const targetPosition = registry?.getWorldPosition(scale.targetId);
-
-    if (!registry || !controller || !target || !targetPosition) {
-      throw new Error('Cadrage indisponible.');
-    }
-
-    this.clearSolarEclipsePresentation();
-    this.selectionManager?.clearNavigationLock();
-    this.targetId = scale.targetId;
-    this.navigationContextJourney.adoptTarget(scale.targetId);
-    this.setNavigationTargetOnRegistries(scale.targetId);
-    this.selectObject(null);
-    controller.focusOnFromDirection(
-      targetPosition,
-      target,
-      new THREE.Vector3(...scale.direction),
-      scale.distance,
-    );
-    this.emit({ type: 'target-changed', objectId: scale.targetId });
+    this.viewController.viewScale(scale);
   }
 
   public viewSolarEclipse(event: EarthEclipseEvent): void {
-    this.setTime(event.peak);
-    const registry = this.objectRegistry;
-    const controller = this.cameraController;
-    const earthPosition = registry?.getWorldPosition('earth');
-    const earth = registry?.getDefinition('earth');
-    const appearance = calculateSolarEclipseAppearance(event.peak);
-
-    if (!registry || !controller || !earthPosition || !earth || appearance.phase === 'none') {
-      throw new Error('L’ombre de cette éclipse solaire ne peut pas être affichée.');
-    }
-
-    this.selectionManager?.clearNavigationLock();
-    this.activeSolarEclipse = event;
-    this.solarEclipsePathVisible = false;
-    this.solarObserverActive = false;
-    this.solarObserverMoonScale = 1;
-    this.targetId = 'earth';
-    this.navigationContextJourney.adoptTarget('earth');
-    registry.setSolarObserverActive(false);
-    this.setNavigationTargetOnRegistries('earth');
-    registry.clearSolarEclipsePath();
-    this.selectObject(null);
-    const shadowViewDirection = new THREE.Vector3(
-      appearance.shadowDirection.x,
-      appearance.shadowDirection.y,
-      appearance.shadowDirection.z,
-    ).normalize();
-
-    controller.focusOnFromDirection(
-      earthPosition,
-      earth,
-      shadowViewDirection,
-      earth.visual.visualRadius * 5.6,
-    );
-    this.emit({ type: 'target-changed', objectId: 'earth' });
+    this.solarEclipseViewController.viewSolarEclipse(event);
   }
 
   public observeSolarEclipse(event: EarthEclipseEvent): void {
-    this.setTime(event.peak);
-    const registry = this.objectRegistry;
-    const controller = this.cameraController;
-    const earthPosition = registry?.getWorldPosition('earth');
-    const moonPosition = registry?.getWorldPosition('moon');
-    const sunPosition = registry?.getWorldPosition('sun');
-    const moon = registry?.getDefinition('moon');
-    const sun = registry?.getDefinition('sun');
-    const appearance = calculateSolarEclipseAppearance(event.peak);
-    const latitude = event.latitude ?? appearance.centralLatitude;
-    const longitude = event.longitude ?? appearance.centralLongitude;
-
-    if (
-      !registry ||
-      !controller ||
-      !earthPosition ||
-      !moonPosition ||
-      !sunPosition ||
-      !moon ||
-      !sun ||
-      latitude === null ||
-      longitude === null
-    ) {
-      throw new Error('Le point d’observation terrestre de cette éclipse est indisponible.');
-    }
-
-    const observerDirection = calculateEarthObserverDirection(event.peak, latitude, longitude);
-    const observerOffset =
-      earthPosition.distanceTo(moonPosition) * EARTH_RADIUS_TO_MEAN_LUNAR_DISTANCE;
-    const observerPosition = earthPosition
-      .clone()
-      .add(
-        new THREE.Vector3(
-          observerDirection.x,
-          observerDirection.y,
-          observerDirection.z,
-        ).multiplyScalar(observerOffset),
-      );
-    const discRatio = calculateSolarObserverDiscRatio(event.peak, latitude, longitude);
-    const sunDistance = observerPosition.distanceTo(sunPosition);
-    const moonDistance = observerPosition.distanceTo(moonPosition);
-    const adaptedSunAngularRadius = Math.asin(
-      Math.min(0.999, sun.visual.visualRadius / sunDistance),
-    );
-    const adaptedMoonRadius = Math.sin(adaptedSunAngularRadius * discRatio) * moonDistance;
-    const moonVisualScale = THREE.MathUtils.clamp(
-      adaptedMoonRadius / moon.visual.visualRadius,
-      0.72,
-      1.28,
-    );
-
-    this.selectionManager?.clearNavigationLock();
-    this.activeSolarEclipse = event;
-    this.solarEclipsePathVisible = false;
-    this.solarObserverActive = true;
-    this.solarObserverMoonScale = moonVisualScale;
-    this.targetId = null;
-    this.navigationContextJourney.clear();
-    registry.clearSolarEclipsePath();
-    registry.setSolarObserverActive(true, moonVisualScale);
-    this.setNavigationTargetOnRegistries('sun');
-    this.selectObject(null);
-    this.labelManager?.clear();
-    controller.observeFrom(observerPosition, sunPosition);
-    this.emit({ type: 'target-changed', objectId: null });
+    this.solarEclipseViewController.observeSolarEclipse(event);
   }
 
   public setSolarEclipsePathVisible(event: EarthEclipseEvent, visible: boolean): void {
-    this.activeSolarEclipse = event;
-    this.solarEclipsePathVisible = visible;
-    if (visible) {
-      this.objectRegistry?.showSolarEclipsePath(event.peak, event.kind);
-    } else {
-      this.objectRegistry?.clearSolarEclipsePath();
-    }
+    this.solarEclipseViewController.setPathVisible(event, visible);
   }
 
   public clearSolarEclipsePresentation(): void {
-    this.activeSolarEclipse = null;
-    this.solarEclipsePathVisible = false;
-    this.solarObserverActive = false;
-    this.solarObserverMoonScale = 1;
-    this.objectRegistry?.setSolarObserverActive(false);
-    this.objectRegistry?.clearSolarEclipsePath();
+    this.solarEclipseViewController.clearPresentation();
   }
 
   public selectObject(objectId: string | null): void {
-    const object = objectId ? (this.getDefinition(objectId) ?? null) : null;
-
-    if (objectId && !object) {
-      return;
-    }
-    this.selectedId = objectId;
-    const catalogObjectId =
-      objectId &&
-      (this.starCatalogRegistry?.has(objectId) ||
-        this.cosmicGroupCatalogRegistry?.has(objectId) ||
-        this.cosmicStructureCatalogRegistry?.has(objectId))
-        ? objectId
-        : null;
-    const constellationObjectId =
-      objectId && this.universeScene?.hasConstellation(objectId) ? objectId : null;
-
-    const registryObjectId = catalogObjectId || constellationObjectId ? null : objectId;
-
-    this.selectOnRegistries(registryObjectId);
-    this.universeScene?.selectCatalogObject(catalogObjectId);
-    this.universeScene?.selectConstellation(constellationObjectId);
-    this.labelManager?.setTransientObject(catalogObjectId ? object : null);
-    this.emit({ type: 'object-selected', objectId, object });
+    this.selectionRuntime.select(objectId);
   }
 
   public focusSelected(): void {
-    if (this.selectedId) {
-      void this.setTarget(this.selectedId);
-    }
+    this.selectionRuntime.focusSelected();
   }
 
   public setDisplayOptions(options: DisplayOptions): void {
-    const qualityChanged = options.quality !== this.displayOptions.quality;
-    const labelDensityChanged = options.labelDensity !== this.displayOptions.labelDensity;
+    const leavingEarthObservation =
+      this.displayOptions.temporalMode === 'observable' && options.temporalMode !== 'observable';
 
-    this.displayOptions = { ...options };
-    this.universeScene?.setQuality(this.displayOptions.quality);
-    this.universeScene?.setConstellationsEnabled(this.displayOptions.showConstellations);
-    this.labelManager?.setEnabled(this.displayOptions.showLabels);
-    this.labelManager?.setDensity(this.displayOptions.labelDensity);
+    this.displayRuntime.apply(options);
+    if (leavingEarthObservation) {
+      this.releaseNavigationTarget();
+    }
+  }
 
-    if (qualityChanged) {
-      this.renderPixelRatio = this.performanceManager.resetAdaptivePixelRatio(
-        this.displayOptions.quality,
-      );
-      this.universeScene?.setPixelRatio(this.renderPixelRatio);
-      this.lastStarTileLod = -1;
-      this.starTileSynchronizationAccumulator = STAR_TILE_SYNCHRONIZATION_INTERVAL_SECONDS;
-      if (this.objectRegistry && this.universeScene) {
-        this.rebuildObjectRegistry();
-      }
-      this.labelManager?.setQuality(this.displayOptions.quality);
-      if (this.renderer) {
-        this.renderer.setPixelRatio(this.renderPixelRatio);
-        if (this.container) {
-          this.resize(this.container.clientWidth, this.container.clientHeight);
-        }
-      }
-    } else {
-      this.universeScene?.setPixelRatio(this.renderPixelRatio);
-    }
-    if (qualityChanged || labelDensityChanged) {
-      this.labelManager?.setObjects(this.getLabelObjects());
-    }
-    this.objectRegistry?.setDisplayOptions(this.displayOptions);
-    this.spaceTileObjectRegistry?.setDisplayOptions(this.displayOptions);
+  public setLabelNameResolver(resolver: LabelNameResolver): void {
+    this.displayRuntime.setLabelNameResolver(resolver);
   }
 
   public setCosmicMapLayers(layers: CosmicMapLayers): void {
     this.universeScene?.setCosmicMapLayers(layers);
+    if (layers.filaments && this.lodManager.level >= 6) {
+      void this.ensureTempelFilamentSpines();
+    }
   }
 
   public zoomBy(factor: number): void {
-    const controller = this.cameraController;
-
-    if (!controller) {
-      return;
-    }
-    const previousLodLevel = this.lodManager.selectLevel(controller.distanceToTarget);
-
-    controller.zoomBy(factor);
-    const nextLodLevel = this.lodManager.selectLevel(controller.distanceToTarget);
-
-    if (nextLodLevel !== previousLodLevel) {
-      this.synchronizeNavigationContextTarget(controller, nextLodLevel);
-    }
+    this.navigationRuntime.zoomBy(this.cameraController, factor);
   }
 
   public subscribe(listener: UniverseEngineListener): () => void {
@@ -795,24 +676,160 @@ export class UniverseEngine {
     return this.cameraController?.distanceToTarget ?? 0;
   }
 
+  public get cameraTransitioning(): boolean {
+    return this.cameraController?.isTransitioning ?? false;
+  }
+
+  public get adaptiveRenderingStats(): AdaptiveRenderingStats {
+    return this.adaptiveRenderingRuntime.stats;
+  }
+
   public get allObjects(): readonly SpaceObject[] {
     return this.getPublicObjects();
   }
 
   public hasObject(objectId: string): boolean {
-    return (
-      this.objectRegistry?.has(objectId) === true ||
-      this.spaceTileObjectRegistry?.has(objectId) === true ||
-      this.starCatalogRegistry?.has(objectId) === true ||
-      this.cosmicGroupCatalogRegistry?.has(objectId) === true ||
-      this.cosmicStructureCatalogRegistry?.has(objectId) === true ||
-      this.universeScene?.hasConstellation(objectId) === true ||
-      this.spaceTileManager?.hasObject(objectId) === true
-    );
+    return this.objectDirectory.has(objectId);
+  }
+
+  public getObjectAdornmentDiagnostics(objectId: string): ActiveObjectAdornmentDiagnostics | null {
+    return this.objectRuntime.getRegistry(objectId)?.getAdornmentDiagnostics() ?? null;
+  }
+
+  public getObjectVisualDiagnostics(objectId: string): ObjectVisualDiagnostics | null {
+    return this.objectRuntime.getVisualDiagnostics(objectId);
+  }
+
+  public getStellarObservationCatalog(
+    maximumCount: number,
+  ): readonly StellarObservationCatalogEntry[] {
+    const registry = this.catalogRuntime?.starCatalogRegistry;
+
+    return registry ? registry.getStellarObservationCatalog(maximumCount) : [];
+  }
+
+  public getStellarObservationConstellations(): readonly StellarObservationConstellation[] {
+    const registry = this.catalogRuntime?.starCatalogRegistry;
+    const catalog = this.catalogRuntime?.constellationCatalog;
+
+    return registry && catalog ? registry.getStellarObservationConstellations(catalog) : [];
   }
 
   public get recommendedQuality(): GraphicQuality {
     return this.performanceManager.recommendQuality();
+  }
+
+  private async initializeRuntime(
+    container: HTMLElement,
+    lifecycleRevision: number,
+    initialOptions?: Partial<DisplayOptions>,
+  ): Promise<void> {
+    this.container = container;
+    this.emit({ type: 'loading-state', loading: true });
+
+    try {
+      this.displayRuntime.configureInitial(initialOptions);
+      const initialTime = this.timeController.currentTime;
+      const initialization = await this.initializationBootstrap.create({
+        container,
+        displayOptions: this.displayOptions,
+        initialTime,
+        isActive: () => this.lifecycle.isCurrent(lifecycleRevision) && this.initialized,
+        onSpaceTilesChanged: (objects) => this.streamingRuntime.applyLoadedSpaceTiles(objects),
+        onWarning: (message) => this.emit({ type: 'performance-warning', message }),
+      });
+
+      if (!this.lifecycle.isCurrent(lifecycleRevision)) {
+        this.initializationBootstrap.dispose(initialization);
+        this.lifecycle.ensureCurrent(lifecycleRevision);
+      }
+      const { renderer, camera, lensingPass, pixelRatio } = initialization.rendering;
+      const { sceneRuntime, streamingCoordinator } = initialization;
+
+      this.renderPixelRatio = pixelRatio;
+      this.renderer = renderer;
+      this.blackHoleLensingPass = lensingPass;
+      this.camera = camera;
+      const { scene: universeScene, catalogRuntime, registry } = sceneRuntime;
+
+      this.catalogRuntime = catalogRuntime;
+      this.universeScene = universeScene;
+      this.solarEclipseStatePublisher.publish(sceneRuntime.solarEclipseAppearance, true);
+      this.objectRuntime.replacePrimary(registry);
+
+      this.streamingRuntime.install(sceneRuntime.baseObjects, streamingCoordinator);
+      const interactionRuntime = this.interactionBootstrap.create({
+        container,
+        canvas: renderer.domElement,
+        camera,
+        labelObjects: this.getLabelObjects(),
+        quality: this.displayOptions.quality,
+        labelDensity: this.displayOptions.labelDensity,
+        labelsEnabled: this.displayOptions.showLabels,
+        labelNameResolver: this.labelNameResolver,
+      });
+
+      this.cameraController = interactionRuntime.cameraController;
+      this.labelManager = interactionRuntime.labelManager;
+      this.selectionManager = interactionRuntime.selectionManager;
+      this.renderLoop = interactionRuntime.renderLoop;
+
+      this.resize(container.clientWidth, container.clientHeight);
+      this.initialized = true;
+      this.emitDataReady(streamingCoordinator);
+      for (const warning of initialization.warnings) {
+        this.emit({ type: 'performance-warning', message: warning });
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erreur inconnue du moteur 3D.';
+
+      if (this.lifecycle.isCurrent(lifecycleRevision)) {
+        this.releaseRuntimeResources();
+        this.emit({ type: 'error', message });
+      }
+      throw error;
+    } finally {
+      if (this.lifecycle.isCurrent(lifecycleRevision)) {
+        this.emit({ type: 'loading-state', loading: false });
+      }
+    }
+  }
+
+  private releaseRuntimeResources(): void {
+    this.stop();
+    this.runtimeDisposer.dispose(
+      [
+        this.streamingRuntime.coordinator,
+        this.selectionManager,
+        this.cameraController,
+        this.labelManager,
+        this.objectRuntime,
+        this.universeScene,
+        this.blackHoleLensingPass,
+      ],
+      this.renderer,
+    );
+
+    this.selectionManager = null;
+    this.cameraController = null;
+    this.labelManager = null;
+    this.catalogRuntime = null;
+    this.deferredCatalogCoordinator.reset();
+    this.tempelFilamentLoader.reset();
+    this.tempelFilamentPerformance.reset();
+    this.streamingRuntime.reset();
+    this.universeScene = null;
+    this.renderer = null;
+    this.camera = null;
+    this.renderLoop = null;
+    this.blackHoleLensingPass = null;
+    this.debugRuntime.reset();
+    this.container = null;
+    this.navigationRuntime.reset();
+    this.selectedId = null;
+    this.solarEclipseViewController.clearPresentation();
+    this.solarEclipseStatePublisher.reset();
+    this.initialized = false;
   }
 
   private readonly handleSemanticZoomIntent = (
@@ -820,83 +837,16 @@ export class UniverseEngine {
     deltaY: number,
     pointer: ZoomPointer = { x: 0, y: 0 },
   ): void => {
-    const controller = this.cameraController;
-
-    if (!controller) {
-      return;
-    }
-    const previousLodLevel = this.lodManager.selectLevel(controller.distanceToTarget);
-    const anchorPosition = objectId ? this.getWorldPosition(objectId) : null;
-    const anchorObject = objectId ? this.getDefinition(objectId) : undefined;
-
-    if (!(deltaY < 0)) {
-      controller.adoptZoomAnchor(controller.controls.target);
-      this.lastZoomAnchor = {
-        anchorType: 'target',
-        anchorObjectId: null,
-      };
-    } else if (anchorPosition) {
-      controller.adoptZoomAnchor(anchorPosition);
-      this.lastZoomAnchor = {
-        anchorType: 'object',
-        anchorObjectId: objectId,
-      };
-    } else {
-      controller.adoptZoomPointer(pointer.x, pointer.y);
-      this.lastZoomAnchor = {
-        anchorType: 'pointer',
-        anchorObjectId: null,
-      };
-    }
-    if (objectId && anchorPosition && anchorObject && deltaY < 0) {
-      this.adoptSemanticZoomTarget(objectId, anchorObject, controller);
-    }
-    controller.zoomSemantically(deltaY);
-    const nextLodLevel = this.lodManager.selectLevel(controller.distanceToTarget);
-
-    if (nextLodLevel !== previousLodLevel) {
-      this.synchronizeNavigationContextTarget(controller, nextLodLevel);
-    }
+    this.navigationRuntime.handleSemanticZoomIntent(
+      this.cameraController,
+      objectId,
+      deltaY,
+      pointer,
+    );
   };
 
-  private adoptSemanticZoomTarget(
-    objectId: string,
-    object: SpaceObject,
-    controller: CameraController,
-  ): void {
-    if (!this.objectRegistry || this.targetId === objectId) {
-      return;
-    }
-
-    this.targetId = objectId;
-    this.navigationContextJourney.adoptTarget(objectId);
-    this.setNavigationTargetOnRegistries(objectId);
-    controller.setNavigationConstraints(object);
-    this.emit({ type: 'target-changed', objectId });
-  }
-
   private synchronizeNavigationContextTarget(controller: CameraController, lodLevel: number): void {
-    let context = this.navigationContextJourney.resolve(lodLevel);
-
-    if (!context.targetId && this.targetId) {
-      this.navigationContextJourney.adoptTarget(this.targetId);
-      context = this.navigationContextJourney.resolve(lodLevel);
-    }
-
-    if (!context.targetId || context.targetId === this.targetId) {
-      return;
-    }
-    const object = this.getDefinition(context.targetId);
-    const position = this.getWorldPosition(context.targetId);
-
-    if (!object || !position) {
-      return;
-    }
-
-    this.targetId = context.targetId;
-    this.setNavigationTargetOnRegistries(context.targetId);
-    controller.transitionReferenceFrame(position, object);
-    this.emit({ type: 'target-changed', objectId: context.targetId });
+    this.navigationRuntime.synchronizeContext(controller, lodLevel);
   }
 
   private readonly handleCameraSettled = (distance: number, source: CameraSettledSource): void => {
@@ -910,236 +860,27 @@ export class UniverseEngine {
   };
 
   private renderFrame(deltaSeconds: number): void {
-    const renderer = this.renderer;
-    const camera = this.camera;
-    const universeScene = this.universeScene;
-    const registry = this.objectRegistry;
-    const controller = this.cameraController;
-    const blackHoleLensingPass = this.blackHoleLensingPass;
+    const tempelFrameStartedAt = this.tempelFilamentPerformance.beginFrame();
 
-    if (
-      !renderer ||
-      !camera ||
-      !universeScene ||
-      !registry ||
-      !controller ||
-      !blackHoleLensingPass
-    ) {
-      return;
-    }
-
-    const timeAdvanced = this.timeController.update(deltaSeconds);
-    const currentTime = this.timeController.currentTime;
-    const earthRotation = this.earthRotationPlayback.update(
-      currentTime,
-      this.timeController.isPlaying,
-      this.timeController.speed,
-      deltaSeconds,
+    this.frameRuntime.render(deltaSeconds);
+    this.startupPerformance.markMapUsable();
+    this.deferredCatalogCoordinator.schedule();
+    this.tempelFilamentPerformance.completeFrame(
+      tempelFrameStartedAt,
+      (this.universeScene?.visibleTempelFilamentSpineSegmentCount ?? 0) > 0,
     );
-
-    this.simulationAccumulator += deltaSeconds;
-    this.timeEventAccumulator += deltaSeconds;
-    if (earthRotation.mode === 'synchronize') {
-      registry.updateBodyRotations(currentTime, null);
-      const synchronized = registry.synchronizeEarthRotation(
-        currentTime,
-        EARTH_ROTATION_RECOVERY_RADIANS_PER_SECOND * deltaSeconds,
-      );
-
-      if (synchronized) {
-        this.earthRotationPlayback.markSynchronized(currentTime);
-      }
-    } else if (timeAdvanced) {
-      registry.updateBodyRotations(currentTime, earthRotation.time);
-    }
-
-    if (timeAdvanced && this.simulationAccumulator >= SIMULATION_UPDATE_INTERVAL_SECONDS) {
-      const solarEclipseAppearance = registry.updatePositions(currentTime);
-
-      this.emitSolarEclipseState(solarEclipseAppearance, false);
-      this.followCurrentTarget();
-      this.simulationAccumulator = 0;
-    }
-
-    if (timeAdvanced && this.timeEventAccumulator >= 0.12) {
-      this.emit({ type: 'time-changed', time: currentTime });
-      this.timeEventAccumulator = 0;
-    }
-
-    controller.update(deltaSeconds);
-    this.floatingOriginManager.update(
-      universeScene.spaceRoot,
-      camera,
-      controller.controls.target,
-      controller.isTransitioning,
-    );
-
-    const lodLevel = this.lodManager.selectLevel(controller.distanceToTarget);
-    const photographicProfile = getPhotographicProfile(lodLevel, this.displayOptions.quality);
-
-    renderer.toneMappingExposure = dampPhotographicExposure(
-      renderer.toneMappingExposure,
-      photographicProfile.exposure,
-      deltaSeconds,
-    );
-
-    if (lodLevel !== this.lastEmittedLodLevel) {
-      this.lastEmittedLodLevel = lodLevel;
-      this.emit({ type: 'lod-changed', level: lodLevel });
-    }
-    this.requestSpaceTileSynchronization(lodLevel, deltaSeconds);
-    this.requestStarTileSynchronization(lodLevel, deltaSeconds);
-    if (lodLevel >= 2 && lodLevel <= 4) {
-      void universeScene.ensureMilkyWayAtlas();
-    }
-    registry.updateLod(
-      camera,
-      this.container?.clientHeight ?? renderer.domElement.clientHeight,
-      lodLevel,
-      deltaSeconds,
-    );
-    this.spaceTileObjectRegistry?.updateLod(
-      camera,
-      this.container?.clientHeight ?? renderer.domElement.clientHeight,
-      lodLevel,
-      deltaSeconds,
-    );
-    universeScene.updateLod(lodLevel, deltaSeconds, controller.distanceToTarget);
-    const viewportWidth = this.container?.clientWidth ?? renderer.domElement.clientWidth;
-    const viewportHeight = this.container?.clientHeight ?? renderer.domElement.clientHeight;
-    const lensingObjectId = this.targetId ?? this.selectedId;
-    const lensingRegistry = lensingObjectId ? this.getObjectRegistry(lensingObjectId) : null;
-    const lensingObject = lensingObjectId ? this.getDefinition(lensingObjectId) : undefined;
-    const lensingPosition = lensingObjectId
-      ? this.getWorldPosition(lensingObjectId, this.blackHoleLensingPosition)
-      : null;
-    const lensingEffect = projectBlackHoleLensing(
-      lensingObject,
-      lensingPosition,
-      camera,
-      viewportWidth,
-      viewportHeight,
-      this.displayOptions.quality,
-    );
-    const lensingForeground =
-      lensingObjectId && lensingRegistry
-        ? lensingRegistry.getLensingForeground(lensingObjectId)
-        : null;
-
-    blackHoleLensingPass.render(
-      renderer,
-      universeScene.scene,
-      camera,
-      lensingEffect,
-      lensingForeground,
-      deltaSeconds,
-    );
-    if (!this.solarObserverActive && !this.activeSolarEclipse) {
-      this.labelManager?.render(
-        camera,
-        (objectId, target) => this.getWorldPosition(objectId, target),
-        lodLevel,
-        this.selectedId ?? this.targetId,
-      );
-    } else {
-      this.labelManager?.clear();
-    }
-    this.updateDebugStats(deltaSeconds);
-  }
-
-  private updateDebugStats(deltaSeconds: number): void {
-    const renderer = this.renderer;
-    const camera = this.camera;
-    const registry = this.objectRegistry;
-    const universeScene = this.universeScene;
-
-    if (!renderer || !camera || !registry || !universeScene) {
-      return;
-    }
-
-    this.statsAccumulator += deltaSeconds;
-    this.statsFrames += 1;
-    if (this.statsAccumulator < 1) {
-      return;
-    }
-
-    this.lastFps = Math.round(this.statsFrames / this.statsAccumulator);
-    const adjustedPixelRatio = this.performanceManager.observeFrameRate(
-      this.displayOptions.quality,
-      this.lastFps,
-    );
-
-    if (adjustedPixelRatio !== null) {
-      this.renderPixelRatio = adjustedPixelRatio;
-      renderer.setPixelRatio(adjustedPixelRatio);
-      universeScene.setPixelRatio(adjustedPixelRatio);
-      if (this.container) {
-        this.resize(this.container.clientWidth, this.container.clientHeight);
-      }
-    }
-    const navigationContext = this.navigationContextJourney.resolve(this.lodManager.level);
-    const stats: EngineDebugStats = {
-      fps: this.lastFps,
-      drawCalls: renderer.info.render.calls,
-      triangles: renderer.info.render.triangles,
-      geometries: renderer.info.memory.geometries,
-      textures: renderer.info.memory.textures,
-      visibleObjects:
-        registry.visibleObjectCount + (this.spaceTileObjectRegistry?.visibleObjectCount ?? 0),
-      catalogStars: universeScene.visibleCatalogStarCount,
-      cosmicGroups: universeScene.visibleCosmicGroupCount,
-      cosmicFilaments: universeScene.visibleCosmicFilamentCount,
-      cosmicStructures: universeScene.visibleCosmicStructureCount,
-      batchedGalaxies:
-        registry.batchedGalaxyCount + (this.spaceTileObjectRegistry?.batchedGalaxyCount ?? 0),
-      loadedTiles: this.spaceTileManager?.loadedTileCount ?? 0,
-      indexedGalaxyTiles: this.spaceTileManager?.indexedTileCount ?? 0,
-      cachedGalaxyTiles: this.spaceTileManager?.cachedTileCount ?? 0,
-      activeStarTiles: this.starTileManager?.activeTileCount ?? 0,
-      cachedStarPacks: this.starTileManager?.cachedPackCount ?? 0,
-      cachedStarTiles: this.starTileManager?.cachedTileCount ?? 0,
-      activeStarClusters: this.starTileManager?.activeClusterCount ?? 0,
-      cachedStarClusters: this.starTileManager?.cachedClusterCount ?? 0,
-      visibleStarClusters: universeScene.visibleStarClusterCount,
-      cameraPosition: vectorToLike(camera.position),
-      cameraTarget: this.cameraController
-        ? vectorToLike(this.cameraController.controls.target)
-        : { x: 0, y: 0, z: 0 },
-      cameraDistance: this.cameraController?.distanceToTarget ?? 0,
-      floatingOrigin: vectorToLike(this.floatingOriginManager.accumulatedOrigin),
-      targetId: this.targetId,
-      navigationOriginId: navigationContext.targetId ?? this.targetId,
-      navigationReferenceFrame: navigationContext.referenceFrame,
-      lodLevel: this.lodManager.level,
-      julianDay: this.timeController.currentTime.julianDay,
-      quality: this.displayOptions.quality,
-      pixelRatio: this.renderPixelRatio,
-      zoom:
-        this.cameraController?.lastZoomDiagnostics && this.lastZoomAnchor
-          ? {
-              ...this.cameraController.lastZoomDiagnostics,
-              ...this.lastZoomAnchor,
-            }
-          : null,
-    };
-
-    this.emit({ type: 'debug-stats', stats });
-    this.statsAccumulator = 0;
-    this.statsFrames = 0;
   }
 
   private followCurrentTarget(): void {
-    if (!this.targetId || !this.objectRegistry || !this.cameraController) {
-      return;
-    }
-    const position = this.getWorldPosition(this.targetId);
-
-    if (position) {
-      this.cameraController.follow(position);
-    }
+    this.navigationRuntime.follow(this.cameraController);
   }
 
   private handlePick(objectId: string | null, focusRequested: boolean): void {
+    if (this.cameraController?.observerPresentationActive) {
+      this.selectObject(objectId);
+
+      return;
+    }
     if (objectId && focusRequested) {
       void this.setTarget(objectId);
 
@@ -1149,386 +890,54 @@ export class UniverseEngine {
   }
 
   private handleNavigationIntent(objectId: string | null): void {
-    const controller = this.cameraController;
-
     if (!objectId) {
       this.releaseNavigationTarget();
 
       return;
     }
-    const position = this.getWorldPosition(objectId);
-    const object = this.getDefinition(objectId);
-
-    if (!this.objectRegistry || !controller || !position || !object) {
-      return;
-    }
-
-    const targetChanged = this.targetId !== objectId;
-
-    this.targetId = objectId;
-    this.navigationContextJourney.adoptTarget(objectId);
-    this.setNavigationTargetOnRegistries(objectId);
-    controller.adoptZoomTarget(position, object);
-    if (targetChanged) {
-      this.emit({ type: 'target-changed', objectId });
-    }
+    this.streamingRuntime.ensureActiveExoplanetSystem(objectId);
+    this.navigationRuntime.handleNavigationIntent(this.cameraController, objectId);
   }
 
   private releaseNavigationTarget(): void {
-    this.cameraController?.releaseTarget();
-    this.setNavigationTargetOnRegistries(null);
-    if (this.targetId !== null) {
-      this.targetId = null;
-      this.navigationContextJourney.clear();
-      this.emit({ type: 'target-changed', objectId: null });
-    }
+    this.navigationRuntime.releaseTarget(this.cameraController);
   }
 
   private rebuildObjectRegistry(): void {
-    const universeScene = this.universeScene;
-
-    if (!universeScene) {
-      return;
-    }
-
-    this.objectRegistry?.dispose();
-    this.spaceTileObjectRegistry?.dispose();
-    this.spaceTileObjectRegistry = null;
-    const registry = new ObjectRegistry(
-      universeScene.spaceRoot,
-      this.coordinateSystem,
-      this.baseObjects,
-      this.displayOptions.quality,
-    );
-
-    const currentTime = this.timeController.currentTime;
-    const solarEclipseAppearance = registry.updatePositions(currentTime);
-
-    registry.updateBodyRotations(currentTime);
-    this.earthRotationPlayback.reset(currentTime);
-    this.emitSolarEclipseState(solarEclipseAppearance, true);
-    registry.setDisplayOptions(this.displayOptions);
-    registry.setNavigationTarget(
-      this.targetId && registry.has(this.targetId) ? this.targetId : null,
-    );
-    const selectedCatalogId =
-      this.selectedId &&
-      (this.starCatalogRegistry?.has(this.selectedId) ||
-        this.cosmicGroupCatalogRegistry?.has(this.selectedId) ||
-        this.cosmicStructureCatalogRegistry?.has(this.selectedId))
-        ? this.selectedId
-        : null;
-    const selectedConstellationId =
-      this.selectedId && universeScene.hasConstellation(this.selectedId) ? this.selectedId : null;
-
-    registry.select(selectedCatalogId || selectedConstellationId ? null : this.selectedId);
-    universeScene.selectCatalogObject(selectedCatalogId);
-    universeScene.selectConstellation(selectedConstellationId);
-    registry.setSolarObserverActive(this.solarObserverActive, this.solarObserverMoonScale);
-    if (this.activeSolarEclipse && this.solarEclipsePathVisible && !this.solarObserverActive) {
-      registry.showSolarEclipsePath(this.activeSolarEclipse.peak, this.activeSolarEclipse.kind);
-    }
-    this.objectRegistry = registry;
-    this.rebuildSpaceTileObjectRegistry();
-    this.followCurrentTarget();
+    this.primaryRegistryCoordinator.rebuild();
   }
 
-  private rebuildSpaceTileObjectRegistry(): void {
-    const universeScene = this.universeScene;
-    const loadedObjects = this.spaceTileManager?.loadedObjects ?? [];
-
-    this.spaceTileObjectRegistry?.dispose();
-    this.spaceTileObjectRegistry = null;
-    if (!universeScene || loadedObjects.length === 0) {
-      return;
-    }
-
-    const registry = new ObjectRegistry(
-      universeScene.spaceRoot,
-      this.coordinateSystem,
-      loadedObjects,
-      this.displayOptions.quality,
-    );
-    const currentTime = this.timeController.currentTime;
-
-    registry.updatePositions(currentTime);
-    registry.setDisplayOptions(this.displayOptions);
-    registry.setNavigationTarget(
-      this.targetId && registry.has(this.targetId) ? this.targetId : null,
-    );
-    registry.select(this.selectedId && registry.has(this.selectedId) ? this.selectedId : null);
-    this.spaceTileObjectRegistry = registry;
+  private ensureTempelFilamentSpines(): Promise<void> {
+    return this.tempelFilamentLoader.ensureLoaded();
   }
 
-  private async ensureSpaceTileObject(objectId: string): Promise<void> {
-    const manager = this.spaceTileManager;
-
-    if (!manager?.hasObject(objectId) || this.objects.some((object) => object.id === objectId)) {
-      return;
-    }
-
-    this.emit({ type: 'loading-state', loading: true });
-    try {
-      await manager.ensureObject(objectId);
-      if (this.spaceTileManager === manager && this.initialized) {
-        this.applyLoadedSpaceTiles();
-      }
-    } finally {
-      this.emit({ type: 'loading-state', loading: false });
-    }
-  }
-
-  private requestSpaceTileSynchronization(lodLevel: number, deltaSeconds: number): void {
-    const manager = this.spaceTileManager;
-    const scene = this.universeScene;
-    const camera = this.camera;
-    const renderer = this.renderer;
-    const controller = this.cameraController;
-
-    if (!manager || !scene || !camera || !renderer || !controller) {
-      return;
-    }
-    this.spaceTileSynchronizationAccumulator += deltaSeconds;
-    if (controller.isTransitioning) {
-      return;
-    }
-    const retainedIds = [this.targetId, this.selectedId]
-      .filter((objectId): objectId is string => objectId !== null && manager.hasObject(objectId))
-      .sort();
-    const contextKey = `${lodLevel}:${this.displayOptions.quality}:${retainedIds.join(',')}`;
-    const contextChanged = contextKey !== this.lastSpaceTileContextKey;
-
-    if (
-      !contextChanged &&
-      this.spaceTileSynchronizationAccumulator < SPACE_TILE_SYNCHRONIZATION_INTERVAL_SECONDS
-    ) {
-      return;
-    }
-    this.lastSpaceTileContextKey = contextKey;
-    this.spaceTileSynchronizationAccumulator = 0;
-    camera.updateMatrixWorld();
-    this.pendingSpaceTileRequest = {
-      view: createSpaceTileView(
-        camera,
-        this.container?.clientHeight ?? renderer.domElement.clientHeight,
-        lodLevel,
-        this.displayOptions.quality,
-        scene.spaceRoot.position,
-      ),
-      retainedObjectIds: retainedIds,
-    };
-    if (!this.tileSynchronizationRunning) {
-      void this.drainSpaceTileSynchronizations();
-    }
-  }
-
-  private requestStarTileSynchronization(lodLevel: number, deltaSeconds: number): void {
-    const manager = this.starTileManager;
-    const scene = this.universeScene;
-    const registry = this.starCatalogRegistry;
-    const camera = this.camera;
-    const renderer = this.renderer;
-
-    if (!manager || !scene || !registry || !camera || !renderer) {
-      return;
-    }
-    this.starTileSynchronizationAccumulator += deltaSeconds;
-    const lodChanged = lodLevel !== this.lastStarTileLod;
-
-    if (
-      !lodChanged &&
-      this.starTileSynchronizationAccumulator < STAR_TILE_SYNCHRONIZATION_INTERVAL_SECONDS
-    ) {
-      return;
-    }
-    this.lastStarTileLod = lodLevel;
-    this.starTileSynchronizationAccumulator = 0;
-    camera.updateMatrixWorld();
-    this.pendingStarTileView = createStarTileView(
-      camera,
-      this.container?.clientHeight ?? renderer.domElement.clientHeight,
-      lodLevel,
-      this.displayOptions.quality,
-      scene.spaceRoot.position,
-    );
-    if (!this.starTileSynchronizationRunning) {
-      void this.drainStarTileSynchronizations();
-    }
-  }
-
-  private async drainStarTileSynchronizations(): Promise<void> {
-    this.starTileSynchronizationRunning = true;
-
-    while (this.pendingStarTileView) {
-      const view = this.pendingStarTileView;
-
-      this.pendingStarTileView = null;
-      const manager = this.starTileManager;
-      const scene = this.universeScene;
-      const registry = this.starCatalogRegistry;
-
-      if (!manager || !scene || !registry) {
-        continue;
-      }
-      try {
-        const result = await manager.synchronize(view);
-
-        this.lastStarTileWarning = null;
-        if (
-          result.changed &&
-          this.pendingStarTileView === null &&
-          this.starTileManager === manager &&
-          this.universeScene === scene &&
-          this.starCatalogRegistry === registry &&
-          this.initialized
-        ) {
-          await scene.setStarClusterTiles(result.tiles, registry);
-        }
-      } catch (error) {
-        const reason = error instanceof Error ? error.message : 'erreur inconnue';
-
-        if (reason !== this.lastStarTileWarning) {
-          this.lastStarTileWarning = reason;
-          this.emit({
-            type: 'performance-warning',
-            message: `Streaming stellaire indisponible : ${reason}`,
-          });
-        }
-      }
-    }
-
-    this.starTileSynchronizationRunning = false;
-  }
-
-  private async drainSpaceTileSynchronizations(): Promise<void> {
-    this.tileSynchronizationRunning = true;
-
-    while (this.pendingSpaceTileRequest !== null) {
-      const request = this.pendingSpaceTileRequest;
-
-      this.pendingSpaceTileRequest = null;
-      try {
-        await this.synchronizeSpaceTiles(request);
-      } catch (error) {
-        const reason = error instanceof Error ? error.message : 'erreur inconnue';
-
-        this.emit({
-          type: 'performance-warning',
-          message: `Chargement spatial partiel : ${reason}`,
-        });
-      }
-    }
-
-    this.tileSynchronizationRunning = false;
-  }
-
-  private async synchronizeSpaceTiles(request: SpaceTileSynchronizationRequest): Promise<void> {
-    const manager = this.spaceTileManager;
-
-    if (!manager) {
-      return;
-    }
-    const changed = await manager.synchronize(request.view, request.retainedObjectIds);
-
-    if (changed && this.spaceTileManager === manager && this.initialized) {
-      this.applyLoadedSpaceTiles();
-    }
-  }
-
-  private applyLoadedSpaceTiles(): void {
-    this.objects = [...this.baseObjects, ...(this.spaceTileManager?.loadedObjects ?? [])];
-    this.rebuildSpaceTileObjectRegistry();
-    this.labelManager?.setObjects(this.getLabelObjects());
-    this.emit({ type: 'objects-changed', objects: this.getPublicObjects() });
+  private preloadTempelFilamentSpines(): Promise<void> {
+    return this.tempelFilamentLoader.preload();
   }
 
   private getLabelObjects(): LabelObject[] {
-    const publicObjects = this.getPublicObjects();
-    const maximumCatalogRank = getMaximumCatalogLabelPoolRank(
-      this.displayOptions.quality,
-      this.displayOptions.labelDensity,
-    );
-
-    return [
-      ...publicObjects,
-      ...(this.starCatalogRegistry?.getLabelObjects(publicObjects, maximumCatalogRank) ?? []),
-      ...(this.cosmicGroupCatalogRegistry?.getLabelObjects(
-        getMaximumCosmicLabelRank(this.displayOptions.quality, 6, this.displayOptions.labelDensity),
-      ) ?? []),
-      ...(this.cosmicStructureCatalogRegistry?.getLabelObjects(
-        getMaximumCosmicLabelRank(this.displayOptions.quality, 6, this.displayOptions.labelDensity),
-      ) ?? []),
-    ];
+    return this.objectDirectory.getLabelObjects();
   }
 
-  private emitDataReady(): void {
-    const publicObjects = this.getPublicObjects();
-    const loadedObjectIds = new Set(this.objects.map((object) => object.id));
-    const tileSearchEntries =
-      this.spaceTileManager?.searchEntries.filter((entry) => !loadedObjectIds.has(entry.id)) ?? [];
+  private emitDataReady(streamingCoordinator: SpaceStreamingCoordinator): void {
+    const payload = this.objectDirectory.createDataReadyPayload(streamingCoordinator);
 
     this.emit({
       type: 'data-ready',
-      objects: publicObjects,
-      catalogEntries: [
-        ...(this.starCatalogRegistry?.getSearchEntries() ?? []),
-        ...(this.cosmicGroupCatalogRegistry?.getSearchEntries() ?? []),
-        ...(this.cosmicStructureCatalogRegistry?.getSearchEntries() ?? []),
-        ...tileSearchEntries,
-      ],
+      ...payload,
     });
   }
 
-  private getObjectRegistry(objectId: string): ObjectRegistry | null {
-    if (this.objectRegistry?.has(objectId)) {
-      return this.objectRegistry;
-    }
-    if (this.spaceTileObjectRegistry?.has(objectId)) {
-      return this.spaceTileObjectRegistry;
-    }
-
-    return null;
-  }
-
-  private setNavigationTargetOnRegistries(objectId: string | null): void {
-    this.objectRegistry?.setNavigationTarget(
-      objectId && this.objectRegistry.has(objectId) ? objectId : null,
-    );
-    this.spaceTileObjectRegistry?.setNavigationTarget(
-      objectId && this.spaceTileObjectRegistry.has(objectId) ? objectId : null,
-    );
-  }
-
-  private selectOnRegistries(objectId: string | null): void {
-    this.objectRegistry?.select(objectId && this.objectRegistry.has(objectId) ? objectId : null);
-    this.spaceTileObjectRegistry?.select(
-      objectId && this.spaceTileObjectRegistry.has(objectId) ? objectId : null,
-    );
-  }
-
   private getDefinition(objectId: string): SpaceObject | undefined {
-    return (
-      this.objectRegistry?.getDefinition(objectId) ??
-      this.spaceTileObjectRegistry?.getDefinition(objectId) ??
-      this.starCatalogRegistry?.getDefinition(objectId) ??
-      this.cosmicGroupCatalogRegistry?.getDefinition(objectId) ??
-      this.cosmicStructureCatalogRegistry?.getDefinition(objectId) ??
-      this.universeScene?.getConstellationDefinition(objectId)
-    );
+    return this.objectDirectory.getDefinition(objectId);
   }
 
   private getWorldPosition(objectId: string, target = new THREE.Vector3()): THREE.Vector3 | null {
-    return (
-      this.objectRegistry?.getWorldPosition(objectId, target) ??
-      this.spaceTileObjectRegistry?.getWorldPosition(objectId, target) ??
-      this.universeScene?.getCatalogWorldPosition(objectId, target) ??
-      this.universeScene?.getConstellationWorldPosition(objectId, target) ??
-      null
-    );
+    return this.objectDirectory.getWorldPosition(objectId, target);
   }
 
   private getPublicObjects(): SpaceObject[] {
-    return [...this.objects, ...(this.universeScene?.constellationDefinitions ?? [])];
+    return this.objectDirectory.getPublicObjects();
   }
 
   private emit(event: UniverseEngineEvent): void {
@@ -1538,27 +947,6 @@ export class UniverseEngine {
   }
 
   private requireInitialized(): void {
-    if (!this.initialized) {
-      throw new Error('UniverseEngine doit être initialisé avant son démarrage.');
-    }
+    this.lifecycle.requireInitialized();
   }
-
-  private emitSolarEclipseState(appearance: SolarEclipseAppearance, force: boolean): void {
-    if (!force && appearance.phase === this.lastSolarEclipsePhase) {
-      return;
-    }
-    this.lastSolarEclipsePhase = appearance.phase;
-    this.emit({
-      type: 'solar-eclipse-state',
-      state: {
-        phase: appearance.phase,
-        centralLatitude: appearance.centralLatitude,
-        centralLongitude: appearance.centralLongitude,
-      },
-    });
-  }
-}
-
-function vectorToLike(vector: THREE.Vector3): { x: number; y: number; z: number } {
-  return { x: vector.x, y: vector.y, z: vector.z };
 }

@@ -1,0 +1,78 @@
+@if (kind() === 'paris') {
+  <svg
+    class="earth-cityscape"
+    data-cityscape-svg="paris"
+    [attr.viewBox]="panoramaProjection().viewBox"
+    preserveAspectRatio="none"
+    focusable="false"
+    aria-hidden="true"
+  >
+    <defs>
+      <linearGradient id="paris-far-buildings" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#273344" />
+        <stop offset="1" stop-color="#090d14" />
+      </linearGradient>
+      <linearGradient id="paris-near-buildings" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#151d29" />
+        <stop offset="0.72" stop-color="#070a10" />
+        <stop offset="1" stop-color="#010207" />
+      </linearGradient>
+      <radialGradient id="paris-dome-light" cx="50%" cy="55%" r="60%">
+        <stop offset="0" stop-color="#e9c88a" stop-opacity="0.5" />
+        <stop offset="1" stop-color="#c39044" stop-opacity="0" />
+      </radialGradient>
+      <filter id="paris-window-glow" x="-120%" y="-120%" width="340%" height="340%">
+        <feGaussianBlur stdDeviation="1.1" result="blur" />
+        <feMerge>
+          <feMergeNode in="blur" />
+          <feMergeNode in="SourceGraphic" />
+        </feMerge>
+      </filter>
+
+      <g id="paris-panorama">
+        <g transform="scale(3 1)">
+          <path class="earth-cityscape__far" [attr.d]="parisFarSilhouettePath" />
+        </g>
+
+        @for (landmark of parisLandmarkLayouts(); track landmark.id) {
+          <svg
+            [attr.class]="'earth-cityscape__licensed-landmark ' + landmark.className"
+            [attr.data-landmark-id]="landmark.id"
+            [attr.data-height-meters]="landmark.heightMeters"
+            [attr.data-base-elevation-meters]="landmark.baseElevationMeters"
+            [attr.x]="landmark.x"
+            [attr.y]="landmark.y"
+            [attr.width]="landmark.width"
+            [attr.height]="landmark.height"
+            [attr.viewBox]="landmark.sourceViewBox"
+            preserveAspectRatio="xMidYMax meet"
+          >
+            <use [attr.href]="landmark.sourceHref" />
+          </svg>
+        }
+
+        <g transform="scale(3 1)">
+          <path class="earth-cityscape__near" [attr.d]="parisNearSilhouettePath" />
+        </g>
+
+        <g class="earth-cityscape__windows" filter="url(#paris-window-glow)">
+          @for (light of parisWindowLights; track light.id) {
+            <rect
+              data-city-light=""
+              [attr.x]="light.x"
+              [attr.y]="light.y"
+              [attr.width]="light.width"
+              [attr.height]="light.height"
+              [attr.rx]="light.height / 2"
+              [attr.opacity]="light.opacity"
+            />
+          }
+        </g>
+      </g>
+    </defs>
+
+    <use href="#paris-panorama" x="0" />
+    <use href="#paris-panorama" x="7200" />
+    <use href="#paris-panorama" x="14400" />
+  </svg>
+}

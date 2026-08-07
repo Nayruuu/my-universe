@@ -162,4 +162,81 @@ describe('recherche locale', () => {
   it('préserve une lettre grecque sans nom déclaré', () => {
     expect(normalizeSearchText('ς')).toBe('ς');
   });
+
+  it('construit un catalogue volumineux par lots sans exposer un index partiel', async () => {
+    const index = new LocalSearchIndex();
+    const yields: (() => void)[] = [];
+    const building = index.buildProgressively(
+      OBJECTS,
+      Array.from({ length: 5 }, (_, entryIndex) => ({
+        id: `catalog-${entryIndex}`,
+        name: `Catalogue ${entryIndex}`,
+        aliases: [],
+        type: 'star' as const,
+      })),
+      {
+        chunkSize: 2,
+        isCurrent: () => true,
+        yieldControl: () =>
+          new Promise<void>((resolve) => {
+            yields.push(resolve);
+          }),
+      },
+    );
+
+    expect(index.search('catalogue')).toEqual([]);
+    expect(yields).toHaveLength(1);
+
+    while (yields.length > 0) {
+      yields.shift()?.();
+      await Promise.resolve();
+    }
+
+    await expect(building).resolves.toBe(true);
+    expect(index.search('catalogue', 10)).toHaveLength(5);
+  });
+
+  it('abandonne une construction progressive périmée en conservant le dernier index valide', async () => {
+    const index = new LocalSearchIndex();
+    let current = true;
+    let resume = (): void => undefined;
+
+    index.build(OBJECTS);
+    const building = index.buildProgressively(
+      [],
+      [
+        { id: 'new-1', name: 'Nouvelle 1', aliases: [], type: 'star' },
+        { id: 'new-2', name: 'Nouvelle 2', aliases: [], type: 'star' },
+      ],
+      {
+        chunkSize: 1,
+        isCurrent: () => current,
+        yieldControl: () =>
+          new Promise<void>((resolve) => {
+            resume = resolve;
+          }),
+      },
+    );
+
+    current = false;
+    resume();
+
+    await expect(building).resolves.toBe(false);
+    expect(index.search('terre')[0]?.id).toBe('earth');
+    expect(index.search('nouvelle')).toEqual([]);
+  });
+
+  it('revérifie la génération avant de publier le dernier lot', async () => {
+    const index = new LocalSearchIndex();
+    const isCurrent = vi.fn().mockReturnValueOnce(true).mockReturnValueOnce(false);
+
+    await expect(
+      index.buildProgressively([], [{ id: 'stale', name: 'Périmée', aliases: [], type: 'star' }], {
+        chunkSize: 1,
+        isCurrent,
+        yieldControl: async () => undefined,
+      }),
+    ).resolves.toBe(false);
+    expect(index.search('périmée')).toEqual([]);
+  });
 });

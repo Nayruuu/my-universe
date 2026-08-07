@@ -72,13 +72,17 @@ export function shouldDisplayObjectAtLevel(
       : lodLevel >= 4 && lodLevel <= 5;
   }
   if (object.type === 'star') {
-    return object.id === 'sun' || lodLevel >= 1;
+    return object.id === 'sun' || (lodLevel >= 1 && lodLevel <= 2);
   }
   if (object.type === 'black-hole') {
-    return lodLevel >= 1 && lodLevel <= 3;
+    return object.referenceFrame === 'galactic' ? lodLevel === 3 : lodLevel >= 1 && lodLevel <= 2;
+  }
+  if (object.type === 'supernova' || object.type === 'supernova-remnant') {
+    return object.referenceFrame === 'stellar' && lodLevel >= 1 && lodLevel <= 2;
   }
   if (
     object.type === 'planet' ||
+    object.type === 'exoplanet' ||
     object.type === 'dwarf-planet' ||
     object.type === 'moon' ||
     object.type === 'asteroid' ||

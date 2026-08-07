@@ -1,0 +1,1098 @@
+{
+  "version": "1.0.0",
+  "objects": [
+    {
+      "id": "phobos",
+      "name": "Phobos",
+      "aliases": ["Mars I"],
+      "type": "moon",
+      "parentId": "mars",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "extrapolated",
+      "description": "Le plus grand et le plus proche des deux satellites de Mars. Sa trajectoire utilise les éléments moyens JPL J2000 ; sa forme texturée provient du modèle 3D NASA/JPL et sa distance visuelle est amplifiée.",
+      "physical": {
+        "radiusKm": 11.08,
+        "shape": {
+          "type": "triaxial-ellipsoid",
+          "dimensionsKm": [26.06, 22.8, 18.28],
+          "scientificConfidence": "observed",
+          "source": "NASA Planetary Data System · Phobos measured dimensions"
+        }
+      },
+      "rotation": {
+        "siderealPeriodHours": 7.653842504890368,
+        "direction": "prograde",
+        "bodyFixedFrame": "IAU_PHOBOS",
+        "orientationModel": "iau-wgccre-2015",
+        "scientificConfidence": "calculated",
+        "source": "NASA/JPL NAIF pck00011.tpc · IAU WGCCRE coefficients"
+      },
+      "visual": {
+        "color": "#8f7968",
+        "secondaryColor": "#4f4037",
+        "visualRadius": 0.14,
+        "scaleMode": "exaggerated"
+      },
+      "positionProvider": {
+        "type": "keplerian",
+        "semiMajorAxis": 9375,
+        "eccentricity": 0.015,
+        "inclination": 1.1,
+        "longitudeOfAscendingNode": 169.2,
+        "argumentOfPeriapsis": 216.3,
+        "meanAnomalyAtEpoch": 189.7,
+        "epochJulianDay": 2451545,
+        "orbitalPeriodDays": 0.3187,
+        "unit": "kilometer",
+        "distanceScale": 1200,
+        "referencePlanePole": {
+          "rightAscensionDegrees": 317.7,
+          "declinationDegrees": 52.9
+        }
+      },
+      "metadata": {
+        "source": "NASA/JPL Planetary Satellite Mean Orbital Parameters, MAR097 · J2000",
+        "visualSource": "Forme 3D et mosaïque Viking observées · modèle NASA/JPL-Caltech",
+        "appearanceConfidence": "observed",
+        "shapeSource": "NASA/JPL-Caltech",
+        "shapeReference": "https://science.nasa.gov/resource/phobos-mars-moon-3d-model/",
+        "shapeConfidence": "observed",
+        "surfaceConfidence": "observed",
+        "semiMajorAxisKm": 9375,
+        "visualDistanceExaggerated": true,
+        "referencePlane": "Plan de Laplace local J2000"
+      }
+    },
+    {
+      "id": "deimos",
+      "name": "Déimos",
+      "aliases": ["Deimos", "Mars II"],
+      "type": "moon",
+      "parentId": "mars",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "extrapolated",
+      "description": "Le satellite extérieur de Mars. Sa trajectoire est une approximation képlérienne fondée sur les éléments moyens JPL J2000 ; sa forme texturée provient du modèle 3D NASA/JPL.",
+      "physical": {
+        "radiusKm": 6.2,
+        "shape": {
+          "type": "triaxial-ellipsoid",
+          "dimensionsKm": [15, 12.1, 10.4],
+          "scientificConfidence": "observed",
+          "source": "NASA Planetary Data System · Deimos measured dimensions"
+        }
+      },
+      "rotation": {
+        "siderealPeriodHours": 30.298578925120616,
+        "direction": "prograde",
+        "bodyFixedFrame": "IAU_DEIMOS",
+        "orientationModel": "iau-wgccre-2015",
+        "scientificConfidence": "calculated",
+        "source": "NASA/JPL NAIF pck00011.tpc · IAU WGCCRE coefficients"
+      },
+      "visual": {
+        "color": "#a18b78",
+        "secondaryColor": "#55483d",
+        "visualRadius": 0.12,
+        "scaleMode": "exaggerated"
+      },
+      "positionProvider": {
+        "type": "keplerian",
+        "semiMajorAxis": 23457,
+        "eccentricity": 0,
+        "inclination": 1.8,
+        "longitudeOfAscendingNode": 54.3,
+        "argumentOfPeriapsis": 0,
+        "meanAnomalyAtEpoch": 205,
+        "epochJulianDay": 2451545,
+        "orbitalPeriodDays": 1.2625,
+        "unit": "kilometer",
+        "distanceScale": 800,
+        "referencePlanePole": {
+          "rightAscensionDegrees": 316.6,
+          "declinationDegrees": 53.5
+        }
+      },
+      "metadata": {
+        "source": "NASA/JPL Planetary Satellite Mean Orbital Parameters, MAR097 · J2000",
+        "visualSource": "Forme 3D et mosaïque Viking observées · modèle NASA/JPL-Caltech",
+        "appearanceConfidence": "observed",
+        "shapeSource": "NASA/JPL-Caltech",
+        "shapeReference": "https://science.nasa.gov/resource/deimos-mars-moon-3d-model/",
+        "shapeConfidence": "observed",
+        "surfaceConfidence": "observed",
+        "semiMajorAxisKm": 23457,
+        "visualDistanceExaggerated": true,
+        "referencePlane": "Plan de Laplace local J2000"
+      }
+    },
+    {
+      "id": "mimas",
+      "name": "Mimas",
+      "aliases": ["Saturne I", "Saturn I"],
+      "type": "moon",
+      "parentId": "saturn",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "extrapolated",
+      "description": "Petite lune glacée de Saturne dominée par le cratère Herschel. Son orbite moyenne est extrapolée depuis J2000.",
+      "physical": { "radiusKm": 198.2 },
+      "rotation": {
+        "siderealPeriodHours": 22.618123444,
+        "direction": "prograde",
+        "bodyFixedFrame": "IAU_MIMAS",
+        "orientationModel": "iau-wgccre-2015",
+        "scientificConfidence": "calculated",
+        "source": "NASA/JPL NAIF pck00011.tpc · IAU WGCCRE 2015"
+      },
+      "visual": {
+        "color": "#c7c4bb",
+        "secondaryColor": "#77736c",
+        "visualRadius": 0.16,
+        "scaleMode": "exaggerated"
+      },
+      "positionProvider": {
+        "type": "keplerian",
+        "semiMajorAxis": 186000,
+        "eccentricity": 0.02,
+        "inclination": 1.6,
+        "longitudeOfAscendingNode": 66.2,
+        "argumentOfPeriapsis": 160.4,
+        "meanAnomalyAtEpoch": 275.3,
+        "epochJulianDay": 2451545,
+        "orbitalPeriodDays": 0.942422,
+        "unit": "kilometer",
+        "distanceScale": 100,
+        "referencePlanePole": {
+          "rightAscensionDegrees": 40.6,
+          "declinationDegrees": 83.5
+        }
+      },
+      "metadata": {
+        "source": "NASA/JPL Planetary Satellite Mean Orbital Parameters, SAT441 · J2000",
+        "visualSource": "Mosaïque globale Voyager observée · couverture et contraste traités par NASA/JPL",
+        "appearanceConfidence": "observed",
+        "semiMajorAxisKm": 186000,
+        "visualDistanceExaggerated": true,
+        "referencePlane": "Plan de Laplace local J2000"
+      }
+    },
+    {
+      "id": "enceladus",
+      "name": "Encelade",
+      "aliases": ["Enceladus", "Saturne II", "Saturn II"],
+      "type": "moon",
+      "parentId": "saturn",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "extrapolated",
+      "description": "Lune glacée active de Saturne, connue pour ses panaches au pôle sud et son océan interne.",
+      "physical": { "radiusKm": 252.1 },
+      "rotation": {
+        "siderealPeriodHours": 32.885234009,
+        "direction": "prograde",
+        "bodyFixedFrame": "IAU_ENCELADUS",
+        "orientationModel": "iau-wgccre-2015",
+        "scientificConfidence": "calculated",
+        "source": "NASA/JPL NAIF pck00011.tpc · IAU WGCCRE 2015"
+      },
+      "visual": {
+        "color": "#e4e8e8",
+        "secondaryColor": "#94a6ad",
+        "visualRadius": 0.18,
+        "scaleMode": "exaggerated"
+      },
+      "positionProvider": {
+        "type": "keplerian",
+        "semiMajorAxis": 238400,
+        "eccentricity": 0.005,
+        "inclination": 0,
+        "longitudeOfAscendingNode": 0,
+        "argumentOfPeriapsis": 119.5,
+        "meanAnomalyAtEpoch": 57,
+        "epochJulianDay": 2451545,
+        "orbitalPeriodDays": 1.370218,
+        "unit": "kilometer",
+        "distanceScale": 90,
+        "referencePlanePole": {
+          "rightAscensionDegrees": 40.6,
+          "declinationDegrees": 83.5
+        }
+      },
+      "metadata": {
+        "source": "NASA/JPL Planetary Satellite Mean Orbital Parameters, SAT441 · J2000",
+        "visualSource": "Mosaïque globale Voyager observée · couverture et contraste traités par NASA/JPL",
+        "appearanceConfidence": "observed",
+        "semiMajorAxisKm": 238400,
+        "visualDistanceExaggerated": true,
+        "referencePlane": "Plan de Laplace local J2000"
+      }
+    },
+    {
+      "id": "tethys",
+      "name": "Téthys",
+      "aliases": ["Tethys", "Saturne III", "Saturn III"],
+      "type": "moon",
+      "parentId": "saturn",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "extrapolated",
+      "description": "Lune glacée de Saturne marquée par le canyon Ithaca Chasma et le cratère Odysseus.",
+      "physical": { "radiusKm": 531.1 },
+      "rotation": {
+        "siderealPeriodHours": 45.307261459,
+        "direction": "prograde",
+        "bodyFixedFrame": "IAU_TETHYS",
+        "orientationModel": "iau-wgccre-2015",
+        "scientificConfidence": "calculated",
+        "source": "NASA/JPL NAIF pck00011.tpc · IAU WGCCRE 2015"
+      },
+      "visual": {
+        "color": "#d8d8d1",
+        "secondaryColor": "#8b8981",
+        "visualRadius": 0.22,
+        "scaleMode": "exaggerated"
+      },
+      "positionProvider": {
+        "type": "keplerian",
+        "semiMajorAxis": 295000,
+        "eccentricity": 0.001,
+        "inclination": 1.1,
+        "longitudeOfAscendingNode": 273,
+        "argumentOfPeriapsis": 335.3,
+        "meanAnomalyAtEpoch": 0,
+        "epochJulianDay": 2451545,
+        "orbitalPeriodDays": 1.887802,
+        "unit": "kilometer",
+        "distanceScale": 80,
+        "referencePlanePole": {
+          "rightAscensionDegrees": 40.6,
+          "declinationDegrees": 83.5
+        }
+      },
+      "metadata": {
+        "source": "NASA/JPL Planetary Satellite Mean Orbital Parameters, SAT441 · J2000",
+        "visualSource": "Mosaïque globale Voyager observée · couverture et contraste traités par NASA/JPL",
+        "appearanceConfidence": "observed",
+        "semiMajorAxisKm": 295000,
+        "visualDistanceExaggerated": true,
+        "referencePlane": "Plan de Laplace local J2000"
+      }
+    },
+    {
+      "id": "dione",
+      "name": "Dioné",
+      "aliases": ["Dione", "Saturne IV", "Saturn IV"],
+      "type": "moon",
+      "parentId": "saturn",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "extrapolated",
+      "description": "Lune glacée de Saturne dont l’hémisphère arrière porte un réseau de falaises claires.",
+      "physical": { "radiusKm": 561.4 },
+      "rotation": {
+        "siderealPeriodHours": 65.685973261,
+        "direction": "prograde",
+        "bodyFixedFrame": "IAU_DIONE",
+        "orientationModel": "iau-wgccre-2015",
+        "scientificConfidence": "calculated",
+        "source": "NASA/JPL NAIF pck00011.tpc · IAU WGCCRE 2015"
+      },
+      "visual": {
+        "color": "#cfd2d0",
+        "secondaryColor": "#777c7d",
+        "visualRadius": 0.23,
+        "scaleMode": "exaggerated"
+      },
+      "positionProvider": {
+        "type": "keplerian",
+        "semiMajorAxis": 377700,
+        "eccentricity": 0.002,
+        "inclination": 0,
+        "longitudeOfAscendingNode": 0,
+        "argumentOfPeriapsis": 116,
+        "meanAnomalyAtEpoch": 212,
+        "epochJulianDay": 2451545,
+        "orbitalPeriodDays": 2.736916,
+        "unit": "kilometer",
+        "distanceScale": 70,
+        "referencePlanePole": {
+          "rightAscensionDegrees": 40.6,
+          "declinationDegrees": 83.5
+        }
+      },
+      "metadata": {
+        "source": "NASA/JPL Planetary Satellite Mean Orbital Parameters, SAT441 · J2000",
+        "visualSource": "Mosaïque globale Voyager observée · couverture et contraste traités par NASA/JPL",
+        "appearanceConfidence": "observed",
+        "semiMajorAxisKm": 377700,
+        "visualDistanceExaggerated": true,
+        "referencePlane": "Plan de Laplace local J2000"
+      }
+    },
+    {
+      "id": "rhea",
+      "name": "Rhéa",
+      "aliases": ["Rhea", "Saturne V", "Saturn V"],
+      "type": "moon",
+      "parentId": "saturn",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "extrapolated",
+      "description": "Deuxième plus grande lune de Saturne, corps glacé très cratérisé.",
+      "physical": { "radiusKm": 763.5 },
+      "rotation": {
+        "siderealPeriodHours": 108.420062963,
+        "direction": "prograde",
+        "bodyFixedFrame": "IAU_RHEA",
+        "orientationModel": "iau-wgccre-2015",
+        "scientificConfidence": "calculated",
+        "source": "NASA/JPL NAIF pck00011.tpc · IAU WGCCRE 2015"
+      },
+      "visual": {
+        "color": "#babcb9",
+        "secondaryColor": "#6f716f",
+        "visualRadius": 0.25,
+        "scaleMode": "exaggerated"
+      },
+      "positionProvider": {
+        "type": "keplerian",
+        "semiMajorAxis": 527200,
+        "eccentricity": 0.001,
+        "inclination": 0.3,
+        "longitudeOfAscendingNode": 133.7,
+        "argumentOfPeriapsis": 44.3,
+        "meanAnomalyAtEpoch": 31.5,
+        "epochJulianDay": 2451545,
+        "orbitalPeriodDays": 4.517503,
+        "unit": "kilometer",
+        "distanceScale": 60,
+        "referencePlanePole": {
+          "rightAscensionDegrees": 40.6,
+          "declinationDegrees": 83.5
+        }
+      },
+      "metadata": {
+        "source": "NASA/JPL Planetary Satellite Mean Orbital Parameters, SAT441 · J2000",
+        "visualSource": "Mosaïque globale Voyager observée · couverture et contraste traités par NASA/JPL",
+        "appearanceConfidence": "observed",
+        "semiMajorAxisKm": 527200,
+        "visualDistanceExaggerated": true,
+        "referencePlane": "Plan de Laplace local J2000"
+      }
+    },
+    {
+      "id": "iapetus",
+      "name": "Japet",
+      "aliases": ["Iapetus", "Saturne VIII", "Saturn VIII"],
+      "type": "moon",
+      "parentId": "saturn",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "extrapolated",
+      "description": "Lune de Saturne remarquable par le contraste extrême entre ses deux hémisphères et sa crête équatoriale.",
+      "physical": { "radiusKm": 734.3 },
+      "rotation": {
+        "siderealPeriodHours": 1903.940389742,
+        "direction": "prograde",
+        "bodyFixedFrame": "IAU_IAPETUS",
+        "orientationModel": "iau-wgccre-2015",
+        "scientificConfidence": "calculated",
+        "source": "NASA/JPL NAIF pck00011.tpc · IAU WGCCRE 2015"
+      },
+      "visual": {
+        "color": "#8b8478",
+        "secondaryColor": "#332d28",
+        "visualRadius": 0.25,
+        "scaleMode": "exaggerated"
+      },
+      "positionProvider": {
+        "type": "keplerian",
+        "semiMajorAxis": 3561700,
+        "eccentricity": 0.028,
+        "inclination": 7.6,
+        "longitudeOfAscendingNode": 86.5,
+        "argumentOfPeriapsis": 254.5,
+        "meanAnomalyAtEpoch": 74.8,
+        "epochJulianDay": 2451545,
+        "orbitalPeriodDays": 79.331002,
+        "unit": "kilometer",
+        "distanceScale": 20,
+        "referencePlanePole": {
+          "rightAscensionDegrees": 288.7,
+          "declinationDegrees": 78.9
+        }
+      },
+      "metadata": {
+        "source": "NASA/JPL Planetary Satellite Mean Orbital Parameters, SAT441 · J2000",
+        "visualSource": "Mosaïque globale Voyager observée · couverture et contraste traités par NASA/JPL",
+        "appearanceConfidence": "observed",
+        "semiMajorAxisKm": 3561700,
+        "visualDistanceExaggerated": true,
+        "referencePlane": "Plan de Laplace local J2000"
+      }
+    },
+    {
+      "id": "miranda",
+      "name": "Miranda",
+      "aliases": ["Uranus V"],
+      "type": "moon",
+      "parentId": "uranus",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "extrapolated",
+      "description": "Petite lune d’Uranus dont la surface rassemble canyons, falaises et terrains très contrastés.",
+      "physical": { "radiusKm": 235.8 },
+      "rotation": {
+        "siderealPeriodHours": 33.92350159,
+        "direction": "retrograde",
+        "bodyFixedFrame": "IAU_MIRANDA",
+        "orientationModel": "iau-wgccre-2015",
+        "scientificConfidence": "calculated",
+        "source": "NASA/JPL NAIF pck00011.tpc · IAU WGCCRE 2015"
+      },
+      "visual": {
+        "color": "#b9b9b3",
+        "secondaryColor": "#6a6964",
+        "visualRadius": 0.17,
+        "scaleMode": "exaggerated"
+      },
+      "positionProvider": {
+        "type": "keplerian",
+        "semiMajorAxis": 129846,
+        "eccentricity": 0.001,
+        "inclination": 4.4,
+        "longitudeOfAscendingNode": 100.9,
+        "argumentOfPeriapsis": 154.8,
+        "meanAnomalyAtEpoch": 73,
+        "epochJulianDay": 2451545,
+        "orbitalPeriodDays": 1.413479,
+        "unit": "kilometer",
+        "distanceScale": 120,
+        "referencePlanePole": {
+          "rightAscensionDegrees": 257.311,
+          "declinationDegrees": -15.175
+        }
+      },
+      "metadata": {
+        "source": "NASA/JPL Planetary Satellite Mean Orbital Parameters, URA182 · J2000",
+        "visualSource": "Mosaïque globale Voyager observée · couverture et contraste traités par NASA/JPL",
+        "appearanceConfidence": "observed",
+        "semiMajorAxisKm": 129846,
+        "visualDistanceExaggerated": true,
+        "referencePlane": "Équateur d’Uranus J2000"
+      }
+    },
+    {
+      "id": "ariel",
+      "name": "Ariel",
+      "aliases": ["Uranus I"],
+      "type": "moon",
+      "parentId": "uranus",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "extrapolated",
+      "description": "Lune brillante d’Uranus parcourue de vallées et de grabens.",
+      "physical": { "radiusKm": 578.9 },
+      "rotation": {
+        "siderealPeriodHours": 60.48909292,
+        "direction": "retrograde",
+        "bodyFixedFrame": "IAU_ARIEL",
+        "orientationModel": "iau-wgccre-2015",
+        "scientificConfidence": "calculated",
+        "source": "NASA/JPL NAIF pck00011.tpc · IAU WGCCRE 2015"
+      },
+      "visual": {
+        "color": "#d0d3d2",
+        "secondaryColor": "#7c8181",
+        "visualRadius": 0.23,
+        "scaleMode": "exaggerated"
+      },
+      "positionProvider": {
+        "type": "keplerian",
+        "semiMajorAxis": 190929,
+        "eccentricity": 0.001,
+        "inclination": 0,
+        "longitudeOfAscendingNode": 0,
+        "argumentOfPeriapsis": 9.6,
+        "meanAnomalyAtEpoch": 193.5,
+        "epochJulianDay": 2451545,
+        "orbitalPeriodDays": 2.520379,
+        "unit": "kilometer",
+        "distanceScale": 100,
+        "referencePlanePole": {
+          "rightAscensionDegrees": 257.311,
+          "declinationDegrees": -15.175
+        }
+      },
+      "metadata": {
+        "source": "NASA/JPL Planetary Satellite Mean Orbital Parameters, URA182 · J2000",
+        "visualSource": "Mosaïque globale Voyager observée · couverture et contraste traités par NASA/JPL",
+        "appearanceConfidence": "observed",
+        "semiMajorAxisKm": 190929,
+        "visualDistanceExaggerated": true,
+        "referencePlane": "Équateur d’Uranus J2000"
+      }
+    },
+    {
+      "id": "umbriel",
+      "name": "Umbriel",
+      "aliases": ["Uranus II"],
+      "type": "moon",
+      "parentId": "uranus",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "extrapolated",
+      "description": "La plus sombre des grandes lunes d’Uranus, couverte de terrains anciens.",
+      "physical": { "radiusKm": 584.7 },
+      "rotation": {
+        "siderealPeriodHours": 99.460229908,
+        "direction": "retrograde",
+        "bodyFixedFrame": "IAU_UMBRIEL",
+        "orientationModel": "iau-wgccre-2015",
+        "scientificConfidence": "calculated",
+        "source": "NASA/JPL NAIF pck00011.tpc · IAU WGCCRE 2015"
+      },
+      "visual": {
+        "color": "#777a7b",
+        "secondaryColor": "#3d4042",
+        "visualRadius": 0.23,
+        "scaleMode": "exaggerated"
+      },
+      "positionProvider": {
+        "type": "keplerian",
+        "semiMajorAxis": 265986,
+        "eccentricity": 0.004,
+        "inclination": 0.1,
+        "longitudeOfAscendingNode": 174.8,
+        "argumentOfPeriapsis": 183.4,
+        "meanAnomalyAtEpoch": 253,
+        "epochJulianDay": 2451545,
+        "orbitalPeriodDays": 4.144177,
+        "unit": "kilometer",
+        "distanceScale": 85,
+        "referencePlanePole": {
+          "rightAscensionDegrees": 257.311,
+          "declinationDegrees": -15.175
+        }
+      },
+      "metadata": {
+        "source": "NASA/JPL Planetary Satellite Mean Orbital Parameters, URA182 · J2000",
+        "visualSource": "Mosaïque globale Voyager observée · couverture et contraste traités par NASA/JPL",
+        "appearanceConfidence": "observed",
+        "semiMajorAxisKm": 265986,
+        "visualDistanceExaggerated": true,
+        "referencePlane": "Équateur d’Uranus J2000"
+      }
+    },
+    {
+      "id": "titania",
+      "name": "Titania",
+      "aliases": ["Uranus III"],
+      "type": "moon",
+      "parentId": "uranus",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "extrapolated",
+      "description": "La plus grande lune d’Uranus, parcourue de vastes systèmes de failles.",
+      "physical": { "radiusKm": 788.9 },
+      "rotation": {
+        "siderealPeriodHours": 208.940770989,
+        "direction": "retrograde",
+        "bodyFixedFrame": "IAU_TITANIA",
+        "orientationModel": "iau-wgccre-2015",
+        "scientificConfidence": "calculated",
+        "source": "NASA/JPL NAIF pck00011.tpc · IAU WGCCRE 2015"
+      },
+      "visual": {
+        "color": "#b8b3aa",
+        "secondaryColor": "#6c665e",
+        "visualRadius": 0.26,
+        "scaleMode": "exaggerated"
+      },
+      "positionProvider": {
+        "type": "keplerian",
+        "semiMajorAxis": 436298,
+        "eccentricity": 0.002,
+        "inclination": 0.1,
+        "longitudeOfAscendingNode": 29.5,
+        "argumentOfPeriapsis": 184,
+        "meanAnomalyAtEpoch": 68.1,
+        "epochJulianDay": 2451545,
+        "orbitalPeriodDays": 8.705869,
+        "unit": "kilometer",
+        "distanceScale": 65,
+        "referencePlanePole": {
+          "rightAscensionDegrees": 257.311,
+          "declinationDegrees": -15.175
+        }
+      },
+      "metadata": {
+        "source": "NASA/JPL Planetary Satellite Mean Orbital Parameters, URA182 · J2000",
+        "visualSource": "Mosaïque globale Voyager observée · couverture et contraste traités par NASA/JPL",
+        "appearanceConfidence": "observed",
+        "semiMajorAxisKm": 436298,
+        "visualDistanceExaggerated": true,
+        "referencePlane": "Équateur d’Uranus J2000"
+      }
+    },
+    {
+      "id": "oberon",
+      "name": "Obéron",
+      "aliases": ["Oberon", "Uranus IV"],
+      "type": "moon",
+      "parentId": "uranus",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "extrapolated",
+      "description": "Grande lune extérieure d’Uranus, sombre et fortement cratérisée.",
+      "physical": { "radiusKm": 761.4 },
+      "rotation": {
+        "siderealPeriodHours": 323.117567539,
+        "direction": "retrograde",
+        "bodyFixedFrame": "IAU_OBERON",
+        "orientationModel": "iau-wgccre-2015",
+        "scientificConfidence": "calculated",
+        "source": "NASA/JPL NAIF pck00011.tpc · IAU WGCCRE 2015"
+      },
+      "visual": {
+        "color": "#908b83",
+        "secondaryColor": "#4e4944",
+        "visualRadius": 0.25,
+        "scaleMode": "exaggerated"
+      },
+      "positionProvider": {
+        "type": "keplerian",
+        "semiMajorAxis": 583511,
+        "eccentricity": 0.002,
+        "inclination": 0.1,
+        "longitudeOfAscendingNode": 76.8,
+        "argumentOfPeriapsis": 132.2,
+        "meanAnomalyAtEpoch": 143.6,
+        "epochJulianDay": 2451545,
+        "orbitalPeriodDays": 13.463237,
+        "unit": "kilometer",
+        "distanceScale": 55,
+        "referencePlanePole": {
+          "rightAscensionDegrees": 257.311,
+          "declinationDegrees": -15.175
+        }
+      },
+      "metadata": {
+        "source": "NASA/JPL Planetary Satellite Mean Orbital Parameters, URA182 · J2000",
+        "visualSource": "Mosaïque globale Voyager observée · couverture et contraste traités par NASA/JPL",
+        "appearanceConfidence": "observed",
+        "semiMajorAxisKm": 583511,
+        "visualDistanceExaggerated": true,
+        "referencePlane": "Équateur d’Uranus J2000"
+      }
+    },
+    {
+      "id": "triton",
+      "name": "Triton",
+      "aliases": ["Neptune I"],
+      "type": "moon",
+      "parentId": "neptune",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "extrapolated",
+      "description": "Grande lune rétrograde de Neptune, probablement capturée depuis la ceinture de Kuiper.",
+      "physical": { "radiusKm": 1352.6 },
+      "rotation": {
+        "siderealPeriodHours": 141.044497879,
+        "direction": "retrograde",
+        "bodyFixedFrame": "IAU_TRITON",
+        "orientationModel": "iau-wgccre-2015",
+        "scientificConfidence": "calculated",
+        "source": "NASA/JPL NAIF pck00011.tpc · IAU WGCCRE 2015"
+      },
+      "visual": {
+        "color": "#c8b5ae",
+        "secondaryColor": "#79666a",
+        "visualRadius": 0.29,
+        "scaleMode": "exaggerated"
+      },
+      "positionProvider": {
+        "type": "keplerian",
+        "semiMajorAxis": 354800,
+        "eccentricity": 0,
+        "inclination": 157.3,
+        "longitudeOfAscendingNode": 178.1,
+        "argumentOfPeriapsis": 0,
+        "meanAnomalyAtEpoch": 63,
+        "epochJulianDay": 2451545,
+        "orbitalPeriodDays": 5.876994,
+        "unit": "kilometer",
+        "distanceScale": 65,
+        "referencePlanePole": {
+          "rightAscensionDegrees": 299.8,
+          "declinationDegrees": 43.1
+        }
+      },
+      "metadata": {
+        "source": "NASA/JPL Planetary Satellite Mean Orbital Parameters, NEP097 · J2000",
+        "visualSource": "Mosaïque globale Voyager observée · couleurs traitées par NASA/JPL",
+        "appearanceConfidence": "observed",
+        "semiMajorAxisKm": 354800,
+        "visualDistanceExaggerated": true,
+        "referencePlane": "Plan de Laplace local J2000",
+        "retrogradeOrbit": true
+      }
+    },
+    {
+      "id": "charon",
+      "name": "Charon",
+      "aliases": ["Pluton I", "Pluto I"],
+      "type": "moon",
+      "parentId": "pluto",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "extrapolated",
+      "description": "Le plus grand satellite de Pluton, assez massif pour placer le barycentre du couple hors de Pluton.",
+      "physical": { "radiusKm": 606 },
+      "rotation": {
+        "siderealPeriodHours": 153.293351979,
+        "direction": "prograde",
+        "bodyFixedFrame": "IAU_CHARON",
+        "orientationModel": "iau-wgccre-2015",
+        "scientificConfidence": "calculated",
+        "source": "NASA/JPL NAIF pck00011.tpc · IAU WGCCRE 2015"
+      },
+      "visual": {
+        "color": "#99948f",
+        "secondaryColor": "#514d4a",
+        "visualRadius": 0.22,
+        "scaleMode": "exaggerated"
+      },
+      "positionProvider": {
+        "type": "keplerian",
+        "semiMajorAxis": 19600,
+        "eccentricity": 0,
+        "inclination": 0,
+        "longitudeOfAscendingNode": 0,
+        "argumentOfPeriapsis": 0,
+        "meanAnomalyAtEpoch": 304.1,
+        "epochJulianDay": 2451545,
+        "orbitalPeriodDays": 6.387222,
+        "unit": "kilometer",
+        "distanceScale": 500,
+        "referencePlanePole": {
+          "rightAscensionDegrees": 132.993,
+          "declinationDegrees": -6.163
+        }
+      },
+      "metadata": {
+        "source": "NASA/JPL Planetary Satellite Mean Orbital Parameters, PLU060 · J2000",
+        "visualSource": "Mosaïque globale New Horizons observée · contraste traité par NASA et l’USGS",
+        "appearanceConfidence": "observed",
+        "semiMajorAxisKm": 19600,
+        "visualDistanceExaggerated": true,
+        "referencePlane": "Équateur de Pluton J2000"
+      }
+    },
+    {
+      "id": "eris",
+      "name": "Éris",
+      "aliases": ["Eris", "136199 Eris"],
+      "type": "dwarf-planet",
+      "parentId": "sun",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "extrapolated",
+      "description": "Planète naine massive du disque dispersé. Sa trajectoire est extrapolée avec un modèle à deux corps depuis la solution JPL SBDB.",
+      "physical": { "radiusKm": 1200, "massKg": 1.66e22 },
+      "visual": {
+        "color": "#d7d8d4",
+        "secondaryColor": "#898b8c",
+        "visualRadius": 0.31,
+        "scaleMode": "exaggerated"
+      },
+      "positionProvider": {
+        "type": "keplerian",
+        "semiMajorAxis": 67.9,
+        "eccentricity": 0.438,
+        "inclination": 43.9,
+        "longitudeOfAscendingNode": 36,
+        "argumentOfPeriapsis": 151,
+        "meanAnomalyAtEpoch": 212,
+        "epochJulianDay": 2461200.5,
+        "orbitalPeriodDays": 205000,
+        "unit": "astronomical-unit"
+      },
+      "metadata": {
+        "source": "NASA/JPL Small-Body Database · approximation à deux corps",
+        "semiMajorAxisAu": 67.9,
+        "orbitSolutionEpoch": 2461200.5
+      }
+    },
+    {
+      "id": "haumea",
+      "name": "Hauméa",
+      "aliases": ["Haumea", "136108 Haumea"],
+      "type": "dwarf-planet",
+      "parentId": "sun",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "extrapolated",
+      "description": "Planète naine très allongée de la ceinture de Kuiper. Sa silhouette tri-axiale et son anneau utilisent les dimensions déduites de l’occultation stellaire de 2017.",
+      "physical": {
+        "radiusKm": 715,
+        "massKg": 4.006e21,
+        "shape": {
+          "type": "triaxial-ellipsoid",
+          "dimensionsKm": [2322, 1704, 1026],
+          "scientificConfidence": "calculated",
+          "source": "Ortiz et al. 2017, Nature 550 · stellar-occultation shape model"
+        }
+      },
+      "visual": {
+        "color": "#d9d5cd",
+        "secondaryColor": "#9f958b",
+        "visualRadius": 0.29,
+        "scaleMode": "exaggerated",
+        "hasRings": true
+      },
+      "positionProvider": {
+        "type": "keplerian",
+        "semiMajorAxis": 43.1,
+        "eccentricity": 0.194,
+        "inclination": 28.2,
+        "longitudeOfAscendingNode": 122,
+        "argumentOfPeriapsis": 241,
+        "meanAnomalyAtEpoch": 223,
+        "epochJulianDay": 2461200.5,
+        "orbitalPeriodDays": 103000,
+        "unit": "astronomical-unit"
+      },
+      "metadata": {
+        "source": "NASA/JPL Small-Body Database · approximation à deux corps",
+        "visualSource": "Silhouette et anneau calculés depuis l’occultation stellaire publiée par Ortiz et al. 2017",
+        "appearanceConfidence": "calculated",
+        "semiMajorAxisAu": 43.1,
+        "orbitSolutionEpoch": 2461200.5,
+        "ringSource": "Ortiz et al. 2017, Nature 550"
+      }
+    },
+    {
+      "id": "makemake",
+      "name": "Makémaké",
+      "aliases": ["Makemake", "136472 Makemake"],
+      "type": "dwarf-planet",
+      "parentId": "sun",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "extrapolated",
+      "description": "Planète naine de la ceinture de Kuiper, recouverte de glaces de méthane et d’azote.",
+      "physical": { "radiusKm": 714, "massKg": 3.1e21 },
+      "visual": {
+        "color": "#b99b82",
+        "secondaryColor": "#70594a",
+        "visualRadius": 0.28,
+        "scaleMode": "exaggerated"
+      },
+      "positionProvider": {
+        "type": "keplerian",
+        "semiMajorAxis": 45.6,
+        "eccentricity": 0.159,
+        "inclination": 29,
+        "longitudeOfAscendingNode": 79.3,
+        "argumentOfPeriapsis": 297,
+        "meanAnomalyAtEpoch": 170,
+        "epochJulianDay": 2461200.5,
+        "orbitalPeriodDays": 112000,
+        "unit": "astronomical-unit"
+      },
+      "metadata": {
+        "source": "NASA/JPL Small-Body Database · approximation à deux corps",
+        "semiMajorAxisAu": 45.6,
+        "orbitSolutionEpoch": 2461200.5
+      }
+    },
+    {
+      "id": "pallas",
+      "name": "Pallas",
+      "aliases": ["2 Pallas"],
+      "type": "asteroid",
+      "parentId": "sun",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "extrapolated",
+      "description": "L’un des plus grands astéroïdes de la ceinture principale, sur une orbite fortement inclinée. Sa forme rapprochée est une reconstruction calculée depuis les observations VLT/SPHERE publiées en 2020.",
+      "physical": {
+        "radiusKm": 256.5,
+        "shape": {
+          "type": "triaxial-ellipsoid",
+          "dimensionsKm": [559.6, 523.5, 432.8],
+          "scientificConfidence": "calculated",
+          "source": "DAMIT 4395 · Marsset et al. 2020 · modèle ADAM VLT/SPHERE"
+        }
+      },
+      "rotation": {
+        "siderealPeriodHours": 7.81322,
+        "direction": "prograde",
+        "bodyFixedFrame": "DAMIT_PALLAS_4395",
+        "orientationModel": "damit-iau-2020",
+        "scientificConfidence": "calculated",
+        "source": "DAMIT 4395 IAUspin · Marsset et al. 2020"
+      },
+      "visual": {
+        "color": "#8e8b86",
+        "secondaryColor": "#4d4a46",
+        "visualRadius": 0.2,
+        "scaleMode": "exaggerated"
+      },
+      "positionProvider": {
+        "type": "keplerian",
+        "semiMajorAxis": 2.77,
+        "eccentricity": 0.231,
+        "inclination": 34.9,
+        "longitudeOfAscendingNode": 173,
+        "argumentOfPeriapsis": 311,
+        "meanAnomalyAtEpoch": 254,
+        "epochJulianDay": 2461200.5,
+        "orbitalPeriodDays": 1680,
+        "unit": "astronomical-unit"
+      },
+      "metadata": {
+        "source": "NASA/JPL Small-Body Database · approximation à deux corps",
+        "visualSource": "Forme 3D reconstruite depuis les images VLT/SPHERE · surface neutre illustrative sans texture photographique",
+        "appearanceConfidence": "calculated",
+        "shapeSource": "DAMIT · Marsset et al. (2020)",
+        "shapeReference": "https://damit.cuni.cz/projects/damit/asteroid_models/view/4395",
+        "shapeConfidence": "calculated",
+        "shapeQuality": 4,
+        "surfaceConfidence": "illustrative",
+        "semiMajorAxisAu": 2.77,
+        "orbitSolutionEpoch": 2461200.5
+      }
+    },
+    {
+      "id": "hygiea",
+      "name": "Hygie",
+      "aliases": ["Hygiea", "10 Hygiea"],
+      "type": "asteroid",
+      "parentId": "sun",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "extrapolated",
+      "description": "Grand astéroïde sombre de la ceinture principale et membre principal de la famille d’Hygie. Sa forme presque sphérique est une reconstruction calculée depuis les observations VLT/SPHERE publiées en 2020.",
+      "physical": {
+        "radiusKm": 217,
+        "shape": {
+          "type": "triaxial-ellipsoid",
+          "dimensionsKm": [427.4, 452.9, 425.9],
+          "scientificConfidence": "calculated",
+          "source": "DAMIT 4392 · Vernazza et al. 2020 · modèle ADAM VLT/SPHERE"
+        }
+      },
+      "rotation": {
+        "siderealPeriodHours": 13.82559,
+        "direction": "prograde",
+        "bodyFixedFrame": "DAMIT_HYGIEA_4392",
+        "orientationModel": "damit-iau-2020",
+        "scientificConfidence": "calculated",
+        "source": "DAMIT 4392 IAUspin · Vernazza et al. 2020"
+      },
+      "visual": {
+        "color": "#686764",
+        "secondaryColor": "#343331",
+        "visualRadius": 0.19,
+        "scaleMode": "exaggerated"
+      },
+      "positionProvider": {
+        "type": "keplerian",
+        "semiMajorAxis": 3.15,
+        "eccentricity": 0.107,
+        "inclination": 3.83,
+        "longitudeOfAscendingNode": 283,
+        "argumentOfPeriapsis": 312,
+        "meanAnomalyAtEpoch": 252,
+        "epochJulianDay": 2461200.5,
+        "orbitalPeriodDays": 2040,
+        "unit": "astronomical-unit"
+      },
+      "metadata": {
+        "source": "NASA/JPL Small-Body Database · approximation à deux corps",
+        "visualSource": "Forme 3D reconstruite depuis les images VLT/SPHERE · surface sombre illustrative sans texture photographique",
+        "appearanceConfidence": "calculated",
+        "shapeSource": "DAMIT · Vernazza et al. (2020)",
+        "shapeReference": "https://damit.cuni.cz/projects/damit/asteroid_models/view/4392",
+        "shapeConfidence": "calculated",
+        "shapeQuality": 4,
+        "surfaceConfidence": "illustrative",
+        "semiMajorAxisAu": 3.15,
+        "orbitSolutionEpoch": 2461200.5
+      }
+    },
+    {
+      "id": "bennu",
+      "name": "Bénou",
+      "aliases": ["Bennu", "101955 Bennu", "1999 RQ36"],
+      "type": "asteroid",
+      "parentId": "sun",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "extrapolated",
+      "description": "Astéroïde géocroiseur exploré et échantillonné par OSIRIS-REx. Sa forme et sa surface texturée proviennent du modèle 3D publié par NASA VTAD.",
+      "physical": { "radiusKm": 0.24222 },
+      "visual": {
+        "color": "#5a5651",
+        "secondaryColor": "#272421",
+        "visualRadius": 0.12,
+        "scaleMode": "exaggerated"
+      },
+      "positionProvider": {
+        "type": "keplerian",
+        "semiMajorAxis": 1.13,
+        "eccentricity": 0.204,
+        "inclination": 6.03,
+        "longitudeOfAscendingNode": 2.06,
+        "argumentOfPeriapsis": 66.2,
+        "meanAnomalyAtEpoch": 102,
+        "epochJulianDay": 2455562.5,
+        "orbitalPeriodDays": 437,
+        "unit": "astronomical-unit"
+      },
+      "metadata": {
+        "source": "NASA/JPL Small-Body Database · approximation à deux corps",
+        "visualSource": "Forme et texture observées par OSIRIS-REx · modèle 3D NASA VTAD",
+        "appearanceConfidence": "observed",
+        "semiMajorAxisAu": 1.13,
+        "orbitSolutionEpoch": 2455562.5,
+        "shapeSource": "NASA Visualization Technology Applications and Development",
+        "shapeConfidence": "observed",
+        "surfaceConfidence": "observed"
+      }
+    },
+    {
+      "id": "67p-churyumov-gerasimenko",
+      "name": "67P/Tchourioumov-Guérassimenko",
+      "aliases": ["67P", "Churyumov-Gerasimenko", "Tchouri"],
+      "type": "comet",
+      "parentId": "sun",
+      "referenceFrame": "solar-system",
+      "scientificConfidence": "extrapolated",
+      "description": "Comète périodique explorée par Rosetta et Philae. Le noyau bilobé reprend le modèle de forme OSIRIS publié par l’ESA ; sa couleur reste illustrative et les jets ne sont pas simulés.",
+      "physical": { "radiusKm": 1.7 },
+      "cometActivity": {
+        "activationDistanceAu": 4,
+        "saturatedDistanceAu": 1.3,
+        "scientificConfidence": "illustrative",
+        "source": "NASA 67P overview and ESA Rosetta observations · qualitative activity model"
+      },
+      "visual": {
+        "color": "#85817b",
+        "secondaryColor": "#403c38",
+        "emissiveColor": "#8fc9c6",
+        "emissiveIntensity": 0.14,
+        "visualRadius": 0.16,
+        "scaleMode": "exaggerated"
+      },
+      "positionProvider": {
+        "type": "keplerian",
+        "semiMajorAxis": 3.46,
+        "eccentricity": 0.641,
+        "inclination": 7.04,
+        "longitudeOfAscendingNode": 50.1,
+        "argumentOfPeriapsis": 12.8,
+        "meanAnomalyAtEpoch": 8.86,
+        "epochJulianDay": 2457305.5,
+        "orbitalPeriodDays": 2350,
+        "unit": "astronomical-unit"
+      },
+      "metadata": {
+        "source": "NASA/JPL Small-Body Database · approximation à deux corps",
+        "visualSource": "Forme observée par Rosetta/OSIRIS · couleur illustrative, coma et queues illustratives ; jets localisés non simulés",
+        "appearanceConfidence": "illustrative",
+        "semiMajorAxisAu": 3.46,
+        "orbitSolutionEpoch": 2457305.5,
+        "nonGravitationalForcesOmitted": true,
+        "shapeSource": "ESA/Rosetta/MPS for OSIRIS Team MPS/UPD/LAM/IAA/SSO/INTA/UPM/DASP/IDA",
+        "shapeUsage": "Educational/informational reuse with full ESA/OSIRIS credit",
+        "shapeConfidence": "observed",
+        "surfaceConfidence": "illustrative",
+        "jetsOmitted": true
+      }
+    }
+  ]
+}

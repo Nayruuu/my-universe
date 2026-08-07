@@ -14,8 +14,11 @@ export type SpaceObjectType =
   | 'galaxy'
   | 'black-hole'
   | 'nebula'
+  | 'supernova'
+  | 'supernova-remnant'
   | 'star'
   | 'planet'
+  | 'exoplanet'
   | 'dwarf-planet'
   | 'moon'
   | 'asteroid'
@@ -41,6 +44,9 @@ export type GalaxyVisualShape = 'spiral' | 'elliptical' | 'irregular';
 export type CosmicStructureType =
   'cluster' | 'supercluster' | 'wall' | 'filament' | 'void' | 'basin' | 'attractor' | 'repeller';
 export type BlackHoleActivity = 'dormant' | 'quiescent' | 'active';
+export type RotationDirection = 'prograde' | 'retrograde';
+export type RotationOrientationModel =
+  'earth-geographic' | 'iau-wgccre-2009' | 'iau-wgccre-2015' | 'damit-iau-2020';
 export type JovianMoon = 'io' | 'europa' | 'ganymede' | 'callisto';
 export type EphemerisBody =
   | 'mercury'
@@ -87,6 +93,30 @@ export interface PhysicalProperties {
   temperatureK?: number;
   luminositySolar?: number;
   spectralType?: string;
+  shape?: TriaxialBodyShapeDefinition;
+}
+
+export interface TriaxialBodyShapeDefinition {
+  type: 'triaxial-ellipsoid';
+  dimensionsKm: readonly [equatorialXKm: number, equatorialYKm: number, polarKm: number];
+  scientificConfidence: ScientificConfidence;
+  source: string;
+}
+
+export interface RotationDefinition {
+  siderealPeriodHours: number;
+  direction: RotationDirection;
+  bodyFixedFrame: string;
+  orientationModel: RotationOrientationModel;
+  scientificConfidence: ScientificConfidence;
+  source: string;
+}
+
+export interface CometActivityDefinition {
+  activationDistanceAu: number;
+  saturatedDistanceAu: number;
+  scientificConfidence: ScientificConfidence;
+  source: string;
 }
 
 export interface VisualDefinition {
@@ -98,12 +128,16 @@ export interface VisualDefinition {
   scaleMode: 'physical' | 'exaggerated' | 'adaptive';
   atmosphereColor?: string;
   hasRings?: boolean;
-  rotationPeriodHours?: number;
   galaxyShape?: GalaxyVisualShape;
   galaxyAxisRatio?: number;
   galaxyRotationDegrees?: number;
   blackHoleActivity?: BlackHoleActivity;
   accretionDiskInclinationDegrees?: number;
+}
+
+export interface EquatorialPoleDefinition {
+  rightAscensionDegrees: number;
+  declinationDegrees: number;
 }
 
 export type PositionProviderDefinition =
@@ -129,6 +163,7 @@ export type PositionProviderDefinition =
       orbitalPeriodDays: number;
       unit: DistanceUnit;
       distanceScale?: number;
+      referencePlanePole?: EquatorialPoleDefinition;
     }
   | {
       type: 'ephemeris';
@@ -136,6 +171,16 @@ export type PositionProviderDefinition =
       origin: EphemerisOrigin;
       orbitalPeriodDays: number;
       orbitEpochJulianDay: number;
+      distanceScale?: number;
+    }
+  | {
+      type: 'illustrative-orbit';
+      semiMajorAxis: number;
+      orbitalPeriodDays: number;
+      epochJulianDay: number;
+      visualPhaseAtEpochDegrees: number;
+      visualInclinationDegrees: number;
+      unit: DistanceUnit;
       distanceScale?: number;
     }
   | {
@@ -173,6 +218,8 @@ export interface SpaceObject {
   description?: string;
   referenceEpoch?: number;
   physical?: PhysicalProperties;
+  rotation?: RotationDefinition;
+  cometActivity?: CometActivityDefinition;
   visual: VisualDefinition;
   positionProvider: PositionProviderDefinition;
   lod?: LodObjectDefinition;
@@ -186,6 +233,7 @@ export interface SearchEntry {
   type: SpaceObjectType;
   parentName?: string;
   keywords?: readonly string[];
+  metadata?: Readonly<Record<string, string | number | boolean>>;
 }
 
 export interface UniverseDataset {
@@ -285,6 +333,11 @@ export interface StarTileSource {
   starCatalogId: string;
 }
 
+export interface TempelFilamentSpineSource {
+  id: string;
+  url: string;
+}
+
 export type ConstellationSegment = readonly [number, number];
 
 export interface ConstellationFigure {
@@ -356,6 +409,19 @@ export type DatasetManifestEntry =
       url: string;
       type: 'cosmic-web-volume';
       format: 'cosmic-web-volume-v1';
+    }
+  | {
+      id: string;
+      url: string;
+      type: 'tempel-filament-spine-catalog';
+      format: 'tempel-filament-spines-v1';
+    }
+  | {
+      id: string;
+      url: string;
+      metadataUrl: string;
+      type: 'exoplanet-catalog';
+      format: 'exoplanet-catalog-v1';
     };
 
 export interface DatasetManifest {
@@ -386,6 +452,31 @@ export interface ZoomDebugStats {
   status: ZoomDebugStatus;
 }
 
+export type UniverseStartupPerformanceStatus = 'idle' | 'loading' | 'usable' | 'failed';
+export type UniverseStartupBudgetStatus = 'pending' | 'within-budget' | 'over-budget';
+export type UniverseStartupBudgetPhase =
+  'engine-module' | 'data-ready' | 'scene-ready' | 'first-usable-map';
+
+export interface UniverseStartupPerformanceStats {
+  readonly status: UniverseStartupPerformanceStatus;
+  readonly engineModuleMs: number | null;
+  readonly dataReadyMs: number | null;
+  readonly sceneReadyMs: number | null;
+  readonly firstUsableMapMs: number | null;
+  readonly budgetStatus: UniverseStartupBudgetStatus;
+  readonly exceededBudgets: readonly UniverseStartupBudgetPhase[];
+}
+
+export type AdaptiveRenderingStatus = 'warming' | 'stable' | 'degraded' | 'recovering' | 'paused';
+
+export interface AdaptiveRenderingStats {
+  readonly status: AdaptiveRenderingStatus;
+  readonly p95FrameMs: number | null;
+  readonly longFrameRatio: number | null;
+  readonly targetPixelRatio: number;
+  readonly currentPixelRatio: number;
+}
+
 export interface EngineDebugStats {
   fps: number;
   drawCalls: number;
@@ -394,9 +485,15 @@ export interface EngineDebugStats {
   textures: number;
   visibleObjects: number;
   catalogStars: number;
+  exoplanetHosts: number;
+  exoplanets: number;
   cosmicGroups: number;
   cosmicFilaments: number;
   cosmicStructures: number;
+  tempelFilamentSpines: number;
+  tempelSpineSegments: number;
+  visibleTempelSpineSegments: number;
+  tempelSpineTiles: number;
   batchedGalaxies: number;
   loadedTiles: number;
   indexedGalaxyTiles: number;
@@ -418,7 +515,35 @@ export interface EngineDebugStats {
   julianDay: number;
   quality: GraphicQuality;
   pixelRatio: number;
+  adaptiveRendering: AdaptiveRenderingStats;
   zoom: ZoomDebugStats | null;
+  startupPerformance: UniverseStartupPerformanceStats;
+  tempelPerformance: TempelFilamentPerformanceStats;
+}
+
+export type TempelFilamentLoadExecution = 'worker' | 'main-thread-fallback';
+
+export type TempelFilamentPerformanceStatus =
+  'idle' | 'loading' | 'installed' | 'visible' | 'failed';
+
+export interface TempelFilamentSceneInstallationMetrics {
+  readonly geometryPreparationMs: number;
+  readonly sceneInstallationMs: number;
+}
+
+export interface TempelFilamentPerformanceStats {
+  readonly status: TempelFilamentPerformanceStatus;
+  readonly execution: TempelFilamentLoadExecution | null;
+  readonly fetchMs: number | null;
+  readonly decodeMs: number | null;
+  readonly workerRoundTripMs: number | null;
+  readonly geometryPreparationMs: number | null;
+  readonly sceneInstallationMs: number | null;
+  readonly preloadHit: boolean | null;
+  readonly preloadLeadMs: number | null;
+  readonly firstVisibleFrameMs: number | null;
+  readonly activationToFirstVisibleMs: number | null;
+  readonly timeToFirstVisibleMs: number | null;
 }
 
 export interface SolarEclipseState {
@@ -460,10 +585,4 @@ export interface NavigationState {
   showOrbits: boolean;
   showConstellations: boolean;
   showLabels: boolean;
-}
-
-export interface TimeSpeedOption {
-  id: string;
-  label: string;
-  daysPerSecond: number;
 }

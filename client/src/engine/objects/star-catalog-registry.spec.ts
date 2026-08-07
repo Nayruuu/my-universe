@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { SpaceObject } from '../../data/models/universe.models';
+import { ConstellationCatalog, SpaceObject } from '../../data/models/universe.models';
 import { CoordinateSystem } from '../coordinates/coordinate-system';
 import { StarCatalog } from '../loaders/star-catalog';
 import { StarCatalogRegistry } from './star-catalog-registry';
@@ -28,6 +28,9 @@ describe('StarCatalogRegistry', () => {
       physical: { spectralType: 'A0m' },
       metadata: {
         hygId: 32263,
+        rightAscensionDegrees: expect.closeTo(101.287, 3),
+        declinationDegrees: expect.closeTo(-16.716, 3),
+        skyCoordinateEpoch: 'J2000',
       },
     });
     expect(sirius?.metadata?.['apparentMagnitude']).toBeCloseTo(-1.44, 5);
@@ -57,6 +60,56 @@ describe('StarCatalogRegistry', () => {
     const target = new THREE.Vector3();
 
     expect(registry.getLocalPosition('hyg-32263', target)).toBe(target);
+  });
+
+  it('expose à la demande un catalogue léger pour le ciel terrestre', () => {
+    const registry = new StarCatalogRegistry(createCatalog(), new CoordinateSystem());
+    const brightest = registry.getStellarObservationCatalog(1);
+
+    expect(brightest).toEqual([
+      {
+        id: 'hyg-32263',
+        name: 'Sirius',
+        coordinates: {
+          rightAscensionDegrees: expect.closeTo(101.287, 3),
+          declinationDegrees: expect.closeTo(-16.716, 3),
+        },
+        apparentMagnitude: expect.closeTo(-1.44, 5),
+        color: expect.stringMatching(/^#[0-9a-f]{6}$/u),
+      },
+    ]);
+    expect(registry.getStellarObservationCatalog(-2)).toEqual([]);
+    expect(registry.getStellarObservationCatalog(1.8)).toHaveLength(1);
+    expect(registry.getStellarObservationCatalog(100)).toHaveLength(2);
+  });
+
+  it('relie les figures de constellation aux entrées légères du ciel terrestre', () => {
+    const registry = new StarCatalogRegistry(createCatalog(), new CoordinateSystem(), [
+      catalogLinkedSirius(),
+    ]);
+    const catalog = constellationCatalog();
+    const constellations = registry.getStellarObservationConstellations(catalog);
+
+    expect(constellations).toEqual([
+      {
+        id: 'constellation-test',
+        name: 'Test',
+        abbreviation: 'Tst',
+        segments: [
+          {
+            from: expect.objectContaining({ id: 'sirius', name: 'Sirius' }),
+            to: expect.objectContaining({ id: 'hyg-30365', name: 'Canopus' }),
+          },
+        ],
+      },
+    ]);
+    expect(registry.getStellarObservationConstellations(catalog)).toBe(constellations);
+    expect(() =>
+      registry.getStellarObservationConstellations({
+        ...catalog,
+        figures: [{ ...catalog.figures[0]!, segments: [[99_999, 30_365]] }],
+      }),
+    ).toThrow('HYG 99999');
   });
 
   it('prépare des labels légers par luminosité sans dupliquer les étoiles déjà nommées', () => {
@@ -230,6 +283,24 @@ function catalogLinkedSirius(): SpaceObject {
     metadata: {
       source: 'HYG Database v4.1',
     },
+  };
+}
+
+function constellationCatalog(): ConstellationCatalog {
+  return {
+    version: '1.0.0',
+    source: { name: 'Test', url: 'https://example.test', license: 'CC0' },
+    referenceFrame: 'equatorial-j2000',
+    scientificConfidence: 'illustrative',
+    starCatalog: 'HYG test',
+    figures: [
+      {
+        id: 'test',
+        name: 'Test',
+        abbreviation: 'Tst',
+        segments: [[32_263, 30_365]],
+      },
+    ],
   };
 }
 

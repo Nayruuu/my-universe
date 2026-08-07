@@ -2,31 +2,46 @@ import * as THREE from 'three';
 import { GraphicQuality } from '../../data/models/universe.models';
 import { dampValue } from '../lod/screen-space-lod';
 import { CosmicGroupCatalogRegistry } from '../objects/cosmic-group-catalog-registry';
-import { PICKING_LAYER } from '../selection/selection-layers';
 import {
   CosmicMapLayers,
   DEFAULT_COSMIC_MAP_LAYERS,
   getCosmicGroupDetail,
-  getCosmicGroupRevealThreshold,
 } from './cosmic-map-policy';
+import { createCosmicGroupCatalogVisual } from './cosmic-group-catalog-visual';
 
-const COSMIC_FADE_START_DISTANCE = 110_000;
+const COSMIC_FADE_START_DISTANCE = 30_000;
 const COSMIC_FULL_OPACITY_DISTANCE = 300_000;
 const COSMIC_MAX_OPACITY = 0.58;
 const COSMIC_OPACITY_DAMPING = 4;
 const COSMIC_DETAIL_DAMPING = 5;
+const IMPOSTOR_FADE_IN_START_DISTANCE = 55_000;
+const IMPOSTOR_FADE_IN_END_DISTANCE = 95_000;
+const IMPOSTOR_FADE_OUT_START_DISTANCE = 170_000;
+const IMPOSTOR_FADE_OUT_END_DISTANCE = 300_000;
+const IMPOSTOR_DAMPING = 4;
 const FILAMENT_FADE_START_DISTANCE = 140_000;
 const FILAMENT_FULL_OPACITY_DISTANCE = 320_000;
 const FILAMENT_MAX_OPACITY = 0.22;
 const FILAMENT_FULL_DETAIL_DISTANCE = 140_000;
 const FILAMENT_OVERVIEW_DISTANCE = 420_000;
 const FILAMENT_OVERVIEW_DETAIL = 0.12;
-const FILAMENT_MAXIMUM_LENGTH_MPC = 52;
 
 const FILAMENT_QUALITY_BUDGET = {
   low: 0.28,
   medium: 0.62,
   high: 1,
+} as const satisfies Record<GraphicQuality, number>;
+
+const IMPOSTOR_QUALITY_SCALE = {
+  low: 0.76,
+  medium: 0.9,
+  high: 1,
+} as const satisfies Record<GraphicQuality, number>;
+
+const IMPOSTOR_DETAIL_LIMIT = {
+  low: 0.15,
+  medium: 0.22,
+  high: 0.3,
 } as const satisfies Record<GraphicQuality, number>;
 
 export function getCosmicCatalogTargetOpacity(cameraDistance: number): number {
@@ -39,6 +54,33 @@ export function getCosmicCatalogTargetOpacity(cameraDistance: number): number {
   const easedProgress = progress * progress * (3 - 2 * progress);
 
   return COSMIC_MAX_OPACITY * easedProgress;
+}
+
+export function getCosmicGroupImpostorBlend(cameraDistance: number): number {
+  const fadeIn = smoothstep(
+    IMPOSTOR_FADE_IN_START_DISTANCE,
+    IMPOSTOR_FADE_IN_END_DISTANCE,
+    cameraDistance,
+  );
+  const fadeOut =
+    1 -
+    smoothstep(IMPOSTOR_FADE_OUT_START_DISTANCE, IMPOSTOR_FADE_OUT_END_DISTANCE, cameraDistance);
+
+  return fadeIn * fadeOut;
+}
+
+export function getCosmicGroupRenderDetail(
+  cameraDistance: number,
+  quality: GraphicQuality,
+): number {
+  const mapDetail = getCosmicGroupDetail(cameraDistance, quality);
+  const impostorDetail = Math.min(mapDetail, IMPOSTOR_DETAIL_LIMIT[quality]);
+
+  return THREE.MathUtils.lerp(
+    mapDetail,
+    impostorDetail,
+    getCosmicGroupImpostorBlend(cameraDistance),
+  );
 }
 
 export function getCosmicFilamentTargetOpacity(cameraDistance: number): number {
@@ -73,12 +115,13 @@ export class CosmicGroupCatalogBatch {
 
   private readonly visibleIndices: Uint8Array;
   private readonly revealThresholds: Float32Array;
-  private readonly renderIndexByObjectId = new Map<string, number>();
+  private readonly renderIndexByObjectId: ReadonlyMap<string, number>;
   private readonly filamentRevealThresholds: Float32Array;
   private layers: CosmicMapLayers = DEFAULT_COSMIC_MAP_LAYERS;
   private quality: GraphicQuality;
   private cameraDistance = Number.POSITIVE_INFINITY;
   private opacity = 0;
+  private impostorBlend = 0;
   private detail = 0;
   private activePointCount = 0;
   private filamentOpacity = 0;
@@ -90,46 +133,17 @@ export class CosmicGroupCatalogBatch {
     private readonly registry: CosmicGroupCatalogRegistry,
     quality: GraphicQuality = 'high',
   ) {
-    this.quality = quality;
-    this.visibleIndices = new Uint8Array(registry.catalog.count);
-    const filamentPairs = registry.catalog.filamentPairs;
-    const filamentEdgeCount = filamentPairs.length / 2;
-    const filamentGeometry = createFilamentGeometry(registry, filamentPairs);
-    const pointGeometry = createGeometry(registry);
+    const visual = createCosmicGroupCatalogVisual(registry, this.layers);
 
-    this.filaments = new THREE.LineSegments(filamentGeometry.geometry, createFilamentMaterial());
-    this.filamentRevealThresholds = filamentGeometry.revealThresholds;
-    this.revealThresholds = pointGeometry.revealThresholds;
-    this.points = new THREE.Points(pointGeometry.geometry, createMaterial());
-    this.selectionPoint = createSelectionPoint();
+    this.quality = quality;
+    this.visibleIndices = visual.visibleIndices;
+    this.filaments = visual.filaments;
+    this.filamentRevealThresholds = visual.filamentRevealThresholds;
+    this.revealThresholds = visual.pointRevealThresholds;
+    this.points = visual.points;
+    this.selectionPoint = visual.selectionPoint;
+    this.renderIndexByObjectId = visual.renderIndexByObjectId;
     this.root.name = 'cosmicflows4-group-catalog-root';
-    this.filaments.name = 'illustrative-cosmicflows4-filaments';
-    this.filaments.visible = false;
-    this.filaments.frustumCulled = false;
-    this.filaments.renderOrder = 0;
-    this.filaments.userData['edgeCount'] = filamentEdgeCount;
-    this.filaments.userData['scientificConfidence'] = 'illustrative';
-    this.filaments.userData['visualStyle'] = 'derived-nearest-neighbor-cosmic-filaments';
-    this.filaments.userData['detailMode'] = 'camera-distance-confidence-fade';
-    this.filaments.userData['source'] = 'Derived from Cosmicflows-4 group positions';
-    this.points.name = 'calculated-cosmicflows4-groups';
-    this.points.visible = false;
-    this.points.frustumCulled = false;
-    this.points.renderOrder = 1;
-    this.points.layers.enable(PICKING_LAYER);
-    this.selectionPoint.layers.enable(PICKING_LAYER);
-    this.points.userData['catalogCount'] = registry.catalog.count;
-    this.points.userData['scientificConfidence'] = 'calculated';
-    this.points.userData['source'] = 'Cosmicflows-4 · Tully et al. (2023)';
-    this.points.userData['visualColorEncoding'] =
-      'illustrative-distance-gradient-near-warm-far-cool';
-    this.points.userData['objectIds'] = pointGeometry.objectIds;
-    this.points.userData['visibleIndices'] = this.visibleIndices;
-    this.points.userData['activeCount'] = 0;
-    this.points.userData['layerState'] = { ...this.layers };
-    for (let index = 0; index < pointGeometry.objectIds.length; index += 1) {
-      this.renderIndexByObjectId.set(pointGeometry.objectIds[index]!, index);
-    }
     this.root.add(this.filaments, this.points, this.selectionPoint);
     this.setQuality(quality);
   }
@@ -139,8 +153,9 @@ export class CosmicGroupCatalogBatch {
 
     this.quality = quality;
     this.filamentQualityLimit = Math.ceil(edgeCount * FILAMENT_QUALITY_BUDGET[quality]);
-    this.detail = getCosmicGroupDetail(this.cameraDistance, quality);
+    this.detail = getCosmicGroupRenderDetail(this.cameraDistance, quality);
     this.points.material.uniforms['detailLevel']!.value = this.detail;
+    this.points.material.uniforms['qualityScale']!.value = IMPOSTOR_QUALITY_SCALE[quality];
     this.refreshPointVisibility();
     this.refreshFilamentVisibility();
   }
@@ -173,12 +188,19 @@ export class CosmicGroupCatalogBatch {
     this.opacity = dampValue(this.opacity, targetOpacity, COSMIC_OPACITY_DAMPING, deltaSeconds);
     this.detail = dampValue(
       this.detail,
-      getCosmicGroupDetail(cameraDistance, this.quality),
+      getCosmicGroupRenderDetail(cameraDistance, this.quality),
       COSMIC_DETAIL_DAMPING,
       deltaSeconds,
     );
     this.points.material.uniforms['catalogOpacity']!.value = this.opacity;
     this.points.material.uniforms['detailLevel']!.value = this.detail;
+    this.impostorBlend = dampValue(
+      this.impostorBlend,
+      getCosmicGroupImpostorBlend(cameraDistance),
+      IMPOSTOR_DAMPING,
+      deltaSeconds,
+    );
+    this.points.material.uniforms['impostorBlend']!.value = this.impostorBlend;
     const targetFilamentOpacity = getCosmicFilamentTargetOpacity(cameraDistance);
 
     this.filamentOpacity = dampValue(
@@ -286,334 +308,6 @@ export class CosmicGroupCatalogBatch {
   }
 }
 
-function createFilamentGeometry(
-  registry: CosmicGroupCatalogRegistry,
-  filamentPairs: Uint32Array,
-): { geometry: THREE.BufferGeometry; revealThresholds: Float32Array } {
-  const edgeCount = filamentPairs.length / 2;
-  const records: FilamentRenderRecord[] = [];
-
-  for (let edgeIndex = 0; edgeIndex < edgeCount; edgeIndex += 1) {
-    records.push(createFilamentRecord(registry, filamentPairs, edgeIndex));
-  }
-  records.sort(
-    (left, right) =>
-      left.revealThreshold - right.revealThreshold || left.edgeIndex - right.edgeIndex,
-  );
-  const positions = new Float32Array(edgeCount * 6);
-  const alphas = new Float32Array(edgeCount * 2);
-  const detailThresholds = new Float32Array(edgeCount * 2);
-  const revealThresholds = new Float32Array(edgeCount);
-
-  for (let renderIndex = 0; renderIndex < records.length; renderIndex += 1) {
-    const record = records[renderIndex]!;
-    const vertexOffset = renderIndex * 6;
-    const alphaOffset = renderIndex * 2;
-    const sourceOffset = record.fromIndex * 3;
-    const targetOffset = record.toIndex * 3;
-
-    positions.set(registry.renderPositions.subarray(sourceOffset, sourceOffset + 3), vertexOffset);
-    positions.set(
-      registry.renderPositions.subarray(targetOffset, targetOffset + 3),
-      vertexOffset + 3,
-    );
-    alphas[alphaOffset] = record.alpha;
-    alphas[alphaOffset + 1] = record.alpha;
-    detailThresholds[alphaOffset] = record.revealThreshold;
-    detailThresholds[alphaOffset + 1] = record.revealThreshold;
-    revealThresholds[renderIndex] = record.revealThreshold;
-  }
-  const geometry = new THREE.BufferGeometry();
-
-  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  geometry.setAttribute('lineAlpha', new THREE.BufferAttribute(alphas, 1));
-  geometry.setAttribute('detailThreshold', new THREE.BufferAttribute(detailThresholds, 1));
-  geometry.setDrawRange(0, 0);
-  if (edgeCount > 0) {
-    geometry.computeBoundingSphere();
-  }
-
-  return { geometry, revealThresholds };
-}
-
-interface FilamentRenderRecord {
-  readonly edgeIndex: number;
-  readonly fromIndex: number;
-  readonly toIndex: number;
-  readonly alpha: number;
-  readonly revealThreshold: number;
-}
-
-function createFilamentRecord(
-  registry: CosmicGroupCatalogRegistry,
-  filamentPairs: Uint32Array,
-  edgeIndex: number,
-): FilamentRenderRecord {
-  const fromIndex = filamentPairs[edgeIndex * 2]!;
-  const toIndex = filamentPairs[edgeIndex * 2 + 1]!;
-  const sourceOffset = fromIndex * 3;
-  const targetOffset = toIndex * 3;
-  const deltaX =
-    registry.catalog.positionsMpc[targetOffset]! - registry.catalog.positionsMpc[sourceOffset]!;
-  const deltaY =
-    registry.catalog.positionsMpc[targetOffset + 1]! -
-    registry.catalog.positionsMpc[sourceOffset + 1]!;
-  const deltaZ =
-    registry.catalog.positionsMpc[targetOffset + 2]! -
-    registry.catalog.positionsMpc[sourceOffset + 2]!;
-  const distanceMpc = Math.hypot(deltaX, deltaY, deltaZ);
-  const strength =
-    0.12 + (1 - THREE.MathUtils.clamp(distanceMpc / FILAMENT_MAXIMUM_LENGTH_MPC, 0, 1)) * 0.88;
-  const sourceReliability =
-    1 - THREE.MathUtils.clamp(registry.catalog.distanceModulusErrors[fromIndex]! / 1.2, 0, 1);
-  const targetReliability =
-    1 - THREE.MathUtils.clamp(registry.catalog.distanceModulusErrors[toIndex]! / 1.2, 0, 1);
-  const reliability = (sourceReliability + targetReliability) * 0.5;
-
-  return {
-    edgeIndex,
-    fromIndex,
-    toIndex,
-    alpha: (0.38 + strength * 0.62) * (0.6 + reliability * 0.4),
-    revealThreshold: 0.04 + (1 - (strength * 0.72 + reliability * 0.28)) * 0.72,
-  };
-}
-
-function createFilamentMaterial(): THREE.ShaderMaterial {
-  return new THREE.ShaderMaterial({
-    uniforms: {
-      filamentOpacity: { value: 0 },
-      filamentDetail: { value: 0 },
-      radiance: { value: 1 },
-    },
-    vertexShader: `
-      attribute float lineAlpha;
-      attribute float detailThreshold;
-      varying float vAlpha;
-      varying float vDetailThreshold;
-
-      void main() {
-        vAlpha = lineAlpha;
-        vDetailThreshold = detailThreshold;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `,
-    fragmentShader: `
-      uniform float filamentOpacity;
-      uniform float filamentDetail;
-      uniform float radiance;
-      varying float vAlpha;
-      varying float vDetailThreshold;
-
-      void main() {
-        float detailFade = smoothstep(
-          vDetailThreshold - 0.025,
-          vDetailThreshold + 0.005,
-          filamentDetail
-        );
-        vec3 color = mix(vec3(0.04, 0.34, 0.72), vec3(0.48, 0.93, 1.0), vAlpha);
-        gl_FragColor = vec4(color * radiance, filamentOpacity * vAlpha * detailFade);
-      }
-    `,
-    transparent: true,
-    blending: THREE.NormalBlending,
-    depthWrite: false,
-    toneMapped: false,
-  });
-}
-
-function createGeometry(registry: CosmicGroupCatalogRegistry): {
-  geometry: THREE.BufferGeometry;
-  objectIds: readonly string[];
-  revealThresholds: Float32Array;
-} {
-  const catalog = registry.catalog;
-  const records: GroupRenderRecord[] = Array.from({ length: catalog.count }, (_, catalogIndex) => ({
-    catalogIndex,
-    objectId: registry.objectIds[catalogIndex]!,
-    revealThreshold: getCosmicGroupRevealThreshold(registry.objectIds[catalogIndex]!),
-  }));
-
-  if (records.length > 0) {
-    records[0]!.revealThreshold = 0;
-  }
-  records.sort(
-    (left, right) =>
-      left.revealThreshold - right.revealThreshold || left.catalogIndex - right.catalogIndex,
-  );
-  const positions = new Float32Array(catalog.count * 3);
-  const sizes = new Float32Array(catalog.count);
-  const alphas = new Float32Array(catalog.count);
-  const colors = new Float32Array(catalog.count * 3);
-  const revealThresholds = new Float32Array(catalog.count);
-  const objectIds = new Array<string>(catalog.count);
-  const nearColor = new THREE.Color(0xffc876);
-  const middleColor = new THREE.Color(0xb9e5ff);
-  const farColor = new THREE.Color(0x8c78ff);
-  const pointColor = new THREE.Color();
-
-  for (let renderIndex = 0; renderIndex < catalog.count; renderIndex += 1) {
-    const record = records[renderIndex]!;
-    const catalogIndex = record.catalogIndex;
-    const sourceOffset = catalogIndex * 3;
-    const renderOffset = renderIndex * 3;
-    const reliability =
-      1 - THREE.MathUtils.clamp(catalog.distanceModulusErrors[catalogIndex]! / 1.2, 0, 1);
-
-    positions.set(registry.renderPositions.subarray(sourceOffset, sourceOffset + 3), renderOffset);
-    sizes[renderIndex] = 2.2 + reliability * 3.3;
-    alphas[renderIndex] = 0.28 + reliability * 0.56;
-    const depth = normalizedLogarithmicDepth(
-      catalog.distancesMpc[catalogIndex]!,
-      catalog.minimumDistanceMpc,
-      catalog.maximumDistanceMpc,
-    );
-
-    if (depth < 0.5) {
-      pointColor.lerpColors(nearColor, middleColor, depth * 2);
-    } else {
-      pointColor.lerpColors(middleColor, farColor, (depth - 0.5) * 2);
-    }
-    colors[renderOffset] = pointColor.r;
-    colors[renderOffset + 1] = pointColor.g;
-    colors[renderOffset + 2] = pointColor.b;
-    revealThresholds[renderIndex] = record.revealThreshold;
-    objectIds[renderIndex] = record.objectId;
-  }
-  const geometry = new THREE.BufferGeometry();
-
-  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  geometry.setAttribute('pointSize', new THREE.BufferAttribute(sizes, 1));
-  geometry.setAttribute('pointAlpha', new THREE.BufferAttribute(alphas, 1));
-  geometry.setAttribute('pointColor', new THREE.BufferAttribute(colors, 3));
-  geometry.setAttribute('revealThreshold', new THREE.BufferAttribute(revealThresholds, 1));
-  geometry.setDrawRange(0, 0);
-  geometry.computeBoundingSphere();
-
-  return { geometry, objectIds, revealThresholds };
-}
-
-interface GroupRenderRecord {
-  readonly catalogIndex: number;
-  readonly objectId: string;
-  revealThreshold: number;
-}
-
-function normalizedLogarithmicDepth(distance: number, minimum: number, maximum: number): number {
-  const logarithmicMinimum = Math.log1p(Math.max(0, minimum));
-  const logarithmicRange = Math.max(
-    0.000_001,
-    Math.log1p(Math.max(0, maximum)) - logarithmicMinimum,
-  );
-
-  return THREE.MathUtils.clamp(
-    (Math.log1p(Math.max(0, distance)) - logarithmicMinimum) / logarithmicRange,
-    0,
-    1,
-  );
-}
-
-function createMaterial(): THREE.ShaderMaterial {
-  return new THREE.ShaderMaterial({
-    uniforms: {
-      pixelRatio: { value: 1 },
-      catalogOpacity: { value: 0 },
-      radiance: { value: 1 },
-      detailLevel: { value: 0 },
-    },
-    vertexShader: `
-      attribute float pointSize;
-      attribute float pointAlpha;
-      attribute vec3 pointColor;
-      attribute float revealThreshold;
-      uniform float pixelRatio;
-      uniform float detailLevel;
-      varying float vAlpha;
-      varying vec3 vColor;
-
-      void main() {
-        float reveal = smoothstep(
-          revealThreshold - 0.018,
-          revealThreshold + 0.004,
-          detailLevel
-        );
-        vAlpha = pointAlpha * reveal;
-        vColor = pointColor;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        gl_PointSize = max(1.0, pointSize * pixelRatio);
-      }
-    `,
-    fragmentShader: `
-      uniform float catalogOpacity;
-      uniform float radiance;
-      varying float vAlpha;
-      varying vec3 vColor;
-
-      void main() {
-        float radius = length(gl_PointCoord - vec2(0.5)) * 2.0;
-        if (radius > 1.0) {
-          discard;
-        }
-        float halo = pow(1.0 - radius, 1.35);
-        float luminousCore = 1.0 - smoothstep(0.0, 0.24, radius);
-        float glow = halo * 0.62 + luminousCore;
-        vec3 color = mix(vColor, vec3(1.0, 0.97, 0.9), luminousCore * 0.88);
-        gl_FragColor = vec4(
-          color * radiance * (0.72 + luminousCore * 0.58),
-          vAlpha * catalogOpacity * glow
-        );
-      }
-    `,
-    transparent: true,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-    toneMapped: false,
-  });
-}
-
-function createSelectionPoint(): THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial> {
-  const geometry = new THREE.BufferGeometry();
-
-  geometry.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0], 3));
-  const material = new THREE.ShaderMaterial({
-    uniforms: {
-      pixelRatio: { value: 1 },
-    },
-    vertexShader: `
-      uniform float pixelRatio;
-
-      void main() {
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        gl_PointSize = 24.0 * pixelRatio;
-      }
-    `,
-    fragmentShader: `
-      void main() {
-        float radius = length(gl_PointCoord - vec2(0.5)) * 2.0;
-        if (radius > 1.0) {
-          discard;
-        }
-        float ring = 1.0 - smoothstep(0.07, 0.18, abs(radius - 0.68));
-        float halo = pow(1.0 - radius, 1.5) * 0.38;
-        gl_FragColor = vec4(0.52, 0.82, 1.0, max(ring, halo));
-      }
-    `,
-    transparent: true,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-    toneMapped: false,
-  });
-  const point = new THREE.Points(geometry, material);
-
-  point.name = 'selected-cosmicflows4-group';
-  point.visible = false;
-  point.frustumCulled = false;
-  point.renderOrder = 5;
-  point.userData['objectId'] = null;
-
-  return point;
-}
-
 function findThresholdCount(thresholds: Float32Array, detail: number): number {
   let lower = 0;
   let upper = thresholds.length;
@@ -629,4 +323,10 @@ function findThresholdCount(thresholds: Float32Array, detail: number): number {
   }
 
   return lower;
+}
+
+function smoothstep(minimum: number, maximum: number, value: number): number {
+  const progress = THREE.MathUtils.clamp((value - minimum) / (maximum - minimum), 0, 1);
+
+  return progress * progress * (3 - 2 * progress);
 }

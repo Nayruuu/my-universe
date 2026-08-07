@@ -1,9 +1,14 @@
 {
-  "version": "1.9.0",
+  "version": "1.14.1",
   "datasets": [
     {
       "id": "solar-system",
       "url": "/data/solar-system/system.json",
+      "type": "json"
+    },
+    {
+      "id": "extended-solar-system",
+      "url": "/data/solar-system/extended.json",
       "type": "json"
     },
     {
@@ -12,8 +17,25 @@
       "type": "json"
     },
     {
+      "id": "featured-exoplanets",
+      "url": "/data/exoplanets/featured-systems.json",
+      "type": "json"
+    },
+    {
+      "id": "nasa-confirmed-exoplanets",
+      "url": "/data/exoplanets/nasa-pscomppars.bin",
+      "metadataUrl": "/data/exoplanets/nasa-pscomppars.meta.json",
+      "type": "exoplanet-catalog",
+      "format": "exoplanet-catalog-v1"
+    },
+    {
       "id": "black-holes",
-      "url": "/data/black-holes/catalog.json",
+      "url": "/data/black-holes/catalog.json?v=1.1.0",
+      "type": "json"
+    },
+    {
+      "id": "documented-supernovas",
+      "url": "/data/supernovas/catalog.json",
       "type": "json"
     },
     {
@@ -64,6 +86,12 @@
       "url": "/data/structures/cosmic-web-density.bin",
       "type": "cosmic-web-volume",
       "format": "cosmic-web-volume-v1"
+    },
+    {
+      "id": "tempel-filament-spines",
+      "url": "/data/structures/tempel-filament-spines.bin",
+      "type": "tempel-filament-spine-catalog",
+      "format": "tempel-filament-spines-v1"
     }
   ]
 }

@@ -306,6 +306,7 @@ export function resolveObjectId(intersection: THREE.Intersection): string | null
 
   const index = intersection.index;
   const objectIds = intersection.object.userData['objectIds'];
+  const objectIndices = intersection.object.userData['objectIndices'];
   const visibleIndices = intersection.object.userData['visibleIndices'];
 
   if (
@@ -316,7 +317,11 @@ export function resolveObjectId(intersection: THREE.Intersection): string | null
   ) {
     return null;
   }
-  const batchedId: unknown = objectIds[index];
+  const objectIndex =
+    objectIndices instanceof Uint16Array || objectIndices instanceof Uint32Array
+      ? objectIndices[index]
+      : index;
+  const batchedId: unknown = typeof objectIndex === 'number' ? objectIds[objectIndex] : undefined;
 
   return typeof batchedId === 'string' ? batchedId : null;
 }

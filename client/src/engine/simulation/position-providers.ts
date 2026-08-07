@@ -3,6 +3,7 @@ import {
   GeoMoon,
   HelioVector,
   JupiterMoons,
+  MakeTime,
   RotateVector,
   Rotation_EQJ_ECL,
   Vector,
@@ -16,9 +17,10 @@ import {
   Vector3Like,
 } from '../../data/models/universe.models';
 import { CoordinateSystem } from '../coordinates/coordinate-system';
-import { JULIAN_DAY_J2000 } from './time-utils';
+import { astronomyEngineDaysSinceJ2000 } from './astronomy-engine-time-domain';
 
 const EQUATORIAL_TO_ECLIPTIC = Rotation_EQJ_ECL();
+const J2000_TIME = MakeTime(0);
 const EPHEMERIS_BODIES: Readonly<Record<EphemerisBody, Body>> = {
   mercury: Body.Mercury,
   venus: Body.Venus,
@@ -51,6 +53,7 @@ export class StaticPositionProvider implements TemporalPositionProvider {
 
 export class KeplerianOrbitProvider implements TemporalPositionProvider {
   private readonly semiMajorAxisSceneUnits: number;
+  private readonly referencePlaneBasis: ReferencePlaneBasis | null;
 
   constructor(
     private readonly definition: Extract<PositionProviderDefinition, { type: 'keplerian' }>,
@@ -60,10 +63,14 @@ export class KeplerianOrbitProvider implements TemporalPositionProvider {
     this.semiMajorAxisSceneUnits =
       coordinateSystem.toSceneDistance(definition.semiMajorAxis, definition.unit, frame) *
       (definition.distanceScale ?? 1);
+    this.referencePlaneBasis = definition.referencePlanePole
+      ? createReferencePlaneBasis(definition.referencePlanePole)
+      : null;
   }
 
   public getPositionAt(time: UniverseTime): Vector3Like {
-    const elapsedDays = time.julianDay - this.definition.epochJulianDay;
+    const elapsedDays =
+      (time.julianDay - this.definition.epochJulianDay) % this.definition.orbitalPeriodDays;
     const meanMotion = (Math.PI * 2) / this.definition.orbitalPeriodDays;
     const meanAnomaly = normalizeRadians(
       degreesToRadians(this.definition.meanAnomalyAtEpoch) + meanMotion * elapsedDays,
@@ -90,13 +97,69 @@ export class KeplerianOrbitProvider implements TemporalPositionProvider {
     const cosInclination = Math.cos(inclination);
     const sinInclination = Math.sin(inclination);
 
-    // The astronomical reference plane (x/y) is mapped to Three.js' horizontal x/z plane.
-    return {
+    const orbitalPosition = {
       x: radius * (cosNode * cosArgument - sinNode * sinArgument * cosInclination),
-      y: radius * sinArgument * sinInclination,
-      z: radius * (sinNode * cosArgument + cosNode * sinArgument * cosInclination),
+      y: radius * (sinNode * cosArgument + cosNode * sinArgument * cosInclination),
+      z: radius * sinArgument * sinInclination,
     };
+
+    if (this.referencePlaneBasis) {
+      return transformFromReferencePlane(orbitalPosition, this.referencePlaneBasis);
+    }
+
+    // The default astronomical reference plane (x/y) maps to Three.js' horizontal x/z plane.
+    return { x: orbitalPosition.x, y: orbitalPosition.z, z: orbitalPosition.y };
   }
+}
+
+interface ReferencePlaneBasis {
+  readonly xAxis: Vector3Like;
+  readonly yAxis: Vector3Like;
+  readonly pole: Vector3Like;
+}
+
+function createReferencePlaneBasis(
+  pole: NonNullable<
+    Extract<PositionProviderDefinition, { type: 'keplerian' }>['referencePlanePole']
+  >,
+): ReferencePlaneBasis {
+  const rightAscension = degreesToRadians(pole.rightAscensionDegrees);
+  const declination = degreesToRadians(pole.declinationDegrees);
+  const sinRightAscension = Math.sin(rightAscension);
+  const cosRightAscension = Math.cos(rightAscension);
+  const sinDeclination = Math.sin(declination);
+  const cosDeclination = Math.cos(declination);
+
+  return {
+    xAxis: equatorialVectorToScene(-sinRightAscension, cosRightAscension, 0),
+    yAxis: equatorialVectorToScene(
+      -sinDeclination * cosRightAscension,
+      -sinDeclination * sinRightAscension,
+      cosDeclination,
+    ),
+    pole: equatorialVectorToScene(
+      cosDeclination * cosRightAscension,
+      cosDeclination * sinRightAscension,
+      sinDeclination,
+    ),
+  };
+}
+
+function equatorialVectorToScene(x: number, y: number, z: number): Vector3Like {
+  const ecliptic = RotateVector(EQUATORIAL_TO_ECLIPTIC, new Vector(x, y, z, J2000_TIME));
+
+  return { x: ecliptic.x, y: ecliptic.z, z: -ecliptic.y };
+}
+
+function transformFromReferencePlane(
+  position: Vector3Like,
+  basis: ReferencePlaneBasis,
+): Vector3Like {
+  return {
+    x: position.x * basis.xAxis.x + position.y * basis.yAxis.x + position.z * basis.pole.x,
+    y: position.x * basis.xAxis.y + position.y * basis.yAxis.y + position.z * basis.pole.y,
+    z: position.x * basis.xAxis.z + position.y * basis.yAxis.z + position.z * basis.pole.z,
+  };
 }
 
 export class SolarSystemEphemerisProvider implements TemporalPositionProvider {
@@ -122,16 +185,17 @@ export class SolarSystemEphemerisProvider implements TemporalPositionProvider {
   }
 
   public getPositionAt(time: UniverseTime): Vector3Like {
-    const daysSinceJ2000 = time.julianDay - JULIAN_DAY_J2000;
+    const daysSinceJ2000 = astronomyEngineDaysSinceJ2000(time);
     const equatorialPosition = this.getEquatorialPosition(daysSinceJ2000);
     const eclipticPosition = RotateVector(EQUATORIAL_TO_ECLIPTIC, equatorialPosition);
     const scale = this.sceneUnitsPerAstronomicalUnit;
 
-    // Astronomy Engine fournit EQJ. Le rendu utilise l’écliptique J2000 avec Y vertical.
+    // Astronomy Engine fournit EQJ. Le rendu utilise une rotation propre vers
+    // l’écliptique J2000 avec Y vertical, sans réflexion est-ouest.
     return {
       x: eclipticPosition.x * scale,
       y: eclipticPosition.z * scale,
-      z: eclipticPosition.y * scale,
+      z: -eclipticPosition.y * scale,
     };
   }
 
@@ -148,6 +212,39 @@ export class SolarSystemEphemerisProvider implements TemporalPositionProvider {
     }
 
     return HelioVector(this.body, daysSinceJ2000);
+  }
+}
+
+export class IllustrativeOrbitProvider implements TemporalPositionProvider {
+  private readonly semiMajorAxisSceneUnits: number;
+
+  constructor(
+    private readonly definition: Extract<
+      PositionProviderDefinition,
+      { type: 'illustrative-orbit' }
+    >,
+    coordinateSystem: CoordinateSystem,
+    frame: ReferenceFrame,
+  ) {
+    this.semiMajorAxisSceneUnits =
+      coordinateSystem.toSceneDistance(definition.semiMajorAxis, definition.unit, frame) *
+      (definition.distanceScale ?? 1);
+  }
+
+  public getPositionAt(time: UniverseTime): Vector3Like {
+    const elapsedDays =
+      (time.julianDay - this.definition.epochJulianDay) % this.definition.orbitalPeriodDays;
+    const phase =
+      degreesToRadians(this.definition.visualPhaseAtEpochDegrees) +
+      (elapsedDays / this.definition.orbitalPeriodDays) * Math.PI * 2;
+    const inclination = degreesToRadians(this.definition.visualInclinationDegrees);
+    const orbitalPlaneOffset = Math.sin(phase) * this.semiMajorAxisSceneUnits;
+
+    return {
+      x: Math.cos(phase) * this.semiMajorAxisSceneUnits,
+      y: orbitalPlaneOffset * Math.sin(inclination),
+      z: orbitalPlaneOffset * Math.cos(inclination),
+    };
   }
 }
 
@@ -222,6 +319,8 @@ export class PositionProviderFactory {
         return new KeplerianOrbitProvider(definition, this.coordinateSystem, frame);
       case 'ephemeris':
         return new SolarSystemEphemerisProvider(definition, this.coordinateSystem, frame);
+      case 'illustrative-orbit':
+        return new IllustrativeOrbitProvider(definition, this.coordinateSystem, frame);
       case 'linear-motion':
         return new LinearProperMotionProvider(definition, this.coordinateSystem, frame);
       case 'procedural':

@@ -1,0 +1,335 @@
+:host {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  display: block;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.earth-sky-view {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: transparent;
+}
+
+.earth-sky-view__bodies {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  pointer-events: none;
+}
+
+.earth-sky-view__body {
+  --body-color: #eef6ff;
+  --body-size: 7px;
+
+  position: absolute;
+  display: grid;
+  width: max(24px, var(--body-size));
+  height: max(24px, var(--body-size));
+  place-items: center;
+  padding: 0;
+  border: 0;
+  color: #eaf5ff;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+  transform: translate(-50%, -50%);
+
+  i {
+    display: block;
+    width: var(--body-size);
+    height: var(--body-size);
+    border: 1px solid color-mix(in srgb, var(--body-color) 78%, white);
+    border-radius: 50%;
+    background: var(--body-color);
+    box-shadow:
+      0 0 calc(var(--body-size) * 0.8) color-mix(in srgb, var(--body-color) 72%, transparent),
+      0 0 calc(var(--body-size) * 2.1) color-mix(in srgb, var(--body-color) 30%, transparent);
+  }
+
+  span {
+    position: absolute;
+    top: calc(50% + 12px);
+    left: 50%;
+    padding: 3px 6px;
+    border: 1px solid rgb(137 194 231 / 12%);
+    border-radius: 7px;
+    color: rgb(228 240 250 / 78%);
+    background: rgb(3 10 20 / 68%);
+    box-shadow: 0 4px 14px rgb(0 0 0 / 30%);
+    font: 650 var(--ui-font-micro) / 1 inherit;
+    white-space: nowrap;
+    transform: translateX(-50%);
+    backdrop-filter: blur(8px);
+  }
+
+  &[data-size='moon'] {
+    --body-size: 34px;
+
+    z-index: 1;
+
+    i {
+      position: relative;
+      overflow: hidden;
+      border-color: rgb(221 230 237 / 78%);
+      background: url('/textures/moon-lroc-1024.jpg') center / cover;
+      box-shadow:
+        inset -1px 0 4px rgb(0 0 0 / 48%),
+        0 0 10px rgb(235 244 250 / 62%),
+        0 0 28px rgb(211 229 242 / 28%);
+
+      &::before,
+      &::after {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        content: '';
+      }
+
+      &::before {
+        left: 0;
+        width: 50%;
+        background: rgb(3 7 13 / 94%);
+      }
+
+      &::after {
+        inset: 0;
+        border-radius: 50%;
+        transform: scaleX(var(--moon-phase-scale));
+      }
+    }
+
+    &[data-lunar-waxing='false'] i::before {
+      right: 0;
+      left: auto;
+    }
+
+    &[data-lunar-phase='crescent'] i::after {
+      background: radial-gradient(circle at 58% 34%, #101722 0 8%, #03070d 9% 100%);
+    }
+
+    &[data-lunar-phase='gibbous'] i::after {
+      background: url('/textures/moon-lroc-1024.jpg') center / var(--body-size) var(--body-size);
+    }
+
+    span {
+      top: auto;
+      bottom: calc(50% + 22px);
+    }
+  }
+
+  &[data-size='stellar'] {
+    --body-size: 4px;
+  }
+
+  &.earth-sky-view__body--assisted {
+    opacity: 0.7;
+
+    i {
+      outline: 1px solid color-mix(in srgb, var(--body-color) 28%, transparent);
+      outline-offset: 3px;
+    }
+  }
+
+  &:hover,
+  &:focus-visible {
+    z-index: 1;
+    outline: 0;
+
+    i {
+      box-shadow:
+        0 0 calc(var(--body-size) * 1.2) var(--body-color),
+        0 0 calc(var(--body-size) * 3) color-mix(in srgb, var(--body-color) 44%, transparent);
+    }
+
+    span {
+      color: #fff;
+      border-color: rgb(137 210 246 / 35%);
+    }
+  }
+}
+
+.earth-sky-view__heading {
+  position: absolute;
+  z-index: 2;
+  top: 24px;
+  left: 24px;
+  display: grid;
+  justify-items: start;
+  color: #eaf5ff;
+  text-align: left;
+  text-shadow: 0 2px 16px #000;
+
+  span {
+    color: #83c9ee;
+    font-size: var(--ui-font-micro);
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  strong {
+    margin-top: 5px;
+    font-size: clamp(1rem, 1.8vw, 1.35rem);
+  }
+
+  small {
+    margin-top: 3px;
+    color: rgb(217 232 248 / 64%);
+    font-size: var(--ui-font-caption);
+  }
+}
+
+.earth-sky-view__location {
+  margin-top: 9px;
+  pointer-events: auto;
+}
+
+.earth-sky-view__close {
+  position: absolute;
+  z-index: 3;
+  top: 22px;
+  right: 20px;
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 13px;
+  border: 1px solid rgb(137 194 231 / 25%);
+  border-radius: 12px;
+  color: #dbeeff;
+  background: rgb(4 12 25 / 72%);
+  box-shadow: 0 10px 34px rgb(0 0 0 / 24%);
+  font: 650 var(--ui-font-caption) / 1 inherit;
+  cursor: pointer;
+  pointer-events: auto;
+  backdrop-filter: blur(14px);
+
+  &:hover,
+  &:focus-visible {
+    border-color: rgb(124 205 248 / 50%);
+    outline: 0;
+    background: rgb(27 73 106 / 72%);
+  }
+}
+
+.earth-sky-view__controls {
+  position: absolute;
+  z-index: 3;
+  bottom: 112px;
+  left: 50%;
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid rgb(137 194 231 / 18%);
+  border-radius: 13px;
+  background: rgb(4 12 25 / 72%);
+  box-shadow: 0 12px 36px rgb(0 0 0 / 24%);
+  pointer-events: auto;
+  transform: translateX(-50%);
+  backdrop-filter: blur(14px);
+
+  button {
+    display: inline-flex;
+    min-height: 32px;
+    align-items: center;
+    gap: 6px;
+    padding: 0 10px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    color: rgb(215 231 244 / 62%);
+    background: transparent;
+    font: 650 var(--ui-font-caption) / 1 inherit;
+    cursor: pointer;
+
+    span {
+      color: #7dc9ee;
+      font-size: 0.9rem;
+    }
+
+    &:hover,
+    &:focus-visible {
+      border-color: rgb(124 205 248 / 24%);
+      outline: 0;
+      color: #e9f6ff;
+      background: rgb(32 76 108 / 35%);
+    }
+
+    &.is-active {
+      border-color: rgb(124 205 248 / 20%);
+      color: #dcf2ff;
+      background: rgb(30 83 118 / 42%);
+    }
+  }
+}
+
+.earth-sky-view__science {
+  position: absolute;
+  z-index: 2;
+  right: 22px;
+  bottom: 112px;
+  display: grid;
+  max-width: min(520px, calc(100vw - 44px));
+  gap: 3px;
+  color: rgb(205 224 240 / 55%);
+  font-size: var(--ui-font-micro);
+  line-height: 1.45;
+  text-align: right;
+  text-shadow: 0 1px 10px #000;
+
+  small {
+    color: rgb(112 196 232 / 62%);
+  }
+}
+
+@media (width <= 720px) {
+  .earth-sky-view__heading {
+    top: 18px;
+    left: 14px;
+    width: calc(100% - 84px);
+    place-items: start;
+  }
+
+  .earth-sky-view__close {
+    top: 14px;
+    right: 10px;
+    width: 44px;
+    min-height: 44px;
+    justify-content: center;
+    padding: 0;
+
+    span {
+      font-size: 1.05rem;
+    }
+
+    &:not(:focus-visible) {
+      font-size: 0;
+    }
+  }
+
+  .earth-sky-view__science {
+    display: none;
+  }
+
+  .earth-sky-view__controls {
+    bottom: calc(300px + env(safe-area-inset-bottom));
+    max-width: calc(100% - 20px);
+
+    button {
+      width: 44px;
+      min-height: 44px;
+      justify-content: center;
+      padding: 0;
+      font-size: 0;
+
+      span {
+        font-size: 0.9rem;
+      }
+    }
+  }
+}

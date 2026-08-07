@@ -6,7 +6,6 @@ export interface PlanetaryVisualProfile {
   textureAnisotropy: 1 | 2 | 4;
   showEarthClouds: boolean;
   showEarthNightLights: boolean;
-  showGasGiantStorms: boolean;
   atmosphereIntensity: number;
 }
 
@@ -17,7 +16,6 @@ const PROFILES: Readonly<Record<GraphicQuality, PlanetaryVisualProfile>> = {
     textureAnisotropy: 1,
     showEarthClouds: false,
     showEarthNightLights: false,
-    showGasGiantStorms: false,
     atmosphereIntensity: 0.72,
   },
   medium: {
@@ -26,7 +24,6 @@ const PROFILES: Readonly<Record<GraphicQuality, PlanetaryVisualProfile>> = {
     textureAnisotropy: 2,
     showEarthClouds: true,
     showEarthNightLights: true,
-    showGasGiantStorms: true,
     atmosphereIntensity: 0.88,
   },
   high: {
@@ -35,7 +32,6 @@ const PROFILES: Readonly<Record<GraphicQuality, PlanetaryVisualProfile>> = {
     textureAnisotropy: 4,
     showEarthClouds: true,
     showEarthNightLights: true,
-    showGasGiantStorms: true,
     atmosphereIntensity: 1,
   },
 };

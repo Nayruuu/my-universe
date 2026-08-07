@@ -4,12 +4,65 @@
   top: 68px;
   left: 50%;
   display: block;
-  pointer-events: auto;
+  pointer-events: none;
   transform: translateX(-50%);
 }
 
 .scale-switcher {
   position: relative;
+}
+
+.scale-navigation {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+}
+
+.astronomical-breadcrumb {
+  display: flex;
+  max-width: min(680px, calc(100vw - 360px));
+  align-items: center;
+  overflow-x: auto;
+  border-radius: 8px;
+  color: var(--ui-text-subtle);
+  background: rgb(3 8 17 / 30%);
+  scrollbar-width: none;
+  backdrop-filter: blur(10px);
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  button {
+    pointer-events: auto;
+    flex: 0 0 auto;
+    padding: 4px 6px;
+    border: 0;
+    border-radius: 6px;
+    color: var(--ui-text-muted);
+    background: transparent;
+    font: inherit;
+    font-size: var(--ui-font-micro);
+    cursor: pointer;
+
+    &:hover:not(:disabled),
+    &:focus-visible {
+      outline: none;
+      color: #dff2ff;
+      background: rgb(87 158 207 / 10%);
+    }
+
+    &.current {
+      color: rgb(216 235 249 / 76%);
+      cursor: default;
+    }
+  }
+}
+
+.astronomical-breadcrumb__separator {
+  flex: 0 0 auto;
+  color: var(--ui-text-subtle);
+  font-size: 0.64rem;
 }
 
 .scale-indicator {
@@ -20,14 +73,15 @@
   padding: 0 10px;
   border: 1px solid rgb(151 194 228 / 10%);
   border-radius: 9px;
-  color: rgb(179 205 229 / 45%);
+  color: var(--ui-text-secondary);
   background: rgb(5 10 20 / 36%);
   box-shadow: 0 8px 24px rgb(0 0 0 / 14%);
   font: inherit;
-  font-size: 0.55rem;
+  font-size: var(--ui-font-micro);
   font-weight: 650;
   letter-spacing: 0.12em;
   cursor: pointer;
+  pointer-events: auto;
   text-transform: uppercase;
   backdrop-filter: blur(12px);
   transition:
@@ -87,11 +141,12 @@
     padding: 7px 9px;
     border: 0;
     border-radius: 10px;
-    color: rgb(211 227 241 / 58%);
+    color: var(--ui-text-secondary);
     background: transparent;
     font: inherit;
     text-align: left;
     cursor: pointer;
+    pointer-events: auto;
 
     &:not(:last-child)::after {
       position: absolute;
@@ -121,13 +176,13 @@
     }
 
     strong {
-      font-size: 0.68rem;
+      font-size: var(--ui-font-small);
       font-weight: 570;
     }
 
     small {
-      color: rgb(180 205 227 / 39%);
-      font-size: 0.57rem;
+      color: var(--ui-text-muted);
+      font-size: var(--ui-font-micro);
     }
   }
 }
@@ -157,10 +212,18 @@
 
 @media (width <= 720px) {
   :host {
-    top: 108px;
+    top: calc(114px + var(--mobile-top-safe, 0px));
+  }
+
+  .scale-indicator {
+    min-height: 40px;
   }
 
   .scale-menu {
     width: min(238px, calc(100vw - 24px));
+  }
+
+  .astronomical-breadcrumb {
+    max-width: calc(100vw - 24px);
   }
 }

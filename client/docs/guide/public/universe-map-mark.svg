@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Universe Map</title>
+  <defs>
+    <radialGradient id="background" cx="50%" cy="45%" r="62%">
+      <stop offset="0" stop-color="#2b6e94" stop-opacity=".38" />
+      <stop offset="1" stop-color="#07101d" stop-opacity=".08" />
+    </radialGradient>
+    <filter id="glow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="2.4" />
+    </filter>
+  </defs>
+  <circle cx="32" cy="32" r="29" fill="url(#background)" stroke="#8ecdf2" stroke-opacity=".34" stroke-width="1.5" />
+  <ellipse cx="32" cy="32" rx="23" ry="9" fill="none" stroke="#83c6ef" stroke-opacity=".78" stroke-width="1.7" transform="rotate(-28 32 32)" />
+  <ellipse cx="32" cy="32" rx="9" ry="23" fill="none" stroke="#83c6ef" stroke-opacity=".68" stroke-width="1.7" transform="rotate(34 32 32)" />
+  <circle cx="32" cy="32" r="6" fill="#70c2f2" opacity=".7" filter="url(#glow)" />
+  <circle cx="32" cy="32" r="3.2" fill="#d8f2ff" />
+</svg>

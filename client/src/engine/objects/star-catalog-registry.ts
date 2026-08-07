@@ -1,10 +1,19 @@
 import * as THREE from 'three';
-import { SearchEntry, SpaceObject } from '../../data/models/universe.models';
+import {
+  type ConstellationCatalog,
+  SearchEntry,
+  SpaceObject,
+} from '../../data/models/universe.models';
 import { CoordinateSystem } from '../coordinates/coordinate-system';
 import { equatorialJ2000ToGalacticScene } from '../coordinates/galactic-reference-frame';
 import { convertDistance } from '../coordinates/unit-conversion';
 import type { StarCatalog } from '../loaders/star-catalog';
 import { colorIndexToCssColor } from '../materials/star-color';
+import {
+  equatorialCoordinatesFromCartesian,
+  type StellarObservationCatalogEntry,
+  type StellarObservationConstellation,
+} from '../simulation/stellar-observation';
 import type { LabelObject } from './label-manager';
 
 const DEFAULT_MAXIMUM_LABEL_RANK = 3_000;
@@ -22,6 +31,11 @@ export class StarCatalogRegistry {
   private readonly resolvedCatalogObjects = new Map<string, SpaceObject>();
   private readonly catalogBackedObjectIds = new Set<string>();
   private searchEntries: readonly SearchEntry[] | null = null;
+  private stellarObservationCatalog: readonly StellarObservationCatalogEntry[] | null = null;
+  private readonly stellarObservationConstellations = new WeakMap<
+    ConstellationCatalog,
+    readonly StellarObservationConstellation[]
+  >();
 
   constructor(
     public readonly catalog: StarCatalog,
@@ -147,6 +161,43 @@ export class StarCatalogRegistry {
     return labels;
   }
 
+  public getStellarObservationCatalog(
+    maximumCount: number,
+  ): readonly StellarObservationCatalogEntry[] {
+    const limit = Math.min(this.catalog.count, Math.max(0, Math.floor(maximumCount)));
+
+    if (limit === 0) {
+      return [];
+    }
+    const observations = this.ensureStellarObservationCatalog();
+
+    return observations.slice(0, limit);
+  }
+
+  public getStellarObservationConstellations(
+    catalog: ConstellationCatalog,
+  ): readonly StellarObservationConstellation[] {
+    const cached = this.stellarObservationConstellations.get(catalog);
+
+    if (cached) {
+      return cached;
+    }
+    const observations = this.ensureStellarObservationCatalog();
+    const constellations = catalog.figures.map((figure) => ({
+      id: `constellation-${figure.id}`,
+      name: figure.name,
+      abbreviation: figure.abbreviation,
+      segments: figure.segments.map(([fromId, toId]) => ({
+        from: this.requireObservationEntry(fromId, figure.id, observations),
+        to: this.requireObservationEntry(toId, figure.id, observations),
+      })),
+    }));
+
+    this.stellarObservationConstellations.set(catalog, constellations);
+
+    return constellations;
+  }
+
   public resolveCatalogObjects(objects: readonly SpaceObject[]): SpaceObject[] {
     return objects.map((object) => this.resolvedCatalogObjects.get(object.id) ?? object);
   }
@@ -194,6 +245,11 @@ export class StarCatalogRegistry {
       y: sourceY,
       z: sourceZ,
     });
+    const equatorialCoordinates = equatorialCoordinatesFromCartesian({
+      x: sourceX,
+      y: sourceY,
+      z: sourceZ,
+    });
     const distanceParsec = Math.hypot(sourceX, sourceY, sourceZ);
     const spectralType = catalog.spectralTypes[index];
 
@@ -226,11 +282,48 @@ export class StarCatalogRegistry {
         colorIndexBv: catalog.colorIndicesBv[index]!,
         hygId: catalog.catalogIds[index]!,
         catalogRecordIndex: index,
+        rightAscensionDegrees: equatorialCoordinates.rightAscensionDegrees,
+        declinationDegrees: equatorialCoordinates.declinationDegrees,
+        skyCoordinateEpoch: 'J2000',
+        properMotionApplied: false,
         sourceReferenceFrame: 'J2000 equatorial Cartesian',
         renderReferenceFrame: 'Galactic heliocentric, north Galactic pole on +Y',
         visualAdaptation: 'Distance comprimée, taille et couleur adaptées au rendu',
       },
     };
+  }
+
+  private ensureStellarObservationCatalog(): readonly StellarObservationCatalogEntry[] {
+    return (this.stellarObservationCatalog ??= this.catalog.names.map((name, index) => {
+      const offset = index * 3;
+
+      return {
+        id: this.objectIds[index]!,
+        name,
+        coordinates: equatorialCoordinatesFromCartesian({
+          x: this.catalog.positionsParsec[offset]!,
+          y: this.catalog.positionsParsec[offset + 1]!,
+          z: this.catalog.positionsParsec[offset + 2]!,
+        }),
+        apparentMagnitude: this.catalog.apparentMagnitudes[index]!,
+        color: colorIndexToCssColor(this.catalog.colorIndicesBv[index]!),
+      };
+    }));
+  }
+
+  private requireObservationEntry(
+    catalogId: number,
+    constellationId: string,
+    observations: readonly StellarObservationCatalogEntry[],
+  ): StellarObservationCatalogEntry {
+    const index = this.getIndex(rawCatalogObjectId(catalogId));
+    const entry = index === null ? undefined : observations[index];
+
+    if (!entry) {
+      throw new Error(`Étoile HYG ${catalogId} introuvable pour le tracé de ${constellationId}.`);
+    }
+
+    return entry;
   }
 
   private linkCatalogObjects(objects: readonly SpaceObject[]): void {

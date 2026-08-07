@@ -1,0 +1,349 @@
+:host {
+  display: contents;
+}
+
+.earth-sky-view__landscape {
+  --horizon-y: 78%;
+  --horizon-hue: 198;
+  --city-light-hue: 42;
+  --far-ridge-shape: polygon(0 70%, 50% 48%, 100% 70%, 100% 100%, 0 100%);
+  --near-ridge-shape: polygon(0 66%, 50% 52%, 100% 68%, 100% 100%, 0 100%);
+
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  overflow: hidden;
+  opacity: 1;
+  pointer-events: none;
+  transform: translateY(100vh);
+}
+
+.earth-sky-view__landscape--travelling {
+  animation: earth-sky-surface-arrival 2.4s cubic-bezier(0.22, 0.68, 0.24, 1) both;
+}
+
+.earth-sky-view__landscape--open {
+  transform: translateY(0);
+}
+
+.earth-sky-view__atmosphere {
+  position: absolute;
+  right: -8%;
+  left: -8%;
+  top: calc(var(--horizon-y) - 25vh);
+  height: 31vh;
+  background:
+    radial-gradient(ellipse at 50% 100%, hsl(var(--horizon-hue) 62% 64% / 14%), transparent 66%),
+    linear-gradient(
+      to bottom,
+      transparent,
+      hsl(var(--horizon-hue) 52% 30% / 9%) 62%,
+      hsl(var(--horizon-hue) 58% 42% / 24%)
+    );
+  filter: blur(5px);
+}
+
+.earth-sky-view__ground {
+  position: absolute;
+  inset: var(--horizon-y) -3% auto;
+  height: max(26vh, calc(100% - var(--horizon-y)));
+  isolation: isolate;
+  border-top: 1px solid hsl(var(--horizon-hue) 54% 61% / 20%);
+  background:
+    radial-gradient(
+      circle at 8% 9%,
+      hsl(var(--city-light-hue) 84% 72% / 42%) 0 1px,
+      transparent 2px
+    ),
+    radial-gradient(
+      circle at 22% 12%,
+      hsl(var(--city-light-hue) 88% 70% / 32%) 0 1px,
+      transparent 2px
+    ),
+    radial-gradient(
+      circle at 69% 10%,
+      hsl(var(--city-light-hue) 78% 73% / 36%) 0 1px,
+      transparent 2px
+    ),
+    radial-gradient(
+      circle at 88% 14%,
+      hsl(var(--city-light-hue) 90% 68% / 38%) 0 1px,
+      transparent 2px
+    ),
+    linear-gradient(to bottom, rgb(1 7 14 / 88%), rgb(0 2 7 / 98%) 34%, #000207),
+    radial-gradient(ellipse at 50% 0, hsl(var(--horizon-hue) 58% 38% / 20%), transparent 52%);
+  background-size:
+    347px 113px,
+    419px 137px,
+    383px 127px,
+    479px 149px,
+    auto,
+    auto;
+  box-shadow: 0 -8px 34px hsl(var(--horizon-hue) 58% 45% / 8%);
+
+  &::after {
+    position: absolute;
+    inset: 3px 0 auto;
+    height: 28px;
+    background:
+      radial-gradient(circle, hsl(var(--city-light-hue) 92% 72% / 70%) 0 0.8px, transparent 1.8px) 0
+        0 / 127px 29px,
+      radial-gradient(circle, hsl(var(--city-light-hue) 84% 66% / 44%) 0 0.7px, transparent 1.7px)
+        47px 13px / 173px 37px;
+    content: '';
+    filter: blur(0.2px) drop-shadow(0 0 4px hsl(var(--city-light-hue) 88% 60% / 45%));
+    opacity: 0.34;
+  }
+}
+
+.earth-sky-view__city-glow {
+  position: absolute;
+  z-index: 0;
+  top: -150px;
+  right: -5%;
+  left: -5%;
+  display: block;
+  height: 170px;
+  background:
+    radial-gradient(ellipse at 16% 100%, hsl(var(--city-light-hue) 88% 58% / 16%), transparent 33%),
+    radial-gradient(ellipse at 49% 100%, hsl(var(--city-light-hue) 90% 62% / 13%), transparent 38%),
+    radial-gradient(ellipse at 82% 100%, hsl(var(--city-light-hue) 88% 58% / 14%), transparent 31%);
+  filter: blur(9px);
+  opacity: 0.72;
+}
+
+.earth-sky-view__ridge {
+  position: absolute;
+  z-index: 1;
+  right: 0;
+  left: 0;
+  display: block;
+  height: 132px;
+  background: linear-gradient(
+    to bottom,
+    hsl(var(--horizon-hue) 30% 10%),
+    hsl(var(--horizon-hue) 28% 4%) 72%,
+    #010207
+  );
+  transform-origin: bottom;
+
+  &::after {
+    position: absolute;
+    inset: 24% 0 0;
+    background: repeating-linear-gradient(
+      90deg,
+      transparent 0 12px,
+      hsl(var(--city-light-hue) 94% 72% / 72%) 12px 14px,
+      transparent 14px 29px
+    );
+    content: '';
+    filter: drop-shadow(0 0 3px hsl(var(--city-light-hue) 92% 62% / 48%));
+    mask: repeating-linear-gradient(0deg, transparent 0 8px, #000 8px 10px, transparent 10px 18px);
+    mix-blend-mode: screen;
+    opacity: 0.24;
+  }
+}
+
+.earth-sky-view__ridge--far {
+  top: -126px;
+  opacity: 0.52;
+  clip-path: var(--far-ridge-shape);
+
+  &::after {
+    opacity: 0.22;
+  }
+}
+
+.earth-sky-view__ridge--near {
+  top: -124px;
+  clip-path: var(--near-ridge-shape);
+}
+
+.earth-sky-view__landscape[data-light-density='quiet'] {
+  .earth-sky-view__ridge::after,
+  .earth-sky-view__ground::after {
+    opacity: 0.18;
+  }
+}
+
+.earth-sky-view__landscape[data-light-density='dense'] {
+  .earth-sky-view__ridge::after {
+    opacity: 0.4;
+  }
+
+  .earth-sky-view__ground::after {
+    opacity: 0.48;
+  }
+
+  .earth-sky-view__city-glow {
+    opacity: 0.94;
+  }
+}
+
+.earth-sky-view__landscape[data-cityscape='paris'] {
+  .earth-sky-view__ground {
+    background:
+      linear-gradient(to bottom, rgb(3 8 15 / 92%), rgb(0 2 7 / 99%) 38%, #000207),
+      radial-gradient(ellipse at 50% 0, hsl(var(--horizon-hue) 58% 38% / 22%), transparent 56%);
+
+    &::after {
+      display: none;
+    }
+  }
+}
+
+.earth-sky-view__landscape[data-cityscape='new-york'],
+.earth-sky-view__landscape[data-cityscape='tokyo'],
+.earth-sky-view__landscape[data-cityscape='seoul'] {
+  .earth-sky-view__ridge::after {
+    background: repeating-linear-gradient(
+      90deg,
+      transparent 0 8px,
+      hsl(var(--city-light-hue) 94% 72% / 72%) 8px 10px,
+      transparent 10px 21px
+    );
+  }
+}
+
+.earth-sky-view__landscape[data-cityscape='rio'],
+.earth-sky-view__landscape[data-cityscape='sydney'] {
+  .earth-sky-view__ridge--far::after {
+    opacity: 0.1;
+  }
+}
+
+.earth-sky-view__landmark {
+  --landmark-scale: 1;
+
+  position: absolute;
+  z-index: 2;
+  top: calc(-82px * var(--landmark-scale));
+  display: block;
+  width: calc(104px * var(--landmark-scale));
+  height: calc(88px * var(--landmark-scale));
+  color: hsl(var(--horizon-hue) 40% 8%);
+  filter: drop-shadow(0 -1px 0 hsl(var(--city-light-hue) 72% 72% / 48%))
+    drop-shadow(0 0 15px hsl(var(--city-light-hue) 92% 58% / 32%));
+  transform: translateX(-50%);
+
+  &::before {
+    position: absolute;
+    z-index: -1;
+    inset: -24% -34%;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, hsl(var(--city-light-hue) 92% 62% / 18%), transparent 68%);
+    content: '';
+    filter: blur(6px);
+  }
+
+  svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    fill: currentcolor;
+    stroke: hsl(var(--city-light-hue) 78% 74% / 42%);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.1;
+  }
+
+  &[data-landmark='mount-fuji'],
+  &[data-landmark='giza-pyramids'],
+  &[data-landmark='sydney-opera-house'] {
+    top: calc(-66px * var(--landmark-scale));
+    width: calc(156px * var(--landmark-scale));
+    height: calc(70px * var(--landmark-scale));
+  }
+
+  &[data-landmark='eiffel-tower'] {
+    color: #07101a;
+    filter: drop-shadow(0 -1px 0 rgb(142 172 198 / 42%)) drop-shadow(0 0 4px rgb(55 90 120 / 26%));
+
+    &::before {
+      inset: -18% -90% -4%;
+      background: radial-gradient(ellipse at 50% 88%, rgb(88 119 145 / 16%), transparent 68%);
+      filter: blur(10px);
+      opacity: 1;
+    }
+
+    svg {
+      stroke: currentcolor;
+    }
+  }
+}
+
+.earth-sky-view__eiffel-silhouette {
+  fill: #07101a;
+  stroke: rgb(115 149 178 / 56%);
+  stroke-width: 0.62;
+  shape-rendering: geometricprecision;
+  vector-effect: non-scaling-stroke;
+}
+
+.earth-sky-view__horizon {
+  position: absolute;
+  right: 0;
+  left: 0;
+  top: var(--horizon-y);
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  color: rgb(145 187 211 / 60%);
+  font-size: var(--ui-font-micro);
+  letter-spacing: 0.15em;
+  text-shadow: 0 2px 12px #000;
+  text-transform: uppercase;
+  transform: translateY(10px);
+
+  small {
+    color: rgb(170 203 221 / 43%);
+    font-size: 0.58rem;
+    letter-spacing: 0.06em;
+    text-transform: none;
+  }
+}
+
+.earth-sky-view__landscape--below .earth-sky-view__horizon span {
+  color: rgb(212 164 124 / 66%);
+}
+
+@media (width <= 720px) {
+  .earth-sky-view__horizon small {
+    display: none;
+  }
+
+  .earth-sky-view__landmark {
+    opacity: 0.86;
+  }
+
+  .earth-sky-view__ridge {
+    height: 104px;
+  }
+
+  .earth-sky-view__ridge--far,
+  .earth-sky-view__ridge--near {
+    top: -100px;
+  }
+}
+
+@keyframes earth-sky-surface-arrival {
+  0%,
+  70% {
+    transform: translateY(100vh);
+  }
+
+  88% {
+    transform: translateY(34vh);
+  }
+
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .earth-sky-view__landscape {
+    animation: none;
+  }
+}

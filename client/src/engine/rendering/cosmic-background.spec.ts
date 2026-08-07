@@ -10,18 +10,21 @@ describe('fond cosmique continu', () => {
     const planetary = sampleCosmicBackground(4.8, createCosmicBackgroundSample());
     const stellar = sampleCosmicBackground(1_400, createCosmicBackgroundSample());
     const galactic = sampleCosmicBackground(9_600, createCosmicBackgroundSample());
+    const localGroup = sampleCosmicBackground(17_000, createCosmicBackgroundSample());
     const cosmic = sampleCosmicBackground(420_000, createCosmicBackgroundSample());
 
-    expect(planetary.upperColor.getHexString()).toBe('01030a');
-    expect(planetary.lowerColor.getHexString()).toBe('020817');
-    expect(stellar.lowerColor.getHexString()).toBe('081323');
-    expect(galactic.lowerColor.getHexString()).toBe('0a1023');
-    expect(cosmic.lowerColor.getHexString()).toBe('10081d');
-    expect(cosmic.hazeColor.getHexString()).toBe('32195b');
+    expect(planetary.upperColor.getHexString()).toBe('000107');
+    expect(planetary.lowerColor.getHexString()).toBe('01030a');
+    expect(stellar.lowerColor.getHexString()).toBe('02060e');
+    expect(galactic.lowerColor.getHexString()).toBe('020208');
+    expect(localGroup.lowerColor.getHexString()).toBe('020107');
+    expect(cosmic.lowerColor.getHexString()).toBe('020107');
+    expect(cosmic.hazeColor.getHexString()).toBe('24113e');
     expect(galactic.hazeStrength).toBeGreaterThan(planetary.hazeStrength);
     expect(galactic.nebulaStrength).toBeGreaterThan(planetary.nebulaStrength);
     expect(galactic.dustStrength).toBeGreaterThan(planetary.dustStrength);
     expect(galactic.accentColor.getHexString()).not.toBe(galactic.hazeColor.getHexString());
+    expect(galactic.hazeStrength).toBeLessThan(0.06);
     expect(cosmic.vignetteStrength).toBeGreaterThan(planetary.vignetteStrength);
   });
 

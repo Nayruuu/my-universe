@@ -1,0 +1,155 @@
+app-root .app-shell .support-action {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgb(224 182 105 / 18%);
+  border-radius: 12px;
+  color: rgb(241 218 174 / 82%);
+  background: rgb(31 22 12 / 62%);
+  box-shadow: 0 10px 32px rgb(0 0 0 / 16%);
+  text-decoration: none;
+  backdrop-filter: blur(16px);
+  transition:
+    border-color 140ms ease,
+    color 140ms ease,
+    background 140ms ease;
+
+  &:hover,
+  &:focus-visible {
+    border-color: rgb(232 190 112 / 36%);
+    color: #fff0d1;
+    background: rgb(181 125 48 / 14%);
+    outline: 0;
+  }
+}
+
+app-root .app-shell .support-action__icon {
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+@media (width <= 720px) {
+  app-root .app-shell {
+    --mobile-top-safe: env(safe-area-inset-top, 0px);
+    --mobile-right-safe: env(safe-area-inset-right, 0px);
+    --mobile-bottom-safe: env(safe-area-inset-bottom, 0px);
+    --mobile-left-safe: env(safe-area-inset-left, 0px);
+    --mobile-content-top-clearance: calc(170px + var(--mobile-top-safe));
+    --mobile-timeline-clearance: calc(140px + var(--mobile-bottom-safe));
+  }
+
+  app-root .app-shell.app-shell--eclipse {
+    --mobile-timeline-clearance: calc(232px + var(--mobile-bottom-safe));
+  }
+
+  app-root .app-shell .topbar {
+    top: calc(10px + var(--mobile-top-safe));
+    right: max(10px, var(--mobile-right-safe));
+    left: max(10px, var(--mobile-left-safe));
+    grid-template-columns: 1fr auto;
+    gap: 7px;
+  }
+
+  app-root .app-shell .brand {
+    min-width: 0;
+    min-height: 44px;
+    padding-left: 1px;
+  }
+
+  app-root .app-shell .brand__mark {
+    width: 31px;
+    height: 31px;
+  }
+
+  app-root .app-shell .brand__edition,
+  app-root .app-shell .home-action {
+    display: none;
+  }
+
+  app-root .app-shell .brand__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  app-root .app-shell .language-selector select,
+  app-root .app-shell .support-action,
+  app-root .app-shell .icon-button {
+    min-width: 44px;
+    height: 44px;
+  }
+
+  app-root .app-shell .topbar__actions {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  app-root .app-shell app-universe-search {
+    grid-column: 1 / -1;
+  }
+
+  app-root .app-shell .navigation-hint,
+  app-root .app-shell .science-caption,
+  app-root .app-shell .cosmic-map-key,
+  app-root .app-shell.app-shell--details app-map-scale {
+    display: none;
+  }
+
+  app-root .app-shell .notice {
+    top: calc(122px + var(--mobile-top-safe));
+  }
+}
+
+@media (width <= 350px) {
+  app-root .app-shell .brand {
+    width: 44px;
+    justify-content: center;
+    gap: 0;
+    padding: 0;
+  }
+
+  app-root .app-shell .brand__name {
+    display: none;
+  }
+
+  app-root .app-shell .language-selector select {
+    padding-inline: 8px 20px;
+  }
+}
+
+@media (height <= 520px) and (width > 720px) and (width <= 1000px) {
+  app-root .app-shell {
+    --landscape-top-safe: env(safe-area-inset-top, 0px);
+    --landscape-right-safe: env(safe-area-inset-right, 0px);
+    --landscape-bottom-safe: env(safe-area-inset-bottom, 0px);
+    --landscape-left-safe: env(safe-area-inset-left, 0px);
+    --landscape-timeline-clearance: calc(82px + var(--landscape-bottom-safe));
+  }
+
+  app-root .app-shell.app-shell--eclipse {
+    --landscape-timeline-clearance: calc(142px + var(--landscape-bottom-safe));
+  }
+
+  app-root .app-shell .topbar {
+    top: calc(8px + var(--landscape-top-safe));
+    right: max(12px, var(--landscape-right-safe));
+    left: max(12px, var(--landscape-left-safe));
+    grid-template-columns: minmax(150px, 1fr) minmax(280px, 420px) minmax(190px, 1fr);
+    gap: 10px;
+  }
+
+  app-root .app-shell .brand__edition,
+  app-root .app-shell .navigation-hint,
+  app-root .app-shell.app-shell--details app-map-scale {
+    display: none;
+  }
+
+  app-root .app-shell .language-selector select,
+  app-root .app-shell .support-action,
+  app-root .app-shell .icon-button {
+    min-width: 44px;
+    height: 44px;
+  }
+}

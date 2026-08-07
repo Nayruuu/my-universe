@@ -4,6 +4,11 @@ import { dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { gunzip } from 'node:zlib';
+import { equatorialToCartesian } from './cosmic-structures/astronomical-coordinates.mjs';
+import { parseNamedCosmicLandmarks } from './cosmic-structures/named-landmarks.mjs';
+
+export { galacticToEquatorialSkyPosition } from './cosmic-structures/astronomical-coordinates.mjs';
+export { parseNamedCosmicLandmarks } from './cosmic-structures/named-landmarks.mjs';
 
 export const COSMIC_STRUCTURE_CATALOG_VERSION = 1;
 export const COSMIC_STRUCTURE_CATALOG_HEADER_BYTES = 48;
@@ -21,6 +26,7 @@ const INTEGRATION_INTERVALS = 512;
 
 const DEFAULT_OUTPUT = resolve('public/data/structures/cosmic-structures.bin');
 const DEFAULT_METADATA_OUTPUT = resolve('public/data/structures/cosmic-structures.json');
+const NAMED_LANDMARKS_INPUT = resolve('data-sources/named-cosmic-landmarks.json');
 
 const SOURCE_DEFINITIONS = [
   {
@@ -360,7 +366,7 @@ export function comovingDistanceMpc(redshift) {
   );
 }
 
-export function buildCosmicStructureCatalog(catalogInputs) {
+export function buildCosmicStructureCatalog(catalogInputs, namedLandmarksDocument = null) {
   const records = [];
   const sources = [];
 
@@ -386,6 +392,18 @@ export function buildCosmicStructureCatalog(catalogInputs) {
       seenIdentifiers.add(parsed.identifier);
       records.push(createCatalogRecord(input.layout, parsed, sourceIndex));
     }
+  }
+  if (namedLandmarksDocument) {
+    const namedCatalog = parseNamedCosmicLandmarks(namedLandmarksDocument);
+    const sourceIndexOffset = sources.length;
+
+    sources.push(...namedCatalog.sources);
+    records.push(
+      ...namedCatalog.records.map((record) => ({
+        ...record,
+        sourceIndex: record.sourceIndex + sourceIndexOffset,
+      })),
+    );
   }
   if (records.length === 0) {
     throw new Error('Cosmic-structure catalogue contains no records.');
@@ -466,24 +484,29 @@ export function encodeCosmicStructureCatalog(records, sourceCount) {
 }
 
 async function main() {
-  const sourcePayloads = await Promise.all(
-    SOURCE_DEFINITIONS.map(async (source) => {
-      const compressed = await readFile(source.input);
-      const decompressed = await gunzipAsync(compressed);
+  const [sourcePayloads, namedLandmarksPayload] = await Promise.all([
+    Promise.all(
+      SOURCE_DEFINITIONS.map(async (source) => {
+        const compressed = await readFile(source.input);
+        const decompressed = await gunzipAsync(compressed);
 
-      return {
-        source,
-        compressed,
-        lines: decompressed.toString('utf8').split(/\r?\n/),
-      };
-    }),
-  );
+        return {
+          source,
+          compressed,
+          lines: decompressed.toString('utf8').split(/\r?\n/),
+        };
+      }),
+    ),
+    readFile(NAMED_LANDMARKS_INPUT),
+  ]);
+  const namedLandmarksDocument = JSON.parse(namedLandmarksPayload.toString('utf8'));
   const catalog = buildCosmicStructureCatalog(
     sourcePayloads.map(({ source, lines }) => ({
       sourceId: source.id,
       layout: source.layout,
       lines,
     })),
+    namedLandmarksDocument,
   );
   const binary = encodeCosmicStructureCatalog(catalog.records, catalog.sources.length);
   const structureTypes = [...new Set(catalog.sources.map(({ structureType }) => structureType))];
@@ -520,9 +543,16 @@ async function main() {
         structureType: source.structureType,
         method: source.method,
         objectNamePrefix: source.objectNamePrefix,
-        scientificConfidence: 'calculated',
+        scientificConfidence: source.scientificConfidence ?? 'calculated',
+        ...(source.confidenceMeaning ? { confidenceMeaning: source.confidenceMeaning } : {}),
+        ...(source.extentMeaning ? { extentMeaning: source.extentMeaning } : {}),
+        ...(source.mapPriority ? { mapPriority: source.mapPriority } : {}),
+        ...(source.recordNames ? { recordNames: source.recordNames } : {}),
+        ...(source.recordAliases ? { recordAliases: source.recordAliases } : {}),
         recordCount: catalog.records.filter((record) => record.sourceIndex === sourceIndex).length,
-        sourceSha256: createHash('sha256').update(payload.compressed).digest('hex'),
+        sourceSha256: createHash('sha256')
+          .update(payload?.compressed ?? namedLandmarksPayload)
+          .digest('hex'),
       };
     }),
     representation: 'gpu-symbol-catalog-with-lazy-object-definitions',
@@ -661,18 +691,6 @@ function createClusterRecord(record, sourceIndex) {
     galaxyCount: 0,
     flags: 64,
   };
-}
-
-function equatorialToCartesian(rightAscensionDegrees, declinationDegrees, distanceMpc) {
-  const rightAscension = (rightAscensionDegrees * Math.PI) / 180;
-  const declination = (declinationDegrees * Math.PI) / 180;
-  const projectedDistance = distanceMpc * Math.cos(declination);
-
-  return [
-    projectedDistance * Math.cos(rightAscension),
-    distanceMpc * Math.sin(declination),
-    projectedDistance * Math.sin(rightAscension),
-  ];
 }
 
 function assertEncodableRecord(record, identifierLength, sourceCount) {

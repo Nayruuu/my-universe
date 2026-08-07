@@ -1,8 +1,11 @@
 import { Body, GeoMoon, HelioVector, RotateVector, Rotation_EQJ_ECL } from 'astronomy-engine';
 import type { Vector } from 'astronomy-engine';
 import { UniverseTime, Vector3Like } from '../../data/models/universe.models';
+import {
+  astronomyEngineDaysSinceJ2000,
+  isAstronomyEngineTimeSupported,
+} from './astronomy-engine-time-domain';
 import { LunarEclipseAppearance, LunarEclipsePhase } from './earth-eclipse';
-import { JULIAN_DAY_J2000 } from './time-utils';
 
 const EQUATORIAL_TO_ECLIPTIC = Rotation_EQJ_ECL();
 const SUN_RADIUS_AU = 696_340 / 149_597_870.7;
@@ -11,7 +14,10 @@ const MOON_RADIUS_AU = 1_737.4 / 149_597_870.7;
 const EMPTY_VECTOR: Vector3Like = { x: 0, y: 0, z: 0 };
 
 export function calculateLunarEclipseAppearance(time: UniverseTime): LunarEclipseAppearance {
-  const astronomyTime = time.julianDay - JULIAN_DAY_J2000;
+  if (!isAstronomyEngineTimeSupported(time)) {
+    return noLunarEclipseAppearance();
+  }
+  const astronomyTime = astronomyEngineDaysSinceJ2000(time);
   const earthPosition = toEclipticSceneVector(HelioVector(Body.Earth, astronomyTime));
   const moonPosition = toEclipticSceneVector(GeoMoon(astronomyTime));
 
@@ -81,7 +87,7 @@ function toEclipticSceneVector(equatorial: Vector): Vector3Like {
   return {
     x: ecliptic.x,
     y: ecliptic.z,
-    z: ecliptic.y,
+    z: -ecliptic.y,
   };
 }
 

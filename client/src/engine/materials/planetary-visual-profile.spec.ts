@@ -8,19 +8,17 @@ describe('planetary visual profiles', () => {
       textureAnisotropy: 1,
       showEarthClouds: false,
       showEarthNightLights: false,
-      showGasGiantStorms: false,
       atmosphereIntensity: 0.72,
     });
   });
 
-  it('adds the photographic Earth layers and gas-giant storms at medium quality', () => {
+  it('adds the photographic Earth layers at medium quality', () => {
     expect(getPlanetaryVisualProfile('medium')).toEqual({
       photographicTextureResolution: 1024,
       proceduralTextureWidth: 512,
       textureAnisotropy: 2,
       showEarthClouds: true,
       showEarthNightLights: true,
-      showGasGiantStorms: true,
       atmosphereIntensity: 0.88,
     });
   });
@@ -32,7 +30,6 @@ describe('planetary visual profiles', () => {
       textureAnisotropy: 4,
       showEarthClouds: true,
       showEarthNightLights: true,
-      showGasGiantStorms: true,
       atmosphereIntensity: 1,
     });
   });

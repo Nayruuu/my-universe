@@ -1,0 +1,316 @@
+{
+  "version": "1.0.0",
+  "cosmology": {
+    "hubbleConstantKmPerSecondPerMpc": 70,
+    "reducedHubbleParameter": 0.7
+  },
+  "sources": [
+    {
+      "id": "gott-2005-sloan-great-wall",
+      "name": "Sloan Great Wall",
+      "citation": "Gott et al. (2005), ApJ 624, 463",
+      "sourceUrl": "https://arxiv.org/abs/astro-ph/0310571",
+      "structureType": "wall",
+      "scientificConfidence": "observed",
+      "method": "Representative midpoint of the published SDSS right-ascension span; the display distance and end-to-end comoving length follow the paper and do not imply a spherical wall.",
+      "objectNamePrefix": "Mur cosmique",
+      "confidenceMeaning": "A value of 1 marks a published named structure; it is not a statistical existence probability.",
+      "extentMeaning": "Half of the published end-to-end comoving length, used only to size the map symbol.",
+      "mapPriority": "landmark",
+      "records": [
+        {
+          "identifier": "sloan-great-wall",
+          "name": "Grande Muraille de Sloan",
+          "aliases": ["Sloan Great Wall", "SGW"],
+          "catalogNumericId": 1,
+          "rightAscensionDegrees": 170.25,
+          "declinationDegrees": 0,
+          "distanceMpc": 310,
+          "diameterMpc": 450,
+          "confidence": 1
+        }
+      ]
+    },
+    {
+      "id": "pomarede-2020-south-pole-wall",
+      "name": "South Pole Wall",
+      "citation": "Pomarède et al. (2020), ApJ 897, 133",
+      "sourceUrl": "https://arxiv.org/abs/2007.04414",
+      "structureType": "wall",
+      "scientificConfidence": "calculated",
+      "method": "Peculiar-velocity and redshift reconstruction; the representative direction is the celestial south-pole density peak and cz/H0 supplies the display distance.",
+      "objectNamePrefix": "Mur cosmique",
+      "confidenceMeaning": "A value of 1 marks the published reconstructed wall; it is not a statistical existence probability.",
+      "extentMeaning": "Half of the approximately 420 Mpc published span, used only to size the map symbol.",
+      "mapPriority": "landmark",
+      "records": [
+        {
+          "identifier": "south-pole-wall",
+          "name": "Mur du Pôle Sud",
+          "aliases": ["South Pole Wall", "SPW"],
+          "catalogNumericId": 1,
+          "rightAscensionDegrees": 0,
+          "declinationDegrees": -90,
+          "recessionVelocityKmPerSecond": 12000,
+          "diameterMpc": 420,
+          "confidence": 1
+        }
+      ]
+    },
+    {
+      "id": "valade-2024-pboa",
+      "name": "Probabilistic basins of attraction",
+      "citation": "Valade et al. (2024), Nature Astronomy 8, 1832–1838",
+      "sourceUrl": "https://arxiv.org/abs/2409.17261",
+      "structureType": "basin",
+      "scientificConfidence": "calculated",
+      "method": "Hamiltonian-Monte-Carlo peculiar-velocity reconstruction. This subset contains every Table 2 p-BoA above 50%; centres, cz, volumes and intrinsic probabilities are transcribed from the paper. Display distance is cz/H0.",
+      "objectNamePrefix": "Bassin d’attraction",
+      "confidenceMeaning": "Intrinsic probability that the basin exists across constrained Cosmicflows-4 realisations, as published in Table 2.",
+      "extentMeaning": "Equivalent spherical radius derived from the published volume; the real probabilistic boundary is explicitly not spherical.",
+      "mapPriority": "landmark",
+      "records": [
+        {
+          "identifier": "sloan-great-wall-basin",
+          "name": "Bassin de la Grande Muraille de Sloan",
+          "aliases": ["Sloan Great Wall p-BoA"],
+          "catalogNumericId": 1,
+          "rightAscensionDegrees": 195.9,
+          "declinationDegrees": -0.4,
+          "recessionVelocityKmPerSecond": 24909,
+          "volumeMillionCubicMpcPerH3": 15.51,
+          "confidence": 0.99
+        },
+        {
+          "identifier": "hercules-basin",
+          "name": "Bassin d’Hercule",
+          "aliases": ["Hercules p-BoA"],
+          "catalogNumericId": 2,
+          "rightAscensionDegrees": 232.3,
+          "declinationDegrees": 11.4,
+          "recessionVelocityKmPerSecond": 12391,
+          "volumeMillionCubicMpcPerH3": 1.86,
+          "confidence": 0.99
+        },
+        {
+          "identifier": "perseus-cluster-basin",
+          "name": "Bassin de Persée",
+          "aliases": ["Perseus cluster p-BoA"],
+          "catalogNumericId": 3,
+          "rightAscensionDegrees": 61.1,
+          "declinationDegrees": 23.8,
+          "recessionVelocityKmPerSecond": 6074,
+          "volumeMillionCubicMpcPerH3": 1.06,
+          "confidence": 0.93
+        },
+        {
+          "identifier": "shapley-basin",
+          "name": "Bassin de Shapley",
+          "aliases": ["Shapley p-BoA"],
+          "catalogNumericId": 4,
+          "rightAscensionDegrees": 201.6,
+          "declinationDegrees": -41,
+          "recessionVelocityKmPerSecond": 15715,
+          "volumeMillionCubicMpcPerH3": 7.02,
+          "confidence": 0.9
+        },
+        {
+          "identifier": "columba-plus-13-8-basin",
+          "name": "Bassin Columba +13,8",
+          "aliases": ["Columba+13.8 p-BoA"],
+          "catalogNumericId": 5,
+          "rightAscensionDegrees": 88,
+          "declinationDegrees": -42,
+          "recessionVelocityKmPerSecond": 13774,
+          "volumeMillionCubicMpcPerH3": 2.69,
+          "confidence": 0.89
+        },
+        {
+          "identifier": "pisces-basin",
+          "name": "Bassin des Poissons",
+          "aliases": ["Pisces p-BoA"],
+          "catalogNumericId": 6,
+          "rightAscensionDegrees": 6.6,
+          "declinationDegrees": 11.6,
+          "recessionVelocityKmPerSecond": 11817,
+          "volumeMillionCubicMpcPerH3": 0.66,
+          "confidence": 0.87
+        },
+        {
+          "identifier": "leo-plus-23-2-basin",
+          "name": "Bassin Leo +23,2",
+          "aliases": ["Leo+23.2 p-BoA"],
+          "catalogNumericId": 7,
+          "rightAscensionDegrees": 141.9,
+          "declinationDegrees": 13.4,
+          "recessionVelocityKmPerSecond": 23207,
+          "volumeMillionCubicMpcPerH3": 0.51,
+          "confidence": 0.76
+        },
+        {
+          "identifier": "hercules-plus-28-6-basin",
+          "name": "Bassin Hercules +28,6",
+          "aliases": ["Hercules+28.6 p-BoA"],
+          "catalogNumericId": 8,
+          "rightAscensionDegrees": 247.3,
+          "declinationDegrees": 31.1,
+          "recessionVelocityKmPerSecond": 28569,
+          "volumeMillionCubicMpcPerH3": 4.11,
+          "confidence": 0.72
+        },
+        {
+          "identifier": "south-pole-wall-basin",
+          "name": "Bassin du Mur du Pôle Sud",
+          "aliases": ["South Pole Wall p-BoA"],
+          "catalogNumericId": 9,
+          "rightAscensionDegrees": 268.4,
+          "declinationDegrees": -65.9,
+          "recessionVelocityKmPerSecond": 14200,
+          "volumeMillionCubicMpcPerH3": 3.4,
+          "confidence": 0.66
+        },
+        {
+          "identifier": "ursa-major-plus-27-2-basin",
+          "name": "Bassin Ursa Major +27,2",
+          "aliases": ["UrsaMajor+27.2 p-BoA"],
+          "catalogNumericId": 10,
+          "rightAscensionDegrees": 133.6,
+          "declinationDegrees": 55.7,
+          "recessionVelocityKmPerSecond": 27210,
+          "volumeMillionCubicMpcPerH3": 0.48,
+          "confidence": 0.64
+        },
+        {
+          "identifier": "ophiuchus-basin",
+          "name": "Bassin d’Ophiuchus",
+          "aliases": ["Ophiuchus p-BoA", "Laniakea p-BoA"],
+          "catalogNumericId": 11,
+          "rightAscensionDegrees": 245.3,
+          "declinationDegrees": -28.5,
+          "recessionVelocityKmPerSecond": 7233,
+          "volumeMillionCubicMpcPerH3": 0.8,
+          "confidence": 0.62
+        },
+        {
+          "identifier": "corona-borealis-plus-19-6-basin",
+          "name": "Bassin Corona Borealis +19,6",
+          "aliases": ["CorBor+19.6 p-BoA"],
+          "catalogNumericId": 12,
+          "rightAscensionDegrees": 233.6,
+          "declinationDegrees": 38.4,
+          "recessionVelocityKmPerSecond": 19564,
+          "volumeMillionCubicMpcPerH3": 1.67,
+          "confidence": 0.61
+        },
+        {
+          "identifier": "serpens-caput-plus-26-2-basin",
+          "name": "Bassin Serpens Caput +26,2",
+          "aliases": ["SerpensCaput+26.2 p-BoA"],
+          "catalogNumericId": 13,
+          "rightAscensionDegrees": 235.8,
+          "declinationDegrees": 24.2,
+          "recessionVelocityKmPerSecond": 26237,
+          "volumeMillionCubicMpcPerH3": 2.19,
+          "confidence": 0.58
+        },
+        {
+          "identifier": "pisces-cetus-basin",
+          "name": "Bassin Pisces–Cetus",
+          "aliases": ["Pisces Cetus p-BoA"],
+          "catalogNumericId": 14,
+          "rightAscensionDegrees": 17.3,
+          "declinationDegrees": -15.8,
+          "recessionVelocityKmPerSecond": 15621,
+          "volumeMillionCubicMpcPerH3": 0.81,
+          "confidence": 0.57
+        },
+        {
+          "identifier": "leo-minor-plus-28-9-basin",
+          "name": "Bassin Leo Minor +28,9",
+          "aliases": ["LeoMinor+28.9 p-BoA"],
+          "catalogNumericId": 15,
+          "rightAscensionDegrees": 153,
+          "declinationDegrees": 31.6,
+          "recessionVelocityKmPerSecond": 28868,
+          "volumeMillionCubicMpcPerH3": 0.54,
+          "confidence": 0.55
+        }
+      ]
+    },
+    {
+      "id": "courtois-2017-shapley-attractor",
+      "name": "Shapley attractor",
+      "citation": "Courtois et al. (2017), ApJ 847, L6",
+      "sourceUrl": "https://arxiv.org/abs/1708.07547",
+      "structureType": "attractor",
+      "scientificConfidence": "calculated",
+      "method": "Cosmicflows-3 peculiar-velocity potential reconstruction; Galactic direction and recession velocity are converted to J2000 and cz/H0 display coordinates.",
+      "objectNamePrefix": "Attracteur cosmique",
+      "confidenceMeaning": "A value of 1 marks the published reconstructed potential extremum; it is not a statistical existence probability.",
+      "extentMeaning": "No physical boundary is asserted; the fixed-size map symbol marks only the reconstructed direction and distance proxy.",
+      "mapPriority": "landmark",
+      "records": [
+        {
+          "identifier": "shapley-attractor",
+          "name": "Attracteur de Shapley",
+          "aliases": ["Shapley Attractor"],
+          "catalogNumericId": 1,
+          "galacticLongitudeDegrees": 306,
+          "galacticLatitudeDegrees": 22,
+          "recessionVelocityKmPerSecond": 15900,
+          "confidence": 1
+        }
+      ]
+    },
+    {
+      "id": "courtois-2017-dipole-repeller",
+      "name": "Dipole Repeller",
+      "citation": "Courtois et al. (2017), ApJ 847, L6",
+      "sourceUrl": "https://arxiv.org/abs/1708.07547",
+      "structureType": "repeller",
+      "scientificConfidence": "calculated",
+      "method": "Cosmicflows-3 peculiar-velocity potential reconstruction; Galactic direction and recession velocity are converted to J2000 and cz/H0 display coordinates.",
+      "objectNamePrefix": "Répulseur cosmique",
+      "confidenceMeaning": "A value of 1 marks the published reconstructed potential extremum; it is not a statistical existence probability.",
+      "extentMeaning": "No physical boundary is asserted; the fixed-size map symbol marks only the reconstructed direction and distance proxy.",
+      "mapPriority": "landmark",
+      "records": [
+        {
+          "identifier": "dipole-repeller",
+          "name": "Répulseur du dipôle",
+          "aliases": ["Dipole Repeller"],
+          "catalogNumericId": 1,
+          "galacticLongitudeDegrees": 94,
+          "galacticLatitudeDegrees": -16,
+          "recessionVelocityKmPerSecond": 14000,
+          "confidence": 1
+        }
+      ]
+    },
+    {
+      "id": "courtois-2017-cold-spot-repeller",
+      "name": "Cold Spot Repeller candidate",
+      "citation": "Courtois et al. (2017), ApJ 847, L6",
+      "sourceUrl": "https://arxiv.org/abs/1708.07547",
+      "structureType": "repeller",
+      "scientificConfidence": "extrapolated",
+      "method": "Tentative Cosmicflows-3 underdensity direction. The paper treats its distance as a rough lower limit; the map therefore exposes it as extrapolated rather than observed.",
+      "objectNamePrefix": "Répulseur cosmique",
+      "confidenceMeaning": "A value of 1 marks the published candidate record; it is not a statistical existence probability.",
+      "extentMeaning": "No physical boundary is asserted; the fixed-size map symbol marks only the tentative direction and lower-limit distance proxy.",
+      "mapPriority": "landmark",
+      "records": [
+        {
+          "identifier": "cold-spot-repeller",
+          "name": "Répulseur du Point froid",
+          "aliases": ["Cold Spot Repeller"],
+          "catalogNumericId": 1,
+          "galacticLongitudeDegrees": 168,
+          "galacticLatitudeDegrees": -71,
+          "recessionVelocityKmPerSecond": 23000,
+          "confidence": 1
+        }
+      ]
+    }
+  ]
+}

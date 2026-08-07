@@ -1,0 +1,135 @@
+@let text = i18n.content().stellarObservation;
+@let phase = viewState.phase();
+@let isOpen = phase === 'open';
+<section
+  id="earth-sky-view"
+  class="earth-sky-view"
+  [class.earth-sky-view--travelling]="phase === 'travelling'"
+  [class.earth-sky-view--open]="isOpen"
+  role="region"
+  [attr.aria-label]="viewTitle()"
+  [attr.aria-busy]="phase === 'travelling'"
+  [attr.data-phase]="phase"
+>
+  @if (observation(); as currentObservation) {
+    @if (observerSelection.location(); as observerLocation) {
+      @for (currentLocation of [observerLocation]; track currentLocation.id) {
+        <app-earth-horizon
+          [location]="currentLocation"
+          [observation]="currentObservation"
+          [phase]="phase"
+          [horizonPosition]="horizonPosition()"
+          [perspective]="horizonPerspective()"
+        />
+      }
+    }
+  }
+
+  @if (isOpen) {
+    <div class="earth-sky-view__bodies" aria-live="off">
+      @for (body of skyBodies(); track body.id) {
+        <button
+          type="button"
+          class="earth-sky-view__body"
+          [class.earth-sky-view__body--assisted]="body.assistedVisibility"
+          [attr.data-body-id]="body.id"
+          [attr.data-size]="body.angularSizeClass"
+          [attr.data-lunar-phase]="body.lunarPhase.shape"
+          [attr.data-lunar-waxing]="body.lunarPhase.waxing"
+          [attr.aria-label]="body.name"
+          [title]="body.name"
+          [style.left.%]="body.xPercent"
+          [style.top.%]="body.yPercent"
+          [style.--body-color]="body.color"
+          [style.--moon-phase-scale]="body.lunarPhase.terminatorScale"
+          (click)="selectSkyBody(body.id)"
+        >
+          <i aria-hidden="true"></i>
+          @if (facade.displayOptions().showLabels) {
+            <span>{{ body.name }}</span>
+          }
+        </button>
+      }
+    </div>
+  }
+
+  @if (!isOpen) {
+    <span class="visually-hidden">
+      {{
+        i18n.interpolate(text.journeyTitle, {
+          origin: viewState.activeTargetName(),
+          destination: earthName(),
+        })
+      }}.
+      {{ text.journeyStatus }}
+    </span>
+  } @else {
+    <header class="earth-sky-view__heading">
+      <span>{{ text.eyebrow }}</span>
+      <strong>{{ viewTitle() }}</strong>
+      <small>{{ targetTitle() }}</small>
+      <app-earth-observer-location-picker
+        class="earth-sky-view__location"
+        [locations]="availableLocations()"
+        [selectedLocationId]="observerSelection.location()?.id ?? ''"
+        [label]="text.location"
+        [ariaLabel]="text.locationAria"
+        [compact]="true"
+        (locationChange)="changeLocation($event)"
+      />
+    </header>
+
+    <button
+      type="button"
+      class="earth-sky-view__close"
+      [title]="text.returnToMap"
+      [attr.aria-label]="text.returnToMap"
+      (click)="close()"
+    >
+      <span aria-hidden="true">←</span>
+      {{ text.returnToMap }}
+    </button>
+
+    <nav class="earth-sky-view__controls" [attr.aria-label]="text.skyControls">
+      <button
+        type="button"
+        class="earth-sky-view__recenter"
+        [attr.aria-label]="i18n.interpolate(text.recenter, { name: targetName() })"
+        [title]="i18n.interpolate(text.recenter, { name: targetName() })"
+        (click)="recenterSky()"
+      >
+        <span aria-hidden="true">◎</span>
+        {{ text.recenterShort }}
+      </button>
+      <button
+        type="button"
+        class="earth-sky-view__constellations"
+        [class.is-active]="facade.displayOptions().showConstellations"
+        [attr.aria-label]="i18n.content().controls.toggleConstellations"
+        [attr.aria-pressed]="facade.displayOptions().showConstellations"
+        [title]="i18n.content().controls.toggleConstellations"
+        (click)="toggleConstellations()"
+      >
+        <span aria-hidden="true">⌁</span>
+        {{ text.constellations }}
+      </button>
+      <button
+        type="button"
+        class="earth-sky-view__labels"
+        [class.is-active]="facade.displayOptions().showLabels"
+        [attr.aria-label]="i18n.content().controls.toggleLabels"
+        [attr.aria-pressed]="facade.displayOptions().showLabels"
+        [title]="i18n.content().controls.toggleLabels"
+        (click)="toggleLabels()"
+      >
+        <span aria-hidden="true">Aa</span>
+        {{ text.labels }}
+      </button>
+    </nav>
+
+    <footer class="earth-sky-view__science">
+      <span>{{ text.scientificNote }}</span>
+      <small>{{ text.illustrativeHorizon }} · {{ text.onDevice }}</small>
+    </footer>
+  }
+</section>

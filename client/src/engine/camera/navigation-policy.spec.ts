@@ -71,6 +71,8 @@ describe('politique de navigation caméra', () => {
     expect(getFocusDistance(cosmicWeb)).toBe(420_000);
     expect(getFocusDistance(cosmicWeb)).toBeLessThan(MAX_NAVIGATION_DISTANCE);
     expect(getFocusDistance(object('galaxy-cluster', 1))).toBe(220_000);
+    expect(getFocusDistance(object('cosmic-void', 36_800))).toBe(280_000);
+    expect(getFocusDistance(object('cosmic-filament', 140_000))).toBe(308_000);
   });
 
   it('conserve un plancher absolu lorsqu’aucun objet n’est ciblé', () => {
@@ -94,7 +96,10 @@ describe('politique de navigation caméra', () => {
     expect(getMinimumNavigationDistance(object('star', 10))).toBe(11.5);
     expect(getMinimumNavigationDistance(object('black-hole', 0.1))).toBe(0.55);
     expect(getMinimumNavigationDistance(object('black-hole', 10))).toBe(13.5);
+    expect(getMinimumNavigationDistance(object('supernova', 1))).toBe(1.2);
+    expect(getMinimumNavigationDistance(object('supernova-remnant', 0.1))).toBe(0.55);
     expect(getMinimumNavigationDistance(object('dwarf-planet', 1))).toBe(1.12);
+    expect(getMinimumNavigationDistance(object('exoplanet', 1))).toBe(1.12);
     expect(getMinimumNavigationDistance(object('moon', 0.01))).toBe(0.18);
     expect(getMinimumNavigationDistance(object('asteroid', 1))).toBe(1.08);
 
@@ -106,10 +111,20 @@ describe('politique de navigation caméra', () => {
     expect(getFocusDistance(object('star', 10))).toBe(100);
     expect(getFocusDistance(object('black-hole', 1))).toBe(22);
     expect(getFocusDistance(object('black-hole', 10))).toBe(120);
+    expect(getFocusDistance(object('supernova', 1))).toBe(14);
+    expect(getFocusDistance(object('supernova-remnant', 10))).toBe(80);
     expect(getFocusDistance(object('planet', 0.1))).toBe(4.5);
+    expect(getFocusDistance(object('exoplanet', 0.1))).toBe(4.5);
     expect(getFocusDistance(object('dwarf-planet', 1))).toBe(8);
     expect(getFocusDistance(object('moon', 0.1))).toBe(3.2);
     expect(getFocusDistance(object('moon', 1))).toBe(9);
+    expect(getFocusDistance(object('supercluster', 1))).toBe(280_000);
+    expect(getFocusDistance(object('cosmic-wall', 1))).toBe(280_000);
+    expect(getFocusDistance(object('cosmic-filament', 1))).toBe(280_000);
+    expect(getFocusDistance(object('cosmic-void', 1))).toBe(280_000);
+    expect(getFocusDistance(object('cosmic-basin', 1))).toBe(280_000);
+    expect(getFocusDistance(object('cosmic-attractor', 1))).toBe(280_000);
+    expect(getFocusDistance(object('cosmic-repeller', 400_000))).toBe(MAX_NAVIGATION_DISTANCE);
     expect(getFocusDistance(object('comet', 1))).toBe(10);
     expect(getFocusDistance(object('comet', 10))).toBe(40);
   });

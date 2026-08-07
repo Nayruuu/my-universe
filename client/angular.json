@@ -39,12 +39,12 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "875kB",
-                  "maximumError": "1.1MB"
+                  "maximumWarning": "300kB",
+                  "maximumError": "325kB"
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "7kB",
+                  "maximumWarning": "9.5kB",
                   "maximumError": "10kB"
                 }
               ],
@@ -74,7 +74,7 @@
           "builder": "@angular/build:unit-test",
           "options": {
             "coverageInclude": ["src/**/*.ts"],
-            "coverageExclude": ["src/**/*.spec.ts"]
+            "coverageExclude": ["src/**/*.spec.ts", "src/**/*.worker.ts"]
           }
         }
       }

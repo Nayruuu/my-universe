@@ -1,0 +1,159 @@
+:host {
+  display: block;
+  margin: 0 0 16px;
+}
+
+.stellar-observation {
+  padding: 13px;
+  border: 1px solid rgb(104 191 230 / 19%);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 84% 12%, rgb(80 168 220 / 11%), transparent 42%), rgb(5 13 25 / 76%);
+}
+
+header {
+  display: grid;
+  gap: 3px;
+  margin-bottom: 12px;
+
+  span {
+    color: #7fc9ec;
+    font-size: var(--ui-font-micro);
+    font-weight: 650;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
+
+  strong {
+    color: var(--ui-text-primary);
+    font-size: var(--ui-font-body);
+  }
+}
+
+.custom-coordinates label {
+  display: grid;
+  gap: 5px;
+
+  > span {
+    color: var(--ui-text-muted);
+    font-size: var(--ui-font-micro);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+}
+
+input {
+  width: 100%;
+  min-height: 36px;
+  box-sizing: border-box;
+  border: 1px solid rgb(160 197 228 / 14%);
+  border-radius: 9px;
+  color: var(--ui-text-primary);
+  background: rgb(2 8 17 / 76%);
+  font: inherit;
+}
+
+input {
+  padding: 0 9px;
+}
+
+.custom-coordinates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 9px;
+}
+
+.location-message,
+.observation-message {
+  margin: 9px 0 0;
+  color: #e1b982;
+  font-size: var(--ui-font-caption);
+  line-height: 1.45;
+}
+
+.horizon-indicator {
+  display: grid;
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid rgb(167 199 225 / 10%);
+  border-radius: 11px;
+  background: rgb(255 255 255 / 2%);
+
+  > div:last-child {
+    display: grid;
+    gap: 2px;
+
+    strong {
+      color: var(--ui-text-primary);
+      font-size: var(--ui-font-small);
+    }
+
+    span {
+      color: var(--ui-text-muted);
+      font-size: var(--ui-font-caption);
+    }
+  }
+}
+
+.horizon-indicator--visible {
+  border-color: rgb(89 205 168 / 18%);
+}
+
+.horizon-indicator--below {
+  opacity: 0.72;
+}
+
+.observation-values {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  overflow: hidden;
+  margin: 9px 0 0;
+  border: 1px solid rgb(160 197 228 / 10%);
+  border-radius: 10px;
+  background: rgb(160 197 228 / 8%);
+
+  div {
+    min-width: 0;
+    padding: 8px;
+    background: rgb(3 10 20 / 88%);
+  }
+
+  dt {
+    overflow: hidden;
+    color: var(--ui-text-muted);
+    font-size: var(--ui-font-micro);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  dd {
+    overflow: hidden;
+    margin: 4px 0 0;
+    color: var(--ui-text-primary);
+    font-size: var(--ui-font-small);
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.visibility-note,
+.scientific-note {
+  margin: 9px 0 0;
+  color: var(--ui-text-muted);
+  font-size: var(--ui-font-micro);
+  line-height: 1.45;
+}
+
+.scientific-note {
+  color: rgb(159 193 220 / 58%);
+}
+
+small {
+  display: block;
+  margin-top: 8px;
+  color: rgb(126 201 236 / 62%);
+  font-size: var(--ui-font-micro);
+}

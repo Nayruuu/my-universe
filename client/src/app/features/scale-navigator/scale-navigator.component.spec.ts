@@ -16,6 +16,7 @@ describe('ScaleNavigatorComponent', () => {
     lodLevel,
     targetId,
     objects,
+    focus: vi.fn(() => Promise.resolve()),
     viewScale: vi.fn(),
   };
 
@@ -117,6 +118,32 @@ describe('ScaleNavigatorComponent', () => {
     expect(facade.viewScale).toHaveBeenCalledWith(scale);
   });
 
+  it('construit un fil d’Ariane cliquable depuis la hiérarchie scientifique', () => {
+    const component = createComponent();
+
+    targetId.set('earth');
+    objects.set([
+      scaleObject('cosmic-web', 'Univers observable'),
+      scaleObject('milky-way', 'Voie lactée', 'cosmic-web'),
+      scaleObject('sun', 'Soleil', 'milky-way'),
+      scaleObject('earth', 'Terre', 'sun'),
+    ]);
+
+    expect(component.breadcrumbItems().map(({ name }) => name)).toEqual([
+      'Réseau cosmique',
+      'Voie lactée',
+      'Soleil',
+      'Terre',
+    ]);
+    component.navigateToObject('milky-way');
+    expect(facade.focus).toHaveBeenCalledWith('milky-way');
+
+    objects.set([scaleObject('earth', 'Terre', 'sun'), scaleObject('sun', 'Soleil', 'earth')]);
+    expect(component.breadcrumbItems()).toHaveLength(2);
+    targetId.set('missing');
+    expect(component.breadcrumbItems()).toEqual([]);
+  });
+
   it('rend le menu et distingue l’échelle active des autres', () => {
     const fixture = TestBed.createComponent(ScaleNavigatorComponent);
     const component = fixture.componentInstance as unknown as ScaleNavigatorAccess;
@@ -142,9 +169,28 @@ describe('ScaleNavigatorComponent', () => {
 
 interface ScaleNavigatorAccess {
   readonly menuOpen: ReturnType<typeof signal<boolean>>;
+  breadcrumbItems(): readonly { id: string; name: string }[];
   scaleLabel(): string;
+  navigateToObject(objectId: string): void;
   toggleMenu(): void;
   viewScale(scale: NavigationScaleDefinition): void;
+}
+
+function scaleObject(id: string, name: string, parentId?: string): SpaceObject {
+  return {
+    id,
+    name,
+    type: id === 'earth' ? 'planet' : id === 'sun' ? 'star' : 'galaxy',
+    ...(parentId ? { parentId } : {}),
+    referenceFrame: 'solar-system',
+    scientificConfidence: 'calculated',
+    visual: { visualRadius: 1, scaleMode: 'adaptive' },
+    positionProvider: {
+      type: 'static',
+      position: [0, 0, 0],
+      unit: 'astronomical-unit',
+    },
+  };
 }
 
 function createComponent(): ScaleNavigatorAccess {

@@ -3,6 +3,77 @@
 Large source files are neither bundled at runtime nor versioned. Compact assets produced by scripts
 in `tools/` are served from `public/data/`.
 
+## Earth observer locations
+
+`src/engine/simulation/earth-observer-locations.data.ts` is a compact 2026-08-15 snapshot derived
+from the official [GeoNames](https://www.geonames.org/) `cities500` and `countryInfo` exports,
+licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). It contains 461 local
+observer positions across 246 inhabited countries and territories, including at least one populated
+place per country code. Large or populous countries receive up to eight geographically separated
+cities; the ten French locations previously used by the eclipse interface remain available for URL
+and workflow continuity.
+
+Each record retains its GeoNames identifier, IANA time zone, population, capital status, and ISO
+country code. Coordinates come from GeoNames except for the ten pre-existing French observer points,
+whose earlier application coordinates are intentionally preserved to keep published eclipse fixtures
+stable. The browser never calls GeoNames: it searches this generated static catalogue locally. To
+reproduce the snapshot, download `cities500.txt` and `countryInfo.txt` from
+the [GeoNames export directory](https://download.geonames.org/export/dump/), place them under
+`data-sources/geonames/`, then run:
+
+```bash
+npm run data:observer-locations
+```
+
+### Illustrative city horizons
+
+Paris uses a code-native 360-degree SVG panorama with a continuous skyline, individually placed
+lights, Haussmann-inspired roofs, and chimneys. Its major architectural silhouettes reuse the
+Notre-Dame, Tour Montparnasse, Grande Arche, Arc de Triomphe, and Sacré-Cœur groups from IIVQ's
+[Highpoints of Paris](https://commons.wikimedia.org/wiki/File:Highpoints_of_Paris.svg), licensed under
+[CC BY-SA 2.5](https://creativecommons.org/licenses/by-sa/2.5/). The original source is stored locally,
+and its fragments are repositioned and visually filtered for the night panorama. Their vertical
+ratios use documented heights: Notre-Dame's western towers are
+[69 m](https://www.notredamedeparis.fr/en/understand/architecture/the-western-facade/), Tour
+Montparnasse is [210 m](https://www.paris.fr/pages/la-tour-montparnasse-fete-ses-50-ans-24034),
+the Grande Arche is
+[110 m](https://www.parisladefense.com/en/district/towers-buildings/grande-arche), the Arc de
+Triomphe is
+[49.54 m](https://www.paris-arc-de-triomphe.fr/var/cmn_inter/storage/original/application/8b8758daa9afa0ce5606f26088e0b928.pdf),
+and the Sacré-Cœur is [83 m](https://parisjetaime.com/eng/article/village-paris-a922). The
+Sacré-Cœur's building height is modelled separately from Montmartre's illustrative terrain offset,
+based on the hill's documented
+[130 m altitude](https://www.paris.fr/pages/le-sacre-coeur-de-montmartre-qui-fete-ses-150-ans-n-a-pas-pris-une-ride-30567).
+The source SVG aspect ratio is preserved for each monument rather than inheriting the horizontal
+stretch used by the decorative 360-degree skyline.
+
+The displayed slice follows the observer's current azimuth; it is not a repeating CSS building
+pattern. Other observer locations currently receive a deterministic, lightweight procedural
+skyline derived from their static identifier and coordinates. The absolute screen scale, horizontal
+spacing, skyline buildings, and Montmartre terrain offset remain visual orientation cues rather than
+a surveyed Paris panorama. The layer does not reconstruct weather or the historical appearance of
+the city at the selected date.
+
+Eight initial cities also expose a code-native landmark silhouette at its calculated great-circle
+bearing from the catalogue observer point: Paris, New York, Tokyo, London, Sydney, Cairo, Rio de
+Janeiro, and Seoul. Paris uses GDJ's detailed Eiffel Tower silhouette from
+[Open Clip Art via Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Eiffel_Tower_Silhouette.svg),
+released under the [CC0 1.0 public-domain dedication](https://creativecommons.org/publicdomain/zero/1.0/).
+Its path is embedded and recolored so no remote asset is required at runtime. Its 330 m reference
+height comes from the
+[Eiffel Tower operating company](https://www.toureiffel.paris/en/news/history-and-culture/300-330-meters-story-towers-height)
+and establishes the common visual metres-to-pixels ratio for the other Paris landmarks. The
+reference positions come from the
+[Eiffel Tower official visitor information](https://www.toureiffel.paris/en/planning-smooth-visit),
+[US Library of Congress](https://www.loc.gov/resource/hhh.ny1251.sheet/?sp=1&st=text),
+[Japan Meteorological Agency](https://www.data.jma.go.jp/vois/data/tokyo/314_Fujisan/314_index.html),
+[UK Parliament](https://www.parliament.uk/about/living-heritage/building/palace/architecture/palacestructure/towers-of-parliament/),
+[NSW Heritage](https://apps.environment.nsw.gov.au/dpcheritageapp/ViewHeritageItemDetails.aspx?ID=5054880),
+[UNESCO](https://whc.unesco.org/en/list/086/maps/),
+[Rio's municipal monument registry](https://monumentos.rio.br/id/S331/), and
+[Seoul's official tourism guide](https://english.visitseoul.net/attractions/N-Seoul-Tower/ENP000036).
+The UI labels the whole layer `illustrative`; no silhouette is presented as surveyed geometry.
+
 ## Solar System bodies
 
 Planetary, terrestrial-lunar, Plutonian, and Galilean-moon positions are calculated locally with
@@ -10,23 +81,181 @@ Planetary, terrestrial-lunar, Plutonian, and Galilean-moon positions are calcula
 jovicentric and expressed by the dependency in the J2000 equatorial frame before Universe Map
 rotates them into its J2000 ecliptic scene frame.
 
-Mean distances, periods, radii, and masses for Io, Europa, Ganymede, Callisto, and Titan are based
-on the official [NASA/JPL planetary satellite tables](https://ssd.jpl.nasa.gov/sats/elem/) and
-[physical-parameter tables](https://ssd.jpl.nasa.gov/sats/phys_par/). Satellite distances are
-visually multiplied by 40 after the scientific position calculation so the moons remain separable
-from their parent planet. This adaptation is stored explicitly as `distanceScale` and
-`visualDistanceExaggerated`.
+Mean elements, periods, and radii for the 21 bundled moons are based on the official
+[NASA/JPL planetary satellite tables](https://ssd.jpl.nasa.gov/sats/elem/) and
+[physical-parameter tables](https://ssd.jpl.nasa.gov/sats/phys_par/). Astronomy Engine supplies the
+Moon and four Galilean ephemerides. Phobos, Deimos, Titan, six additional Saturnian moons, five
+Uranian moons, Triton, and Charon use documented mean J2000 elements in a simplified Keplerian
+provider. Their equatorial or local Laplace-plane pole is converted from EQJ to the renderer's J2000
+ecliptic frame before the orbit is sampled.
 
-Titan uses JPL SAT441 mean J2000 elements only to describe a simplified Keplerian path. JPL warns
-that satellite mean elements are not accurate ephemerides, so Titan is marked `extrapolated`, and
-the current view simplifies the orientation of its local Laplace plane.
+JPL warns that satellite mean elements are not accurate ephemerides, so these 16 paths are marked
+`extrapolated`. Satellite distances are multiplied by an object-specific visual factor only after
+the scientific orbital calculation so nested systems remain separable. This adaptation is stored
+explicitly as `distanceScale` and `visualDistanceExaggerated`.
 
-Ceres, Vesta, and Halley's Comet use osculating J2000 elements from the
+Ceres, Vesta, Pallas, Hygiea, Bennu, Eris, Haumea, Makemake, Halley's Comet, and 67P use osculating
+elements from the
 [NASA/JPL Small-Body Database](https://ssd.jpl.nasa.gov/tools/sbdb_lookup.html). Their browser
-providers intentionally implement a two-body approximation: planetary perturbations and Halley's
+providers intentionally implement a two-body approximation: planetary perturbations and cometary
 non-gravitational acceleration terms are omitted. These objects are therefore marked
 `extrapolated`, while their source epoch and orbit-solution identifier remain in static metadata.
 Pluto uses Astronomy Engine's local heliocentric ephemeris and is marked `calculated`.
+
+### Body-fixed rotation
+
+The Sun, eight planets, Moon, and Pluto use Astronomy Engine's date-dependent `RotationAxis`
+implementation. It follows the IAU WGCCRE 2015 elements except for the Moon, whose fuller periodic
+series is explicitly based on the 2009 WGCCRE Mean Earth/Polar Axis model. Earth uses the library's
+precession- and nutation-aware geographic observer basis so longitude, ground viewpoints, and
+eclipse overlays share one frame.
+
+Phobos, Deimos, Io, Europa, Ganymede, Callisto, Titan, Ceres, and Vesta use coefficients transcribed from the
+[NASA/JPL NAIF `pck00011.tpc` planetary constants kernel](https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/pck00011.tpc),
+which implements the 2015 WGCCRE report. Their pole right ascension, pole declination, prime
+meridian, and applicable periodic terms are evaluated in-browser. The Martian phase series includes
+the quadratic term used by the Phobos model. Independent unit fixtures compare every added model at
+J2000 TDB and 10,000 days after J2000. Each static object stores its sidereal period, direction,
+body-fixed frame, orientation model, confidence, and source outside the visual definition.
+
+At playback rates above one simulated hour per real second, Earth alone uses a capped visual time
+to avoid temporal aliasing. Pausing or setting a date applies the exact selected-date orientation
+immediately. Observed rocky-body maps are sampled in the matching east-positive longitude direction.
+Jupiter's Hubble map remains an acquisition-epoch atmospheric snapshot; its cloud features are not
+claimed to reconstruct differential rotation at arbitrary dates.
+
+### Observed surfaces and shapes
+
+Medium and high quality use locally hosted spacecraft mosaics for Mercury, Phobos, Deimos, the four
+Galilean moons, Titan, six additional Saturnian moons, five Uranian moons, Triton, Ceres, Vesta,
+Pluto, and Charon. Sources are the NASA/JPL Solar System Simulator and controlled USGS Astrogeology
+products from Mariner 10, Viking, Voyager, Galileo, Cassini, Dawn, and New Horizons imagery. Every
+matching catalogue entry exposes `appearanceConfidence: observed` and concise visual provenance in
+its object card. These are cartographic mosaics rather than untouched photographs: gaps, polar
+coverage, contrast, and color can be processed by the publishing institution.
+
+Saturn, Uranus, and Neptune use compact derivatives of the atlases embedded in official NASA VTAD
+3D models. Because these atmospheres evolve and are not reconstructed at the selected date, their
+textures and body-fixed alignment are marked `illustrative`. All atmospheric and observed surface
+assets remain deferred until their close LOD is requested.
+
+Phobos and Deimos use official NASA/JPL-Caltech textured polygonal models derived from spacecraft
+observations. Ceres and Vesta use NASA VTAD textured polygonal models consistent with the Dawn shape
+and cartographic products catalogued by NASA PDS and USGS. Bennu uses NASA VTAD's textured 3D model
+derived from OSIRIS-REx observations. Comet 67P uses ESA's October 2014 OSIRIS polygonal shape; it
+has no photographic texture, so Universe Map assigns a neutral illustrative material and omits
+jets. All six models are deferred until their detailed LOD is visible, while a procedural or
+triaxial fallback provides the loading and failure state. Complete source, credit, treatment, and
+reuse notes live beside the assets in `public/textures/README.md` and `public/models/README.md`.
+
+The Phobos, Deimos, Ceres, and Vesta fallbacks retain measured or best-fit triaxial dimensions from
+NASA planetary data and Dawn shape products. Haumea uses the calculated axes and ring reported from
+the 2017 stellar occultation; Halley's nucleus uses the approximate dimensions measured by
+spacecraft imaging. The renderer normalizes each ellipsoid by its geometric-mean axis, preserving
+the existing adaptive visual volume while reproducing the documented axis ratios. The object card
+exposes dimensions, confidence, and the shape-specific source independently from orbit confidence
+and visual scale.
+
+## Confirmed exoplanet catalogue
+
+`public/data/exoplanets/nasa-pscomppars.bin` and its JSON sidecar are a static 2026-08-05 snapshot
+of the [NASA Exoplanet Archive](https://exoplanetarchive.ipac.caltech.edu/) composite planetary
+systems table, `PSCompPars`, retrieved through the Archive's
+[TAP service](https://exoplanetarchive.ipac.caltech.edu/docs/TAP/usingTAP.html). The snapshot
+contains 6,333 confirmed planets around 4,747 host systems. Regenerate an intentionally newer
+snapshot with:
+
+```bash
+npm run data:exoplanets
+```
+
+The sidecar preserves the exact TAP query, retrieval date, raw-response SHA-256, format version,
+record counts, and missing-distance policy. The checked 1,096,458-byte `UMEX` v1 binary contains a
+32-byte header, one fixed 64-byte record per host, one fixed 72-byte record per planet, and a shared
+null-terminated UTF-8 string table. The runtime rejects incompatible dimensions, offsets, strings,
+duplicate names, nonphysical values, invalid host ranges, and metadata/count mismatches before
+exposing the catalogue.
+
+All 6,333 planets and 4,747 hosts are locally searchable. A discovery panel filters planets by
+published distance, radius class, discovery method, and an explicitly indicative temperature/radius
+criterion. Host ICRS J2000 directions are independently rotated into Universe Map's heliocentric
+Galactic frame. NASA publishes a distance for 4,720 hosts and 6,306 planets. For the remaining 27
+systems, the observed sky direction is retained but a clearly labelled 1,000 pc illustrative radial
+depth is used solely to place the target on the 3D map; no missing distance is presented as measured.
+
+The renderer keeps the full layer compact: one typed-array `THREE.Points` batch draws unlinked host
+systems, low/medium/high quality expose stable 45%/72%/100% prefixes, and one reusable marker handles
+selection. No permanent Three.js object is allocated per catalogue row. Selecting a host or planet
+materializes only that host and its planets in a temporary object registry, so orbit framing,
+timeline updates, labels, cards, and URL sharing work without keeping thousands of detailed systems
+active. Selecting another catalogue system replaces and disposes the previous detailed registry;
+engine disposal releases the remaining resources.
+
+Published period and semi-major axis values remain catalogue facts. If exactly one is absent and a
+stellar mass is available, the missing value is calculated with Kepler's third law and labelled
+`calculated`. If the required inputs are absent, bounded spacing or timing is explicitly labelled
+illustrative. Phase, local display-plane inclination, orbit scale, planet surface, lighting, and
+color are always visual adaptations rather than reconstructed exoplanet ephemerides.
+
+### Featured exoplanet systems
+
+`public/data/exoplanets/featured-systems.json` is a compact 2026-08-05 snapshot of the
+[NASA Exoplanet Archive](https://exoplanetarchive.ipac.caltech.edu/) composite planetary systems
+table, `PSCompPars`, retrieved through the Archive's
+[TAP service](https://exoplanetarchive.ipac.caltech.edu/docs/TAP/usingTAP.html). It contains four
+host stars and ten confirmed planets: Kepler-186 f, Kepler-22 b, Kepler-452 b, and TRAPPIST-1 b
+through h. The browser loads this static file from the same origin as the application; it does not
+query NASA at runtime.
+
+Host right ascension, declination, and distance are preserved in metadata in ICRS J2000. The stored
+Cartesian vectors independently rotate those catalogue coordinates into the same heliocentric
+Galactic convention as the HYG layer: Galactic north on scene +Y, longitude 90 degrees on +Z, and
+the Galactic center toward -X. Static-data tests reconstruct every vector from the preserved source
+coordinates with the IAU J2000 rotation matrix.
+
+Confirmation status, discovery metadata, orbital period, semi-major axis, radius, mass, equilibrium
+temperature, inclination, and eccentricity are catalogue facts where available. The `massProvenance`
+field distinguishes an Archive mass value from a mass inferred by a mass-radius relationship.
+
+The Archive does not provide a complete visual ephemeris or an observed surface for these planets.
+`illustrative-orbit` therefore uses the catalogue period and semi-major axis while declaring its
+phase, local display-plane orientation, and distance multiplier as visual adaptations. Planet
+colors, textures, sizes, host lighting, and shadow fill are also illustrative. The object card
+exposes this distinction instead of presenting the animation as an observed position at the chosen
+date.
+
+## Historical supernovas and remnants
+
+`public/data/supernovas/catalog.json` is a deliberately compact editorial catalogue of six
+well-documented events and remnants: SN 1006, the Crab Nebula/SN 1054, Tycho's Supernova/SN 1572,
+Kepler's Supernova/SN 1604, Cassiopeia A, and SN 1987A. It is not a completeness claim. The static
+records preserve J2000 right ascension and declination, published or rounded distance estimates,
+event type and date where documented, alternate names, host context, and a direct source URL.
+
+Positions and distances are based on the following mission pages:
+
+- [NASA and Chandra — SN 1006](https://chandra.harvard.edu/photo/2005/sn1006/);
+- [NASA and Chandra — Crab Nebula](https://www.chandra.harvard.edu/photo/2017/crab/);
+- [NASA and Chandra — Tycho's Supernova](https://chandra.harvard.edu/photo/2005/tycho/);
+- [NASA and Chandra — Kepler's Supernova](https://www.chandra.harvard.edu/photo/2026/kepler/);
+- [NASA and Chandra — Cassiopeia A](https://chandra.harvard.edu/photo/2002/0237/);
+- [NASA and Chandra — SN 1987A](https://www.chandra.harvard.edu/photo/2017/sn1987a/).
+
+Five Galactic records store heliocentric J2000 Galactic Cartesian positions in parsecs. SN 1987A
+is associated with the Large Magellanic Cloud and inherits that object's Local Group frame instead
+of pretending that its parsec-scale vector belongs to the Solar neighborhood. Static-data tests
+reconstruct each Galactic vector from the preserved equatorial source coordinates.
+
+The historical date is not a physical explosion timestamp at the source: it identifies the first
+recorded or observed light at Earth. The optional `visualPeakJulianDay` lets the information card
+replay that epoch. `supernova-appearance.ts` then produces an educational transition through
+pre-event, rising, peak, fading, and remnant phases. The near representation uses a displaced broken
+envelope, a smaller braided-filament layer, and sparse inner emission knots. Low quality keeps the
+first two layers; medium and high add the knots. Rise and decay duration, shell formation,
+expansion, composite color, brightness, morphology, and apparent size are all marked
+`illustrative`; they are not an observed light curve, hydrodynamic simulation, or reconstructed
+multiwavelength image. Cassiopeia A has no replay action because its exact first-light epoch is not
+securely documented in this compact dataset.
 
 ## Illustrative Milky Way density field
 
@@ -344,7 +573,7 @@ disabled from the cosmic-map panel.
 
 `public/data/structures/cosmic-structures.bin` is a provenance-preserving union of selected public
 catalogues, not a deduplicated claim that each row is a distinct physical object. The current static
-asset retains 26,500 positionable detections from seven source tables:
+asset retains 26,520 positionable detections from 13 sources:
 
 - all 8,757 detections in the four
   [Liivamäki, Tempel & Saar SDSS DR7 supercluster tables](https://cdsarc.cds.unistra.fr/viz-bin/cat/J/A+A/539/A80);
@@ -357,6 +586,11 @@ asset retains 26,500 positionable detections from seven source tables:
   [Planck PSZ2](https://cdsarc.cds.unistra.fr/viz-bin/cat/J/A+A/594/A27) that have a published
   external redshift and can therefore be placed in three dimensions. The 559 PSZ2 detections
   without a redshift remain outside the 3D asset instead of receiving an invented distance.
+- 20 named flow landmarks kept separate from the Tempel network: the Sloan Great Wall and South
+  Pole Wall; the 15 intrinsic-probability basins above 50% in Table 2 of
+  [Valade et al. (2024)](https://arxiv.org/abs/2409.17261); the Shapley attractor; and the Dipole and
+  tentative Cold Spot repellers reconstructed by
+  [Courtois et al. (2017)](https://arxiv.org/abs/1708.07547).
 
 The four supercluster definitions deliberately remain separate because fixed and adaptive density
 thresholds, Main and LRG samples, and survey masks can detect overlapping structures. An empty part
@@ -385,14 +619,65 @@ arrays.
 BOSS and Planck redshifts use a documented flat ΛCDM display conversion with `H0 = 70 km/s/Mpc`,
 `Ωm = 0.3`, and `ΩΛ = 0.7`; source values in Mpc/h are converted with `h = 0.7`. This choice is
 stored in the sidecar and is not presented as a precision cosmological fit. Tempel filament symbols
-use the center of each published Cartesian envelope and its catalogued spine length. They do not
-claim to render the continuous 275,599-point spine geometry, which belongs in a later tiled line
-layer.
+use the center of each published Cartesian envelope and its catalogued spine length. These point
+symbols remain useful as progressively disclosed map landmarks; a separate line asset renders the
+published spine geometry described below.
 
-At runtime, all 26,500 records share one typed-array `THREE.Points` batch and one reusable selection
+The named flow catalogue uses the same explicit `H0 = 70 km/s/Mpc` only as a `cz/H0` display-distance
+proxy. Galactic directions are converted with the IAU J2000 rotation and covered by an independent
+Galactic-centre reference test. For probabilistic basins, the published volume becomes an
+equivalent spherical display radius; it is not presented as an observed boundary. Walls use a
+representative midpoint or density-peak direction and half the published span for symbol sizing.
+Attractor and repeller records assert no physical radius. The sidecar stores the meaning of each
+confidence and extent so a published model record is never mislabeled as an existence probability.
+
+At runtime, all 26,520 records share one typed-array `THREE.Points` batch and one reusable selection
 marker. A stable, source-aware reveal order lets the draw range grow with zoom and graphics quality;
 this changes only presentation, not search availability. Search entries and object cards preserve
 source identity, and definitions are created only when requested. Type-aware symbols distinguish
-clusters, superclusters, filament centers, and voids. The default synthesis displays clusters and
-superclusters, while filament centers and voids are opt-in layers in the cosmic-map panel. The label
-pool stays bounded by quality and collision policy.
+clusters, superclusters, walls, basins, attractors, repellers, filament centers, and voids. The named
+flow landmarks use separate sheet, shell, inward-flow, and outward-flow symbols rather than being
+connected to Tempel spines. The default synthesis displays clusters,
+superclusters, and progressively sampled Tempel filaments so users can identify them directly on the
+map; voids remain an opt-in layer. Void symbols use soft, dark underdensity centers with diffuse cool
+boundaries rather than hard rings. The label pool stays bounded by quality and collision policy.
+
+### Tempel filament spines
+
+The `UMFS` v1 source layer comes from table 2 of the
+[Tempel et al. SDSS DR8 Bisous catalogue](https://cdsarc.cds.unistra.fr/viz-bin/ReadMe/J/MNRAS/438/3465?format=html&tex=true).
+It retains all 15,421 filaments, 275,599 published spine points, and the 260,178 consecutive
+point-to-point segments implied by those source rows. Reproduce the versioned browser asset with:
+
+```bash
+curl -fL \
+  https://cdsarc.cds.unistra.fr/ftp/J/MNRAS/438/3465/table2.dat.gz \
+  -o data-sources/sdss-dr8-filaments-table2.dat.gz
+npm run data:cosmic-structures
+```
+
+The checked compressed snapshot has SHA-256
+`65808180bc2fd42bd46af92a484db7cde4a343892701699d8e6cb99b687d9e76` and is ignored by Git. The
+generated `public/data/structures/tempel-filament-spines.bin` is 4,533,016 bytes; its versioned JSON
+sidecar preserves the source URL and hash, J2000 frame, J2000 epoch, Mpc/h source unit, `h = 0.7`
+conversion, approximately 0.5 Mpc/h point spacing, catalogue dimensions, and metric names.
+
+The 64-byte binary header is followed by one 8-byte index entry per filament and one 16-byte record
+per point. Index entries preserve the numeric filament ID, point count, and contiguous point offset.
+Point records preserve three `float32` Cartesian coordinates in megaparsecs and quantized visit-map,
+weighted-density, and orientation-strength values. The importer maps the catalogue axes
+`[x, y, z]` to Universe Map's `[x, z, y]` basis so declination remains vertical, but does not smooth,
+interpolate, or replace any source point.
+
+The manifest marks the binary for deferred loading: planetary, stellar, galactic, Local Group, and
+nearby-Universe startup does not fetch it. Entering the cosmic-web LOD, enabling the filament layer,
+or selecting a Tempel object triggers one request and one validated decode. Runtime checks reject
+wrong dimensions, frames, units, offsets, ordering, point coverage, nonphysical coordinates,
+dishonest distance bounds, and malformed metrics. Consecutive segments are grouped by midpoint into
+at most eight spatial octants; the current SDSS footprint produces four non-empty GPU tiles. Stable
+quality and distance thresholds reveal subsets without changing search results. Whole-spine hover
+and selection use reusable line objects. Color and opacity incorporate the three published metrics.
+The exact one-pixel axes receive a separate, softly additive screen-space halo whose density and
+width are quality-bounded; that halo is tagged `illustrative`, capped independently from scientific
+axis detail, and never presented as a physical filament diameter or an observed continuous
+matter-density field.

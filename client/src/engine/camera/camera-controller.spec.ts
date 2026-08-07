@@ -2,6 +2,10 @@ import * as THREE from 'three';
 import { SpaceObject } from '../../data/models/universe.models';
 import { CameraController } from './camera-controller';
 import {
+  EARTH_OBSERVER_VIEW_EVENT,
+  type EarthObserverViewState,
+} from './earth-observer-camera-control';
+import {
   CAMERA_FAR_DISTANCE,
   FREE_NAVIGATION_MIN_DISTANCE,
   getMinimumNavigationDistance,
@@ -244,6 +248,17 @@ describe('CameraController', () => {
     expect(settled).toHaveBeenCalledWith(controller.distanceToTarget, 'transition');
   });
 
+  it('garde le cadrage de sécurité planétaire assez bas pour révéler le plan galactique', () => {
+    camera.position.set(20, 0, 0);
+    controller.focusOn(new THREE.Vector3(10, 0, 0), earth, 4.8);
+    controller.update(3);
+
+    const viewDirection = controller.controls.target.clone().sub(camera.position).normalize();
+    const galacticLatitude = THREE.MathUtils.radToDeg(Math.asin(viewDirection.y));
+
+    expect(Math.abs(galacticLatitude)).toBeLessThan(15);
+  });
+
   it('peut finaliser le cadrage initial avant la première frame', () => {
     const target = new THREE.Vector3(120, -30, 8);
 
@@ -285,15 +300,153 @@ describe('CameraController', () => {
   });
 
   it('place la caméra à un point d’observation et regarde une autre cible', () => {
-    controller.observeFrom(new THREE.Vector3(15, 0, 0), new THREE.Vector3(0, 0, 0));
-    controller.update(3);
+    const observerPosition = new THREE.Vector3(15, 0, 0);
+    const observedTarget = new THREE.Vector3(0, 0, 0);
+
+    controller.observeFrom(observerPosition, observedTarget, observerFraming(30));
+    expect(controller.observerModeActive).toBe(false);
+    expect(controller.observerPresentationActive).toBe(true);
+    controller.update(0.6);
+
+    expect(camera.fov).toBeGreaterThan(48);
+    expect(camera.fov).toBeLessThan(82);
+    expect(camera.getWorldDirection(new THREE.Vector3()).y).toBeGreaterThan(0);
+    expect(camera.getWorldDirection(new THREE.Vector3()).y).toBeLessThan(0.5);
+    controller.update(1.79);
+    expect(controller.isTransitioning).toBe(true);
+    controller.update(0.01);
 
     expect(controller.hasActiveTarget).toBe(true);
+    expect(controller.isTransitioning).toBe(false);
+    expect(controller.observerModeActive).toBe(true);
+    expect(controller.observerPresentationActive).toBe(true);
+    expect(controller.controls.enableRotate).toBe(false);
+    expect(controller.controls.enablePan).toBe(false);
+    expect(controller.controls.enabled).toBe(false);
     expect(camera.position.x).toBeCloseTo(15, 5);
     expect(camera.position.y).toBeCloseTo(0, 5);
     expect(camera.position.z).toBeCloseTo(0, 5);
     expect(controller.controls.target).toEqual(new THREE.Vector3(0, 0, 0));
     expect(controller.controls.minDistance).toBe(FREE_NAVIGATION_MIN_DISTANCE);
+    expect(camera.getWorldDirection(new THREE.Vector3()).y).toBeCloseTo(0.5, 5);
+
+    const directionBefore = camera.getWorldDirection(new THREE.Vector3());
+
+    canvas.dispatchEvent(pointerEvent('pointerdown', 1, 300, 220));
+    canvas.dispatchEvent(pointerEvent('pointermove', 1, 420, 260));
+    canvas.dispatchEvent(pointerEvent('pointerup', 1, 420, 260));
+    controller.update(1 / 60);
+
+    expect(camera.position.distanceTo(observerPosition)).toBeLessThan(1e-12);
+    expect(
+      camera.getWorldDirection(new THREE.Vector3()).distanceTo(directionBefore),
+    ).toBeGreaterThan(0.1);
+
+    const observerTarget = controller.controls.target.clone();
+
+    controller.follow(new THREE.Vector3(90, 12, -6));
+    expect(controller.controls.target).toEqual(observerTarget);
+
+    const fieldOfViewBeforeZoom = camera.fov;
+
+    controller.zoomBy(0.75);
+    expect(camera.fov).toBeLessThan(fieldOfViewBeforeZoom);
+    controller.zoomSemantically(240);
+    expect(camera.fov).toBeGreaterThan(fieldOfViewBeforeZoom * 0.75);
+
+    controller.releaseTarget();
+    expect(controller.observerModeActive).toBe(false);
+    expect(controller.observerPresentationActive).toBe(false);
+    expect(controller.controls.enabled).toBe(true);
+    expect(controller.controls.enableRotate).toBe(true);
+    expect(controller.controls.enablePan).toBe(true);
+    expect(camera.fov).toBe(82);
+  });
+
+  it('ne réactive jamais les contrôles orbitaux en recentrant le ciel terrestre', () => {
+    const observerPosition = new THREE.Vector3(15, 0, 0);
+
+    controller.observeFrom(observerPosition, new THREE.Vector3(0, 0, 0), observerFraming(30));
+    controller.update(2.4);
+    expect(controller.observerModeActive).toBe(true);
+
+    controller.observeFrom(observerPosition, new THREE.Vector3(0, 8, -4), observerFraming(12));
+
+    expect(controller.isTransitioning).toBe(true);
+    expect(controller.observerModeActive).toBe(false);
+    expect(controller.observerPresentationActive).toBe(true);
+    expect(controller.controls.enabled).toBe(false);
+    expect(controller.controls.enableRotate).toBe(false);
+    expect(controller.controls.enablePan).toBe(false);
+
+    controller.update(2.4);
+
+    expect(controller.isTransitioning).toBe(false);
+    expect(controller.observerModeActive).toBe(true);
+    expect(controller.controls.enabled).toBe(false);
+    expect(controller.controls.enableRotate).toBe(false);
+    expect(controller.controls.enablePan).toBe(false);
+  });
+
+  it('recule continûment de l’étoile vers le point d’observation terrestre', () => {
+    camera.position.set(0, 0, 10);
+    controller.controls.target.set(0, 0, 0);
+    controller.controls.update();
+    controller.observeFrom(new THREE.Vector3(-30, 0, 0), new THREE.Vector3());
+    const distances = [controller.distanceToTarget];
+
+    for (let frame = 0; frame < 17; frame += 1) {
+      controller.update(0.15);
+      distances.push(controller.distanceToTarget);
+    }
+
+    for (let index = 1; index < distances.length; index += 1) {
+      expect(distances[index]).toBeGreaterThanOrEqual(distances[index - 1]! - 1e-10);
+    }
+    expect(distances.at(-1)).toBeCloseTo(30, 10);
+    expect(controller.observerModeActive).toBe(true);
+  });
+
+  it('conserve une orientation valide si le point observé coïncide avec l’observateur', () => {
+    const observerPosition = new THREE.Vector3(4, 2, -3);
+
+    controller.observeFrom(observerPosition, observerPosition);
+    controller.update(2.4);
+
+    const direction = camera.getWorldDirection(new THREE.Vector3());
+
+    expect(controller.observerModeActive).toBe(true);
+    expect(camera.position.distanceTo(observerPosition)).toBeCloseTo(
+      FREE_NAVIGATION_MIN_DISTANCE,
+      10,
+    );
+    expect(direction.length()).toBeCloseTo(1, 10);
+    expect(Number.isFinite(direction.x)).toBe(true);
+    expect(Number.isFinite(direction.y)).toBe(true);
+    expect(Number.isFinite(direction.z)).toBe(true);
+  });
+
+  it('conserve les limites verticales pendant le voyage vers la vue terrestre', () => {
+    const published: EarthObserverViewState[] = [];
+
+    canvas.addEventListener(EARTH_OBSERVER_VIEW_EVENT, (event) =>
+      published.push((event as CustomEvent<EarthObserverViewState>).detail),
+    );
+    controller.observeFrom(
+      new THREE.Vector3(15, 0, 0),
+      new THREE.Vector3(),
+      observerFraming(24, {
+        minimumPitchOffsetDegrees: -8,
+        maximumPitchOffsetDegrees: 80,
+      }),
+    );
+    controller.update(2.4);
+
+    canvas.dispatchEvent(pointerEvent('pointerdown', 1, 400, 300));
+    canvas.dispatchEvent(pointerEvent('pointermove', 1, 400, 30_000));
+    canvas.dispatchEvent(pointerEvent('pointerup', 1, 400, 30_000));
+
+    expect(published.at(-1)?.pitchOffsetDegrees).toBeCloseTo(-8, 10);
   });
 
   it('laisse plusieurs zooms avant progresser après la libération de la cible', () => {
@@ -383,11 +536,54 @@ describe('CameraController', () => {
     expect(controller.isTransitioning).toBe(true);
     controller.cancelFocus();
 
-    const stableTarget = controller.controls.target.clone();
+    const trackedTarget = new THREE.Vector3(14, 3, 0);
+    const navigationOffset = controller.controls.target.clone().sub(trackedTarget);
+    const movement = new THREE.Vector3(1, 2, 3);
 
-    controller.follow(stableTarget);
-    controller.follow(stableTarget.clone().add(new THREE.Vector3(1, 2, 3)));
-    expect(controller.controls.target).toEqual(stableTarget.add(new THREE.Vector3(1, 2, 3)));
+    controller.follow(trackedTarget);
+    controller.follow(trackedTarget.clone().add(movement));
+    expect(controller.controls.target).toEqual(trackedTarget.add(movement).add(navigationOffset));
+  });
+
+  it('rejoint directement une cible suivie sans ancrage préservé', () => {
+    const target = new THREE.Vector3(8, 1, -2);
+    const cameraOffset = camera.position.clone().sub(controller.controls.target);
+
+    controller.follow(target);
+
+    expect(controller.controls.target).toEqual(target);
+    expect(camera.position).toEqual(target.clone().add(cameraOffset));
+  });
+
+  it('préserve le cadrage décentré pendant le suivi et un changement d’origine', () => {
+    const anchor = new THREE.Vector3(10, 2, -1);
+
+    controller.adoptZoomTarget(anchor, earth);
+    controller.zoomSemantically(-120);
+    const cameraAfterZoom = camera.position.clone();
+    const targetAfterZoom = controller.controls.target.clone();
+
+    controller.follow(anchor);
+    expect(camera.position).toEqual(cameraAfterZoom);
+    expect(controller.controls.target).toEqual(targetAfterZoom);
+
+    const movement = new THREE.Vector3(1, -0.5, 2);
+
+    controller.follow(anchor.clone().add(movement));
+    expect(camera.position).toEqual(cameraAfterZoom.clone().add(movement));
+    expect(controller.controls.target).toEqual(targetAfterZoom.clone().add(movement));
+
+    const originShift = new THREE.Vector3(6, 1, -3);
+
+    camera.position.sub(originShift);
+    controller.controls.target.sub(originShift);
+    controller.shiftTrackedPosition(originShift);
+    const cameraAfterShift = camera.position.clone();
+    const targetAfterShift = controller.controls.target.clone();
+
+    controller.follow(anchor.clone().add(movement).sub(originShift));
+    expect(camera.position).toEqual(cameraAfterShift);
+    expect(controller.controls.target).toEqual(targetAfterShift);
   });
 
   it('rejoint progressivement une ancre de zoom puis publie sa stabilisation', () => {
@@ -434,4 +630,32 @@ function objectOfType(type: SpaceObject['type']): SpaceObject {
     id: `test-${type}`,
     type,
   };
+}
+
+function pointerEvent(
+  type: 'pointerdown' | 'pointermove' | 'pointerup',
+  pointerId: number,
+  clientX: number,
+  clientY: number,
+): PointerEvent {
+  const event = new Event(type, { bubbles: true, cancelable: true }) as PointerEvent;
+
+  Object.defineProperties(event, {
+    pointerId: { value: pointerId },
+    clientX: { value: clientX },
+    clientY: { value: clientY },
+    button: { value: 0 },
+  });
+
+  return event;
+}
+
+function observerFraming(
+  initialPitchOffsetDegrees: number,
+  pitchLimits = {
+    minimumPitchOffsetDegrees: -180,
+    maximumPitchOffsetDegrees: 180,
+  },
+) {
+  return { initialPitchOffsetDegrees, pitchLimits };
 }

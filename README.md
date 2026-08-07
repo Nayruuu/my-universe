@@ -21,6 +21,9 @@ and illustrative data.
 
 [Read the complete technical reference](docs/TECHNICAL_REFERENCE.md).
 
+[Open the public guide](https://super-universe.app/guide/) for navigation, time, eclipses, scientific
+confidence, catalogues, performance guidance, and frequently asked questions.
+
 ## Highlights
 
 - Continuous semantic zoom from any planet, star, or galaxy group to the cosmic web, with a
@@ -28,25 +31,68 @@ and illustrative data.
   touch context changes.
 - One persistent clickable landmark across the whole journey: the Sun through stellar scales, then
   the Milky Way through intergalactic scales, clamped to a collision-free safe position when it is
-  off-camera without changing the visual priority of the underlying object.
-- The Sun, all eight planets, the Moon, the four Galilean moons, Titan, Pluto, Ceres, Vesta, and
-  Halley's Comet, with searchable cards and selectable orbital paths.
-- Date-dependent IAU axial orientations for supported bodies, atmospheres, and Saturn's rings.
+  off-camera and kept outside an open object card without changing the visual priority of the
+  underlying object.
+- A 41-object Solar System catalogue: the Sun, all eight planets, 21 major moons, five dwarf
+  planets, four notable asteroids, and two comets. Every object has a searchable card and selectable
+  orbital path. Satellite mean elements are oriented in their documented J2000 equatorial or local
+  Laplace plane, while visual separation remains explicitly adaptive. In the overview, labels use
+  collision-safe placement and moons inherit their parent system's stable map accent.
+- Spacecraft-derived global mosaics for 23 additional surfaces from NASA/JPL and USGS products,
+  deferred observed textured 3D shapes for Phobos, Deimos, Ceres, Vesta, and Bennu, an observed
+  ESA/OSIRIS shape for comet 67P, and sourced triaxial fallbacks or silhouettes for six irregular
+  bodies. Object cards distinguish observed or calculated structure from processed color, filled
+  cartographic gaps, and illustrative surface treatment.
+- A complete local snapshot of 6,333 confirmed exoplanets around 4,747 host systems from the NASA
+  Exoplanet Archive, including ten richer featured planets in the Kepler-186, Kepler-22,
+  Kepler-452, and TRAPPIST-1 systems. Every record is searchable and filterable without a backend;
+  one GPU point batch maps the hosts, while only the focused system receives detailed Three.js
+  objects. Catalogue facts remain distinct from derived or illustrative orbit dimensions, phase,
+  orientation, scale, lighting, and surface appearance.
+- Date-dependent IAU axial orientations for the Sun, eight planets, Moon, Phobos, Deimos, Galilean
+  moons, Titan, Pluto, Ceres, and Vesta, with sourced body-fixed frames exposed in the object card.
+  Atmospheres, Saturn's rings, and the active equatorial guide inherit the same orientation.
 - Locally calculated planetary and lunar ephemerides with an editable UTC timeline and multiple time
   speeds.
 - A compact observed catalogue of 10,000 HYG v4.1 stars, rendered as one GPU batch with adaptive
-  point sizes, up to 144 collision-free names through three user-selectable density profiles, and a
-  reusable point-to-halo-to-volume focus representation. The 16 featured star cards resolve to
-  their exact HYG J2000 entries instead of maintaining a second set of hand-authored directions.
-- A camera-driven stellar loose octree that streams only visible 640/320-parsec regions from 34
-  shared static packs, progressively refining calculated 160/40-parsec aggregates without changing
-  search or focus precision.
-- A cinematic layered 3D Milky Way with a deferred emissive atlas, view-dependent texture
-  parallax, three physical depths, dust absorption, restrained glow, a volumetric barred bulge, and
-  a galactocentric particle field. The observed Solar neighborhood remains correctly offset from
-  the center and is hidden before it can collapse into an artificial galactic clump.
+  point sizes, a photographic Moffat-like halo, temperature-colored envelope, near-white core,
+  subtle Airy ring, and quality-bounded diffraction for genuinely bright entries. Every catalogue
+  point carries a stable procedural surface profile that becomes visible as its screen diameter
+  grows, without leaving the single GPU draw call. Eight illustrative families distinguish
+  blue-white stars, white dwarfs, yellow and orange dwarfs, red dwarfs, red giants, red
+  supergiants, and brown dwarfs through color, granulation, dark cells, corona, and apparent size.
+  Up to 144 collision-free names are exposed through three user-selectable density profiles, while
+  one reusable selected-star detail grows into a limb-darkened 3D surface at close focus. The 16
+  featured star cards resolve to their exact HYG J2000 entries instead of maintaining a second set
+  of hand-authored directions.
+- Six searchable historical supernovas and remnants — SN 1006, the Crab Nebula, Tycho's Supernova,
+  Kepler's Supernova, Cassiopeia A, and SN 1987A — with documented J2000 positions, distances, host
+  context, dates where available, and direct event replay from each information card. A
+  three-layer procedural remnant — broken outer envelope, braided filaments, and sparse emission
+  knots — plus a date-driven flash make the events readable without presenting the illustrative
+  light curve, composite color, morphology, or expansion as measured time-resolved data.
+- A continuous local-space cinematic environment for Solar System and stellar-neighborhood views:
+  a GPU-integrated 360-degree Milky Way sky built from an 8K runtime crop of ESO/S. Brunier's
+  observed full-sky panorama, presented as a distant 32-degree photographic band with an explicitly
+  illustrative diagonal composition, subtle ecliptic zodiacal light, a distance-aware solar corona,
+  and a quality-bounded
+  3,000/7,000/14,000-point unresolved sky. The Galactic Center remains fixed in the galactic
+  reference frame instead of following the camera. The crop and presentation are explicitly
+  illustrative even though the source pixels are observational. These layers fade
+  continuously into the external galaxy before galactic scale or when the observer leaves the
+  heliocentric neighborhood, and add at most three draw calls.
+- One exact 10,000-entry HYG GPU batch remains the stellar-neighborhood source for rendering,
+  search, and focus. The prepared loose-octree aggregate dataset stays available for a future denser
+  catalogue, but the current runtime deliberately performs no request, parsing, or GPU allocation
+  for that visually dormant layer.
+- A cinematic layered 3D Milky Way with an asymmetric barred-spiral emissive atlas, domain-warped
+  view parallax, three physical depths, discontinuous dust rifts, restrained glow, and a volumetric
+  barred bulge. Its procedural point field is now fallback-only, preventing duplicated rings once
+  the atlas is ready. The observed Solar neighborhood remains correctly offset from the center and
+  is hidden before it can collapse into an artificial galactic clump.
 - A searchable black-hole layer containing Sagittarius A*, Cygnus X-1, and Gaia BH1, with
-  catalogue-backed positions and masses, activity-aware silhouettes, and a quality-aware,
+  catalogue-backed positions and masses, scale-specific galactocentric or heliocentric placement,
+  activity-aware silhouettes, and a quality-aware,
   HiDPI-stable background-first lens composition. A qualitative thin-lens mapping bends the live
   framebuffer into a visual Einstein ring and inverted image across the full influence annulus.
   Sagittarius A* additionally owns one deterministic GPU point batch representing an illustrative
@@ -61,14 +107,24 @@ and illustrative data.
   information cards.
 - A map layer of 31 catalogued Local Group galaxies around the procedural Milky Way, with adaptive
   collision-free names, contextual host/satellite visibility, and searchable scientific facts.
+  Compact shared impostors cross-fade into inclined procedural disks and bounded 3D particle
+  volumes when approached, exposing spiral, elliptical, or irregular structure instead of scaling
+  a flat halo across the viewport. Catalogue positions remain observed; internal morphology,
+  particle placement, orientation, and adapted dimensions are identified as illustrative.
 - A searchable layer of 720 observed nearby-Universe galaxies, backed by five curated regions and a
   110-tile static Local Volume octree with screen-size refinement, 2/3/5-tile quality budgets,
   target pinning, and parsed-data reuse. A lightweight one-draw-call overview keeps all 720 real
-  catalogue positions visible across the Local Group transition, while streamed tiles add labels,
-  picking, and detail; focusing an entry temporarily restores its shaped galaxy impostor.
+  catalogue positions visible across the Local Group transition. Varied elliptical and spiral GPU
+  impostors provide a photographic deep-field hierarchy while their shapes, orientations, and
+  luminosities remain explicitly illustrative. Streamed tiles add labels, picking, and detail;
+  focusing an entry temporarily restores its dedicated shaped galaxy impostor.
 - A seventh cosmic-web scale containing 37,730 calculated Cosmicflows-4 galaxy groups from 11.1 to
   772.7 Mpc. The exact catalogue remains searchable while one GPU point batch progressively reveals
-  a deterministic, spatially distributed sample as the camera approaches. A second GPU batch adds
+  a deterministic, spatially distributed sample as the camera approaches. A separate one-draw-call,
+  non-interactive deep-sky batch introduces about 3,800/9,100/16,600 calculated groups in
+  low/medium/high quality between the Milky Way and Local Group scales. It preserves each catalogue
+  direction while compressing radial depth into a clearly documented LOD shell, maintaining spatial
+  continuity without a decorative star field. A second GPU batch adds
   a quality-aware nearest-neighbor scaffold precomputed from those positions without presenting the
   lines as observed physical filaments. An optional 128³ static density volume combines a
   distance-compensated sample of those data with a deterministic cellular continuity field, then
@@ -81,16 +137,38 @@ and illustrative data.
   inspectable.
 - A second scientific batch containing 26,500 positionable large-scale-structure detections from
   seven versioned public catalogues: SDSS superclusters and filament envelopes, robust BOSS voids,
-  and redshift-positioned Planck SZ clusters. A default synthesis shows progressively sampled
-  clusters and superclusters; the map panel exposes groups, links, filament centers, and voids as
-  independent layers. Every record remains searchable and focusable, preserves its detection method
-  and source, and remains separate when survey methods overlap. Missing survey coverage is
-  explicitly not rendered as a cosmic void.
+  and redshift-positioned Planck SZ clusters. The default synthesis shows progressively sampled
+  clusters, superclusters, robust BOSS voids, and exact Tempel filament spines so the network can be
+  explored directly without knowing an object name. The map panel exposes groups, links, filaments,
+  and voids as independent layers. Void centers and effective radii remain catalogue-derived while
+  larger, softly filled blue volumes make their underdensity readable without hard map rings. Every
+  record remains searchable and focusable, preserves its detection method and source, and remains
+  separate when survey methods overlap. Missing survey coverage is explicitly not rendered as a
+  cosmic void.
+- A lazily loaded, non-blocking 4.53 MB binary line layer preserving all 275,599 points and 260,178
+  consecutive segments published for the 15,421 Tempel SDSS DR8 filaments. A dedicated module Web
+  Worker fetches, validates, and decodes the source before transferring six typed-array buffers back
+  without copying; unsupported browsers use the same validated main-thread fallback. The browser
+  groups the survey into four non-empty spatial GPU tiles, progressively reveals lines by zoom and
+  quality, and highlights the complete source spine when selected. A separately identified,
+  quality-aware screen-space halo improves overview readability without changing the source axis or
+  claiming a physical diameter; no smoothing or per-segment Three.js object is introduced. The
+  render chunk is fetched alongside the Worker preload, and progressive picking-mask updates touch
+  only the newly revealed or hidden segment range instead of rewriting all 520,356 vertices.
 - A continuously blended deep-space backdrop whose restrained navy, indigo haze, and vignette
   evolve with camera distance without a hard visual cut between semantic scales.
 - Searchable and clickable names, object details, confidence levels, and shareable URL state.
-- Solar and lunar eclipse visualization, including local circumstances for selected French cities.
-- Three adaptive graphics profiles, desktop and touch navigation, and a built-in debug panel.
+- A continuously visible astronomical breadcrumb and camera-derived scale bar, both explicitly
+  marked as adapted visual cartography rather than a globally physical projection.
+- Solar and lunar eclipse visualization, including an instantaneous shadow, an optional whole-event
+  visibility envelope and bounded central corridor, local circumstances for predefined or arbitrary
+  observer coordinates, detailed C1–C4 contact times with horizon status, a scrollable past/future
+  event catalogue, and direct return to the simulated date.
+- Three graphics profiles with progressive runtime resolution adaptation, desktop and touch
+  navigation, and a built-in debug panel that reports adaptive status, p95 frame time, long-frame
+  ratio, and current/target pixel density alongside the detailed Tempel timings. The Tempel
+  catalogue and its rendering module are preloaded while the nearby-universe view is active, but
+  Three.js objects are only constructed and installed on entry to the cosmic web.
 - Static local datasets only: no account, application API, database, or backend service.
 
 ## Scientific transparency
@@ -149,6 +227,21 @@ The scale selector provides direct shortcuts to planetary, Solar System, stellar
 Group, nearby-Universe, and cosmic-web views. Floating controls independently toggle orbits,
 constellation figures, and astronomical names.
 
+## Public documentation
+
+The Markdown sources under `docs/guide/` generate an indexable VitePress site at `/guide/`. Local
+full-text search runs in the browser and requires no documentation backend.
+
+```bash
+cd client
+npm run docs:dev      # http://localhost:4204/guide/
+npm run docs:build    # writes into the Angular production output
+npm run docs:preview  # previews the generated site
+```
+
+The standard `npm run build` command builds Angular and the guide, then verifies every generated
+page, canonical URL, and sitemap entry.
+
 ## Quality gates
 
 The project uses strict TypeScript, ESLint, Angular template linting, Stylelint, Prettier, Vitest,
@@ -159,15 +252,61 @@ npm run verify
 ```
 
 From the repository root, the equivalent command is `make verify`.
+`npm run verify:ci` runs the deployment gate without the GPU-heavy browser journeys.
+
+The permanent scientific-distance audit can also be run independently:
+
+```bash
+npm run audit:science
+```
+
+It currently inspects 361,748 scientific records across the curated objects, nearby galaxies, HYG
+stars, NASA exoplanets, Cosmicflows groups, documented cosmic structures, and published Tempel
+filament points. It fails on invalid units, non-finite or inconsistent Cartesian distances,
+reference-frame drift, broken catalogue links, or metadata cardinality mismatches. Its report keeps
+the explicitly labelled exoplanet distance and orbit fallbacks visible instead of treating them as
+observations.
+
+Cold startup and the deferred Tempel transition both have repeatable browser benchmarks. The startup
+benchmark records the engine-module, static-data, scene-ready, and first-usable-map milestones. The
+Tempel benchmark reports Three.js preparation, scene installation, first visible frame, activation
+latency, and total latency. Both support desktop and emulated-mobile profiles at every quality:
+
+```bash
+npm run benchmark:startup
+npm run benchmark:tempel
+npm run benchmark:resources
+npm run benchmark:frames
+UNIVERSE_BENCHMARK_RUNS=5 UNIVERSE_BENCHMARK_STRICT=1 npm run benchmark:startup
+UNIVERSE_BENCHMARK_RUNS=5 UNIVERSE_BENCHMARK_STRICT=1 npm run benchmark:tempel
+UNIVERSE_RESOURCE_CYCLES=5 UNIVERSE_BENCHMARK_STRICT=1 npm run benchmark:resources
+UNIVERSE_FRAME_COLD=1 UNIVERSE_BENCHMARK_STRICT=1 npm run benchmark:frames
+```
+
+The benchmarks expect a local application at `http://127.0.0.1:4203` by default. Override it with
+`UNIVERSE_BENCHMARK_BASE_URL`, or limit a run with the comma-separated
+`UNIVERSE_BENCHMARK_PROFILES` and `UNIVERSE_BENCHMARK_QUALITIES` variables. It remains a manual
+device-profiling tool rather than a software-rendered CI gate. The resource benchmark first warms a
+complete Earth → Milky Way → nearby universe → cosmic web → Earth journey, then checks WebGL and
+garbage-collected JavaScript heap drift across repeated journeys. The startup strict threshold defaults
+to 7 seconds and can be changed with `UNIVERSE_STARTUP_BUDGET_MS`. The frame benchmark measures a
+complete scale journey after the map becomes interactive and reports mean, p50, p95, p99, maximum,
+long-frame ratio, per-transition phases, and the final adaptive-resolution state. It waits for a
+complete post-transition adaptive window before reading that state. The journey is warmed by
+default; set `UNIVERSE_FRAME_COLD=1` to measure the first interactive journey.
 
 The current baseline contains:
 
-- 1,004 unit and integration tests plus 43 static-data pipeline tests;
+- 2,017 unit and integration tests plus 107 static-data, documentation, deployment, benchmark, and
+  scientific-audit tests;
 - 100% statements, branches, functions, and lines coverage across production code;
 - individual 100% coverage gates for declared scientific modules;
-- 48 end-to-end Chromium journeys across desktop and mobile viewports.
+- 109 end-to-end journeys, including desktop and mobile Chromium coverage plus deterministic visual
+  signatures on Chromium, Firefox, and WebKit.
 
-GitHub Actions runs the same verification on every push and pull request.
+GitHub Actions runs `npm run verify:ci` on every push and pull request. The complete Playwright suite
+runs in the separate **Browser journeys** workflow every night and on demand, so production
+deployments are not blocked by software-rendered WebGL performance.
 
 ## Architecture
 
@@ -201,14 +340,45 @@ npm run build
 The deployable application is generated in `client/dist/universe-map/browser/` and can be hosted by
 any static file server or CDN.
 
+Production uses a dedicated Azure Static Web App named `swa-um-web`. Its lifecycle is managed by the
+private `Nayruuu/Infrastructure` Terraform repository, while this repository owns the application
+build and deployment. A successful `Verify` run on `main` automatically triggers
+`.github/workflows/deploy.yml`, which checks out the verified revision, builds it, obtains the
+deployment token at runtime through Azure OIDC, publishes the static output, and smoke-tests the
+Azure production endpoint.
+
+One-time setup:
+
+1. Apply the Infrastructure Terraform configuration to create `swa-um-web` in `rg-infra-web`.
+2. Add `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID` as GitHub Actions secrets in
+   `Nayruuu/my-universe`.
+3. Add an Azure federated credential for `repo:Nayruuu/my-universe:ref:refs/heads/main` to the same
+   application registration used by the Portfolio deployment identity.
+4. Push a verified revision to `main`, or run the deployment workflow manually from `main`.
+
+The Azure-generated hostname remains available for diagnostics. The public URL is
+`https://super-universe.app`; its DNS validation and attachment are managed through the Infrastructure
+Terraform variable `universe_map_custom_domain`. `client/public/staticwebapp.config.json` provides SPA
+fallback, binary catalogue MIME types, security headers, and cache rules suitable for the versioned
+Angular bundles and local astronomical assets.
+
 ## Data provenance
 
 - Planetary and lunar calculations use
   [Astronomy Engine](https://github.com/cosinekitty/astronomy), executed locally in the browser.
-- Major-moon mean distances and physical properties come from the
-  [NASA/JPL planetary satellite tables](https://ssd.jpl.nasa.gov/sats/), while Ceres, Vesta, and
-  Halley use explicitly extrapolated two-body elements from the
+- Major-moon mean elements and physical properties come from the
+  [NASA/JPL planetary satellite tables](https://ssd.jpl.nasa.gov/sats/), while the bundled dwarf
+  planets, asteroids, and comets use explicitly extrapolated two-body elements from the
   [NASA/JPL Small-Body Database](https://ssd.jpl.nasa.gov/tools/sbdb_lookup.html).
+- The 6,333-planet, 4,747-host exoplanet snapshot and its four richer featured systems are derived
+  from the
+  [NASA Exoplanet Archive](https://exoplanetarchive.ipac.caltech.edu/) `PSCompPars` table through
+  its [TAP service](https://exoplanetarchive.ipac.caltech.edu/docs/TAP/usingTAP.html), captured on
+  2026-08-05. Host ICRS coordinates, confirmed status, periods, semi-major axes, radii, masses, and
+  equilibrium temperatures retain their catalogue provenance. The 27 hosts without a published
+  distance retain their observed sky direction and use an explicitly labelled 1,000 pc illustrative
+  map depth. Orbital phase, display orientation, visual separation, lighting, and procedural
+  surfaces are explicitly illustrative.
 - The dense stellar field is derived from
   [HYG Database v4.1](https://github.com/astronexus/HYG-Database) under CC BY-SA 4.0.
   Its fixed-size brightness selection explicitly retains all 16 featured stars, including faint
@@ -219,9 +389,12 @@ any static file server or CDN.
   [Event Horizon Telescope Sagittarius A* result](https://eventhorizontelescope.org/blog/astronomers-reveal-first-image-black-hole-heart-our-galaxy),
   [Miller-Jones et al. (2021) Cygnus X-1 measurements](https://arxiv.org/abs/2102.09091), and the
   [updated Gaia BH1 orbit](https://arxiv.org/abs/2312.05313). Positions are cross-referenced against
-  SIMBAD or ESA Gaia metadata; all horizons and emission structures are strongly enlarged visual
-  adaptations rather than relativistic reconstructions. The local lens is an achromatic thin-lens
-  approximation applied only to the background; it is not a general-relativistic ray tracer.
+  SIMBAD or ESA Gaia metadata. Gaia BH1 and Cygnus X-1 use heliocentric Galactic vectors in the
+  stellar map, while Sagittarius A* remains at the Galactic origin; unrelated scale layers are
+  hidden before their compressed coordinates can imply false proximity. All horizons and emission
+  structures are strongly enlarged visual adaptations rather than relativistic reconstructions.
+  The local lens is an achromatic thin-lens approximation applied only to the background; it is not
+  a general-relativistic ray tracer.
 - Modern constellation figures are derived from
   [Stellarium's Modern sky culture](https://github.com/Stellarium/stellarium/tree/master/skycultures/modern)
   under CC BY-SA 4.0. They are cultural line conventions, not physical stellar links or official
@@ -249,14 +422,22 @@ for detailed provenance and known visual adaptations.
 
 ## Roadmap
 
-- Move future larger-catalogue decoding and octree preparation into Web Workers, and add deeper
-  hierarchy levels when the source density requires them.
-- Add tiled spine geometry for the documented filament catalogue, then extend the same import
-  contract to published wall, basin, attractor, and repeller products without merging incompatible
-  survey definitions.
-- Expand the Solar System selection with additional scientifically useful moons and small bodies.
-- Implement the physically delayed **Observable view** temporal mode.
-- Benchmark startup time, memory, and frame rate across a wider device panel.
+- Revisit the dormant stellar hierarchy only when a denser source catalogue requires it, then move
+  its preparation into a Web Worker and validate a visible cross-scale representation first.
+- Extend the repeatable Tempel cold-transition benchmark from the desktop/mobile browser profiles
+  to representative physical low-, medium-, and high-end devices; retain lazy shader compilation
+  unless one of those measurements exceeds the 30 FPS first-frame budget.
+- Extend the same provenance-preserving geometry contract to published wall, basin, attractor, and
+  repeller products without merging incompatible survey definitions.
+- Extend the Phobos, Deimos, Ceres, Vesta, Bennu, and 67P deferred-model contract to additional
+  irregular bodies when an authoritative shape product justifies the extra asset cost.
+- Extend the **Observable view**, which can now locate Sirius from Earth in a freely pannable and
+  zoomable HYG night sky, project modern constellation figures, highlight the target figure, and
+  expose altitude, azimuth, local horizon, location, and time. Add catalogue proper motion where
+  available and model daylight visibility without weakening the explicit confidence contract or
+  blending the simultaneous-state map with received light.
+- Run the repeatable startup, memory, and frame-rate benchmarks across a wider physical-device
+  panel.
 
 ## License
 

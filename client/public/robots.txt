@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://super-universe.app/sitemap.xml
+Sitemap: https://super-universe.app/guide/sitemap.xml

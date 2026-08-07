@@ -1,0 +1,28 @@
+{
+  "name": "Super Universe — 3D Universe Map",
+  "short_name": "Super Universe",
+  "description": "An interactive 3D map from the Solar System to the observable Universe.",
+  "id": "/en/",
+  "start_url": "/en/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#01030a",
+  "theme_color": "#01030a",
+  "lang": "en-US",
+  "categories": ["education", "science", "navigation"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

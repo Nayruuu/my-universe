@@ -1,8 +1,10 @@
 import blackHoleSource from '../../../public/data/black-holes/catalog.json';
+import manifestSource from '../../../public/data/manifest.json';
 import { SpaceObject } from '../models/universe.models';
+import { CoordinateSystem } from '../../engine/coordinates/coordinate-system';
+import { convertDistance } from '../../engine/coordinates/unit-conversion';
 import { parseUniverseDataset } from './dataset-validator';
 
-const SUN_GALACTOCENTRIC_DISTANCE_KPC = 8.178;
 const EQUATORIAL_TO_GALACTIC = [
   [-0.054_875_560_4, -0.873_437_090_2, -0.483_835_015_5],
   [0.494_109_427_9, -0.444_829_63, 0.746_982_244_5],
@@ -26,6 +28,12 @@ describe('catalogue des trous noirs', () => {
         String(metadata?.['sourceUrl']).startsWith('https://'),
       ),
     ).toBe(true);
+  });
+
+  it('versionne son URL statique pour invalider le cache de production', () => {
+    const manifestEntry = manifestSource.datasets.find(({ id }) => id === 'black-holes');
+
+    expect(manifestEntry?.url).toBe(`/data/black-holes/catalog.json?v=${blackHoleSource.version}`);
   });
 
   it('distingue un noyau supermassif, un système actif et un système dormant', () => {
@@ -60,32 +68,49 @@ describe('catalogue des trous noirs', () => {
     ).toBe(true);
   });
 
-  it('place Sagittarius A* au centre galactique et conserve les distances héliocentriques', () => {
+  it('sépare le centre galactique des deux positions héliocentriques', () => {
     expect(requiredStaticPosition('sagittarius-a-star')).toEqual([0, 0, 0]);
+    expect(requiredObject('sagittarius-a-star').referenceFrame).toBe('galactic');
 
-    for (const object of dataset.objects) {
+    for (const object of dataset.objects.filter(({ id }) => id !== 'sagittarius-a-star')) {
       const [x, y, z] = requiredStaticPosition(object.id);
-      const measuredDistance = Math.hypot(x - SUN_GALACTOCENTRIC_DISTANCE_KPC, y, z);
+      const measuredDistanceKpc = Math.hypot(x, y, z) / 1_000;
       const documentedDistance = object.metadata?.['distanceKpc'];
 
+      expect(object.referenceFrame).toBe('stellar');
       expect(documentedDistance).toEqual(expect.any(Number));
-      expect(measuredDistance).toBeCloseTo(documentedDistance as number, 3);
+      expect(measuredDistanceKpc).toBeCloseTo(documentedDistance as number, 3);
     }
   });
 
-  it('reproduit les positions galactocentriques depuis les coordonnées ICRS J2000 publiées', () => {
+  it('reproduit les vecteurs héliocentriques depuis les coordonnées ICRS J2000 publiées', () => {
     for (const object of dataset.objects.filter(({ id }) => id !== 'sagittarius-a-star')) {
-      const expected = equatorialToGalactocentric(
+      const expected = equatorialToHeliocentricGalactic(
         requiredMetadataNumber(object, 'rightAscensionDegrees'),
         requiredMetadataNumber(object, 'declinationDegrees'),
         requiredMetadataNumber(object, 'distanceKpc'),
       );
       const actual = requiredStaticPosition(object.id);
 
-      expect(actual[0]).toBeCloseTo(expected[0], 5);
-      expect(actual[1]).toBeCloseTo(expected[1], 5);
-      expect(actual[2]).toBeCloseTo(expected[2], 5);
+      expect(actual[0]).toBeCloseTo(expected[0] * 1_000, 3);
+      expect(actual[1]).toBeCloseTo(expected[1] * 1_000, 3);
+      expect(actual[2]).toBeCloseTo(expected[2] * 1_000, 3);
     }
+  });
+
+  it('garde Gaia BH1 au-delà du Système solaire dans la projection visuelle', () => {
+    const coordinates = new CoordinateSystem();
+    const provider = requiredObject('gaia-bh1').positionProvider;
+
+    if (provider.type !== 'static') {
+      throw new Error('Position statique manquante pour Gaia BH1.');
+    }
+    const rendered = coordinates.toRenderPosition(provider.position, provider.unit, 'stellar');
+    const renderedDistance = Math.hypot(rendered.x, rendered.y, rendered.z);
+    const uranusAphelion = coordinates.toSceneDistance(20.1, 'astronomical-unit', 'solar-system');
+
+    expect(renderedDistance).toBeGreaterThan(uranusAphelion * 5);
+    expect(convertDistance(0.478, 'kiloparsec', 'light-year')).toBeCloseTo(1_559, 0);
   });
 
   function requiredObject(id: string): SpaceObject {
@@ -101,8 +126,8 @@ describe('catalogue des trous noirs', () => {
   function requiredStaticPosition(id: string): [number, number, number] {
     const provider = requiredObject(id).positionProvider;
 
-    if (provider.type !== 'static' || provider.unit !== 'kiloparsec') {
-      throw new Error(`Position galactocentrique manquante pour ${id}.`);
+    if (provider.type !== 'static') {
+      throw new Error(`Position statique manquante pour ${id}.`);
     }
 
     return provider.position;
@@ -119,7 +144,7 @@ function requiredMetadataNumber(object: SpaceObject, key: string): number {
   return value;
 }
 
-function equatorialToGalactocentric(
+function equatorialToHeliocentricGalactic(
   rightAscensionDegrees: number,
   declinationDegrees: number,
   distanceKpc: number,
@@ -135,5 +160,5 @@ function equatorialToGalactocentric(
     row.reduce((sum, coefficient, index) => sum + coefficient * equatorial[index]!, 0),
   );
 
-  return [SUN_GALACTOCENTRIC_DISTANCE_KPC - galactic[0]!, galactic[2]!, galactic[1]!];
+  return [-galactic[0]!, galactic[2]!, galactic[1]!];
 }
