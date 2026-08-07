@@ -1,6 +1,7 @@
 import { PositionProviderDefinition } from '../../data/models/universe.models';
 import { CoordinateSystem } from '../coordinates/coordinate-system';
 import {
+  IllustrativeOrbitProvider,
   KeplerianOrbitProvider,
   LinearProperMotionProvider,
   PositionProviderFactory,
@@ -8,10 +9,48 @@ import {
   SolarSystemEphemerisProvider,
   StaticPositionProvider,
 } from './position-providers';
+import { ASTRONOMY_ENGINE_MAX_JULIAN_DAY } from './astronomy-engine-time-domain';
 import { dateToJulianDay, JULIAN_DAY_J2000 } from './time-utils';
 
 describe('fournisseurs de position', () => {
   const coordinates = new CoordinateSystem();
+
+  it('anime une orbite exoplanétaire illustrative sans inventer une phase observée', () => {
+    const definition: Extract<PositionProviderDefinition, { type: 'illustrative-orbit' }> = {
+      type: 'illustrative-orbit',
+      semiMajorAxis: 1,
+      orbitalPeriodDays: 100,
+      epochJulianDay: JULIAN_DAY_J2000,
+      visualPhaseAtEpochDegrees: 30,
+      visualInclinationDegrees: 60,
+      unit: 'astronomical-unit',
+      distanceScale: 2,
+    };
+    const provider = new IllustrativeOrbitProvider(definition, coordinates, 'solar-system');
+    const atEpoch = provider.getPositionAt({ julianDay: JULIAN_DAY_J2000 });
+    const afterOnePeriod = provider.getPositionAt({ julianDay: JULIAN_DAY_J2000 + 100 });
+
+    expect(atEpoch.x).toBeCloseTo(15 * Math.sqrt(3), 8);
+    expect(atEpoch.y).toBeCloseTo((15 * Math.sqrt(3)) / 2, 8);
+    expect(atEpoch.z).toBeCloseTo(7.5, 8);
+    expect(afterOnePeriod).toEqual(
+      expect.objectContaining({
+        x: expect.closeTo(atEpoch.x, 8),
+        y: expect.closeTo(atEpoch.y, 8),
+        z: expect.closeTo(atEpoch.z, 8),
+      }),
+    );
+    const withoutVisualScale = new IllustrativeOrbitProvider(
+      { ...definition, distanceScale: undefined },
+      coordinates,
+      'solar-system',
+    );
+
+    expect(withoutVisualScale.getPositionAt({ julianDay: JULIAN_DAY_J2000 }).x).toBeCloseTo(
+      atEpoch.x / 2,
+      8,
+    );
+  });
 
   it('place une orbite circulaire sur son demi-grand axe à l’époque', () => {
     const definition: Extract<PositionProviderDefinition, { type: 'keplerian' }> = {
@@ -53,6 +92,38 @@ describe('fournisseurs de position', () => {
 
     expect(position.x).toBeCloseTo(0, 8);
     expect(position.z).toBeCloseTo(30, 8);
+  });
+
+  it('oriente une orbite satellite dans son plan équatorial J2000 documenté', () => {
+    const definition: Extract<PositionProviderDefinition, { type: 'keplerian' }> = {
+      type: 'keplerian',
+      semiMajorAxis: 190_929,
+      eccentricity: 0,
+      inclination: 0,
+      longitudeOfAscendingNode: 0,
+      argumentOfPeriapsis: 0,
+      meanAnomalyAtEpoch: 0,
+      epochJulianDay: JULIAN_DAY_J2000,
+      orbitalPeriodDays: 2.520379,
+      unit: 'kilometer',
+      referencePlanePole: {
+        rightAscensionDegrees: 257.311,
+        declinationDegrees: -15.175,
+      },
+    };
+    const provider = new KeplerianOrbitProvider(definition, coordinates, 'solar-system');
+    const expectedPole = equatorialPoleToScene(definition.referencePlanePole!);
+
+    for (const elapsedDays of [
+      0,
+      definition.orbitalPeriodDays / 4,
+      definition.orbitalPeriodDays / 2,
+    ]) {
+      const position = provider.getPositionAt({ julianDay: JULIAN_DAY_J2000 + elapsedDays });
+      const normalizedDot = dot(position, expectedPole) / vectorLength(position);
+
+      expect(Math.abs(normalizedDot)).toBeLessThan(3e-7);
+    }
   });
 
   it('résout une orbite très excentrique sans sortir de ses apsides', () => {
@@ -143,6 +214,45 @@ describe('fournisseurs de position', () => {
     ).toBeCloseTo(31.2175, 6);
   });
 
+  it('retarde les éphémérides planétaires, lunaires et galiléennes prises en charge', () => {
+    const time = { julianDay: dateToJulianDay(new Date('2026-01-15T18:00:00.000Z')) };
+    const mars = new SolarSystemEphemerisProvider(
+      ephemerisDefinition('mars', 'sun', 686.98),
+      coordinates,
+      'solar-system',
+    );
+    const moon = new SolarSystemEphemerisProvider(
+      ephemerisDefinition('moon', 'earth', 27.321_661),
+      coordinates,
+      'solar-system',
+    );
+    const earth = new SolarSystemEphemerisProvider(
+      ephemerisDefinition('earth', 'sun', 365.256),
+      coordinates,
+      'solar-system',
+    );
+    const io = new SolarSystemEphemerisProvider(
+      ephemerisDefinition('io', 'jupiter', 1.769),
+      coordinates,
+      'solar-system',
+    );
+    const receivedMars = mars.getReceivedPositionAt(time)!;
+    const receivedMoon = moon.getReceivedPositionAt(time)!;
+    const receivedEarth = earth.getReceivedPositionAt(time)!;
+    const receivedIo = io.getReceivedPositionAt(time)!;
+
+    expect(receivedMars.light.lightTravelDays).toBeCloseTo(0.013_845_575, 7);
+    expect(receivedMars.position).not.toEqual(mars.getPositionAt(time));
+    expect(receivedMoon.light.lightTravelDays * 86_400).toBeGreaterThan(1);
+    expect(receivedMoon.position).not.toEqual(moon.getPositionAt(time));
+    expect(receivedEarth.light.lightTravelDays).toBe(0);
+    expect(receivedEarth.position).toEqual(earth.getPositionAt(time));
+    expect(
+      Math.abs(receivedIo.light.lightTravelDays * 86_400 - 2_116.206_545_159_341),
+    ).toBeLessThan(0.1);
+    expect(receivedIo.position).not.toEqual(io.getPositionAt(time));
+  });
+
   it('calcule les quatre lunes galiléennes dans le référentiel de Jupiter', () => {
     const factory = new PositionProviderFactory(coordinates);
     const time = { julianDay: JULIAN_DAY_J2000 };
@@ -177,6 +287,25 @@ describe('fournisseurs de position', () => {
 
     expect(distanceAu).toBeGreaterThan(29);
     expect(distanceAu).toBeLessThan(50);
+  });
+
+  it('borne Pluton à la dernière époque documentée au lieu de lancer une intégration géante', () => {
+    const provider = new PositionProviderFactory(coordinates).create(
+      ephemerisDefinition('pluto', 'sun', 90_560),
+      'solar-system',
+    );
+    const boundary = provider.getPositionAt({ julianDay: ASTRONOMY_ENGINE_MAX_JULIAN_DAY });
+    const oneMillionYearsLater = provider.getPositionAt({
+      julianDay: ASTRONOMY_ENGINE_MAX_JULIAN_DAY + 365_250_000,
+    });
+
+    expect(oneMillionYearsLater).toEqual(
+      expect.objectContaining({
+        x: expect.closeTo(boundary.x, 10),
+        y: expect.closeTo(boundary.y, 10),
+        z: expect.closeTo(boundary.z, 10),
+      }),
+    );
   });
 
   it('applique une exagération visuelle optionnelle aux orbites képlériennes satellites', () => {
@@ -345,4 +474,29 @@ function distanceToAxis(
 
 function vectorLength(vector: { x: number; y: number; z: number }): number {
   return Math.hypot(vector.x, vector.y, vector.z);
+}
+
+function equatorialPoleToScene(pole: {
+  rightAscensionDegrees: number;
+  declinationDegrees: number;
+}): { x: number; y: number; z: number } {
+  const rightAscension = (pole.rightAscensionDegrees * Math.PI) / 180;
+  const declination = (pole.declinationDegrees * Math.PI) / 180;
+  const obliquity = (23.439291111 * Math.PI) / 180;
+  const equatorial = {
+    x: Math.cos(declination) * Math.cos(rightAscension),
+    y: Math.cos(declination) * Math.sin(rightAscension),
+    z: Math.sin(declination),
+  };
+  const eclipticY = Math.cos(obliquity) * equatorial.y + Math.sin(obliquity) * equatorial.z;
+  const eclipticZ = -Math.sin(obliquity) * equatorial.y + Math.cos(obliquity) * equatorial.z;
+
+  return { x: equatorial.x, y: eclipticZ, z: -eclipticY };
+}
+
+function dot(
+  left: { x: number; y: number; z: number },
+  right: { x: number; y: number; z: number },
+): number {
+  return left.x * right.x + left.y * right.y + left.z * right.z;
 }

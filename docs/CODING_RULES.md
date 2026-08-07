@@ -80,8 +80,10 @@ npm run format
 npm run format:check
 npm run lint
 npm run lint:fix
+npm run verify:ci
 npm run verify
 ```
 
 `npm run verify` is the complete quality gate: TypeScript, formatting, ESLint, Stylelint, coverage,
-production build, and browser tests.
+production build, and browser tests. `npm run verify:ci` omits only the GPU-heavy Playwright suite and
+is the required deployment gate; browser journeys run independently every night and on demand.

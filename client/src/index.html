@@ -1,18 +1,156 @@
 <!doctype html>
-<html lang="en">
+<html lang="fr">
   <head>
     <meta charset="utf-8" />
-    <meta name="theme-color" content="#010208" />
+    <title>Super Universe — Carte 3D interactive de l’Univers</title>
+    <base href="/" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
+    />
+    <meta name="theme-color" content="#01030a" />
+    <meta name="color-scheme" content="dark" />
     <meta
       name="description"
-      content="Universe Map — exploration interactive du Système solaire et du voisinage stellaire."
+      content="Explorez le Système solaire, les étoiles, les exoplanètes, la Voie lactée et le réseau cosmique dans une carte 3D scientifique, fluide et interactive."
     />
-    <title>Universe Map — carte 3D interactive</title>
-    <base href="/" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <meta name="author" content="Nayruuu" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <link rel="author" href="https://super-dev.app" />
+    <link rel="canonical" href="https://super-universe.app/fr/" />
+    <link rel="alternate" hreflang="fr" href="https://super-universe.app/fr/" />
+    <link rel="alternate" hreflang="en" href="https://super-universe.app/en/" />
+    <link rel="alternate" hreflang="es" href="https://super-universe.app/es/" />
+    <link rel="alternate" hreflang="de" href="https://super-universe.app/de/" />
+    <link rel="alternate" hreflang="it" href="https://super-universe.app/it/" />
+    <link rel="alternate" hreflang="ko" href="https://super-universe.app/ko/" />
+    <link rel="alternate" hreflang="ja" href="https://super-universe.app/ja/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://super-universe.app/zh/" />
+    <link rel="alternate" hreflang="x-default" href="https://super-universe.app/fr/" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Super Universe" />
+    <meta property="og:locale" content="fr_FR" />
+    <!-- og-locale-alternates:start -->
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:locale:alternate" content="es_ES" />
+    <meta property="og:locale:alternate" content="de_DE" />
+    <meta property="og:locale:alternate" content="it_IT" />
+    <meta property="og:locale:alternate" content="ko_KR" />
+    <meta property="og:locale:alternate" content="ja_JP" />
+    <meta property="og:locale:alternate" content="zh_CN" />
+    <!-- og-locale-alternates:end -->
+    <meta property="og:url" content="https://super-universe.app/fr/" />
+    <meta property="og:title" content="Super Universe — Carte 3D interactive de l’Univers" />
+    <meta
+      property="og:description"
+      content="Explorez le Système solaire, les étoiles, les exoplanètes, la Voie lactée et le réseau cosmique dans une carte 3D scientifique et interactive."
+    />
+    <meta property="og:image" content="https://super-universe.app/og/universe-map-social.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Vue 3D de la Voie lactée dans Super Universe" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Super Universe — Carte 3D interactive de l’Univers" />
+    <meta
+      name="twitter:description"
+      content="Explorez le Système solaire, les étoiles, les exoplanètes, la Voie lactée et le réseau cosmique dans une carte 3D scientifique et interactive."
+    />
+    <meta name="twitter:image" content="https://super-universe.app/og/universe-map-social.png" />
+    <meta name="twitter:image:alt" content="Vue 3D de la Voie lactée dans Super Universe" />
+
+    <link rel="icon" type="image/x-icon" sizes="48x48" href="/favicon.ico" />
+    <link rel="icon" type="image/svg+xml" href="/icons/universe-map-icon.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.fr.webmanifest" />
+
+    <style>
+      .seo-fallback {
+        box-sizing: border-box;
+        min-height: 100vh;
+        display: grid;
+        place-content: center;
+        gap: 0.75rem;
+        padding: 2rem;
+        color: #eaf4ff;
+        background: #01030a;
+        font-family: Inter, system-ui, sans-serif;
+        text-align: center;
+      }
+      .seo-fallback h1,
+      .seo-fallback p {
+        margin: 0;
+      }
+      .seo-fallback p {
+        max-width: 48rem;
+        color: #9eb0c5;
+      }
+    </style>
+
+    <script id="app-jsonld" type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://super-universe.app/#website",
+            "url": "https://super-universe.app",
+            "name": "Super Universe",
+            "alternateName": "Universe Map",
+            "inLanguage": ["fr", "en", "es", "de", "it", "ko", "ja", "zh-CN"],
+            "creator": { "@id": "https://super-dev.app/#creator" }
+          },
+          {
+            "@type": "WebApplication",
+            "@id": "https://super-universe.app/fr/#application",
+            "url": "https://super-universe.app/fr/",
+            "name": "Universe Map",
+            "alternateName": "Super Universe",
+            "description": "Explorez le Système solaire, les étoiles, les exoplanètes, la Voie lactée et le réseau cosmique dans une carte 3D scientifique, fluide et interactive.",
+            "applicationCategory": "EducationalApplication",
+            "applicationSubCategory": "Astronomy",
+            "operatingSystem": "Any",
+            "browserRequirements": "JavaScript and WebGL 2",
+            "inLanguage": "fr-FR",
+            "isAccessibleForFree": true,
+            "isFamilyFriendly": true,
+            "image": "https://super-universe.app/og/universe-map-social.png",
+            "featureList": [
+              "Navigation continue du Système solaire au réseau cosmique",
+              "Positions astronomiques calculées selon la date choisie",
+              "Étoiles, exoplanètes, galaxies, éclipses et structures cosmiques documentées"
+            ],
+            "creator": { "@id": "https://super-dev.app/#creator" },
+            "codeRepository": "https://github.com/Nayruuu/my-universe",
+            "license": "https://opensource.org/licenses/MIT",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "EUR"
+            }
+          },
+          {
+            "@type": "Person",
+            "@id": "https://super-dev.app/#creator",
+            "name": "Nayruuu",
+            "url": "https://super-dev.app",
+            "sameAs": ["https://github.com/Nayruuu", "https://buymeacoffee.com/nayruuu"]
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
-    <app-root></app-root>
+    <app-root>
+      <section class="seo-fallback">
+        <h1 id="seo-fallback-title">Super Universe, carte 3D interactive de l’Univers</h1>
+        <p id="seo-fallback-description">
+          Explorez le Système solaire, les étoiles, les exoplanètes, la Voie lactée et le réseau
+          cosmique dans une carte 3D scientifique, fluide et interactive.
+        </p>
+      </section>
+    </app-root>
   </body>
 </html>

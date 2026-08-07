@@ -8,6 +8,7 @@ describe('SelectionManager', () => {
   const navigationIntent = vi.fn();
   const semanticZoom = vi.fn();
   const labelHovered = vi.fn();
+  const wheelTargetLabel = vi.fn();
   const getLabelObjectAt = vi.fn((): string | null => 'sirius');
 
   beforeEach(() => {
@@ -36,6 +37,7 @@ describe('SelectionManager', () => {
       () => false,
       labelHovered,
       semanticZoom,
+      wheelTargetLabel,
     );
   });
 
@@ -50,6 +52,16 @@ describe('SelectionManager', () => {
     dispatchPointer(canvas, 'pointerup', { button: 0 });
 
     expect(selected).toHaveBeenCalledWith('sirius', true);
+  });
+
+  it('transmet un clic primaire dans le fond comme une désélection', () => {
+    getLabelObjectAt.mockReturnValue(null);
+
+    dispatchPointer(canvas, 'pointerdown', { button: 0 });
+    dispatchPointer(canvas, 'pointerup', { button: 0 });
+
+    expect(selected).toHaveBeenCalledWith(null, false);
+    expect(navigationIntent).not.toHaveBeenCalled();
   });
 
   it('reconnaît un appui tactile même si pointerup utilise button = -1', () => {
@@ -71,7 +83,7 @@ describe('SelectionManager', () => {
     dispatchPointer(canvas, 'pointermove', { button: 0 });
 
     expect(labelHovered).toHaveBeenCalledWith('sirius');
-    expect(canvas.style.cursor).toBe('pointer');
+    expect(canvas.style.cursor).toBe('zoom-in');
 
     canvas.dispatchEvent(new MouseEvent('pointerleave'));
     expect(labelHovered).toHaveBeenLastCalledWith(null);
@@ -168,50 +180,271 @@ describe('SelectionManager', () => {
     expect(findRaycast).toHaveBeenCalledTimes(2);
   });
 
-  it('recherche une nouvelle ancre sous le curseur lorsque le sens du zoom change', () => {
+  it('ne change pas de cible avec la roulette pendant un glissement de caméra', () => {
     const access = manager as unknown as SelectionManagerAccess;
+    const findRaycast = vi.spyOn(access, 'findRaycastObjectAt').mockReturnValue('earth');
 
-    const outward = dispatchWheel(canvas, 1, 120, 90);
+    dispatchPointer(canvas, 'pointerdown', { button: 0, clientX: 120, clientY: 90 });
+    dispatchPointer(canvas, 'pointermove', { button: 0, clientX: 180, clientY: 120 });
+    getLabelObjectAt.mockClear();
 
-    expect(outward.defaultPrevented).toBe(true);
-    expect(semanticZoom).toHaveBeenLastCalledWith('sirius', 1, {
-      x: -0.7,
-      y: 0.7,
-    });
-    expect(access.navigationLock?.objectId).toBe('sirius');
+    const simultaneousWheel = dispatchWheel(canvas, -1, 180, 120, 1_000);
 
-    dispatchWheel(canvas, 1, 121, 91);
-    expect(semanticZoom).toHaveBeenLastCalledWith('sirius', 1, {
-      x: -0.6975,
-      y: 0.6966666666666667,
-    });
-
-    dispatchWheel(canvas, 0, 121, 91);
-    expect(semanticZoom).toHaveBeenLastCalledWith('sirius', 0, {
-      x: -0.6975,
-      y: 0.6966666666666667,
-    });
-
-    getLabelObjectAt.mockReturnValue('earth');
-    dispatchWheel(canvas, -1, 100, 75);
-    expect(semanticZoom).toHaveBeenLastCalledWith('earth', -1, {
-      x: -0.75,
-      y: 0.75,
-    });
-    expect(navigationIntent).not.toHaveBeenCalled();
-
-    vi.spyOn(access, 'findWheelObjectAt').mockReturnValueOnce(null).mockReturnValueOnce('earth');
-    dispatchWheel(canvas, -1, 500, 400);
+    expect(simultaneousWheel.defaultPrevented).toBe(true);
+    expect(semanticZoom).toHaveBeenLastCalledWith(
+      null,
+      -1,
+      { x: -0.55, y: 0.6 },
+      { rawDeltaY: -1, deltaMode: 0 },
+    );
+    expect(getLabelObjectAt).not.toHaveBeenCalled();
+    expect(findRaycast).not.toHaveBeenCalled();
     expect(access.navigationLock).toBeNull();
-    dispatchWheel(canvas, -1, 500, 400);
-    expect(access.navigationLock?.objectId).toBe('earth');
-    expect(semanticZoom).toHaveBeenLastCalledWith('earth', -1, {
-      x: 0.25,
-      y: -0.33333333333333326,
-    });
+
+    dispatchPointer(canvas, 'pointerup', { button: 0, clientX: 180, clientY: 120 });
+    dispatchWheel(canvas, -1, 180, 120, 1_016);
+
+    expect(semanticZoom.mock.lastCall?.[0]).toBe('sirius');
+    expect(access.navigationLock).toEqual({ objectId: 'sirius', x: 180, y: 120 });
   });
 
-  it('conserve le comportement historique sans gestionnaire de zoom sémantique', () => {
+  it('verrouille l’objet trouvé au début de chaque rafale tout en conservant sa capture', () => {
+    const access = manager as unknown as SelectionManagerAccess;
+    const intersectObjects = vi.spyOn(access.raycaster, 'intersectObjects');
+
+    getLabelObjectAt.mockReturnValue(null);
+
+    const outward = dispatchWheel(canvas, 1, 120, 90, 100);
+
+    expect(outward.defaultPrevented).toBe(true);
+    expect(semanticZoom).toHaveBeenLastCalledWith(
+      null,
+      1,
+      {
+        x: -0.7,
+        y: 0.7,
+      },
+      { rawDeltaY: 1, deltaMode: 0 },
+    );
+    expect(access.navigationLock).toEqual({ objectId: null, x: 120, y: 90 });
+
+    dispatchWheel(canvas, 1, 121, 91, 120);
+    expect(semanticZoom).toHaveBeenLastCalledWith(
+      null,
+      1,
+      {
+        x: -0.6975,
+        y: 0.6966666666666667,
+      },
+      {
+        rawDeltaY: 1,
+        deltaMode: 0,
+        continuesWheelAnchor: true,
+        continuesWheelGesture: true,
+      },
+    );
+    expect(access.navigationLock).toEqual({ objectId: null, x: 120, y: 90 });
+
+    dispatchWheel(canvas, 0, 121, 91, 130);
+    expect(semanticZoom).toHaveBeenLastCalledWith(
+      null,
+      0,
+      {
+        x: -0.6975,
+        y: 0.6966666666666667,
+      },
+      { rawDeltaY: 0, deltaMode: 0, continuesWheelAnchor: true },
+    );
+
+    getLabelObjectAt.mockReturnValue('earth');
+    dispatchWheel(canvas, -1, 100, 75, 140);
+    expect(semanticZoom).toHaveBeenLastCalledWith(
+      null,
+      -1,
+      {
+        x: -0.75,
+        y: 0.75,
+      },
+      { rawDeltaY: -1, deltaMode: 0, continuesWheelAnchor: true },
+    );
+    expect(access.navigationLock).toEqual({ objectId: null, x: 120, y: 90 });
+
+    dispatchPointer(canvas, 'pointermove', { clientX: 160, clientY: 90, timeStamp: 145 });
+    expect(access.navigationLock).toBeNull();
+    dispatchWheel(canvas, -1, 100, 75, 150);
+    expect(semanticZoom).toHaveBeenLastCalledWith(
+      'earth',
+      -1,
+      {
+        x: -0.75,
+        y: 0.75,
+      },
+      { rawDeltaY: -1, deltaMode: 0, continuesWheelGesture: true },
+    );
+    expect(access.navigationLock).toEqual({ objectId: 'earth', x: 100, y: 75 });
+
+    getLabelObjectAt.mockReturnValue('mars');
+    dispatchWheel(canvas, -1, 100, 75, 160);
+    expect(semanticZoom).toHaveBeenLastCalledWith(
+      'earth',
+      -1,
+      {
+        x: -0.75,
+        y: 0.75,
+      },
+      {
+        rawDeltaY: -1,
+        deltaMode: 0,
+        continuesWheelAnchor: true,
+        continuesWheelGesture: true,
+      },
+    );
+    const lockBeforePause = access.navigationLock;
+
+    dispatchWheel(canvas, -1, 100, 75, 2_710);
+    expect(semanticZoom).toHaveBeenLastCalledWith(
+      'mars',
+      -1,
+      {
+        x: -0.75,
+        y: 0.75,
+      },
+      { rawDeltaY: -1, deltaMode: 0 },
+    );
+    expect(access.navigationLock).not.toBe(lockBeforePause);
+    expect(access.navigationLock).toEqual({ objectId: 'mars', x: 100, y: 75 });
+
+    dispatchPointer(canvas, 'pointermove', { clientX: 180, clientY: 60, timeStamp: 2_720 });
+    expect(access.navigationLock).toBeNull();
+
+    dispatchWheel(canvas, -1, 180, 60, 2_740);
+    expect(semanticZoom).toHaveBeenLastCalledWith(
+      'mars',
+      -1,
+      {
+        x: -0.55,
+        y: 0.8,
+      },
+      { rawDeltaY: -1, deltaMode: 0, continuesWheelGesture: true },
+    );
+    const overlay = document.createElement('div');
+
+    document.body.append(overlay);
+    const overlayWheel = dispatchWheel(overlay, -1, 180, 60, 2_750);
+
+    expect(overlayWheel.defaultPrevented).toBe(true);
+    expect(semanticZoom).toHaveBeenLastCalledWith(
+      'mars',
+      -1,
+      {
+        x: -0.55,
+        y: 0.8,
+      },
+      {
+        rawDeltaY: -1,
+        deltaMode: 0,
+        continuesWheelAnchor: true,
+        continuesWheelGesture: true,
+      },
+    );
+
+    const callsBeforeExpiredOverlayWheel = semanticZoom.mock.calls.length;
+    const delayedOverlayWheel = dispatchWheel(overlay, -1, 180, 60, 4_750);
+
+    expect(delayedOverlayWheel.defaultPrevented).toBe(false);
+    expect(semanticZoom).toHaveBeenCalledTimes(callsBeforeExpiredOverlayWheel);
+    expect(access.navigationLock).toBeNull();
+
+    const callsBeforeOutsideWheel = semanticZoom.mock.calls.length;
+    const outsideWheel = dispatchWheel(overlay, -1, 700, 500, 4_760);
+
+    expect(outsideWheel.defaultPrevented).toBe(false);
+    expect(semanticZoom).toHaveBeenCalledTimes(callsBeforeOutsideWheel);
+    expect(access.navigationLock).toBeNull();
+    overlay.remove();
+
+    expect(intersectObjects).not.toHaveBeenCalled();
+    expect(navigationIntent).not.toHaveBeenCalled();
+  });
+
+  it('réarme la capture du pointeur lorsque la navigation le demande', () => {
+    semanticZoom.mockReturnValueOnce('refresh-wheel-anchor').mockReturnValue(undefined);
+    getLabelObjectAt.mockReturnValue('jupiter');
+
+    dispatchWheel(canvas, -1, 100, 75, 100);
+    const access = manager as unknown as SelectionManagerAccess;
+
+    expect(access.navigationLock).toBeNull();
+    getLabelObjectAt.mockReturnValue(null);
+    dispatchWheel(canvas, -1, 100, 75, 116);
+
+    expect(semanticZoom.mock.calls[0]?.[0]).toBe('jupiter');
+    expect(semanticZoom.mock.calls[1]?.[0]).toBeNull();
+    expect(access.navigationLock).toEqual({ objectId: null, x: 100, y: 75 });
+  });
+
+  it('transmet des pas bornés et réguliers pour une rafale matérielle élevée', () => {
+    getLabelObjectAt.mockReturnValue(null);
+    dispatchWheel(canvas, -749, 400, 300, 1_000);
+    expect(semanticZoom).toHaveBeenLastCalledWith(
+      null,
+      expect.closeTo(-57.7622650467, 10),
+      { x: 0, y: 0 },
+      { rawDeltaY: -749, deltaMode: 0 },
+    );
+
+    dispatchWheel(canvas, -375, 400, 300, 1_016);
+    expect(semanticZoom).toHaveBeenLastCalledWith(
+      null,
+      expect.closeTo(-13.3084258668, 10),
+      { x: 0, y: 0 },
+      {
+        rawDeltaY: -375,
+        deltaMode: 0,
+        continuesWheelAnchor: true,
+        continuesWheelGesture: true,
+      },
+    );
+
+    dispatchWheel(canvas, 3, 400, 300, 1_032, 1);
+    expect(semanticZoom).toHaveBeenLastCalledWith(
+      null,
+      expect.closeTo(42.5835958192, 10),
+      { x: 0, y: 0 },
+      { rawDeltaY: 3, deltaMode: 1, continuesWheelAnchor: true },
+    );
+  });
+
+  it('ne réarme pas une forte impulsion quand seule l’ancre change pendant la rafale', () => {
+    getLabelObjectAt.mockReturnValue(null);
+    dispatchWheel(canvas, -749, 100, 100, 1_000);
+    expect(semanticZoom).toHaveBeenLastCalledWith(
+      null,
+      expect.closeTo(-57.7622650467, 10),
+      { x: -0.75, y: 0.6666666666666667 },
+      { rawDeltaY: -749, deltaMode: 0 },
+    );
+
+    dispatchPointer(canvas, 'pointermove', { clientX: 200, clientY: 100, timeStamp: 1_008 });
+    dispatchWheel(canvas, -749, 200, 100, 1_016);
+    expect(semanticZoom).toHaveBeenLastCalledWith(
+      null,
+      expect.closeTo(-13.3084258668, 10),
+      { x: -0.5, y: 0.6666666666666667 },
+      { rawDeltaY: -749, deltaMode: 0, continuesWheelGesture: true },
+    );
+
+    manager.clearNavigationLock();
+    dispatchWheel(canvas, -749, 200, 100, 1_032);
+    expect(semanticZoom).toHaveBeenLastCalledWith(
+      null,
+      expect.closeTo(-13.3084258668, 10),
+      { x: -0.5, y: 0.6666666666666667 },
+      { rawDeltaY: -749, deltaMode: 0, continuesWheelGesture: true },
+    );
+  });
+
+  it('n’intercepte pas la molette sans gestionnaire de zoom sémantique', () => {
     manager.dispose();
     manager = new SelectionManager(
       canvas,
@@ -224,10 +457,12 @@ describe('SelectionManager', () => {
       () => false,
     );
 
-    dispatchWheel(canvas, 1, 120, 90);
+    const outward = dispatchWheel(canvas, 1, 120, 90);
+    const inward = dispatchWheel(canvas, -1, 120, 90);
+
+    expect(outward.defaultPrevented).toBe(false);
+    expect(inward.defaultPrevented).toBe(false);
     expect(navigationIntent).not.toHaveBeenCalled();
-    dispatchWheel(canvas, -1, 120, 90);
-    expect(navigationIntent).toHaveBeenCalledWith('earth');
   });
 
   it('choisit le premier objet de premier plan et garde un objet de fond en repli', () => {
@@ -315,7 +550,7 @@ describe('SelectionManager', () => {
     expect(access.findRaycastObjectAt({ clientX: 100, clientY: 100 })).toBe('hyg-68483');
   });
 
-  it('ignore une étoile dense non libellée pour ancrer la molette sur la galaxie', () => {
+  it('adopte un objet navigable seulement lorsque son label est visiblement ciblé', () => {
     manager.dispose();
     const catalogStar = new THREE.Points();
     const galaxy = new THREE.Points();
@@ -326,32 +561,38 @@ describe('SelectionManager', () => {
       canvas,
       new THREE.PerspectiveCamera(48, 4 / 3, 0.1, 1_000),
       () => [catalogStar, galaxy],
-      () => null,
+      () => 'milky-way',
       selected,
       navigationIntent,
       () => 10,
       () => true,
       labelHovered,
       semanticZoom,
-      (objectId) => objectId === 'milky-way',
     );
     const access = manager as unknown as SelectionManagerAccess;
 
-    vi.spyOn(access.raycaster, 'intersectObjects').mockImplementation(
-      (_objects, _recursive, optionalTarget) => {
+    const intersectObjects = vi
+      .spyOn(access.raycaster, 'intersectObjects')
+      .mockImplementation((_objects, _recursive, optionalTarget) => {
         const target = optionalTarget ?? [];
 
         target.push(intersection(catalogStar), intersection(galaxy));
 
         return target;
-      },
-    );
+      });
 
+    dispatchPointer(canvas, 'pointermove', { clientX: 400, clientY: 300 });
     dispatchWheel(canvas, -120, 400, 300);
-    expect(semanticZoom).toHaveBeenLastCalledWith('milky-way', -120, { x: 0, y: 0 });
+    expect(semanticZoom).toHaveBeenLastCalledWith(
+      'milky-way',
+      expect.closeTo(-57.1046270096, 10),
+      { x: 0, y: 0 },
+      { rawDeltaY: -120, deltaMode: 0 },
+    );
+    expect(intersectObjects).not.toHaveBeenCalled();
   });
 
-  it('accepte tous les objets de navigation par défaut', () => {
+  it('ne transforme pas un point raycasté sans label en ancre de zoom', () => {
     manager.dispose();
     const catalogStar = new THREE.Points();
 
@@ -370,18 +611,34 @@ describe('SelectionManager', () => {
     );
     const access = manager as unknown as SelectionManagerAccess;
 
-    vi.spyOn(access.raycaster, 'intersectObjects').mockImplementation(
-      (_objects, _recursive, optionalTarget) => {
+    const intersectObjects = vi
+      .spyOn(access.raycaster, 'intersectObjects')
+      .mockImplementation((_objects, _recursive, optionalTarget) => {
         const target = optionalTarget ?? [];
 
         target.push(intersection(catalogStar));
 
         return target;
-      },
-    );
+      });
 
     dispatchWheel(canvas, -120, 400, 300);
-    expect(semanticZoom).toHaveBeenLastCalledWith('hyg-98417', -120, { x: 0, y: 0 });
+    expect(semanticZoom).toHaveBeenLastCalledWith(
+      null,
+      expect.closeTo(-57.1046270096, 10),
+      { x: 0, y: 0 },
+      { rawDeltaY: -120, deltaMode: 0 },
+    );
+    expect(intersectObjects).not.toHaveBeenCalled();
+  });
+
+  it('arme uniquement le label survolé comme cible de la molette', () => {
+    dispatchPointer(canvas, 'pointermove', { clientX: 180, clientY: 120, timeStamp: 100 });
+    expect(wheelTargetLabel).toHaveBeenLastCalledWith('sirius');
+    expect(canvas.style.cursor).toBe('zoom-in');
+
+    getLabelObjectAt.mockReturnValue(null);
+    dispatchPointer(canvas, 'pointermove', { clientX: 260, clientY: 120, timeStamp: 300 });
+    expect(wheelTargetLabel).toHaveBeenLastCalledWith(null);
   });
 
   it('adapte le seuil des points à la caméra et au viewport', () => {
@@ -457,6 +714,21 @@ describe('résolution des objets batchés', () => {
     expect(resolveObjectId(intersection(lines, 2))).toBe('constellation-lyra');
   });
 
+  it('résout un segment volumineux via un index typé sans dupliquer ses identifiants', () => {
+    const lines = new THREE.LineSegments();
+
+    lines.userData['objectIds'] = ['filament-1', 'filament-2'];
+    lines.userData['objectIndices'] = new Uint16Array([1, 1, 0, 0]);
+    lines.userData['visibleIndices'] = new Uint8Array([1, 1, 1, 1]);
+
+    expect(resolveObjectId(intersection(lines, 0))).toBe('filament-2');
+    expect(resolveObjectId(intersection(lines, 2))).toBe('filament-1');
+    lines.userData['objectIndices'] = new Uint32Array([0, 0, 1, 1]);
+    expect(resolveObjectId(intersection(lines, 0))).toBe('filament-1');
+    lines.userData['objectIndices'] = new Uint16Array();
+    expect(resolveObjectId(intersection(lines, 0))).toBeNull();
+  });
+
   it('rejette toutes les métadonnées batchées incomplètes ou invalides', () => {
     const points = new THREE.Points();
 
@@ -503,18 +775,25 @@ function dispatchPointer(
 }
 
 function dispatchWheel(
-  target: HTMLCanvasElement,
+  target: HTMLElement,
   deltaY: number,
   clientX: number,
   clientY: number,
+  timeStamp?: number,
+  deltaMode = 0,
 ): WheelEvent {
   const event = new WheelEvent('wheel', {
     bubbles: true,
     cancelable: true,
     deltaY,
+    deltaMode,
     clientX,
     clientY,
   });
+
+  if (timeStamp !== undefined) {
+    Object.defineProperty(event, 'timeStamp', { value: timeStamp });
+  }
 
   target.dispatchEvent(event);
 
@@ -524,11 +803,10 @@ function dispatchWheel(
 interface SelectionManagerAccess {
   camera: THREE.Camera;
   getReferenceDistance: () => number;
-  navigationLock: { objectId: string; x: number; y: number } | null;
+  navigationLock: { objectId: string | null; x: number; y: number } | null;
   lastHoverRaycastTime: number;
   readonly raycaster: THREE.Raycaster;
   findObjectAt(event: { clientX: number; clientY: number }): string | null;
-  findWheelObjectAt(event: { clientX: number; clientY: number }): string | null;
   findRaycastObjectAt(event: { clientX: number; clientY: number }): string | null;
   updateRaycastThresholds(viewportHeight: number): void;
 }

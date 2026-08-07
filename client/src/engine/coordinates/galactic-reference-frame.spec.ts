@@ -1,4 +1,7 @@
-import { equatorialJ2000ToGalacticScene } from './galactic-reference-frame';
+import {
+  equatorialJ2000ToGalacticScene,
+  writeEquatorialJ2000ToGalacticScene,
+} from './galactic-reference-frame';
 
 describe('référentiel galactique J2000', () => {
   it('place la direction du centre galactique vers le centre du disque', () => {
@@ -33,6 +36,18 @@ describe('référentiel galactique J2000', () => {
       z: 0,
     });
     expect(Object.values(transformedOrigin).some((value) => Object.is(value, -0))).toBe(false);
+  });
+
+  it('écrit la même rotation sans allocation intermédiaire pour le catalogue groupé', () => {
+    const source = { x: -0.494_323, y: 2.476_731, z: -0.758_485 };
+    const expected = equatorialJ2000ToGalacticScene(source);
+    const target = new Float32Array(5);
+
+    writeEquatorialJ2000ToGalacticScene(source.x, source.y, source.z, target, 2);
+
+    expect(target[2]).toBeCloseTo(expected.x, 6);
+    expect(target[3]).toBeCloseTo(expected.y, 6);
+    expect(target[4]).toBeCloseTo(expected.z, 6);
   });
 
   it.each([

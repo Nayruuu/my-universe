@@ -1,0 +1,83 @@
+@let text = i18n.content().stellarObservation;
+@let current = selectedLabel();
+<div class="earth-observer-picker" [class.earth-observer-picker--compact]="compact()">
+  <span class="earth-observer-picker__label">{{ label() }}</span>
+  <details #menu>
+    <summary [attr.aria-label]="ariaLabel()">
+      <span>
+        <strong>{{ current.primary }}</strong>
+        @if (current.secondary) {
+          <small>{{ current.secondary }}</small>
+        }
+      </span>
+      <i aria-hidden="true">⌄</i>
+    </summary>
+    <div class="earth-observer-picker__panel">
+      <label class="earth-observer-picker__search">
+        <span class="visually-hidden">{{ text.locationSearchAria }}</span>
+        <span aria-hidden="true">⌕</span>
+        <input
+          type="search"
+          autocomplete="off"
+          [attr.aria-label]="text.locationSearchAria"
+          [placeholder]="text.locationSearch"
+          [value]="query()"
+          (input)="changeQuery($event)"
+        />
+      </label>
+      <div class="earth-observer-picker__meta">
+        <small>{{ locationCount() }}</small>
+        <a href="https://www.geonames.org/" target="_blank" rel="noreferrer"
+          >GeoNames · CC BY 4.0</a
+        >
+      </div>
+      <div class="earth-observer-picker__results" role="listbox" [attr.aria-label]="ariaLabel()">
+        @for (option of resultOptions(); track option.location.id) {
+          <button
+            type="button"
+            role="option"
+            [attr.aria-selected]="option.location.id === selectedLocationId()"
+            (click)="choose(option.location.id, menu)"
+          >
+            <span>{{ option.label.primary }}</span>
+            <small>{{ option.label.secondary }}</small>
+          </button>
+        } @empty {
+          <p>{{ text.locationNoResults }}</p>
+        }
+      </div>
+      @if (customLabel(); as custom) {
+        <button
+          type="button"
+          class="earth-observer-picker__custom"
+          (click)="choose('custom', menu)"
+        >
+          <span aria-hidden="true">⌖</span>
+          {{ custom }}
+        </button>
+      }
+      @if (geolocationEnabled()) {
+        <button
+          type="button"
+          class="earth-observer-picker__geolocation"
+          [disabled]="locating()"
+          [attr.aria-busy]="locating()"
+          (click)="useCurrentPosition(menu)"
+        >
+          <span aria-hidden="true">⌖</span>
+          {{ locating() ? text.geolocationLocating : text.useMyLocation }}
+        </button>
+      }
+    </div>
+  </details>
+  @if (geolocationMessage(); as message) {
+    <p
+      class="earth-observer-picker__geolocation-status"
+      [attr.data-state]="geolocationState()"
+      role="status"
+      aria-live="polite"
+    >
+      {{ message }}
+    </p>
+  }
+</div>

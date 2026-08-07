@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { WheelZoomNormalizer, type WheelZoomInputMetadata } from '../camera/wheel-zoom-normalizer';
 import { PICKING_LAYER } from './selection-layers';
 
 export type SelectionCallback = (objectId: string | null, focusRequested: boolean) => void;
@@ -6,27 +7,35 @@ export type NavigationIntentCallback = (objectId: string | null) => void;
 export type BackgroundObjectReader = (objectId: string) => boolean;
 export type LabelObjectReader = (clientX: number, clientY: number) => string | null;
 export type LabelHoverCallback = (objectId: string | null) => void;
+export type WheelTargetLabelCallback = (objectId: string | null) => void;
 export interface ZoomPointer {
   x: number;
   y: number;
 }
+export type WheelAnchorDisposition = 'retain-wheel-anchor' | 'refresh-wheel-anchor';
 export type SemanticZoomCallback = (
   objectId: string | null,
   deltaY: number,
   pointer: ZoomPointer,
-) => void;
+  metadata?: WheelZoomInputMetadata,
+) => WheelAnchorDisposition | void;
 
 export class SelectionManager {
   private static readonly NAVIGATION_LOCK_RADIUS_PX = 28;
+  // A wheel burst should feel continuous, but must not keep an obsolete destination while the
+  // visitor has already moved their attention to another labelled object.
+  private static readonly WHEEL_CAPTURE_IDLE_MS = 650;
   private static readonly HOVER_RAYCAST_INTERVAL_MS = 90;
 
   private readonly raycaster = new THREE.Raycaster();
+  private readonly wheelZoomNormalizer = new WheelZoomNormalizer();
   private readonly pointer = new THREE.Vector2();
   private readonly intersections: THREE.Intersection[] = [];
   private readonly activePointers = new Set<number>();
   private pointerStart: { x: number; y: number } | null = null;
-  private navigationLock: { objectId: string; x: number; y: number } | null = null;
-  private lastWheelDirection: -1 | 1 | null = null;
+  private navigationLock: { objectId: string | null; x: number; y: number } | null = null;
+  private wheelTargetCandidate: { objectId: string; x: number; y: number } | null = null;
+  private lastWheelTime = Number.NEGATIVE_INFINITY;
   private lastHoverRaycastTime = Number.NEGATIVE_INFINITY;
 
   constructor(
@@ -40,7 +49,7 @@ export class SelectionManager {
     private readonly isBackgroundObject: BackgroundObjectReader,
     private readonly labelHoverCallback: LabelHoverCallback = () => undefined,
     private readonly semanticZoomCallback?: SemanticZoomCallback,
-    private readonly isWheelNavigationObject: BackgroundObjectReader = () => true,
+    private readonly wheelTargetLabelCallback: WheelTargetLabelCallback = () => undefined,
   ) {
     this.raycaster.params.Points = { threshold: 3 };
     this.raycaster.params.Line = { threshold: 1 };
@@ -51,7 +60,7 @@ export class SelectionManager {
     canvas.addEventListener('pointermove', this.handlePointerMove);
     canvas.addEventListener('pointerleave', this.handlePointerLeave);
     canvas.addEventListener('dblclick', this.handleDoubleClick);
-    canvas.addEventListener('wheel', this.handleWheel, { capture: true, passive: false });
+    window.addEventListener('wheel', this.handleWheel, { capture: true, passive: false });
   }
 
   public dispose(): void {
@@ -61,28 +70,29 @@ export class SelectionManager {
     this.canvas.removeEventListener('pointermove', this.handlePointerMove);
     this.canvas.removeEventListener('pointerleave', this.handlePointerLeave);
     this.canvas.removeEventListener('dblclick', this.handleDoubleClick);
-    this.canvas.removeEventListener('wheel', this.handleWheel, { capture: true });
+    window.removeEventListener('wheel', this.handleWheel, { capture: true });
+    this.clearWheelTargetCandidate();
     this.labelHoverCallback(null);
     this.canvas.style.cursor = '';
   }
 
   public clearNavigationLock(): void {
     this.navigationLock = null;
-    this.lastWheelDirection = null;
+    this.lastWheelTime = Number.NEGATIVE_INFINITY;
   }
 
   private readonly handlePointerDown = (event: PointerEvent): void => {
+    this.resetWheelGesture();
+    this.clearWheelTargetCandidate();
     this.activePointers.add(event.pointerId);
     if (event.button === 2) {
       this.pointerStart = null;
-      this.navigationLock = null;
       this.navigationIntentCallback(null);
 
       return;
     }
     if (this.activePointers.size > 1) {
       this.pointerStart = null;
-      this.navigationLock = null;
 
       return;
     }
@@ -115,17 +125,29 @@ export class SelectionManager {
   };
 
   private readonly handlePointerMove = (event: PointerEvent): void => {
+    if (
+      this.navigationLock &&
+      Math.hypot(event.clientX - this.navigationLock.x, event.clientY - this.navigationLock.y) >
+        SelectionManager.NAVIGATION_LOCK_RADIUS_PX
+    ) {
+      this.clearNavigationLock();
+    }
     if (this.activePointers.size > 0) {
+      this.clearWheelTargetCandidate();
+
       return;
     }
     const labelObjectId = this.getLabelObjectAt(event.clientX, event.clientY);
 
     if (labelObjectId) {
       this.labelHoverCallback(labelObjectId);
-      this.canvas.style.cursor = 'pointer';
+
+      this.setWheelTargetCandidate(labelObjectId, event);
+      this.canvas.style.cursor = 'zoom-in';
 
       return;
     }
+    this.clearWheelTargetCandidate();
     if (event.timeStamp - this.lastHoverRaycastTime < SelectionManager.HOVER_RAYCAST_INTERVAL_MS) {
       return;
     }
@@ -137,6 +159,7 @@ export class SelectionManager {
   };
 
   private readonly handlePointerLeave = (): void => {
+    this.clearWheelTargetCandidate();
     this.labelHoverCallback(null);
     this.canvas.style.cursor = '';
   };
@@ -146,32 +169,137 @@ export class SelectionManager {
   };
 
   private readonly handleWheel = (event: WheelEvent): void => {
-    if (this.semanticZoomCallback) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-    } else if (event.deltaY >= 0) {
+    const continuesActiveGesture = this.continuesWheelTransaction(event);
+
+    if (event.target !== this.canvas && !continuesActiveGesture) {
+      this.resetWheelGesture();
+
       return;
     }
+    this.prepareWheelGesture(event);
+    if (!this.semanticZoomCallback) {
+      return;
+    }
+    event.preventDefault();
+    event.stopImmediatePropagation();
 
-    const direction = event.deltaY === 0 ? null : event.deltaY < 0 ? -1 : 1;
+    // A held pointer means OrbitControls currently owns the camera gesture. Raycasting a wheel
+    // target while that pointer moves can adopt a different star or galaxy between two drag
+    // frames, which reads as a camera cut. Keep the wheel centred on the existing camera pivot;
+    // object-directed navigation resumes after the pointer is released.
+    const pointerGestureActive = this.activePointers.size > 0;
+    const continuesWheelAnchor = !pointerGestureActive && this.navigationLock !== null;
+    const objectId = pointerGestureActive ? null : this.resolveWheelAnchor(event);
+    const normalizedDeltaY = this.wheelZoomNormalizer.normalize(
+      event.deltaY,
+      event.deltaMode,
+      event.timeStamp,
+      this.canvas.getBoundingClientRect().height,
+    );
 
-    if (
-      direction !== null &&
-      this.lastWheelDirection !== null &&
-      direction !== this.lastWheelDirection
-    ) {
+    const anchorDisposition = this.semanticZoomCallback(
+      objectId,
+      normalizedDeltaY,
+      this.getZoomPointer(event),
+      {
+        rawDeltaY: event.deltaY,
+        deltaMode: event.deltaMode,
+        ...(continuesWheelAnchor ? { continuesWheelAnchor: true } : {}),
+        ...(this.wheelZoomNormalizer.continuesGesture ? { continuesWheelGesture: true } : {}),
+      },
+    );
+
+    if (anchorDisposition === 'refresh-wheel-anchor') {
       this.navigationLock = null;
     }
-    this.lastWheelDirection = direction ?? this.lastWheelDirection;
-    const objectId = this.resolveWheelAnchor(event);
+  };
 
-    if (this.semanticZoomCallback) {
-      this.semanticZoomCallback(objectId, event.deltaY, this.getZoomPointer(event));
+  private resolveWheelAnchor(event: WheelEvent): string | null {
+    if (this.navigationLock) {
+      return this.navigationLock.objectId;
+    }
+    const objectId = this.findWheelObjectAt(event);
 
+    this.navigationLock = {
+      objectId,
+      x: event.clientX,
+      y: event.clientY,
+    };
+
+    return objectId;
+  }
+
+  private findWheelObjectAt(event: { clientX: number; clientY: number }): string | null {
+    const candidate = this.wheelTargetCandidate;
+
+    if (
+      candidate &&
+      Math.hypot(event.clientX - candidate.x, event.clientY - candidate.y) <=
+        SelectionManager.NAVIGATION_LOCK_RADIUS_PX
+    ) {
+      return candidate.objectId;
+    }
+    const labelObjectId = this.getLabelObjectAt(event.clientX, event.clientY);
+
+    // Scrolling is first a camera gesture. Only a labelled, visibly armed object may change the
+    // target; accepting the broad point-raycast threshold here made an invisible neighbour win
+    // the first wheel event in dense stellar fields.
+    return labelObjectId;
+  }
+
+  private setWheelTargetCandidate(objectId: string, event: PointerEvent): void {
+    this.wheelTargetCandidate = { objectId, x: event.clientX, y: event.clientY };
+    this.wheelTargetLabelCallback(objectId);
+  }
+
+  private clearWheelTargetCandidate(): void {
+    if (this.wheelTargetCandidate === null) {
       return;
     }
-    this.navigationIntentCallback(objectId);
-  };
+    this.wheelTargetCandidate = null;
+    this.wheelTargetLabelCallback(null);
+  }
+
+  private continuesWheelTransaction(event: WheelEvent): boolean {
+    if (!this.navigationLock) {
+      return false;
+    }
+    const elapsed = event.timeStamp - this.lastWheelTime;
+
+    return (
+      Number.isFinite(elapsed) &&
+      elapsed >= 0 &&
+      elapsed <= SelectionManager.WHEEL_CAPTURE_IDLE_MS &&
+      Math.hypot(event.clientX - this.navigationLock.x, event.clientY - this.navigationLock.y) <=
+        SelectionManager.NAVIGATION_LOCK_RADIUS_PX
+    );
+  }
+
+  private prepareWheelGesture(event: WheelEvent): void {
+    const direction = getWheelDirection(event.deltaY);
+    const elapsed = event.timeStamp - this.lastWheelTime;
+    const resumesAfterCapturePause =
+      direction !== null &&
+      (!Number.isFinite(elapsed) ||
+        elapsed < 0 ||
+        elapsed > SelectionManager.WHEEL_CAPTURE_IDLE_MS);
+    const leavesLockedArea =
+      this.navigationLock !== null &&
+      Math.hypot(event.clientX - this.navigationLock.x, event.clientY - this.navigationLock.y) >
+        SelectionManager.NAVIGATION_LOCK_RADIUS_PX;
+
+    if (resumesAfterCapturePause || leavesLockedArea) {
+      this.navigationLock = null;
+    }
+    if (direction !== null) {
+      this.lastWheelTime = event.timeStamp;
+    }
+  }
+
+  private resetWheelGesture(): void {
+    this.clearNavigationLock();
+    this.wheelZoomNormalizer.reset();
+  }
 
   private getZoomPointer(event: { clientX: number; clientY: number }): ZoomPointer {
     const bounds = this.canvas.getBoundingClientRect();
@@ -180,39 +308,6 @@ export class SelectionManager {
       x: ((event.clientX - bounds.left) / bounds.width) * 2 - 1,
       y: -((event.clientY - bounds.top) / bounds.height) * 2 + 1,
     };
-  }
-
-  private resolveWheelAnchor(event: WheelEvent): string | null {
-    if (
-      this.navigationLock &&
-      Math.hypot(event.clientX - this.navigationLock.x, event.clientY - this.navigationLock.y) <=
-        SelectionManager.NAVIGATION_LOCK_RADIUS_PX
-    ) {
-      return this.navigationLock.objectId;
-    }
-
-    const objectId = this.findWheelObjectAt(event);
-
-    if (objectId) {
-      this.navigationLock = {
-        objectId,
-        x: event.clientX,
-        y: event.clientY,
-      };
-    } else {
-      this.navigationLock = null;
-    }
-
-    return objectId;
-  }
-
-  private findWheelObjectAt(event: { clientX: number; clientY: number }): string | null {
-    const labelObjectId = this.getLabelObjectAt(event.clientX, event.clientY);
-
-    return (
-      labelObjectId ??
-      this.findRaycastObjectAt(event, (objectId) => this.isWheelNavigationObject(objectId))
-    );
   }
 
   private pick(event: MouseEvent | PointerEvent, focusRequested: boolean): void {
@@ -306,6 +401,7 @@ export function resolveObjectId(intersection: THREE.Intersection): string | null
 
   const index = intersection.index;
   const objectIds = intersection.object.userData['objectIds'];
+  const objectIndices = intersection.object.userData['objectIndices'];
   const visibleIndices = intersection.object.userData['visibleIndices'];
 
   if (
@@ -316,7 +412,11 @@ export function resolveObjectId(intersection: THREE.Intersection): string | null
   ) {
     return null;
   }
-  const batchedId: unknown = objectIds[index];
+  const objectIndex =
+    objectIndices instanceof Uint16Array || objectIndices instanceof Uint32Array
+      ? objectIndices[index]
+      : index;
+  const batchedId: unknown = typeof objectIndex === 'number' ? objectIds[objectIndex] : undefined;
 
   return typeof batchedId === 'string' ? batchedId : null;
 }
@@ -327,4 +427,12 @@ function isPrimaryActivation(event: PointerEvent): boolean {
   }
 
   return event.button === 0;
+}
+
+function getWheelDirection(deltaY: number): -1 | 1 | null {
+  if (!Number.isFinite(deltaY) || deltaY === 0) {
+    return null;
+  }
+
+  return deltaY < 0 ? -1 : 1;
 }

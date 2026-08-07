@@ -25,11 +25,34 @@ describe('maximum local d’une éclipse solaire', () => {
     expect(parisMaximum.sunAltitudeDegrees).toBeCloseTo(7.72, 2);
     expect(parisMaximum.scope).toBe('local');
     expect(parisMaximum.observerName).toBe('Paris');
+    expect(parisMaximum.localContacts).not.toBeNull();
+
+    // NASA/GSFC publishes 17:22, 18:17 and 19:08 UTC for C1, maximum and the
+    // sunset-limited end in Paris. Astronomy Engine resolves the geometric contacts to seconds.
+    expectWithinSeconds(
+      parisMaximum.localContacts!.partialBegin.time.julianDay,
+      '2026-08-12T17:22:00.000Z',
+      15,
+    );
+    expectWithinSeconds(
+      parisMaximum.localContacts!.maximum.time.julianDay,
+      '2026-08-12T18:17:00.000Z',
+      15,
+    );
+    expectWithinSeconds(
+      parisMaximum.localContacts!.partialEnd.time.julianDay,
+      '2026-08-12T19:08:00.000Z',
+      90,
+    );
+    expect(parisMaximum.localContacts!.partialBegin.aboveHorizon).toBe(true);
+    expect(parisMaximum.localContacts!.centralBegin).toBeNull();
+    expect(parisMaximum.localContacts!.centralEnd).toBeNull();
 
     expect(julianDayToDate(biarritzMaximum.peak.julianDay).toISOString()).toBe(
       '2026-08-12T18:26:50.728Z',
     );
     expect(biarritzMaximum.obscuration).toBeCloseTo(0.9941, 4);
+    expect(biarritzMaximum.localContacts!.partialEnd.aboveHorizon).toBe(false);
   });
 
   it('refuse une éclipse lunaire ou une éclipse solaire invisible depuis la ville', () => {
@@ -59,8 +82,36 @@ describe('maximum local d’une éclipse solaire', () => {
 
     expect(totalMaximum.kind).toBe('total');
     expect(annularMaximum.kind).toBe('annular');
+    expect(totalMaximum.localContacts!.centralBegin).not.toBeNull();
+    expect(totalMaximum.localContacts!.centralEnd).not.toBeNull();
+    expect(annularMaximum.localContacts!.centralBegin).not.toBeNull();
+    expect(annularMaximum.localContacts!.centralEnd).not.toBeNull();
+    expect(totalMaximum.localContacts!.partialBegin.time.julianDay).toBeLessThan(
+      totalMaximum.localContacts!.centralBegin!.time.julianDay,
+    );
+    expect(totalMaximum.localContacts!.centralBegin!.time.julianDay).toBeLessThan(
+      totalMaximum.localContacts!.maximum.time.julianDay,
+    );
+    expect(totalMaximum.localContacts!.maximum.time.julianDay).toBeLessThan(
+      totalMaximum.localContacts!.centralEnd!.time.julianDay,
+    );
+    expect(totalMaximum.localContacts!.centralEnd!.time.julianDay).toBeLessThan(
+      totalMaximum.localContacts!.partialEnd.time.julianDay,
+    );
   });
 });
+
+function expectWithinSeconds(
+  actualJulianDay: number,
+  expectedIsoDate: string,
+  toleranceSeconds: number,
+): void {
+  const differenceMilliseconds = Math.abs(
+    julianDayToDate(actualJulianDay).getTime() - new Date(expectedIsoDate).getTime(),
+  );
+
+  expect(differenceMilliseconds).toBeLessThanOrEqual(toleranceSeconds * 1_000);
+}
 
 function location(id: string) {
   const result = SOLAR_ECLIPSE_OBSERVER_LOCATIONS.find((candidate) => candidate.id === id);

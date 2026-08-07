@@ -8,9 +8,9 @@ const EQUATORIAL_TO_GALACTIC = [
 ] as const;
 
 export function equatorialJ2000ToGalacticScene(position: Vector3Like): Vector3Like {
-  const galacticCenterAxis = dot(EQUATORIAL_TO_GALACTIC[0], position);
-  const galacticLongitudeAxis = dot(EQUATORIAL_TO_GALACTIC[1], position);
-  const northGalacticAxis = dot(EQUATORIAL_TO_GALACTIC[2], position);
+  const galacticCenterAxis = dot(EQUATORIAL_TO_GALACTIC[0], position.x, position.y, position.z);
+  const galacticLongitudeAxis = dot(EQUATORIAL_TO_GALACTIC[1], position.x, position.y, position.z);
+  const northGalacticAxis = dot(EQUATORIAL_TO_GALACTIC[2], position.x, position.y, position.z);
 
   // Galactic +X points from the Sun toward the center. Scene +X points from the center to the Sun.
   return {
@@ -20,8 +20,20 @@ export function equatorialJ2000ToGalacticScene(position: Vector3Like): Vector3Li
   };
 }
 
-function dot(row: readonly [number, number, number], position: Vector3Like): number {
-  return row[0] * position.x + row[1] * position.y + row[2] * position.z;
+export function writeEquatorialJ2000ToGalacticScene(
+  x: number,
+  y: number,
+  z: number,
+  target: Float32Array,
+  offset: number,
+): void {
+  target[offset] = cleanSignedZero(-dot(EQUATORIAL_TO_GALACTIC[0], x, y, z));
+  target[offset + 1] = cleanSignedZero(dot(EQUATORIAL_TO_GALACTIC[2], x, y, z));
+  target[offset + 2] = cleanSignedZero(dot(EQUATORIAL_TO_GALACTIC[1], x, y, z));
+}
+
+function dot(row: readonly [number, number, number], x: number, y: number, z: number): number {
+  return row[0] * x + row[1] * y + row[2] * z;
 }
 
 function cleanSignedZero(value: number): number {

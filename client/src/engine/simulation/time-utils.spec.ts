@@ -56,6 +56,13 @@ describe('temps julien', () => {
     expect(universeTimeToIsoDate(invalidTime)).toBe('');
     expect(universeTimeToIsoDateTime(invalidTime)).toBe('');
     expect(formatUniverseClock(invalidTime, 'UTC')).toBe('Heure indisponible');
+    expect(formatUniverseClock(invalidTime, 'UTC', 'en-US')).toBe('Time unavailable');
+    expect(formatUniverseClock(invalidTime, 'UTC', 'es-ES')).toBe('Hora no disponible');
+    expect(formatUniverseClock(invalidTime, 'UTC', 'de-DE')).toBe('Zeit nicht verfügbar');
+    expect(formatUniverseClock(invalidTime, 'UTC', 'it-IT')).toBe('Ora non disponibile');
+    expect(formatUniverseClock(invalidTime, 'UTC', 'ko-KR')).toBe('시간을 표시할 수 없음');
+    expect(formatUniverseClock(invalidTime, 'UTC', 'ja-JP')).toBe('時刻を表示できません');
+    expect(formatUniverseClock(invalidTime, 'UTC', 'zh-CN')).toBe('时间不可用');
   });
 
   it('utilise UTC lorsque le navigateur ne publie aucun fuseau', () => {
@@ -92,6 +99,14 @@ describe('temps julien', () => {
       }),
     ).toMatch(/^Dans .* ka$/);
     expect(formatUniverseDate({ julianDay: Number.NaN })).toMatch(/^Dans .* ans$/);
+    expect(formatUniverseDate({ julianDay: Number.NaN }, 'en-US')).toMatch(/^In .* years$/);
+    expect(formatUniverseDate({ julianDay: Number.NaN }, 'es-ES')).toMatch(/^Dentro de .* años$/);
+    expect(formatUniverseDate({ julianDay: Number.NaN }, 'de-DE')).toMatch(/^In .* Jahre$/);
+    expect(formatUniverseDate({ julianDay: Number.NaN }, 'it-IT')).toMatch(/^Tra .* anni$/);
+    expect(formatUniverseDate({ julianDay: Number.NaN }, 'ko-KR')).toMatch(/년 후$/);
+    expect(formatUniverseDate({ julianDay: Number.NaN }, 'ja-JP')).toMatch(/年後$/);
+    expect(formatUniverseDate({ julianDay: Number.NaN }, 'zh-CN')).toMatch(/年后$/);
+    expect(formatUniverseDate({ julianDay: Number.NaN }, 'pt-BR')).toMatch(/^In .* years$/);
     vi.useRealTimers();
   });
 });

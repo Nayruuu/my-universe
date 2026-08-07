@@ -9,6 +9,11 @@ export interface CosmicStructureCatalogSource {
   readonly method: string;
   readonly objectNamePrefix: string;
   readonly scientificConfidence: ScientificConfidence;
+  readonly confidenceMeaning?: string;
+  readonly extentMeaning?: string;
+  readonly mapPriority?: 'landmark';
+  readonly recordNames?: Readonly<Record<string, string>>;
+  readonly recordAliases?: Readonly<Record<string, readonly string[]>>;
   readonly recordCount: number;
   readonly sourceSha256?: string;
 }
@@ -63,6 +68,7 @@ const STRUCTURE_TYPES: readonly CosmicStructureType[] = [
 const SOURCE_CONFIDENCE_LEVELS: readonly ScientificConfidence[] = [
   'observed',
   'calculated',
+  'extrapolated',
   'simulated',
 ];
 
@@ -307,6 +313,11 @@ function parseSource(value: unknown, source: string, index: number): CosmicStruc
     !nonEmptyString(value['method']) ||
     !nonEmptyString(value['objectNamePrefix']) ||
     !SOURCE_CONFIDENCE_LEVELS.includes(value['scientificConfidence'] as ScientificConfidence) ||
+    !optionalNonEmptyString(value['confidenceMeaning']) ||
+    !optionalNonEmptyString(value['extentMeaning']) ||
+    (value['mapPriority'] !== undefined && value['mapPriority'] !== 'landmark') ||
+    !optionalStringRecord(value['recordNames']) ||
+    !optionalStringArrayRecord(value['recordAliases']) ||
     !positiveInteger(value['recordCount']) ||
     (value['sourceSha256'] !== undefined && !nonEmptyString(value['sourceSha256']))
   ) {
@@ -376,6 +387,24 @@ function positiveInteger(value: unknown): value is number {
 
 function nonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
+}
+
+function optionalNonEmptyString(value: unknown): boolean {
+  return value === undefined || nonEmptyString(value);
+}
+
+function optionalStringRecord(value: unknown): boolean {
+  return value === undefined || (isRecord(value) && Object.values(value).every(nonEmptyString));
+}
+
+function optionalStringArrayRecord(value: unknown): boolean {
+  return (
+    value === undefined ||
+    (isRecord(value) &&
+      Object.values(value).every(
+        (aliases) => Array.isArray(aliases) && aliases.length > 0 && aliases.every(nonEmptyString),
+      ))
+  );
 }
 
 function invalidCatalog(reason: string): Error {

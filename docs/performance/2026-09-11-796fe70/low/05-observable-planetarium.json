@@ -1,0 +1,391 @@
+{
+  "schema": "universe-map/performance-evidence@1",
+  "capturedAt": "2026-09-11T13:25:12.810Z",
+  "benchmark": "observable-planetarium",
+  "evidence": {
+    "measurementKind": "simulated-cpu",
+    "declaredDeviceClass": "unclassified",
+    "deviceLabel": null
+  },
+  "source": {
+    "commit": "796fe70310b28ee17c1a0cd9445688d65f05b36c",
+    "dirty": false
+  },
+  "host": {
+    "platform": "darwin",
+    "release": "25.6.0",
+    "architecture": "arm64",
+    "logicalCpuCount": 18,
+    "cpuModels": [
+      "Apple M5 Max"
+    ],
+    "totalMemoryBytes": 137438953472,
+    "nodeVersion": "v24.2.0"
+  },
+  "browser": {
+    "vendor": "Google Inc. (Apple)",
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Max, Unspecified Version)",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+    "hardwareConcurrency": 18,
+    "reportedDeviceMemoryGiB": 32
+  },
+  "configuration": {
+    "profile": "desktop-retina",
+    "quality": "low",
+    "runs": 3,
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "requestedDeviceScaleFactor": 1,
+    "cpuThrottleRate": 6
+  },
+  "summary": {
+    "profile": "desktop-retina",
+    "quality": "low",
+    "requestedDeviceScaleFactor": 1,
+    "cpuThrottleRate": 6,
+    "runs": 3,
+    "medianMetrics": {
+      "p95Ms": 16.799999999999272,
+      "p99Ms": 16.80000000000291,
+      "maximumMs": 33.400000000000546,
+      "longFrameRatio": 0.003663003663003663,
+      "finalCanvasPixelRatio": 1
+    },
+    "worstMaximumMs": 33.400000000000546,
+    "worstLongFrameRatio": 0.004920049200492005,
+    "resolvedRuns": 3,
+    "allStable": true,
+    "allPlanetsResolved": true
+  },
+  "samples": [
+    {
+      "profile": "desktop-retina",
+      "quality": "low",
+      "run": 1,
+      "requestedDeviceScaleFactor": 1,
+      "cpuThrottleRate": 6,
+      "initialCanvasPixelRatio": 1,
+      "finalCanvasPixelRatio": 1,
+      "graphics": {
+        "vendor": "Google Inc. (Apple)",
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Max, Unspecified Version)",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "hardwareConcurrency": 18,
+        "reportedDeviceMemoryGiB": 32
+      },
+      "planetResolved": true,
+      "initialPlanetDiameterPixels": 0.11415049083572688,
+      "resolvedPlanetDiameterPixels": 0.6546416660967602,
+      "frames": 819,
+      "meanMs": 16.80854700854701,
+      "p50Ms": 16.69999999999891,
+      "p95Ms": 16.799999999999272,
+      "p99Ms": 16.80000000000291,
+      "maximumMs": 33.400000000000546,
+      "longFrames": 3,
+      "longFrameRatio": 0.003663003663003663,
+      "stable": true,
+      "phases": [
+        {
+          "phase": "wide-pan",
+          "frames": 121,
+          "meanMs": 17.355371900826448,
+          "p50Ms": 16.699999999999818,
+          "p95Ms": 16.800000000000182,
+          "p99Ms": 33.400000000000546,
+          "maximumMs": 33.400000000000546,
+          "longFrames": 2,
+          "longFrameRatio": 0.01652892561983471,
+          "stable": true
+        },
+        {
+          "phase": "recenter",
+          "frames": 190,
+          "meanMs": 16.754210526315784,
+          "p50Ms": 16.69999999999891,
+          "p95Ms": 16.799999999999272,
+          "p99Ms": 16.80000000000109,
+          "maximumMs": 33.399999999999636,
+          "longFrames": 1,
+          "longFrameRatio": 0.005263157894736842,
+          "stable": true
+        },
+        {
+          "phase": "planet-zoom-in",
+          "frames": 242,
+          "meanMs": 16.73429752066116,
+          "p50Ms": 16.69999999999891,
+          "p95Ms": 16.700000000000728,
+          "p99Ms": 16.80000000000109,
+          "maximumMs": 33.30000000000109,
+          "longFrames": 0,
+          "longFrameRatio": 0,
+          "stable": true
+        },
+        {
+          "phase": "resolved-settle",
+          "frames": 45,
+          "meanMs": 16.666666666666668,
+          "p50Ms": 16.69999999999891,
+          "p95Ms": 16.799999999999272,
+          "p99Ms": 16.80000000000109,
+          "maximumMs": 16.80000000000109,
+          "longFrames": 0,
+          "longFrameRatio": 0,
+          "stable": true
+        },
+        {
+          "phase": "planet-zoom-out",
+          "frames": 176,
+          "meanMs": 16.665909090909096,
+          "p50Ms": 16.700000000000728,
+          "p95Ms": 16.700000000000728,
+          "p99Ms": 16.80000000000291,
+          "maximumMs": 16.80000000000291,
+          "longFrames": 0,
+          "longFrameRatio": 0,
+          "stable": true
+        },
+        {
+          "phase": "final-settle",
+          "frames": 45,
+          "meanMs": 16.666666666666668,
+          "p50Ms": 16.69999999999709,
+          "p95Ms": 16.700000000000728,
+          "p99Ms": 16.799999999999272,
+          "maximumMs": 16.799999999999272,
+          "longFrames": 0,
+          "longFrameRatio": 0,
+          "stable": true
+        }
+      ],
+      "adaptiveRendering": {
+        "status": "stable",
+        "p95FrameMs": 16.700000762939453,
+        "longFrameRatio": 0,
+        "targetPixelRatio": 1,
+        "currentPixelRatio": 1
+      }
+    },
+    {
+      "profile": "desktop-retina",
+      "quality": "low",
+      "run": 2,
+      "requestedDeviceScaleFactor": 1,
+      "cpuThrottleRate": 6,
+      "initialCanvasPixelRatio": 1,
+      "finalCanvasPixelRatio": 1,
+      "graphics": {
+        "vendor": "Google Inc. (Apple)",
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Max, Unspecified Version)",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "hardwareConcurrency": 18,
+        "reportedDeviceMemoryGiB": 32
+      },
+      "planetResolved": true,
+      "initialPlanetDiameterPixels": 0.11415049083572688,
+      "resolvedPlanetDiameterPixels": 0.6546416660967602,
+      "frames": 814,
+      "meanMs": 16.76842751842752,
+      "p50Ms": 16.69999999999891,
+      "p95Ms": 16.799999999999272,
+      "p99Ms": 16.80000000000109,
+      "maximumMs": 33.399999999999636,
+      "longFrames": 2,
+      "longFrameRatio": 0.002457002457002457,
+      "stable": true,
+      "phases": [
+        {
+          "phase": "wide-pan",
+          "frames": 117,
+          "meanMs": 17.379487179487178,
+          "p50Ms": 16.699999999999818,
+          "p95Ms": 16.800000000000182,
+          "p99Ms": 33.399999999999636,
+          "maximumMs": 33.399999999999636,
+          "longFrames": 2,
+          "longFrameRatio": 0.017094017094017096,
+          "stable": true
+        },
+        {
+          "phase": "recenter",
+          "frames": 192,
+          "meanMs": 16.665625000000006,
+          "p50Ms": 16.69999999999891,
+          "p95Ms": 16.700000000000728,
+          "p99Ms": 16.80000000000109,
+          "maximumMs": 16.80000000000109,
+          "longFrames": 0,
+          "longFrameRatio": 0,
+          "stable": true
+        },
+        {
+          "phase": "planet-zoom-in",
+          "frames": 243,
+          "meanMs": 16.66625514403292,
+          "p50Ms": 16.69999999999891,
+          "p95Ms": 16.799999999999272,
+          "p99Ms": 16.80000000000109,
+          "maximumMs": 16.80000000000109,
+          "longFrames": 0,
+          "longFrameRatio": 0,
+          "stable": true
+        },
+        {
+          "phase": "resolved-settle",
+          "frames": 46,
+          "meanMs": 16.66304347826087,
+          "p50Ms": 16.69999999999891,
+          "p95Ms": 16.700000000000728,
+          "p99Ms": 16.80000000000109,
+          "maximumMs": 16.80000000000109,
+          "longFrames": 0,
+          "longFrameRatio": 0,
+          "stable": true
+        },
+        {
+          "phase": "planet-zoom-out",
+          "frames": 171,
+          "meanMs": 16.666666666666657,
+          "p50Ms": 16.69999999999709,
+          "p95Ms": 16.799999999999272,
+          "p99Ms": 16.80000000000109,
+          "maximumMs": 16.80000000000291,
+          "longFrames": 0,
+          "longFrameRatio": 0,
+          "stable": true
+        },
+        {
+          "phase": "final-settle",
+          "frames": 45,
+          "meanMs": 16.664444444444477,
+          "p50Ms": 16.700000000000728,
+          "p95Ms": 16.799999999999272,
+          "p99Ms": 16.799999999999272,
+          "maximumMs": 16.799999999999272,
+          "longFrames": 0,
+          "longFrameRatio": 0,
+          "stable": true
+        }
+      ],
+      "adaptiveRendering": {
+        "status": "stable",
+        "p95FrameMs": 16.799999237060547,
+        "longFrameRatio": 0,
+        "targetPixelRatio": 1,
+        "currentPixelRatio": 1
+      }
+    },
+    {
+      "profile": "desktop-retina",
+      "quality": "low",
+      "run": 3,
+      "requestedDeviceScaleFactor": 1,
+      "cpuThrottleRate": 6,
+      "initialCanvasPixelRatio": 1,
+      "finalCanvasPixelRatio": 1,
+      "graphics": {
+        "vendor": "Google Inc. (Apple)",
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Max, Unspecified Version)",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "hardwareConcurrency": 18,
+        "reportedDeviceMemoryGiB": 32
+      },
+      "planetResolved": true,
+      "initialPlanetDiameterPixels": 0.11415049083572688,
+      "resolvedPlanetDiameterPixels": 0.6546416660967602,
+      "frames": 813,
+      "meanMs": 16.870971709717097,
+      "p50Ms": 16.69999999999891,
+      "p95Ms": 16.700000000000728,
+      "p99Ms": 33.30000000000018,
+      "maximumMs": 33.400000000000546,
+      "longFrames": 4,
+      "longFrameRatio": 0.004920049200492005,
+      "stable": true,
+      "phases": [
+        {
+          "phase": "wide-pan",
+          "frames": 117,
+          "meanMs": 17.947008547008547,
+          "p50Ms": 16.699999999999818,
+          "p95Ms": 33.30000000000018,
+          "p99Ms": 33.399999999999636,
+          "maximumMs": 33.400000000000546,
+          "longFrames": 4,
+          "longFrameRatio": 0.03418803418803419,
+          "stable": true
+        },
+        {
+          "phase": "recenter",
+          "frames": 191,
+          "meanMs": 16.66649214659686,
+          "p50Ms": 16.69999999999891,
+          "p95Ms": 16.700000000000728,
+          "p99Ms": 16.80000000000109,
+          "maximumMs": 16.80000000000109,
+          "longFrames": 0,
+          "longFrameRatio": 0,
+          "stable": true
+        },
+        {
+          "phase": "planet-zoom-in",
+          "frames": 243,
+          "meanMs": 16.734567901234566,
+          "p50Ms": 16.69999999999891,
+          "p95Ms": 16.700000000000728,
+          "p99Ms": 16.80000000000109,
+          "maximumMs": 33.29999999999927,
+          "longFrames": 0,
+          "longFrameRatio": 0,
+          "stable": true
+        },
+        {
+          "phase": "resolved-settle",
+          "frames": 45,
+          "meanMs": 16.666666666666668,
+          "p50Ms": 16.69999999999891,
+          "p95Ms": 16.700000000000728,
+          "p99Ms": 16.799999999999272,
+          "maximumMs": 16.799999999999272,
+          "longFrames": 0,
+          "longFrameRatio": 0,
+          "stable": true
+        },
+        {
+          "phase": "planet-zoom-out",
+          "frames": 172,
+          "meanMs": 16.665697674418606,
+          "p50Ms": 16.69999999999709,
+          "p95Ms": 16.700000000000728,
+          "p99Ms": 16.80000000000291,
+          "maximumMs": 16.80000000000291,
+          "longFrames": 0,
+          "longFrameRatio": 0,
+          "stable": true
+        },
+        {
+          "phase": "final-settle",
+          "frames": 45,
+          "meanMs": 16.666666666666668,
+          "p50Ms": 16.700000000000728,
+          "p95Ms": 16.700000000000728,
+          "p99Ms": 16.80000000000291,
+          "maximumMs": 16.80000000000291,
+          "longFrames": 0,
+          "longFrameRatio": 0,
+          "stable": true
+        }
+      ],
+      "adaptiveRendering": {
+        "status": "stable",
+        "p95FrameMs": 16.700000762939453,
+        "longFrameRatio": 0,
+        "targetPixelRatio": 1,
+        "currentPixelRatio": 1
+      }
+    }
+  ]
+}

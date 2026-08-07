@@ -9,6 +9,7 @@ import {
 interface TestStar {
   readonly id: number;
   readonly position: readonly [number, number, number];
+  readonly velocity: readonly [number, number, number];
   readonly magnitude: number;
   readonly colorIndex: number;
   readonly name: string;
@@ -20,6 +21,7 @@ const TEST_STARS: readonly TestStar[] = [
   {
     id: 3_229,
     position: [-1.612, 2.628, -2.551],
+    velocity: [0.000_009_53, -0.000_012_07, -0.000_012_21],
     magnitude: -1.44,
     colorIndex: 0.009,
     name: 'Sirius',
@@ -29,6 +31,7 @@ const TEST_STARS: readonly TestStar[] = [
   {
     id: 69_558,
     position: [-0.472, -0.361, 0.033],
+    velocity: [-0.000_004_2, 0.000_002_1, -0.000_001_3],
     magnitude: -0.62,
     colorIndex: 0.164,
     name: 'Canopus',
@@ -46,6 +49,8 @@ describe('parseStarCatalog', () => {
     expect(catalog.catalogIds).toEqual(new Uint32Array([3_229, 69_558]));
     expect(catalog.positionsParsec[0]).toBeCloseTo(-1.612, 5);
     expect(catalog.positionsParsec[4]).toBeCloseTo(-0.361, 5);
+    expect(catalog.velocitiesParsecPerYear[0]).toBeCloseTo(0.000_009_53, 10);
+    expect(catalog.velocitiesParsecPerYear[5]).toBeCloseTo(-0.000_001_3, 10);
     expect(catalog.apparentMagnitudes[0]).toBeCloseTo(-1.44, 5);
     expect(catalog.colorIndicesBv[1]).toBeCloseTo(0.164, 5);
     expect(catalog.names).toEqual(['Sirius', 'Canopus']);
@@ -158,6 +163,9 @@ describe('parseStarCatalog', () => {
     ['coordonnée z', 8, Number.POSITIVE_INFINITY],
     ['magnitude', 12, Number.NaN],
     ['indice de couleur', 16, Number.NaN],
+    ['vitesse x', 36, Number.POSITIVE_INFINITY],
+    ['vitesse y', 40, Number.POSITIVE_INFINITY],
+    ['vitesse z', 44, Number.POSITIVE_INFINITY],
   ])('rejette un enregistrement dont la %s est invalide', (_label, offset, value) => {
     const buffer = createCatalogBuffer(TEST_STARS);
 
@@ -252,6 +260,9 @@ function createCatalogBuffer(stars: readonly TestStar[]): ArrayBuffer {
     view.setUint32(offset + 24, strings.records[index]!.nameOffset, true);
     view.setUint32(offset + 28, strings.records[index]!.aliasesOffset, true);
     view.setUint32(offset + 32, strings.records[index]!.spectralTypeOffset, true);
+    view.setFloat32(offset + 36, star.velocity[0], true);
+    view.setFloat32(offset + 40, star.velocity[1], true);
+    view.setFloat32(offset + 44, star.velocity[2], true);
   }
   new Uint8Array(buffer, stringTableOffset).set(strings.bytes);
 

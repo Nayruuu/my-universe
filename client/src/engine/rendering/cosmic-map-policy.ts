@@ -1,4 +1,5 @@
 import { CosmicStructureType, GraphicQuality } from '../../data/models/universe.models';
+import { stableUnitInterval } from '../materials/visual-random';
 
 export type CosmicMapLayer =
   'volume' | 'groups' | 'links' | 'clusters' | 'superclusters' | 'filaments' | 'voids';
@@ -19,8 +20,8 @@ export const DEFAULT_COSMIC_MAP_LAYERS: CosmicMapLayers = Object.freeze({
   links: true,
   clusters: true,
   superclusters: true,
-  filaments: false,
-  voids: false,
+  filaments: true,
+  voids: true,
 });
 
 export const ALL_COSMIC_MAP_LAYERS: CosmicMapLayers = Object.freeze({
@@ -43,6 +44,7 @@ const QUALITY_DETAIL_FACTORS = {
   medium: 0.78,
   high: 1,
 } as const satisfies Record<GraphicQuality, number>;
+const FILAMENT_SPINE_REVEAL_RANGE = 0.64;
 
 export function getCosmicMapDetail(cameraDistance: number, quality: GraphicQuality): number {
   const distance = Math.max(0, cameraDistance);
@@ -67,18 +69,15 @@ export function getCosmicGroupDetail(cameraDistance: number, quality: GraphicQua
 }
 
 export function stableMapPriority(identifier: string): number {
-  let hash = 2_166_136_261;
-
-  for (let index = 0; index < identifier.length; index += 1) {
-    hash ^= identifier.charCodeAt(index);
-    hash = Math.imul(hash, 16_777_619);
-  }
-
-  return (hash >>> 0) / 4_294_967_296;
+  return stableUnitInterval(identifier);
 }
 
 export function getCosmicGroupRevealThreshold(identifier: string): number {
   return Math.min(1, stableMapPriority(identifier) / 0.72);
+}
+
+export function getCosmicFilamentSpineRevealThreshold(identifier: string): number {
+  return stableMapPriority(identifier) * FILAMENT_SPINE_REVEAL_RANGE;
 }
 
 export function getCosmicStructureRevealThreshold(
@@ -98,7 +97,7 @@ export function getCosmicStructureRevealThreshold(
     return 0.04 + priority * 0.96;
   }
   if (structureType === 'void') {
-    return priority * 0.86;
+    return priority * 0.18;
   }
 
   return priority;

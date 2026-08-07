@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Universe Map</title>
+  <defs>
+    <radialGradient id="space" cx="50%" cy="38%" r="72%">
+      <stop offset="0" stop-color="#173c5a" />
+      <stop offset="0.5" stop-color="#081725" />
+      <stop offset="1" stop-color="#02050c" />
+    </radialGradient>
+    <linearGradient id="orbit" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#a9e9ff" />
+      <stop offset="0.52" stop-color="#58bce9" />
+      <stop offset="1" stop-color="#8d8cf4" />
+    </linearGradient>
+    <radialGradient id="core" cx="38%" cy="32%" r="70%">
+      <stop offset="0" stop-color="#ffffff" />
+      <stop offset="0.35" stop-color="#c8efff" />
+      <stop offset="1" stop-color="#4db3e5" />
+    </radialGradient>
+    <filter id="glow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="15" />
+    </filter>
+  </defs>
+  <rect width="512" height="512" fill="url(#space)" />
+  <circle
+    cx="256"
+    cy="256"
+    r="215"
+    fill="none"
+    stroke="#8fd7f7"
+    stroke-opacity="0.16"
+    stroke-width="4"
+  />
+  <g fill="#d9f4ff">
+    <circle cx="119" cy="129" r="4" opacity="0.55" />
+    <circle cx="397" cy="143" r="3" opacity="0.7" />
+    <circle cx="104" cy="349" r="3" opacity="0.42" />
+    <circle cx="405" cy="372" r="4" opacity="0.48" />
+  </g>
+  <ellipse
+    cx="256"
+    cy="256"
+    rx="164"
+    ry="61"
+    fill="none"
+    stroke="#55bce9"
+    stroke-opacity="0.2"
+    stroke-width="26"
+    transform="rotate(-28 256 256)"
+    filter="url(#glow)"
+  />
+  <ellipse
+    cx="256"
+    cy="256"
+    rx="164"
+    ry="61"
+    fill="none"
+    stroke="url(#orbit)"
+    stroke-width="13"
+    transform="rotate(-28 256 256)"
+  />
+  <ellipse
+    cx="256"
+    cy="256"
+    rx="64"
+    ry="166"
+    fill="none"
+    stroke="url(#orbit)"
+    stroke-opacity="0.84"
+    stroke-width="12"
+    transform="rotate(34 256 256)"
+  />
+  <circle cx="256" cy="256" r="55" fill="#4cb7e9" opacity="0.32" filter="url(#glow)" />
+  <circle cx="256" cy="256" r="31" fill="url(#core)" />
+  <circle cx="246" cy="246" r="8" fill="#ffffff" opacity="0.72" />
+  <circle cx="384" cy="193" r="11" fill="#f4c879" />
+  <circle cx="384" cy="193" r="22" fill="#e9b85e" opacity="0.3" filter="url(#glow)" />
+</svg>

@@ -1,0 +1,204 @@
+:host {
+  display: block;
+}
+
+figure {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  margin: 11px 0 0;
+}
+
+.sky-map {
+  position: relative;
+  width: min(190px, 100%);
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid rgb(124 199 235 / 22%);
+  border-radius: 50%;
+  color: rgb(194 225 242 / 70%);
+  background:
+    radial-gradient(circle at 31% 26%, rgb(201 236 255 / 36%) 0 1px, transparent 2px),
+    radial-gradient(circle at 68% 34%, rgb(143 205 238 / 24%) 0 1px, transparent 2px),
+    radial-gradient(circle at 72% 72%, rgb(205 228 255 / 22%) 0 1px, transparent 2px),
+    radial-gradient(circle at 38% 67%, rgb(134 192 230 / 20%) 0 1px, transparent 2px),
+    radial-gradient(circle, rgb(25 74 111 / 27%), rgb(3 12 24 / 92%) 69%);
+  box-shadow:
+    inset 0 0 34px rgb(23 106 155 / 13%),
+    0 12px 32px rgb(0 0 0 / 20%);
+}
+
+.sky-map__horizon,
+.sky-map__altitude,
+.sky-map__axis,
+.sky-map__bearing {
+  position: absolute;
+  pointer-events: none;
+}
+
+.sky-map__horizon {
+  inset: 11%;
+  border: 1px solid rgb(105 196 235 / 34%);
+  border-radius: 50%;
+  box-shadow: 0 0 14px rgb(73 174 220 / 9%);
+}
+
+.sky-map__altitude {
+  border: 1px dashed rgb(136 191 222 / 14%);
+  border-radius: 50%;
+}
+
+.sky-map__altitude--30 {
+  inset: 24%;
+}
+
+.sky-map__altitude--60 {
+  inset: 37%;
+}
+
+.sky-map__axis {
+  background: rgb(135 194 227 / 10%);
+}
+
+.sky-map__axis--vertical {
+  top: 11%;
+  bottom: 11%;
+  left: 50%;
+  width: 1px;
+}
+
+.sky-map__axis--horizontal {
+  top: 50%;
+  right: 11%;
+  left: 11%;
+  height: 1px;
+}
+
+.sky-map__bearing {
+  top: 50%;
+  left: 50%;
+  width: calc(var(--target-radius) * 39%);
+  height: 1px;
+  background: linear-gradient(90deg, rgb(119 207 247 / 8%), rgb(122 215 255 / 56%));
+  transform: rotate(calc(var(--target-azimuth) - 90deg));
+  transform-origin: left center;
+}
+
+.sky-map > span {
+  position: absolute;
+  z-index: 2;
+  font-size: var(--ui-font-micro);
+  font-weight: 650;
+}
+
+.sky-map__north {
+  top: 3%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.sky-map__east {
+  top: 50%;
+  right: 4%;
+  transform: translateY(-50%);
+}
+
+.sky-map__south {
+  bottom: 3%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.sky-map__west {
+  top: 50%;
+  left: 4%;
+  transform: translateY(-50%);
+}
+
+.sky-map > .sky-map__zenith {
+  top: 51%;
+  left: 50%;
+  color: rgb(167 206 228 / 42%);
+  font-size: 0.48rem;
+  font-weight: 500;
+  transform: translate(-50%, 2px);
+}
+
+.sky-map > .sky-map__horizon-label {
+  top: 20%;
+  right: 13%;
+  color: rgb(139 194 222 / 38%);
+  font-size: 0.45rem;
+  font-weight: 500;
+  transform: rotate(34deg);
+}
+
+.sky-map__target {
+  position: absolute;
+  z-index: 4;
+  width: 13px;
+  height: 13px;
+  border: 1px solid rgb(213 246 255 / 80%);
+  border-radius: 50%;
+  background: rgb(126 220 255 / 24%);
+  box-shadow:
+    0 0 0 4px rgb(91 202 250 / 10%),
+    0 0 18px rgb(114 219 255 / 65%);
+  transform: translate(-50%, -50%);
+
+  b {
+    position: absolute;
+    inset: 3px;
+    border-radius: 50%;
+    background: #e9faff;
+    box-shadow: 0 0 7px #8fddff;
+  }
+
+  span {
+    position: absolute;
+    top: 50%;
+    left: 16px;
+    padding: 2px 5px;
+    border-radius: 6px;
+    color: #e4f7ff;
+    background: rgb(2 9 18 / 78%);
+    font-size: var(--ui-font-micro);
+    font-style: normal;
+    font-weight: 650;
+    white-space: nowrap;
+    transform: translateY(-50%);
+  }
+}
+
+.sky-map--below {
+  .sky-map__bearing {
+    background: repeating-linear-gradient(
+      90deg,
+      rgb(221 171 104 / 10%) 0 4px,
+      rgb(221 171 104 / 48%) 4px 7px
+    );
+  }
+
+  .sky-map__target {
+    border-style: dashed;
+    border-color: rgb(239 190 121 / 72%);
+    background: rgb(222 160 84 / 15%);
+    box-shadow: 0 0 0 4px rgb(222 160 84 / 8%);
+
+    b {
+      background: #e7bb7b;
+      box-shadow: 0 0 6px rgb(227 176 106 / 54%);
+    }
+  }
+}
+
+.sky-map__target--left-label span {
+  right: 16px;
+  left: auto;
+}
+
+figcaption {
+  color: rgb(138 185 211 / 48%);
+  font-size: var(--ui-font-micro);
+  text-align: center;
+}

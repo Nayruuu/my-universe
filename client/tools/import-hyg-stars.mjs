@@ -12,8 +12,8 @@ const DEFAULT_OUTPUT = resolve('public/data/stars/hyg-v41.bin');
 const DEFAULT_FEATURED_INPUT = resolve('public/data/stars/nearby-stars.json');
 const DEFAULT_LIMIT = 10_000;
 const HEADER_SIZE = 40;
-const RECORD_SIZE = 36;
-const FORMAT_VERSION = 2;
+const RECORD_SIZE = 48;
+const FORMAT_VERSION = 3;
 const REFERENCE_EPOCH_JULIAN_DAY = 2_451_545;
 const EQUATORIAL_CARTESIAN_FRAME = 1;
 const UNKNOWN_DISTANCE_PARSECS = 100_000;
@@ -21,6 +21,9 @@ const DEFAULT_COLOR_INDEX = 0.65;
 const STRING_SEPARATOR = '\u001f';
 const SOURCE_URL =
   'https://github.com/astronexus/HYG-Database/blob/main/hyg/CURRENT/hygdata_v41.csv';
+const MOTION_MODEL_SOURCE_URL =
+  'https://gea.esac.esa.int/archive/documentation/GEDR3/Data_processing/chap_cu3ast/sec_cu3ast_intro/ssec_cu3ast_intro_tansforms.html';
+const STELLAR_MOTION_MAX_ABSOLUTE_YEARS = 10_000;
 const GREEK_SYMBOLS = new Map([
   ['Alp', 'α'],
   ['Bet', 'β'],
@@ -142,6 +145,9 @@ function indexColumns(header) {
     'x',
     'y',
     'z',
+    'vx',
+    'vy',
+    'vz',
     'bayer',
     'flam',
     'con',
@@ -171,6 +177,9 @@ function parseStar(values, columns) {
   const x = Number.parseFloat(values[columns.x]);
   const y = Number.parseFloat(values[columns.y]);
   const z = Number.parseFloat(values[columns.z]);
+  const vx = Number.parseFloat(values[columns.vx]);
+  const vy = Number.parseFloat(values[columns.vy]);
+  const vz = Number.parseFloat(values[columns.vz]);
 
   if (
     !Number.isInteger(id) ||
@@ -182,7 +191,10 @@ function parseStar(values, columns) {
     !Number.isFinite(magnitude) ||
     !Number.isFinite(x) ||
     !Number.isFinite(y) ||
-    !Number.isFinite(z)
+    !Number.isFinite(z) ||
+    !Number.isFinite(vx) ||
+    !Number.isFinite(vy) ||
+    !Number.isFinite(vz)
   ) {
     return null;
   }
@@ -195,6 +207,9 @@ function parseStar(values, columns) {
     x,
     y,
     z,
+    vx,
+    vy,
+    vz,
     magnitude,
     colorIndex: Number.isFinite(parsedColorIndex) ? parsedColorIndex : DEFAULT_COLOR_INDEX,
     name: createDisplayName(values, columns, id),
@@ -326,6 +341,9 @@ function encodeCatalog(stars) {
     buffer.writeUInt32LE(strings.records[index].nameOffset, offset + 24);
     buffer.writeUInt32LE(strings.records[index].aliasesOffset, offset + 28);
     buffer.writeUInt32LE(strings.records[index].spectralTypeOffset, offset + 32);
+    buffer.writeFloatLE(star.vx, offset + 36);
+    buffer.writeFloatLE(star.vy, offset + 40);
+    buffer.writeFloatLE(star.vz, offset + 44);
   }
   strings.buffer.copy(buffer, stringTableOffset);
 
@@ -400,6 +418,9 @@ function createMetadata(options, stars) {
         'nameOffset:uint32',
         'aliasesOffset:uint32',
         'spectralTypeOffset:uint32',
+        'vxParsecPerYear:float32',
+        'vyParsecPerYear:float32',
+        'vzParsecPerYear:float32',
       ],
       stringEncoding: 'UTF-8 null-terminated',
       aliasSeparator: 'U+001F',
@@ -407,6 +428,14 @@ function createMetadata(options, stars) {
     referenceEpochJulianDay: REFERENCE_EPOCH_JULIAN_DAY,
     referenceFrame: 'J2000 equatorial Cartesian',
     distanceUnit: 'parsec',
+    velocityUnit: 'parsec/year',
+    temporalModel: {
+      name: 'uniform-rectilinear-motion',
+      sourceUrl: MOTION_MODEL_SOURCE_URL,
+      maximumAbsoluteYearsFromReferenceEpoch: STELLAR_MOTION_MAX_ABSOLUTE_YEARS,
+      outsideDomain: 'clamped-to-nearest-boundary',
+      scientificConfidence: 'extrapolated',
+    },
     scientificConfidence: 'observed',
     selection: {
       method: 'brightest-valid-apparent-magnitude-plus-featured-identifiers',

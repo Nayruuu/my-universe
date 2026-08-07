@@ -5,14 +5,14 @@
     "url": "https://github.com/astronexus/HYG-Database/blob/main/hyg/CURRENT/hygdata_v41.csv",
     "license": "CC BY-SA 4.0"
   },
-  "input": "universe-map-hygdata-v41.csv",
+  "input": "hygdata_v41.csv",
   "featuredInput": "nearby-stars.json",
   "format": {
     "magic": "UMSC",
-    "version": 2,
+    "version": 3,
     "byteOrder": "little-endian",
     "headerBytes": 40,
-    "recordBytes": 36,
+    "recordBytes": 48,
     "fields": [
       "xParsec:float32",
       "yParsec:float32",
@@ -22,7 +22,10 @@
       "hygId:uint32",
       "nameOffset:uint32",
       "aliasesOffset:uint32",
-      "spectralTypeOffset:uint32"
+      "spectralTypeOffset:uint32",
+      "vxParsecPerYear:float32",
+      "vyParsecPerYear:float32",
+      "vzParsecPerYear:float32"
     ],
     "stringEncoding": "UTF-8 null-terminated",
     "aliasSeparator": "U+001F"
@@ -30,6 +33,14 @@
   "referenceEpochJulianDay": 2451545,
   "referenceFrame": "J2000 equatorial Cartesian",
   "distanceUnit": "parsec",
+  "velocityUnit": "parsec/year",
+  "temporalModel": {
+    "name": "uniform-rectilinear-motion",
+    "sourceUrl": "https://gea.esac.esa.int/archive/documentation/GEDR3/Data_processing/chap_cu3ast/sec_cu3ast_intro/ssec_cu3ast_intro_tansforms.html",
+    "maximumAbsoluteYearsFromReferenceEpoch": 10000,
+    "outsideDomain": "clamped-to-nearest-boundary",
+    "scientificConfidence": "extrapolated"
+  },
   "scientificConfidence": "observed",
   "selection": {
     "method": "brightest-valid-apparent-magnitude-plus-featured-identifiers",

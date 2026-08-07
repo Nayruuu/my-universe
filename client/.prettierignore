@@ -6,3 +6,6 @@ coverage/
 playwright-report/
 test-results/
 blob-report/
+
+# Immutable benchmark evidence: formatting would invalidate manifest SHA-256 digests.
+../docs/performance/2026-09-11-796fe70/**/*.json

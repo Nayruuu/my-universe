@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { GraphicQuality, LabelDensity, TemporalMode } from '../../../data/models/universe.models';
 import { UniverseEngineFacade } from '../../core/engine/universe-engine.facade';
+import { I18nService } from '../../core/i18n/i18n.service';
 
 @Component({
   selector: 'app-floating-controls',
@@ -10,6 +11,13 @@ import { UniverseEngineFacade } from '../../core/engine/universe-engine.facade';
 })
 export class FloatingControlsComponent {
   protected readonly facade = inject(UniverseEngineFacade);
+  protected readonly i18n = inject(I18nService);
+
+  protected guideHref(): string {
+    const language = this.i18n.lang();
+
+    return language === 'en' ? '/guide/' : `/guide/${language}/`;
+  }
 
   protected focus(objectId: string): void {
     void this.facade.focus(objectId);

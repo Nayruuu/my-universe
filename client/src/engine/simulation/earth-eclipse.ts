@@ -7,6 +7,20 @@ export type EarthEclipseScope = 'instant' | 'global' | 'local';
 export type LunarEclipsePhase = 'none' | 'penumbral' | 'partial' | 'total';
 export type SolarEclipsePhase = 'none' | 'partial' | 'annular' | 'total';
 
+export interface SolarEclipseContact {
+  readonly time: UniverseTime;
+  readonly sunAltitudeDegrees: number;
+  readonly aboveHorizon: boolean;
+}
+
+export interface LocalSolarEclipseContacts {
+  readonly partialBegin: SolarEclipseContact;
+  readonly centralBegin: SolarEclipseContact | null;
+  readonly maximum: SolarEclipseContact;
+  readonly centralEnd: SolarEclipseContact | null;
+  readonly partialEnd: SolarEclipseContact;
+}
+
 export interface EarthEclipseEvent {
   id: string;
   family: EarthEclipseFamily;
@@ -20,6 +34,7 @@ export interface EarthEclipseEvent {
   observerName: string | null;
   observerTimeZone: string | null;
   sunAltitudeDegrees: number | null;
+  localContacts: LocalSolarEclipseContacts | null;
 }
 
 export interface LunarEclipseAppearance {

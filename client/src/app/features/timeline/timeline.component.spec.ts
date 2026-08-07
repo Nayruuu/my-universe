@@ -12,11 +12,11 @@ describe('TimelineComponent', () => {
   const solarObserverActive = signal(false);
   const solarObserverLocation = signal('Point central');
   const localEclipseSummary = signal<string | null>(null);
+  const localEclipseContactsSummary = signal<string | null>(null);
   const solarPathVisible = signal(false);
   const playing = signal(false);
   const currentLocalClock = signal('14:00');
   const eclipseBrowserOpen = signal(false);
-  const earthRotationStabilized = signal(false);
   const speed = signal(1);
   const displayOptions = signal({
     showOrbits: true,
@@ -34,11 +34,11 @@ describe('TimelineComponent', () => {
     solarObserverActive,
     solarObserverLocation,
     localEclipseSummary,
+    localEclipseContactsSummary,
     solarPathVisible,
     playing,
     currentLocalClock,
     eclipseBrowserOpen,
-    earthRotationStabilized,
     speed,
     displayOptions,
     currentIsoDateTime,
@@ -62,10 +62,10 @@ describe('TimelineComponent', () => {
     timelineSolarEclipse.set(null);
     solarObserverActive.set(false);
     localEclipseSummary.set(null);
+    localEclipseContactsSummary.set(null);
     solarPathVisible.set(false);
     playing.set(false);
     eclipseBrowserOpen.set(false);
-    earthRotationStabilized.set(false);
     displayOptions.set({
       showOrbits: true,
       showConstellations: true,
@@ -88,6 +88,26 @@ describe('TimelineComponent', () => {
     TestBed.resetTestingModule();
   });
 
+  it('déplie les réglages sans modifier le temps et expose leur état accessible', () => {
+    const fixture = TestBed.createComponent(TimelineComponent);
+
+    fixture.detectChanges();
+    const button = fixture.nativeElement.querySelector('.timeline-toggle') as HTMLButtonElement;
+
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+    expect(button.getAttribute('aria-controls')).toBe('timeline-scrub timeline-options');
+    button.click();
+    fixture.detectChanges();
+    expect(button.getAttribute('aria-expanded')).toBe('true');
+    expect(button.getAttribute('aria-label')).toBe('Replier les contrôles du temps');
+    expect(fixture.nativeElement.querySelector('.timeline--expanded')).not.toBeNull();
+    button.click();
+    fixture.detectChanges();
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+    expect(facade.setTime).not.toHaveBeenCalled();
+    expect(facade.togglePlaying).not.toHaveBeenCalled();
+  });
+
   it('borne le curseur à dix ans autour du présent', () => {
     const component = createComponent();
 
@@ -98,6 +118,26 @@ describe('TimelineComponent', () => {
     currentTime.set({ julianDay: component.presentJulianDay + 5_000 });
     expect(component.timelineOffset()).toBe(3_652.5);
     expect(component.epochLabel()).not.toBe('');
+  });
+
+  it('garde la portée scientifique du mode Lumière reçue dans la barre du temps', () => {
+    const fixture = TestBed.createComponent(TimelineComponent);
+
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.received-light-context')).toBeNull();
+
+    displayOptions.update((options) => ({ ...options, temporalMode: 'observable' }));
+    fixture.detectChanges();
+    const context = fixture.nativeElement.querySelector('.received-light-context') as HTMLElement;
+
+    expect(context.textContent).toContain('Lumière reçue');
+    expect(context.textContent).toContain('Retard calculé/extrapolé');
+    expect(context.textContent).toContain('systèmes exoplanétaires documentés');
+    expect(context.getAttribute('aria-live')).toBe('polite');
+
+    displayOptions.update((options) => ({ ...options, temporalMode: 'state' }));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.received-light-context')).toBeNull();
   });
 
   it('délègue tous les contrôles temporels', () => {
@@ -119,6 +159,22 @@ describe('TimelineComponent', () => {
     expect(facade.setTemporalMode).toHaveBeenCalledWith('observable');
     expect(facade.viewEarthEclipse).toHaveBeenCalledWith(eclipse);
     expect(facade.observeEarthEclipse).toHaveBeenCalledWith(eclipse);
+  });
+
+  it('sélectionne un jour par seconde par défaut sans proposer le temps réel', () => {
+    const fixture = TestBed.createComponent(TimelineComponent);
+
+    speed.set(1);
+    fixture.detectChanges();
+    const speedSelect = fixture.nativeElement.querySelector(
+      'select[aria-label="Vitesse temporelle"]',
+    ) as HTMLSelectElement;
+
+    expect(speedSelect.value).toBe('1');
+    expect(speedSelect.selectedOptions[0]?.textContent).toContain('1 jour / seconde');
+    expect(Array.from(speedSelect.options).map(({ textContent }) => textContent)).not.toContain(
+      'Temps réel',
+    );
   });
 
   it('traduit chaque type d’éclipse', () => {
@@ -153,18 +209,19 @@ describe('TimelineComponent', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Annularité');
     expect(fixture.nativeElement.textContent).toContain('Biarritz');
+    expect(fixture.nativeElement.textContent).toContain('Carte de tout l’événement');
 
     localEclipseSummary.set('80 % occulté');
+    localEclipseContactsSummary.set('C1 19:22 · Max 20:17 · C4 21:09');
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('80 % occulté');
+    expect(fixture.nativeElement.textContent).toContain('C1 19:22');
 
     solarObserverActive.set(true);
     playing.set(true);
-    earthRotationStabilized.set(true);
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('reconstruction calculée');
     expect(fixture.nativeElement.querySelector('.pause-icon')).not.toBeNull();
-    expect(fixture.nativeElement.textContent).toContain('Terre stabilisée');
 
     solarObserverActive.set(false);
     localEclipseSummary.set(null);
@@ -239,6 +296,7 @@ function event(overrides: Partial<EarthEclipseEvent> = {}): EarthEclipseEvent {
     observerName: null,
     observerTimeZone: null,
     sunAltitudeDegrees: null,
+    localContacts: null,
     ...overrides,
   };
 }

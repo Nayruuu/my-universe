@@ -6,8 +6,77 @@ import {
   CosmicStructureCatalogMetadata,
 } from '../loaders/cosmic-structure-catalog';
 import { CosmicStructureCatalogRegistry } from './cosmic-structure-catalog-registry';
+import { cosmicStructureScore } from './cosmic-structure-catalog-presentation';
 
 describe('CosmicStructureCatalogRegistry', () => {
+  it.each([0, 2, 512, 1025])(
+    'prépare %i détections, leur classement stable et leurs alias sans changer les données',
+    async (count) => {
+      const catalog = createLargeCatalog(count);
+      const coordinates = new CoordinateSystem();
+      const expected = new CosmicStructureCatalogRegistry(catalog, coordinates);
+      const definition = vi.spyOn(CosmicStructureCatalogRegistry.prototype, 'getDefinition');
+      const pause = vi.fn(async () => undefined);
+      const registry = await CosmicStructureCatalogRegistry.create(catalog, coordinates, pause);
+
+      expect(pause.mock.calls.length > 0).toBe(count >= 512);
+      expect(definition).not.toHaveBeenCalled();
+      expect(registry.objectIds).toEqual(expected.objectIds);
+      expect(registry.renderPositions).toEqual(expected.renderPositions);
+      const ranking = Array.from({ length: count }, (_, index) => index).sort(
+        (left, right) =>
+          cosmicStructureScore(catalog, right) - cosmicStructureScore(catalog, left) ||
+          left - right,
+      );
+
+      expect(registry.getLabelObjects(count)).toEqual(expected.getLabelObjects(count));
+      expect(registry.getLabelObjects(count).map(({ id }) => id)).toEqual(
+        ranking.map((index) => registry.objectIds[index]),
+      );
+      const entries = registry.getSearchEntries();
+
+      expect(entries).toEqual(expected.getSearchEntries());
+      expect(registry.getSearchEntries()).toBe(entries);
+      for (const [index, id] of registry.objectIds.entries()) {
+        expect(registry.getIndex(id)).toBe(index);
+      }
+      definition.mockRestore();
+    },
+  );
+
+  it('prépare aussi les noms et alias des repères nommés avec l’ordonnanceur navigateur', async () => {
+    const expected = createNamedLandmarkRegistry();
+    const registry = await CosmicStructureCatalogRegistry.create(
+      expected.catalog,
+      new CoordinateSystem(),
+    );
+
+    expect(registry.getSearchEntries()).toEqual(expected.getSearchEntries());
+  });
+
+  it.each([1, 4, 10])(
+    'ne publie rien si la pause %i échoue pendant l’indexation, le tri ou la recherche',
+    async (pauseIndex) => {
+      const error = new Error('préparation annulée');
+      let calls = 0;
+      const published = vi.fn();
+      const pending = CosmicStructureCatalogRegistry.create(
+        createLargeCatalog(1025),
+        new CoordinateSystem(),
+        async () => {
+          calls += 1;
+          if (calls === pauseIndex) {
+            throw error;
+          }
+        },
+      ).then(published);
+
+      await expect(pending).rejects.toBe(error);
+      expect(calls).toBe(pauseIndex);
+      expect(published).not.toHaveBeenCalled();
+    },
+  );
+
   it('indexe les détections de catalogues dans le référentiel cosmique', () => {
     const registry = createRegistry();
 
@@ -45,6 +114,10 @@ describe('CosmicStructureCatalogRegistry', () => {
         detectionMethod: 'Luminosity density field',
         structureType: 'supercluster',
         distanceMpc: expect.any(Number),
+        receivedLightDistanceModel: 'flat-lambda-cdm-comoving-distance',
+        cosmologicalRedshift: expect.any(Number),
+        cosmologicalRedshiftOrigin: 'inferred-from-comoving-distance',
+        cosmologicalModel: 'Flat ΛCDM · H0=70 km/s/Mpc · Ωm=0.3 · ΩΛ=0.7',
         effectiveRadiusMpc: expect.closeTo(35.9, 4),
         memberGalaxyCount: 1_038,
         catalogConfidence: expect.closeTo(0.98, 5),
@@ -52,6 +125,7 @@ describe('CosmicStructureCatalogRegistry', () => {
       },
     });
     expect(definition?.visual.color).toBe('#d6a8ff');
+    expect(definition?.metadata?.['cosmologicalRedshift']).toBeCloseTo(0.08, 1);
     expect(registry.getDefinition(definition!.id)).toBe(definition);
     expect(registry.getDefinition('missing')).toBeUndefined();
   });
@@ -110,6 +184,30 @@ describe('CosmicStructureCatalogRegistry', () => {
     expect(registry.getLabelObjects(2).map(({ id }) => id)).toEqual(registry.objectIds);
   });
 
+  it('préserve le nom, les alias et le sens scientifique d’un bassin nommé', () => {
+    const registry = createNamedLandmarkRegistry();
+    const definition = registry.getDefinition('lss-valade-pboa-shapley-basin');
+    const entry = registry.getSearchEntries()[0];
+
+    expect(entry).toMatchObject({
+      name: 'Bassin de Shapley',
+      aliases: expect.arrayContaining(['Shapley p-BoA', 'shapley-basin']),
+      type: 'cosmic-basin',
+    });
+    expect(definition).toMatchObject({
+      name: 'Bassin de Shapley',
+      aliases: expect.arrayContaining(['Shapley p-BoA', 'shapley-basin']),
+      scientificConfidence: 'calculated',
+      description: expect.stringContaining('Bassin d’attraction probabiliste'),
+      metadata: {
+        catalogConfidenceMeaning: 'Intrinsic p-BoA probability',
+        extentMeaning: 'Equivalent spherical display radius',
+        mapPriority: 'landmark',
+      },
+    });
+    expect(registry.getLabelObjects(1)[0]?.name).toBe('Bassin de Shapley');
+  });
+
   it('retourne une position locale dans un vecteur réutilisable', () => {
     const registry = createRegistry();
     const target = new THREE.Vector3();
@@ -128,13 +226,13 @@ describe('CosmicStructureCatalogRegistry', () => {
       type: 'cosmic-filament',
       metadata: {
         lengthMpc: expect.closeTo(24.8, 4),
-        surveyEdge: true,
       },
     });
-    expect(filament?.description).toContain('Filament extrait');
+    expect(filament?.description).toContain('épine publiée');
     expect(filament?.metadata?.['effectiveRadiusMpc']).toBeUndefined();
     expect(filament?.metadata?.['memberGalaxyCount']).toBeUndefined();
-    expect(filament?.metadata?.['visualAdaptation']).toContain('spine continue');
+    expect(filament?.metadata?.['surveyEdge']).toBeUndefined();
+    expect(filament?.metadata?.['visualAdaptation']).toContain('points publiés');
 
     const clusterRegistry = createSingleStructureRegistry('cluster', 'PSZ2 G000.04+45.13', 0, 0, 0);
     const cluster = clusterRegistry.getDefinition('lss-test-cluster-psz2-g000-04-45-13');
@@ -175,6 +273,30 @@ function createCatalog(): CosmicStructureCatalog {
     identifiers: ['239+027+0091', 'CMASS-North-60'],
     structureTypes: ['supercluster', 'void'],
     metadata: createMetadata(),
+  };
+}
+
+function createLargeCatalog(count: number): CosmicStructureCatalog {
+  const catalog = createCatalog();
+
+  return {
+    ...catalog,
+    count,
+    positionsMpc: Float32Array.from({ length: count * 3 }, (_, index) => (index % 29) - 14.5),
+    distancesMpc: new Float32Array(count).fill(100),
+    radiiMpc: Float32Array.from({ length: count }, (_, index) => index % 7),
+    confidences: new Float32Array(count).fill(0.9),
+    densityContrasts: new Float32Array(count).fill(Number.NaN),
+    boundaryDistancesMpc: new Float32Array(count).fill(Number.NaN),
+    galaxyCounts: Uint32Array.from({ length: count }, (_, index) => index % 13),
+    sourceIndices: Uint16Array.from({ length: count }, (_, index) => index % 2),
+    catalogNumericIds: Uint16Array.from({ length: count }, (_, index) => index),
+    flags: new Uint8Array(count),
+    identifiers: Array.from({ length: count }, (_, index) => `Détection + ${index}`),
+    structureTypes: Array.from({ length: count }, (_, index) =>
+      index % 2 ? 'void' : 'supercluster',
+    ),
+    metadata: { ...catalog.metadata, recordCount: count },
   };
 }
 
@@ -256,6 +378,55 @@ function createSingleStructureRegistry(
           method: 'Documented test method',
           objectNamePrefix: structureType === 'filament' ? 'Filament test' : 'Amas test',
           scientificConfidence: 'calculated',
+          recordCount: 1,
+        },
+      ],
+    },
+  };
+
+  return new CosmicStructureCatalogRegistry(catalog, new CoordinateSystem());
+}
+
+function createNamedLandmarkRegistry(): CosmicStructureCatalogRegistry {
+  const catalog: CosmicStructureCatalog = {
+    count: 1,
+    referenceEpochJulianDay: 2_451_545,
+    minimumDistanceMpc: 220,
+    maximumDistanceMpc: 220,
+    positionsMpc: new Float32Array([220, 0, 0]),
+    distancesMpc: new Float32Array([220]),
+    radiiMpc: new Float32Array([100]),
+    confidences: new Float32Array([0.9]),
+    densityContrasts: new Float32Array([Number.NaN]),
+    boundaryDistancesMpc: new Float32Array([Number.NaN]),
+    galaxyCounts: new Uint32Array([0]),
+    sourceIndices: new Uint16Array([0]),
+    catalogNumericIds: new Uint16Array([4]),
+    flags: new Uint8Array([128]),
+    identifiers: ['shapley-basin'],
+    structureTypes: ['basin'],
+    metadata: {
+      version: '1.0.0',
+      recordCount: 1,
+      referenceEpochJulianDay: 2_451_545,
+      referenceFrame: 'equatorial-j2000',
+      distanceUnit: 'megaparsec',
+      scientificConfidence: 'calculated',
+      sources: [
+        {
+          id: 'valade-pboa',
+          name: 'Probabilistic basins',
+          citation: 'Valade et al. (2024)',
+          sourceUrl: 'https://example.test/pboa',
+          structureType: 'basin',
+          method: 'Constrained probabilistic reconstruction',
+          objectNamePrefix: 'Bassin',
+          scientificConfidence: 'calculated',
+          confidenceMeaning: 'Intrinsic p-BoA probability',
+          extentMeaning: 'Equivalent spherical display radius',
+          mapPriority: 'landmark',
+          recordNames: { 'shapley-basin': 'Bassin de Shapley' },
+          recordAliases: { 'shapley-basin': ['Shapley p-BoA'] },
           recordCount: 1,
         },
       ],

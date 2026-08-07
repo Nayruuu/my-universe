@@ -1,0 +1,108 @@
+{
+  "schema": "universe-map/performance-evidence@1",
+  "capturedAt": "2026-09-11T13:21:26.644Z",
+  "benchmark": "startup",
+  "evidence": {
+    "measurementKind": "simulated-cpu",
+    "declaredDeviceClass": "unclassified",
+    "deviceLabel": null
+  },
+  "source": {
+    "commit": "796fe70310b28ee17c1a0cd9445688d65f05b36c",
+    "dirty": false
+  },
+  "host": {
+    "platform": "darwin",
+    "release": "25.6.0",
+    "architecture": "arm64",
+    "logicalCpuCount": 18,
+    "cpuModels": [
+      "Apple M5 Max"
+    ],
+    "totalMemoryBytes": 137438953472,
+    "nodeVersion": "v24.2.0"
+  },
+  "browser": {
+    "vendor": "Google Inc. (Apple)",
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Max, Unspecified Version)",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+    "hardwareConcurrency": 18,
+    "reportedDeviceMemoryGiB": 32
+  },
+  "configuration": {
+    "profiles": [
+      "desktop"
+    ],
+    "qualities": [
+      "low"
+    ],
+    "runs": 3,
+    "cpuThrottleRate": 6,
+    "firstUsableMapBudgetMs": 7000
+  },
+  "summary": [
+    {
+      "profile": "desktop",
+      "quality": "low",
+      "runs": 3,
+      "medians": {
+        "engineModuleMs": 157.6,
+        "dataReadyMs": 278.5,
+        "sceneReadyMs": 1770,
+        "firstUsableMapMs": 2050
+      },
+      "worstFirstUsableMapMs": 2080,
+      "withinBudget": true
+    }
+  ],
+  "samples": [
+    {
+      "profile": "desktop",
+      "quality": "low",
+      "cpuThrottleRate": 6,
+      "browser": {
+        "vendor": "Google Inc. (Apple)",
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Max, Unspecified Version)",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "hardwareConcurrency": 18,
+        "reportedDeviceMemoryGiB": 32
+      },
+      "engineModuleMs": 166.5,
+      "dataReadyMs": 286.8,
+      "sceneReadyMs": 1800,
+      "firstUsableMapMs": 2080
+    },
+    {
+      "profile": "desktop",
+      "quality": "low",
+      "cpuThrottleRate": 6,
+      "browser": {
+        "vendor": "Google Inc. (Apple)",
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Max, Unspecified Version)",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "hardwareConcurrency": 18,
+        "reportedDeviceMemoryGiB": 32
+      },
+      "engineModuleMs": 157.6,
+      "dataReadyMs": 278.5,
+      "sceneReadyMs": 1770,
+      "firstUsableMapMs": 2050
+    },
+    {
+      "profile": "desktop",
+      "quality": "low",
+      "cpuThrottleRate": 6,
+      "browser": {
+        "vendor": "Google Inc. (Apple)",
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Max, Unspecified Version)",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "hardwareConcurrency": 18,
+        "reportedDeviceMemoryGiB": 32
+      },
+      "engineModuleMs": 150.1,
+      "dataReadyMs": 261.4,
+      "sceneReadyMs": 1740,
+      "firstUsableMapMs": 2010
+    }
+  ]
+}

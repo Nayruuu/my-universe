@@ -3,6 +3,7 @@ import {
   GeoMoon,
   HelioVector,
   JupiterMoons,
+  MakeTime,
   RotateVector,
   Rotation_EQJ_ECL,
   Vector,
@@ -16,6 +17,14 @@ import {
   Vector3Like,
 } from '../../data/models/universe.models';
 import { CoordinateSystem } from '../coordinates/coordinate-system';
+import { astronomyEngineDaysSinceJ2000 } from './astronomy-engine-time-domain';
+import { calculateKeplerianRenderPosition } from './keplerian-orbit';
+import {
+  calculateJovianMoonLightDeparture,
+  calculateSolarSystemLightDeparture,
+  type ReceivedLightEpoch,
+  type SolarSystemLightTarget,
+} from './received-light-time';
 import { JULIAN_DAY_J2000 } from './time-utils';
 
 const EQUATORIAL_TO_ECLIPTIC = Rotation_EQJ_ECL();
@@ -39,6 +48,12 @@ const JOVIAN_MOONS = new Set<JovianMoon>(['io', 'europa', 'ganymede', 'callisto'
 
 export interface TemporalPositionProvider {
   getPositionAt(time: UniverseTime): Vector3Like;
+  getReceivedPositionAt?(time: UniverseTime): ReceivedTemporalPosition | null;
+}
+
+export interface ReceivedTemporalPosition {
+  readonly position: Vector3Like;
+  readonly light: ReceivedLightEpoch;
 }
 
 export class StaticPositionProvider implements TemporalPositionProvider {
@@ -63,39 +78,7 @@ export class KeplerianOrbitProvider implements TemporalPositionProvider {
   }
 
   public getPositionAt(time: UniverseTime): Vector3Like {
-    const elapsedDays = time.julianDay - this.definition.epochJulianDay;
-    const meanMotion = (Math.PI * 2) / this.definition.orbitalPeriodDays;
-    const meanAnomaly = normalizeRadians(
-      degreesToRadians(this.definition.meanAnomalyAtEpoch) + meanMotion * elapsedDays,
-    );
-    const eccentricAnomaly = solveEccentricAnomaly(meanAnomaly, this.definition.eccentricity);
-    const eccentricity = this.definition.eccentricity;
-    const trueAnomaly =
-      2 *
-      Math.atan2(
-        Math.sqrt(1 + eccentricity) * Math.sin(eccentricAnomaly / 2),
-        Math.sqrt(1 - eccentricity) * Math.cos(eccentricAnomaly / 2),
-      );
-    const radius = this.semiMajorAxisSceneUnits * (1 - eccentricity * Math.cos(eccentricAnomaly));
-
-    const inclination = degreesToRadians(this.definition.inclination);
-    const ascendingNode = degreesToRadians(this.definition.longitudeOfAscendingNode);
-    const periapsis = degreesToRadians(this.definition.argumentOfPeriapsis);
-    const argument = periapsis + trueAnomaly;
-
-    const cosNode = Math.cos(ascendingNode);
-    const sinNode = Math.sin(ascendingNode);
-    const cosArgument = Math.cos(argument);
-    const sinArgument = Math.sin(argument);
-    const cosInclination = Math.cos(inclination);
-    const sinInclination = Math.sin(inclination);
-
-    // The astronomical reference plane (x/y) is mapped to Three.js' horizontal x/z plane.
-    return {
-      x: radius * (cosNode * cosArgument - sinNode * sinArgument * cosInclination),
-      y: radius * sinArgument * sinInclination,
-      z: radius * (sinNode * cosArgument + cosNode * sinArgument * cosInclination),
-    };
+    return calculateKeplerianRenderPosition(this.definition, time, this.semiMajorAxisSceneUnits);
   }
 }
 
@@ -122,16 +105,60 @@ export class SolarSystemEphemerisProvider implements TemporalPositionProvider {
   }
 
   public getPositionAt(time: UniverseTime): Vector3Like {
-    const daysSinceJ2000 = time.julianDay - JULIAN_DAY_J2000;
+    const daysSinceJ2000 = astronomyEngineDaysSinceJ2000(time);
     const equatorialPosition = this.getEquatorialPosition(daysSinceJ2000);
+
+    return this.toScenePosition(equatorialPosition);
+  }
+
+  public getReceivedPositionAt(time: UniverseTime): ReceivedTemporalPosition | null {
+    if (this.definition.origin === 'jupiter') {
+      const body = this.definition.body as JovianMoon;
+      const light = calculateJovianMoonLightDeparture(body, time);
+      const equatorialPosition = this.getEquatorialPosition(
+        astronomyEngineDaysSinceJ2000(light.emissionTime),
+      );
+
+      return { position: this.toScenePosition(equatorialPosition), light };
+    }
+    const light = calculateSolarSystemLightDeparture(
+      this.definition.body as SolarSystemLightTarget,
+      time,
+    );
+    const relative = light.relativePositionEquatorialAu;
+    let equatorialPosition: Vector;
+
+    if (this.definition.origin === 'earth') {
+      equatorialPosition = new Vector(
+        relative.x,
+        relative.y,
+        relative.z,
+        MakeTime(light.emissionTime.julianDay - JULIAN_DAY_J2000),
+      );
+    } else {
+      const earthAtReception = HelioVector(Body.Earth, light.receptionDaysSinceJ2000);
+
+      equatorialPosition = new Vector(
+        earthAtReception.x + relative.x,
+        earthAtReception.y + relative.y,
+        earthAtReception.z + relative.z,
+        MakeTime(light.emissionTime.julianDay - JULIAN_DAY_J2000),
+      );
+    }
+
+    return { position: this.toScenePosition(equatorialPosition), light };
+  }
+
+  private toScenePosition(equatorialPosition: Vector): Vector3Like {
     const eclipticPosition = RotateVector(EQUATORIAL_TO_ECLIPTIC, equatorialPosition);
     const scale = this.sceneUnitsPerAstronomicalUnit;
 
-    // Astronomy Engine fournit EQJ. Le rendu utilise l’écliptique J2000 avec Y vertical.
+    // Astronomy Engine fournit EQJ. Le rendu utilise une rotation propre vers
+    // l’écliptique J2000 avec Y vertical, sans réflexion est-ouest.
     return {
       x: eclipticPosition.x * scale,
       y: eclipticPosition.z * scale,
-      z: eclipticPosition.y * scale,
+      z: -eclipticPosition.y * scale,
     };
   }
 
@@ -148,6 +175,39 @@ export class SolarSystemEphemerisProvider implements TemporalPositionProvider {
     }
 
     return HelioVector(this.body, daysSinceJ2000);
+  }
+}
+
+export class IllustrativeOrbitProvider implements TemporalPositionProvider {
+  private readonly semiMajorAxisSceneUnits: number;
+
+  constructor(
+    private readonly definition: Extract<
+      PositionProviderDefinition,
+      { type: 'illustrative-orbit' }
+    >,
+    coordinateSystem: CoordinateSystem,
+    frame: ReferenceFrame,
+  ) {
+    this.semiMajorAxisSceneUnits =
+      coordinateSystem.toSceneDistance(definition.semiMajorAxis, definition.unit, frame) *
+      (definition.distanceScale ?? 1);
+  }
+
+  public getPositionAt(time: UniverseTime): Vector3Like {
+    const elapsedDays =
+      (time.julianDay - this.definition.epochJulianDay) % this.definition.orbitalPeriodDays;
+    const phase =
+      degreesToRadians(this.definition.visualPhaseAtEpochDegrees) +
+      (elapsedDays / this.definition.orbitalPeriodDays) * Math.PI * 2;
+    const inclination = degreesToRadians(this.definition.visualInclinationDegrees);
+    const orbitalPlaneOffset = Math.sin(phase) * this.semiMajorAxisSceneUnits;
+
+    return {
+      x: Math.cos(phase) * this.semiMajorAxisSceneUnits,
+      y: orbitalPlaneOffset * Math.sin(inclination),
+      z: orbitalPlaneOffset * Math.cos(inclination),
+    };
   }
 }
 
@@ -222,6 +282,8 @@ export class PositionProviderFactory {
         return new KeplerianOrbitProvider(definition, this.coordinateSystem, frame);
       case 'ephemeris':
         return new SolarSystemEphemerisProvider(definition, this.coordinateSystem, frame);
+      case 'illustrative-orbit':
+        return new IllustrativeOrbitProvider(definition, this.coordinateSystem, frame);
       case 'linear-motion':
         return new LinearProperMotionProvider(definition, this.coordinateSystem, frame);
       case 'procedural':
@@ -230,32 +292,8 @@ export class PositionProviderFactory {
   }
 }
 
-function solveEccentricAnomaly(meanAnomaly: number, eccentricity: number): number {
-  let estimate = eccentricity < 0.8 ? meanAnomaly : Math.PI;
-
-  for (let iteration = 0; iteration < 12; iteration += 1) {
-    const correction =
-      (estimate - eccentricity * Math.sin(estimate) - meanAnomaly) /
-      (1 - eccentricity * Math.cos(estimate));
-
-    estimate -= correction;
-
-    if (Math.abs(correction) < 1e-10) {
-      break;
-    }
-  }
-
-  return estimate;
-}
-
 function degreesToRadians(value: number): number {
   return (value * Math.PI) / 180;
-}
-
-function normalizeRadians(value: number): number {
-  const fullTurn = Math.PI * 2;
-
-  return ((value % fullTurn) + fullTurn) % fullTurn;
 }
 
 function isValidEphemerisOrigin(

@@ -1,0 +1,267 @@
+{
+  "version": "1.0.0",
+  "objects": [
+    {
+      "id": "sn-1006",
+      "name": "SN 1006",
+      "aliases": ["Supernova de 1006", "SNR G327.6+14.6"],
+      "type": "supernova",
+      "parentId": "milky-way",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "observed",
+      "description": "Rémanent de la supernova observée en mai 1006, l’un des événements stellaires les plus brillants rapportés dans les archives historiques.",
+      "visual": {
+        "color": "#9fdcff",
+        "secondaryColor": "#ffb2a3",
+        "emissiveColor": "#e8f7ff",
+        "emissiveIntensity": 1.2,
+        "visualRadius": 2.6,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-1758.7281, 536.4446, -1106.9461],
+        "unit": "parsec"
+      },
+      "metadata": {
+        "source": "NASA · Supernova Remnant SN 1006",
+        "sourceUrl": "https://www.nasa.gov/universe/supernova-remnant-sn-1006/",
+        "coordinateSource": "Chandra X-ray Observatory · SN 1006",
+        "coordinateSourceUrl": "https://chandra.harvard.edu/photo/2005/sn1006/",
+        "distanceLy": 7000,
+        "rightAscensionDegrees": 226.041708,
+        "declinationDegrees": -41.8958,
+        "eventDateLabel": "1 mai 1006 · première observation rapportée",
+        "visualPeakJulianDay": 2088613.5,
+        "visualDateConfidence": "historical-observation-anchor",
+        "supernovaType": "Probablement Ia",
+        "supernovaRiseDays": 18,
+        "supernovaDecayDays": 420,
+        "shellFormationDays": 45,
+        "appearanceReferenceJulianDay": 2461257.5,
+        "appearanceConfidence": "illustrative",
+        "visualSource": "Courbe de luminosité et expansion de la coquille illustratives",
+        "mapLabelRank": 1,
+        "keywords": "supernova rémanent explosion étoile historique 1006"
+      }
+    },
+    {
+      "id": "crab-nebula",
+      "name": "Nébuleuse du Crabe",
+      "aliases": ["SN 1054", "Messier 1", "M1", "Crab Nebula"],
+      "type": "supernova",
+      "parentId": "milky-way",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "observed",
+      "description": "Rémanent en expansion associé à l’explosion stellaire observée en 1054. Un pulsar demeure au centre de la nébuleuse.",
+      "visual": {
+        "color": "#75d9ff",
+        "secondaryColor": "#ff7f72",
+        "emissiveColor": "#f7fbff",
+        "emissiveIntensity": 1.35,
+        "visualRadius": 2.2,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [1976.4949, -200.8493, -157.5538],
+        "unit": "parsec"
+      },
+      "metadata": {
+        "source": "NASA Hubble · Crab Nebula expansion",
+        "sourceUrl": "https://science.nasa.gov/missions/hubble/nasas-hubble-revisits-crab-nebula-to-track-25-years-of-expansion/",
+        "coordinateSource": "Chandra X-ray Observatory · Crab Nebula",
+        "coordinateSourceUrl": "https://www.chandra.harvard.edu/photo/2017/crab/",
+        "distanceLy": 6500,
+        "diameterLy": 11,
+        "rightAscensionDegrees": 83.633333,
+        "declinationDegrees": 22.014444,
+        "eventDateLabel": "1054 · jour exact traité comme approximatif",
+        "visualPeakJulianDay": 2106209.5,
+        "visualDateConfidence": "illustrative-day-anchor-within-documented-year",
+        "supernovaType": "Effondrement de cœur",
+        "supernovaRiseDays": 12,
+        "supernovaDecayDays": 520,
+        "shellFormationDays": 35,
+        "appearanceReferenceJulianDay": 2461257.5,
+        "appearanceConfidence": "illustrative",
+        "visualSource": "Courbe de luminosité et expansion de la coquille illustratives",
+        "mapLabelRank": 0,
+        "keywords": "supernova rémanent explosion étoile pulsar crabe crab M1 1054"
+      }
+    },
+    {
+      "id": "tycho-supernova",
+      "name": "Supernova de Tycho",
+      "aliases": ["SN 1572", "Tycho’s Supernova", "3C 10"],
+      "type": "supernova",
+      "parentId": "milky-way",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "observed",
+      "description": "Rémanent de la supernova de type Ia suivie par Tycho Brahe en 1572, dont l’apparition contribua à transformer la compréhension du ciel.",
+      "visual": {
+        "color": "#79c8ff",
+        "secondaryColor": "#ff9f6b",
+        "emissiveColor": "#fff7ea",
+        "emissiveIntensity": 1.25,
+        "visualRadius": 2.4,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [1997.3863, 98.5338, 3447.8286],
+        "unit": "parsec"
+      },
+      "metadata": {
+        "source": "NASA Hubble · Stellar survivor from the 1572 explosion",
+        "sourceUrl": "https://science.nasa.gov/missions/hubble/stellar-survivor-from-1572-ad-explosion-supports-supernova-theory/",
+        "coordinateSource": "Chandra X-ray Observatory · Tycho",
+        "coordinateSourceUrl": "https://chandra.harvard.edu/photo/2005/tycho/",
+        "distanceLy": 13000,
+        "rightAscensionDegrees": 6.320833,
+        "declinationDegrees": 64.143611,
+        "eventDateLabel": "11 novembre 1572 · observation de Tycho Brahe",
+        "visualPeakJulianDay": 2295535.5,
+        "visualDateConfidence": "historical-observation-anchor",
+        "supernovaType": "Ia",
+        "supernovaRiseDays": 18,
+        "supernovaDecayDays": 500,
+        "shellFormationDays": 45,
+        "appearanceReferenceJulianDay": 2461257.5,
+        "appearanceConfidence": "illustrative",
+        "visualSource": "Courbe de luminosité et expansion de la coquille illustratives",
+        "mapLabelRank": 2,
+        "keywords": "supernova rémanent explosion étoile Tycho Brahe 1572 type Ia"
+      }
+    },
+    {
+      "id": "kepler-supernova",
+      "name": "Supernova de Kepler",
+      "aliases": ["SN 1604", "Kepler’s Supernova", "G4.5+6.8"],
+      "type": "supernova",
+      "parentId": "milky-way",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "observed",
+      "description": "Rémanent de la supernova de type Ia observée en 1604 et étudiée par Johannes Kepler, la plus récente supernova galactique visible à l’œil nu.",
+      "visual": {
+        "color": "#7bd8ff",
+        "secondaryColor": "#ff9a62",
+        "emissiveColor": "#fff8e8",
+        "emissiveIntensity": 1.3,
+        "visualRadius": 2.3,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-5159.2174, 619.1818, 407.957],
+        "unit": "parsec"
+      },
+      "metadata": {
+        "source": "NASA History · Johannes Kepler observes a supernova",
+        "sourceUrl": "https://www.nasa.gov/history/420-years-ago-astronomer-johannes-kepler-observes-a-supernova/",
+        "coordinateSource": "Chandra X-ray Observatory · Kepler’s Supernova Remnant",
+        "coordinateSourceUrl": "https://www.chandra.harvard.edu/photo/2026/kepler/",
+        "distanceLy": 17000,
+        "rightAscensionDegrees": 262.67,
+        "declinationDegrees": -21.486389,
+        "eventDateLabel": "17 octobre 1604 · première observation de Kepler",
+        "visualPeakJulianDay": 2307198.5,
+        "visualDateConfidence": "historical-observation-anchor",
+        "supernovaType": "Ia",
+        "supernovaRiseDays": 18,
+        "supernovaDecayDays": 520,
+        "shellFormationDays": 45,
+        "appearanceReferenceJulianDay": 2461257.5,
+        "appearanceConfidence": "illustrative",
+        "visualSource": "Courbe de luminosité et expansion de la coquille illustratives",
+        "mapLabelRank": 3,
+        "keywords": "supernova rémanent explosion étoile Kepler 1604 type Ia"
+      }
+    },
+    {
+      "id": "cassiopeia-a",
+      "name": "Cassiopée A",
+      "aliases": ["Cassiopeia A", "Cas A", "3C 461", "SNR G111.7−02.1"],
+      "type": "supernova-remnant",
+      "parentId": "milky-way",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "observed",
+      "description": "Jeune rémanent de supernova de la Voie lactée. La lumière de l’explosion aurait atteint la Terre vers 1680, sans observation historique vérifiée.",
+      "visual": {
+        "color": "#63d7ff",
+        "secondaryColor": "#ff765f",
+        "emissiveColor": "#eefbff",
+        "emissiveIntensity": 1.35,
+        "visualRadius": 2.4,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [1248.3987, -125.3004, 3130.5528],
+        "unit": "parsec"
+      },
+      "metadata": {
+        "source": "NASA · Latest look at Chandra’s first light",
+        "sourceUrl": "https://www.nasa.gov/image-article/latest-look-first-light-from-chandra/",
+        "coordinateSource": "Chandra X-ray Observatory · Cassiopeia A",
+        "coordinateSourceUrl": "https://chandra.harvard.edu/photo/2002/0237/",
+        "distanceLy": 11000,
+        "rightAscensionDegrees": 350.86125,
+        "declinationDegrees": 58.8175,
+        "eventDateLabel": "Vers 1680 · aucune observation historique vérifiée",
+        "visualDateConfidence": "undated-remnant",
+        "supernovaType": "Effondrement de cœur",
+        "appearanceReferenceJulianDay": 2461257.5,
+        "appearanceConfidence": "illustrative",
+        "visualSource": "Coquille volumétrique illustrative ; position et rémanent observés",
+        "mapLabelRank": 4,
+        "keywords": "supernova rémanent explosion étoile Cassiopée Cassiopeia Cas A 1680"
+      }
+    },
+    {
+      "id": "sn-1987a",
+      "name": "SN 1987A",
+      "aliases": ["Supernova 1987A", "Sanduleak −69° 202"],
+      "type": "supernova",
+      "parentId": "large-magellanic-cloud",
+      "referenceFrame": "local-group",
+      "scientificConfidence": "observed",
+      "description": "Supernova découverte en février 1987 dans le Grand Nuage de Magellan. Sa proximité en fait l’une des explosions stellaires les mieux suivies de l’époque moderne.",
+      "visual": {
+        "color": "#77d8ff",
+        "secondaryColor": "#ff6b8f",
+        "emissiveColor": "#f8fbff",
+        "emissiveIntensity": 1.5,
+        "visualRadius": 1.8,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [0, 0, 0],
+        "unit": "parsec"
+      },
+      "metadata": {
+        "source": "NASA Science · SN 1987A",
+        "sourceUrl": "https://science.nasa.gov/3d-resources/sn-1987a/",
+        "coordinateSource": "Chandra X-ray Observatory · SN 1987A",
+        "coordinateSourceUrl": "https://www.chandra.harvard.edu/photo/2017/sn1987a/",
+        "distanceLy": 168000,
+        "rightAscensionDegrees": 83.867917,
+        "declinationDegrees": -69.26975,
+        "hostGalaxy": "Grand Nuage de Magellan",
+        "eventDateLabel": "23 février 1987 · découverte",
+        "visualPeakJulianDay": 2446849.5,
+        "visualDateConfidence": "discovery-anchor",
+        "supernovaType": "II-pec",
+        "supernovaRiseDays": 20,
+        "supernovaDecayDays": 650,
+        "shellFormationDays": 60,
+        "appearanceReferenceJulianDay": 2461257.5,
+        "appearanceConfidence": "illustrative",
+        "visualSource": "Courbe de luminosité et expansion de la coquille illustratives",
+        "mapLabelRank": 5,
+        "keywords": "supernova rémanent explosion étoile 1987A LMC Grand Nuage Magellan"
+      }
+    }
+  ]
+}

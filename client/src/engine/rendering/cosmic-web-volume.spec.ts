@@ -69,6 +69,10 @@ describe('CosmicWebVolumeRenderer', () => {
     expect(renderer.material.uniforms['emptySpaceLeap']!.value).toBe(
       getCosmicWebVolumeProfile('high').emptySpaceLeap,
     );
+    renderer.updateDistance(140_000, 10);
+    expect(renderer.material.uniforms['stepCount']!.value).toBe(
+      getCosmicWebVolumeProfile('high').stepCount,
+    );
     renderer.setEnabled(false);
     expect(renderer.mesh.visible).toBe(false);
     renderer.setEnabled(true);

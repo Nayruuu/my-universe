@@ -7,6 +7,7 @@ import {
   TemporalMode,
 } from '../../../data/models/universe.models';
 import { UniverseEngineFacade } from '../../core/engine/universe-engine.facade';
+import { I18nService } from '../../core/i18n/i18n.service';
 import { FloatingControlsComponent } from './floating-controls.component';
 
 describe('FloatingControlsComponent', () => {
@@ -30,6 +31,7 @@ describe('FloatingControlsComponent', () => {
   };
 
   beforeEach(async () => {
+    window.history.replaceState(null, '', '/fr/');
     facade.selectedId.set(null);
     facade.settingsOpen.set(false);
     facade.helpOpen.set(false);
@@ -49,7 +51,10 @@ describe('FloatingControlsComponent', () => {
     await TestBed.compileComponents();
   });
 
-  afterEach(() => TestBed.resetTestingModule());
+  afterEach(() => {
+    TestBed.resetTestingModule();
+    window.history.replaceState(null, '', '/fr/');
+  });
 
   it('délègue les actions de navigation et de qualité', () => {
     const component = createComponent();
@@ -69,7 +74,7 @@ describe('FloatingControlsComponent', () => {
     expect(facade.setTemporalMode).toHaveBeenNthCalledWith(2, 'state');
   });
 
-  it('affiche les états sélectionné, paramètres et aide', () => {
+  it('affiche les états sélectionné, paramètres et aide', async () => {
     facade.selectedId.set('earth');
     facade.settingsOpen.set(true);
     facade.helpOpen.set(true);
@@ -89,6 +94,18 @@ describe('FloatingControlsComponent', () => {
     expect(fixture.nativeElement.querySelector('.settings-popover')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('.help-popover')).not.toBeNull();
     expect(
+      (fixture.nativeElement.querySelector('.documentation-link') as HTMLAnchorElement | null)
+        ?.pathname,
+    ).toBe('/guide/fr/');
+    const portfolioLink = fixture.nativeElement.querySelector(
+      '.creator-link',
+    ) as HTMLAnchorElement | null;
+
+    expect(portfolioLink?.getAttribute('href')).toBe('https://super-dev.app');
+    expect(portfolioLink?.target).toBe('_blank');
+    expect(portfolioLink?.rel).toContain('me');
+    expect(fixture.nativeElement.querySelector('.creator-link--support')).toBeNull();
+    expect(
       fixture.nativeElement.querySelector('[aria-label="Afficher ou masquer les constellations"]'),
     ).not.toBeNull();
     expect(
@@ -105,6 +122,16 @@ describe('FloatingControlsComponent', () => {
         ) as HTMLSelectElement | null
       )?.disabled,
     ).toBe(true);
+
+    await TestBed.inject(I18nService).setLanguage('en');
+    fixture.detectChanges();
+    expect(
+      (fixture.nativeElement.querySelector('.documentation-link') as HTMLAnchorElement | null)
+        ?.pathname,
+    ).toBe('/guide/');
+    expect(fixture.nativeElement.querySelector('.creator-card')?.textContent).toContain(
+      'Created by Nayruuu',
+    );
   });
 });
 

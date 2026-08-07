@@ -29,6 +29,23 @@ describe('photographic rendering profiles', () => {
     expect(getPhotographicProfile(99, 'medium')).toEqual(getPhotographicProfile(6, 'medium'));
   });
 
+  it('interpole le rendu stellaire sans rupture aux frontières de LOD', () => {
+    const galactic = getPhotographicProfile(3, 'high');
+    const stellarOverview = getPhotographicProfile(2, 'high');
+    const local = getPhotographicProfile(1, 'high');
+
+    expect(getPhotographicProfile(2, 'high', 0)).toEqual(galactic);
+    expect(getPhotographicProfile(3, 'high', 0.5)).toEqual(stellarOverview);
+    expect(getPhotographicProfile(2, 'high', 1)).toEqual(local);
+    expect(getPhotographicProfile(1, 'high', 0.82)).toEqual(
+      getPhotographicProfile(2, 'high', 0.82),
+    );
+    expect(getPhotographicProfile(2, 'high', 0.18)).toEqual(
+      getPhotographicProfile(3, 'high', 0.18),
+    );
+    expect(getPhotographicProfile(2, 'high', Number.NaN)).toEqual(stellarOverview);
+  });
+
   it('damps exposure changes without a flash or overshoot', () => {
     expect(dampPhotographicExposure(1, 1.2, 0)).toBe(1);
     const transition = dampPhotographicExposure(1, 1.2, 1 / 60);

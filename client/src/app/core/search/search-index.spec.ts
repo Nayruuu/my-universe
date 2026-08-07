@@ -162,4 +162,122 @@ describe('recherche locale', () => {
   it('préserve une lettre grecque sans nom déclaré', () => {
     expect(normalizeSearchText('ς')).toBe('ς');
   });
+
+  it('normalise une seule fois les mots-clés répétés entre les lots sans changer la recherche', async () => {
+    const normalize = vi.spyOn(String.prototype, 'normalize');
+    const index = new LocalSearchIndex();
+    const entries = Array.from({ length: 12 }, (_, entryIndex) => ({
+      id: `catalog-${entryIndex}`,
+      name: `Catalogue ${entryIndex}`,
+      aliases: ['α CMa', 'Étoile test'],
+      keywords: ['Relevé scientifique', ''],
+      type: 'star' as const,
+    }));
+
+    await index.buildProgressively([], entries, {
+      chunkSize: 2,
+      isCurrent: () => true,
+      yieldControl: async () => undefined,
+    });
+    expect(normalize.mock.contexts.filter((value) => value === 'relevé scientifique')).toHaveLength(
+      1,
+    );
+    expect(index.search('releve scientifique', 20)).toHaveLength(12);
+    expect(index.search('alpha cma', 20)).toHaveLength(12);
+    expect(index.search('etoile test', 20)).toHaveLength(12);
+    normalize.mockClear();
+    index.build([], entries);
+    expect(normalize.mock.contexts.filter((value) => value === 'relevé scientifique')).toHaveLength(
+      1,
+    );
+  });
+
+  it('reste exact lorsque les mots-clés distincts dépassent le cache borné', () => {
+    const index = new LocalSearchIndex();
+    const keywords = Array.from({ length: 1_000 }, (_, value) => `Clé_${value}`);
+
+    index.build(
+      [],
+      [{ id: 'a', name: 'A', aliases: [], keywords: [...keywords, ...keywords], type: 'star' }],
+    );
+    expect(index.search('cle 999')[0]?.id).toBe('a');
+    expect(index.search('cle 0')[0]?.id).toBe('a');
+  });
+
+  it('construit un catalogue volumineux par lots sans exposer un index partiel', async () => {
+    const index = new LocalSearchIndex();
+    const yields: (() => void)[] = [];
+    const building = index.buildProgressively(
+      OBJECTS,
+      Array.from({ length: 5 }, (_, entryIndex) => ({
+        id: `catalog-${entryIndex}`,
+        name: `Catalogue ${entryIndex}`,
+        aliases: [],
+        type: 'star' as const,
+      })),
+      {
+        chunkSize: 2,
+        isCurrent: () => true,
+        yieldControl: () =>
+          new Promise<void>((resolve) => {
+            yields.push(resolve);
+          }),
+      },
+    );
+
+    expect(index.search('catalogue')).toEqual([]);
+    expect(yields).toHaveLength(1);
+
+    while (yields.length > 0) {
+      yields.shift()?.();
+      await Promise.resolve();
+    }
+
+    await expect(building).resolves.toBe(true);
+    expect(index.search('catalogue', 10)).toHaveLength(5);
+  });
+
+  it('abandonne une construction progressive périmée en conservant le dernier index valide', async () => {
+    const index = new LocalSearchIndex();
+    let current = true;
+    let resume = (): void => undefined;
+
+    index.build(OBJECTS);
+    const building = index.buildProgressively(
+      [],
+      [
+        { id: 'new-1', name: 'Nouvelle 1', aliases: [], type: 'star' },
+        { id: 'new-2', name: 'Nouvelle 2', aliases: [], type: 'star' },
+      ],
+      {
+        chunkSize: 1,
+        isCurrent: () => current,
+        yieldControl: () =>
+          new Promise<void>((resolve) => {
+            resume = resolve;
+          }),
+      },
+    );
+
+    current = false;
+    resume();
+
+    await expect(building).resolves.toBe(false);
+    expect(index.search('terre')[0]?.id).toBe('earth');
+    expect(index.search('nouvelle')).toEqual([]);
+  });
+
+  it('revérifie la génération avant de publier le dernier lot', async () => {
+    const index = new LocalSearchIndex();
+    const isCurrent = vi.fn().mockReturnValueOnce(true).mockReturnValueOnce(false);
+
+    await expect(
+      index.buildProgressively([], [{ id: 'stale', name: 'Périmée', aliases: [], type: 'star' }], {
+        chunkSize: 1,
+        isCurrent,
+        yieldControl: async () => undefined,
+      }),
+    ).resolves.toBe(false);
+    expect(index.search('périmée')).toEqual([]);
+  });
 });

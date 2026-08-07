@@ -1,0 +1,1185 @@
+{
+  "_provenance": "Captured navigation diagnostic supplied by the user; interaction data, not astronomical data.",
+  "schema": "universe-map/navigation-wheel-trace@2",
+  "capturedAt": "2026-08-25T06:14:11.330Z",
+  "pageUrl": "http://127.0.0.1:4203/en/guide/?time=2026-08-18T16%3A16%3A00.000Z&zoom=18.21&mode=state&quality=high&density=balanced&orbits=1&constellations=1&labels=1&view=map&debug=true&selected=mars",
+  "viewport": {
+    "width": 2304,
+    "height": 1041,
+    "devicePixelRatio": 2
+  },
+  "pointer": {
+    "x": -0.07986111111111116,
+    "y": 0.43515850144092216
+  },
+  "initial": {
+    "cameraPosition": {
+      "x": -437.11293936311057,
+      "y": 11.707997944961582,
+      "z": -1.8756596582843847
+    },
+    "cameraTarget": {
+      "x": -437.115148373982,
+      "y": 11.580715571082255,
+      "z": -1.2394439443713432
+    },
+    "distance": 0.6488267234472297,
+    "minimumDistance": 0.5152000000000001,
+    "maximumDistance": 600000,
+    "targetId": "mars"
+  },
+  "events": [
+    {
+      "sequence": 2254,
+      "timestamp": "2026-08-25T06:14:07.994Z",
+      "rawDeltaY": -370.889892578125,
+      "deltaMode": 0,
+      "deltaY": -13.058892878031038,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.6362409550122701
+    },
+    {
+      "sequence": 2255,
+      "timestamp": "2026-08-25T06:14:08.010Z",
+      "rawDeltaY": -370.93017578125,
+      "deltaMode": 0,
+      "deltaY": -17.300953630494565,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.61994199748991
+    },
+    {
+      "sequence": 2256,
+      "timestamp": "2026-08-25T06:14:08.027Z",
+      "rawDeltaY": -372.7691650390625,
+      "deltaMode": 0,
+      "deltaY": -9.482253428820608,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.6111867390790535
+    },
+    {
+      "sequence": 2257,
+      "timestamp": "2026-08-25T06:14:08.044Z",
+      "rawDeltaY": -370.63720703125,
+      "deltaMode": 0,
+      "deltaY": -12.892537558414983,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5994806725986881
+    },
+    {
+      "sequence": 2258,
+      "timestamp": "2026-08-25T06:14:08.060Z",
+      "rawDeltaY": -741.7327880859375,
+      "deltaMode": 0,
+      "deltaY": -15.138334425908093,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5860213562980078
+    },
+    {
+      "sequence": 2259,
+      "timestamp": "2026-08-25T06:14:08.077Z",
+      "rawDeltaY": -370.9320068359375,
+      "deltaMode": 0,
+      "deltaY": -12.643004569695071,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5750124692721698
+    },
+    {
+      "sequence": 2260,
+      "timestamp": "2026-08-25T06:14:08.094Z",
+      "rawDeltaY": -740.130615234375,
+      "deltaMode": 0,
+      "deltaY": -18.382263229689194,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5593740168317828
+    },
+    {
+      "sequence": 2261,
+      "timestamp": "2026-08-25T06:14:08.110Z",
+      "rawDeltaY": -370.9423828125,
+      "deltaMode": 0,
+      "deltaY": -21.3766590509476,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.541722210246391
+    },
+    {
+      "sequence": 2262,
+      "timestamp": "2026-08-25T06:14:08.127Z",
+      "rawDeltaY": -370.9234619140625,
+      "deltaMode": 0,
+      "deltaY": -6.931471805599454,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5361189912982989
+    },
+    {
+      "sequence": 2263,
+      "timestamp": "2026-08-25T06:14:08.144Z",
+      "rawDeltaY": -369.398193359375,
+      "deltaMode": 0,
+      "deltaY": -18.714973875118524,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5212780967566265
+    },
+    {
+      "sequence": 2264,
+      "timestamp": "2026-08-25T06:14:08.160Z",
+      "rawDeltaY": -370.958251953125,
+      "deltaMode": 0,
+      "deltaY": -7.153278904618079,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5157147259706713
+    },
+    {
+      "sequence": 2265,
+      "timestamp": "2026-08-25T06:14:08.176Z",
+      "rawDeltaY": -369.1448974609375,
+      "deltaMode": 0,
+      "deltaY": -12.143938598452467,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5152000000000002
+    },
+    {
+      "sequence": 2266,
+      "timestamp": "2026-08-25T06:14:08.194Z",
+      "rawDeltaY": -369.1619873046875,
+      "deltaMode": 0,
+      "deltaY": -13.225248210041531,
+      "decision": "release-target",
+      "recordedAfterDistance": 0.5152000000000031
+    },
+    {
+      "sequence": 2267,
+      "timestamp": "2026-08-25T06:14:08.210Z",
+      "rawDeltaY": -369.1595458984375,
+      "deltaMode": 0,
+      "deltaY": -14.556090791758852,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999969
+    },
+    {
+      "sequence": 2268,
+      "timestamp": "2026-08-25T06:14:08.227Z",
+      "rawDeltaY": -738.272705078125,
+      "deltaMode": 0,
+      "deltaY": -15.471045065140204,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999979
+    },
+    {
+      "sequence": 2269,
+      "timestamp": "2026-08-25T06:14:08.243Z",
+      "rawDeltaY": -369.1522216796875,
+      "deltaMode": 0,
+      "deltaY": -13.807491837993554,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5152000000000122
+    },
+    {
+      "sequence": 2270,
+      "timestamp": "2026-08-25T06:14:08.260Z",
+      "rawDeltaY": -369.1546630859375,
+      "deltaMode": 0,
+      "deltaY": -18.631796212211885,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5152000000000402
+    },
+    {
+      "sequence": 2271,
+      "timestamp": "2026-08-25T06:14:08.277Z",
+      "rawDeltaY": -367.3675537109375,
+      "deltaMode": 0,
+      "deltaY": -10.97945134254842,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5152000000000405
+    },
+    {
+      "sequence": 2272,
+      "timestamp": "2026-08-25T06:14:08.294Z",
+      "rawDeltaY": -367.330322265625,
+      "deltaMode": 0,
+      "deltaY": -12.559826912985653,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5152000000000408
+    },
+    {
+      "sequence": 2273,
+      "timestamp": "2026-08-25T06:14:08.310Z",
+      "rawDeltaY": -367.3321533203125,
+      "deltaMode": 0,
+      "deltaY": -13.97384715760961,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5152000000000413
+    },
+    {
+      "sequence": 2274,
+      "timestamp": "2026-08-25T06:14:08.327Z",
+      "rawDeltaY": -367.3248291015625,
+      "deltaMode": 0,
+      "deltaY": -11.561694970500444,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5152000000000417
+    },
+    {
+      "sequence": 2275,
+      "timestamp": "2026-08-25T06:14:08.344Z",
+      "rawDeltaY": -365.5596923828125,
+      "deltaMode": 0,
+      "deltaY": -20.212171788846337,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5152000000000978
+    },
+    {
+      "sequence": 2276,
+      "timestamp": "2026-08-25T06:14:08.360Z",
+      "rawDeltaY": -363.7646484375,
+      "deltaMode": 0,
+      "deltaY": -10.314030045492542,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5152000000000978
+    },
+    {
+      "sequence": 2277,
+      "timestamp": "2026-08-25T06:14:08.377Z",
+      "rawDeltaY": -363.7689208984375,
+      "deltaMode": 0,
+      "deltaY": -12.809359895508345,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5152000000000978
+    },
+    {
+      "sequence": 2278,
+      "timestamp": "2026-08-25T06:14:08.394Z",
+      "rawDeltaY": -365.5499267578125,
+      "deltaMode": 0,
+      "deltaY": -13.142070547134894,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5152000000000978
+    },
+    {
+      "sequence": 2279,
+      "timestamp": "2026-08-25T06:14:08.410Z",
+      "rawDeltaY": -365.5389404296875,
+      "deltaMode": 0,
+      "deltaY": -13.724314175086917,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5152000000000978
+    },
+    {
+      "sequence": 2280,
+      "timestamp": "2026-08-25T06:14:08.427Z",
+      "rawDeltaY": -365.57373046875,
+      "deltaMode": 0,
+      "deltaY": -12.060760941743048,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5152000000000978
+    },
+    {
+      "sequence": 2281,
+      "timestamp": "2026-08-25T06:14:08.443Z",
+      "rawDeltaY": -365.338134765625,
+      "deltaMode": 0,
+      "deltaY": -14.057024820516247,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5152000000000978
+    },
+    {
+      "sequence": 2282,
+      "timestamp": "2026-08-25T06:14:08.460Z",
+      "rawDeltaY": -363.7628173828125,
+      "deltaMode": 0,
+      "deltaY": -15.720578053860116,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5152000000000978
+    },
+    {
+      "sequence": 2283,
+      "timestamp": "2026-08-25T06:14:08.477Z",
+      "rawDeltaY": -365.550537109375,
+      "deltaMode": 0,
+      "deltaY": -13.807491837993554,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5152000000000978
+    },
+    {
+      "sequence": 2284,
+      "timestamp": "2026-08-25T06:14:08.493Z",
+      "rawDeltaY": -365.565185546875,
+      "deltaMode": 0,
+      "deltaY": -13.225248203844313,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5152000000000978
+    },
+    {
+      "sequence": 2285,
+      "timestamp": "2026-08-25T06:14:08.510Z",
+      "rawDeltaY": -365.5718994140625,
+      "deltaMode": 0,
+      "deltaY": -13.391603529657587,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5152000000000978
+    },
+    {
+      "sequence": 2286,
+      "timestamp": "2026-08-25T06:14:08.527Z",
+      "rawDeltaY": -365.5804443359375,
+      "deltaMode": 0,
+      "deltaY": -8.900009794671366,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5152000000000978
+    },
+    {
+      "sequence": 2287,
+      "timestamp": "2026-08-25T06:14:08.544Z",
+      "rawDeltaY": -363.760986328125,
+      "deltaMode": 0,
+      "deltaY": -19.047684526745073,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5152000000000978
+    },
+    {
+      "sequence": 2288,
+      "timestamp": "2026-08-25T06:14:08.560Z",
+      "rawDeltaY": -361.968994140625,
+      "deltaMode": 0,
+      "deltaY": -20.045816456835844,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5152000000000978
+    },
+    {
+      "sequence": 2289,
+      "timestamp": "2026-08-25T06:14:08.577Z",
+      "rawDeltaY": -362.2216796875,
+      "deltaMode": 0,
+      "deltaY": -10.97945134254842,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5152000000000978
+    },
+    {
+      "sequence": 2290,
+      "timestamp": "2026-08-25T06:14:08.594Z",
+      "rawDeltaY": -363.80615234375,
+      "deltaMode": 0,
+      "deltaY": -12.476649250079015,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5152000000000978
+    },
+    {
+      "sequence": 2291,
+      "timestamp": "2026-08-25T06:14:08.610Z",
+      "rawDeltaY": -362.008056640625,
+      "deltaMode": 0,
+      "deltaY": -18.79815153802516,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5152000000000978
+    },
+    {
+      "sequence": 2292,
+      "timestamp": "2026-08-25T06:14:08.627Z",
+      "rawDeltaY": -362.0709228515625,
+      "deltaMode": 0,
+      "deltaY": -13.225248203844313,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5152000000000978
+    },
+    {
+      "sequence": 2293,
+      "timestamp": "2026-08-25T06:14:08.644Z",
+      "rawDeltaY": -362.0135498046875,
+      "deltaMode": 0,
+      "deltaY": -13.807491837993554,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999869
+    },
+    {
+      "sequence": 2294,
+      "timestamp": "2026-08-25T06:14:08.660Z",
+      "rawDeltaY": -358.4637451171875,
+      "deltaMode": 0,
+      "deltaY": -22.707501632664922,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999879
+    },
+    {
+      "sequence": 2295,
+      "timestamp": "2026-08-25T06:14:08.677Z",
+      "rawDeltaY": -360.27587890625,
+      "deltaMode": 0,
+      "deltaY": -12.64300457589229,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.515199999999989
+    },
+    {
+      "sequence": 2296,
+      "timestamp": "2026-08-25T06:14:08.694Z",
+      "rawDeltaY": -360.2642822265625,
+      "deltaMode": 0,
+      "deltaY": -20.12899411974248,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999897
+    },
+    {
+      "sequence": 2297,
+      "timestamp": "2026-08-25T06:14:08.710Z",
+      "rawDeltaY": -360.2459716796875,
+      "deltaMode": 0,
+      "deltaY": -10.97945134254842,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999903
+    },
+    {
+      "sequence": 2298,
+      "timestamp": "2026-08-25T06:14:08.727Z",
+      "rawDeltaY": -358.443603515625,
+      "deltaMode": 0,
+      "deltaY": -18.964506857641215,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999911
+    },
+    {
+      "sequence": 2299,
+      "timestamp": "2026-08-25T06:14:08.744Z",
+      "rawDeltaY": -358.4759521484375,
+      "deltaMode": 0,
+      "deltaY": -19.629928154697094,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999918
+    },
+    {
+      "sequence": 2300,
+      "timestamp": "2026-08-25T06:14:08.776Z",
+      "rawDeltaY": -356.6851806640625,
+      "deltaMode": 0,
+      "deltaY": -19.713105817603733,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999927
+    },
+    {
+      "sequence": 2301,
+      "timestamp": "2026-08-25T06:14:08.860Z",
+      "rawDeltaY": 40.3082275390625,
+      "deltaMode": 0,
+      "deltaY": 37.617125286132165,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999942
+    },
+    {
+      "sequence": 2302,
+      "timestamp": "2026-08-25T06:14:08.876Z",
+      "rawDeltaY": 100.6146240234375,
+      "deltaMode": 0,
+      "deltaY": 6.931471805599453,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999947
+    },
+    {
+      "sequence": 2303,
+      "timestamp": "2026-08-25T06:14:08.894Z",
+      "rawDeltaY": 286.62109375,
+      "deltaMode": 0,
+      "deltaY": 6.931471805599454,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999951
+    },
+    {
+      "sequence": 2304,
+      "timestamp": "2026-08-25T06:14:08.911Z",
+      "rawDeltaY": 664.732666015625,
+      "deltaMode": 0,
+      "deltaY": 13.30842586675095,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999956
+    },
+    {
+      "sequence": 2305,
+      "timestamp": "2026-08-25T06:14:08.926Z",
+      "rawDeltaY": 1131.97509765625,
+      "deltaMode": 0,
+      "deltaY": 18.46544088639861,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.515199999999996
+    },
+    {
+      "sequence": 2306,
+      "timestamp": "2026-08-25T06:14:08.943Z",
+      "rawDeltaY": 826.387939453125,
+      "deltaMode": 0,
+      "deltaY": 14.057024820516247,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999963
+    },
+    {
+      "sequence": 2307,
+      "timestamp": "2026-08-25T06:14:08.960Z",
+      "rawDeltaY": 796.0308837890625,
+      "deltaMode": 0,
+      "deltaY": 10.230852388783124,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999967
+    },
+    {
+      "sequence": 2308,
+      "timestamp": "2026-08-25T06:14:08.977Z",
+      "rawDeltaY": 811.23046875,
+      "deltaMode": 0,
+      "deltaY": 13.391603529657587,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.515199999999997
+    },
+    {
+      "sequence": 2309,
+      "timestamp": "2026-08-25T06:14:08.994Z",
+      "rawDeltaY": 1209.21875,
+      "deltaMode": 0,
+      "deltaY": 17.80001959553995,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999973
+    },
+    {
+      "sequence": 2310,
+      "timestamp": "2026-08-25T06:14:09.010Z",
+      "rawDeltaY": 396.619873046875,
+      "deltaMode": 0,
+      "deltaY": 13.724314175086917,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999977
+    },
+    {
+      "sequence": 2311,
+      "timestamp": "2026-08-25T06:14:09.027Z",
+      "rawDeltaY": 793.1890869140625,
+      "deltaMode": 0,
+      "deltaY": 11.145806662164476,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999981
+    },
+    {
+      "sequence": 2312,
+      "timestamp": "2026-08-25T06:14:09.043Z",
+      "rawDeltaY": 808.280029296875,
+      "deltaMode": 0,
+      "deltaY": 13.225248203844313,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999981
+    },
+    {
+      "sequence": 2313,
+      "timestamp": "2026-08-25T06:14:09.060Z",
+      "rawDeltaY": 1189.820556640625,
+      "deltaMode": 0,
+      "deltaY": 17.80001959553995,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999981
+    },
+    {
+      "sequence": 2314,
+      "timestamp": "2026-08-25T06:14:09.076Z",
+      "rawDeltaY": 795.986328125,
+      "deltaMode": 0,
+      "deltaY": 13.474781192564224,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999981
+    },
+    {
+      "sequence": 2315,
+      "timestamp": "2026-08-25T06:14:09.094Z",
+      "rawDeltaY": 811.3873291015625,
+      "deltaMode": 0,
+      "deltaY": 11.561694970500444,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999981
+    },
+    {
+      "sequence": 2316,
+      "timestamp": "2026-08-25T06:14:09.110Z",
+      "rawDeltaY": 795.975341796875,
+      "deltaMode": 0,
+      "deltaY": 12.476649250079015,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999981
+    },
+    {
+      "sequence": 2317,
+      "timestamp": "2026-08-25T06:14:09.126Z",
+      "rawDeltaY": 396.4990234375,
+      "deltaMode": 0,
+      "deltaY": 13.142070547134894,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999981
+    },
+    {
+      "sequence": 2318,
+      "timestamp": "2026-08-25T06:14:09.144Z",
+      "rawDeltaY": 1189.78515625,
+      "deltaMode": 0,
+      "deltaY": 18.049552578062645,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999982
+    },
+    {
+      "sequence": 2319,
+      "timestamp": "2026-08-25T06:14:09.160Z",
+      "rawDeltaY": 776.60400390625,
+      "deltaMode": 0,
+      "deltaY": 13.973847163806829,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999982
+    },
+    {
+      "sequence": 2320,
+      "timestamp": "2026-08-25T06:14:09.177Z",
+      "rawDeltaY": 793.154296875,
+      "deltaMode": 0,
+      "deltaY": 11.06262899925784,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999982
+    },
+    {
+      "sequence": 2321,
+      "timestamp": "2026-08-25T06:14:09.194Z",
+      "rawDeltaY": 796.082763671875,
+      "deltaMode": 0,
+      "deltaY": 12.476649250079015,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999982
+    },
+    {
+      "sequence": 2322,
+      "timestamp": "2026-08-25T06:14:09.210Z",
+      "rawDeltaY": 1193.983154296875,
+      "deltaMode": 0,
+      "deltaY": 18.714973875118524,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999982
+    },
+    {
+      "sequence": 2323,
+      "timestamp": "2026-08-25T06:14:09.226Z",
+      "rawDeltaY": 380.0689697265625,
+      "deltaMode": 0,
+      "deltaY": 13.30842586675095,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999982
+    },
+    {
+      "sequence": 2324,
+      "timestamp": "2026-08-25T06:14:09.244Z",
+      "rawDeltaY": 759.9053955078125,
+      "deltaMode": 0,
+      "deltaY": 13.807491837993554,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999982
+    },
+    {
+      "sequence": 2325,
+      "timestamp": "2026-08-25T06:14:09.260Z",
+      "rawDeltaY": 793.1414794921875,
+      "deltaMode": 0,
+      "deltaY": 12.227116261359104,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999982
+    },
+    {
+      "sequence": 2326,
+      "timestamp": "2026-08-25T06:14:09.277Z",
+      "rawDeltaY": 793.140869140625,
+      "deltaMode": 0,
+      "deltaY": 11.31216198797775,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999982
+    },
+    {
+      "sequence": 2327,
+      "timestamp": "2026-08-25T06:14:09.294Z",
+      "rawDeltaY": 794.5452880859375,
+      "deltaMode": 0,
+      "deltaY": 13.225248203844313,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999982
+    },
+    {
+      "sequence": 2328,
+      "timestamp": "2026-08-25T06:14:09.310Z",
+      "rawDeltaY": 1176.2554931640625,
+      "deltaMode": 0,
+      "deltaY": 18.714973875118524,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999982
+    },
+    {
+      "sequence": 2329,
+      "timestamp": "2026-08-25T06:14:09.327Z",
+      "rawDeltaY": 763.34716796875,
+      "deltaMode": 0,
+      "deltaY": 10.97945134254842,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999982
+    },
+    {
+      "sequence": 2330,
+      "timestamp": "2026-08-25T06:14:09.344Z",
+      "rawDeltaY": 380.020751953125,
+      "deltaMode": 0,
+      "deltaY": 12.809359895508345,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999982
+    },
+    {
+      "sequence": 2331,
+      "timestamp": "2026-08-25T06:14:09.360Z",
+      "rawDeltaY": 1141.7742919921875,
+      "deltaMode": 0,
+      "deltaY": 18.54861855550247,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999982
+    },
+    {
+      "sequence": 2332,
+      "timestamp": "2026-08-25T06:14:09.377Z",
+      "rawDeltaY": 760.2777099609375,
+      "deltaMode": 0,
+      "deltaY": 13.225248203844313,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999982
+    },
+    {
+      "sequence": 2333,
+      "timestamp": "2026-08-25T06:14:09.394Z",
+      "rawDeltaY": 776.6455078125,
+      "deltaMode": 0,
+      "deltaY": 13.64113651218028,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999982
+    },
+    {
+      "sequence": 2334,
+      "timestamp": "2026-08-25T06:14:09.410Z",
+      "rawDeltaY": 795.977783203125,
+      "deltaMode": 0,
+      "deltaY": 10.72991835382851,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999982
+    },
+    {
+      "sequence": 2335,
+      "timestamp": "2026-08-25T06:14:09.427Z",
+      "rawDeltaY": 796.044921875,
+      "deltaMode": 0,
+      "deltaY": 13.142070547134894,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5151999999999982
+    },
+    {
+      "sequence": 2336,
+      "timestamp": "2026-08-25T06:14:09.443Z",
+      "rawDeltaY": 794.571533203125,
+      "deltaMode": 0,
+      "deltaY": 17.88319725844659,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5152
+    },
+    {
+      "sequence": 2337,
+      "timestamp": "2026-08-25T06:14:09.460Z",
+      "rawDeltaY": 776.5447998046875,
+      "deltaMode": 0,
+      "deltaY": 12.393471587172378,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5303456128624403
+    },
+    {
+      "sequence": 2338,
+      "timestamp": "2026-08-25T06:14:09.477Z",
+      "rawDeltaY": 760.1708984375,
+      "deltaMode": 0,
+      "deltaY": 12.393471587172378,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5618044223453
+    },
+    {
+      "sequence": 2339,
+      "timestamp": "2026-08-25T06:14:09.494Z",
+      "rawDeltaY": 760.0860595703125,
+      "deltaMode": 0,
+      "deltaY": 12.393471587172378,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.5951292917522517
+    },
+    {
+      "sequence": 2340,
+      "timestamp": "2026-08-25T06:14:09.510Z",
+      "rawDeltaY": 1143.38134765625,
+      "deltaMode": 0,
+      "deltaY": 18.79815153802516,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.6494870377015657
+    },
+    {
+      "sequence": 2341,
+      "timestamp": "2026-08-25T06:14:09.527Z",
+      "rawDeltaY": 763.2867431640625,
+      "deltaMode": 0,
+      "deltaY": 12.393471587172378,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.6880130261986978
+    },
+    {
+      "sequence": 2342,
+      "timestamp": "2026-08-25T06:14:09.544Z",
+      "rawDeltaY": 381.4898681640625,
+      "deltaMode": 0,
+      "deltaY": 9.731786417540519,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.7198600714786368
+    },
+    {
+      "sequence": 2343,
+      "timestamp": "2026-08-25T06:14:09.561Z",
+      "rawDeltaY": 760.084228515625,
+      "deltaMode": 0,
+      "deltaY": 16.88506531596138,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.7786533317735436
+    },
+    {
+      "sequence": 2344,
+      "timestamp": "2026-08-25T06:14:09.577Z",
+      "rawDeltaY": 760.13916015625,
+      "deltaMode": 0,
+      "deltaY": 10.896273679641784,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.819119043909949
+    },
+    {
+      "sequence": 2345,
+      "timestamp": "2026-08-25T06:14:09.594Z",
+      "rawDeltaY": 1140.18310546875,
+      "deltaMode": 0,
+      "deltaY": 18.714973875118524,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.8935898430450696
+    },
+    {
+      "sequence": 2346,
+      "timestamp": "2026-08-25T06:14:09.610Z",
+      "rawDeltaY": 761.9818115234375,
+      "deltaMode": 0,
+      "deltaY": 12.476649250079015,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 0.9469615762957205
+    },
+    {
+      "sequence": 2347,
+      "timestamp": "2026-08-25T06:14:09.627Z",
+      "rawDeltaY": 763.3624267578125,
+      "deltaMode": 0,
+      "deltaY": 12.393471587172378,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 1.0031330295778393
+    },
+    {
+      "sequence": 2348,
+      "timestamp": "2026-08-25T06:14:09.644Z",
+      "rawDeltaY": 381.6357421875,
+      "deltaMode": 0,
+      "deltaY": 6.931471805599454,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 1.0359893035433156
+    },
+    {
+      "sequence": 2349,
+      "timestamp": "2026-08-25T06:14:09.661Z",
+      "rawDeltaY": 758.30078125,
+      "deltaMode": 0,
+      "deltaY": 24.870120837251395,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 1.1629889224482013
+    },
+    {
+      "sequence": 2350,
+      "timestamp": "2026-08-25T06:14:09.677Z",
+      "rawDeltaY": 756.3238525390625,
+      "deltaMode": 0,
+      "deltaY": 13.30842586675095,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 1.2372268054809037
+    },
+    {
+      "sequence": 2351,
+      "timestamp": "2026-08-25T06:14:09.694Z",
+      "rawDeltaY": 756.3134765625,
+      "deltaMode": 0,
+      "deltaY": 12.143938604649685,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 1.3090963470030128
+    },
+    {
+      "sequence": 2352,
+      "timestamp": "2026-08-25T06:14:09.711Z",
+      "rawDeltaY": 756.4154052734375,
+      "deltaMode": 0,
+      "deltaY": 12.060760941743048,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 1.3846051425754755
+    },
+    {
+      "sequence": 2353,
+      "timestamp": "2026-08-25T06:14:09.727Z",
+      "rawDeltaY": 761.6864013671875,
+      "deltaMode": 0,
+      "deltaY": 12.393471587172378,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 1.4667365458205763
+    },
+    {
+      "sequence": 2354,
+      "timestamp": "2026-08-25T06:14:09.743Z",
+      "rawDeltaY": 1145.0018310546875,
+      "deltaMode": 0,
+      "deltaY": 18.631796212211885,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 1.5994672532081478
+    },
+    {
+      "sequence": 2355,
+      "timestamp": "2026-08-25T06:14:09.760Z",
+      "rawDeltaY": 381.68212890625,
+      "deltaMode": 0,
+      "deltaY": 7.402811887140772,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 1.6554797482624217
+    },
+    {
+      "sequence": 2356,
+      "timestamp": "2026-08-25T06:14:09.777Z",
+      "rawDeltaY": 377.943115234375,
+      "deltaMode": 0,
+      "deltaY": 19.297217509267764,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 1.8108846992301728
+    },
+    {
+      "sequence": 2357,
+      "timestamp": "2026-08-25T06:14:09.794Z",
+      "rawDeltaY": 756.3104248046875,
+      "deltaMode": 0,
+      "deltaY": 11.06262899925784,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 1.9064683415584474
+    },
+    {
+      "sequence": 2358,
+      "timestamp": "2026-08-25T06:14:09.811Z",
+      "rawDeltaY": 1134.2095947265625,
+      "deltaMode": 0,
+      "deltaY": 18.46544089259583,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 2.077384638553666
+    },
+    {
+      "sequence": 2359,
+      "timestamp": "2026-08-25T06:14:09.827Z",
+      "rawDeltaY": 756.351318359375,
+      "deltaMode": 0,
+      "deltaY": 12.476649250079015,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 2.201461271307307
+    },
+    {
+      "sequence": 2360,
+      "timestamp": "2026-08-25T06:14:09.844Z",
+      "rawDeltaY": 381.8487548828125,
+      "deltaMode": 0,
+      "deltaY": 9.315898109204552,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 2.298913706042314
+    },
+    {
+      "sequence": 2361,
+      "timestamp": "2026-08-25T06:14:09.860Z",
+      "rawDeltaY": 378.25439453125,
+      "deltaMode": 0,
+      "deltaY": 15.970111036382809,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 2.476116993766927
+    },
+    {
+      "sequence": 2362,
+      "timestamp": "2026-08-25T06:14:09.877Z",
+      "rawDeltaY": 756.77001953125,
+      "deltaMode": 0,
+      "deltaY": 15.387867408430786,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 2.6597690355918737
+    },
+    {
+      "sequence": 2363,
+      "timestamp": "2026-08-25T06:14:09.894Z",
+      "rawDeltaY": 1134.7900390625,
+      "deltaMode": 0,
+      "deltaY": 15.471045071337423,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 2.858147592411809
+    },
+    {
+      "sequence": 2364,
+      "timestamp": "2026-08-25T06:14:09.911Z",
+      "rawDeltaY": 378.18115234375,
+      "deltaMode": 0,
+      "deltaY": 7.485989550047409,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 2.959382708461911
+    },
+    {
+      "sequence": 2365,
+      "timestamp": "2026-08-25T06:14:09.927Z",
+      "rawDeltaY": 756.4581298828125,
+      "deltaMode": 0,
+      "deltaY": 17.55048661301726,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 3.2110042478793304
+    },
+    {
+      "sequence": 2366,
+      "timestamp": "2026-08-25T06:14:09.944Z",
+      "rawDeltaY": 759.90234375,
+      "deltaMode": 0,
+      "deltaY": 12.393471587172378,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 3.401473195736737
+    },
+    {
+      "sequence": 2367,
+      "timestamp": "2026-08-25T06:14:09.960Z",
+      "rawDeltaY": 760.184326171875,
+      "deltaMode": 0,
+      "deltaY": 12.726182232601708,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 3.6088187410068175
+    },
+    {
+      "sequence": 2368,
+      "timestamp": "2026-08-25T06:14:09.977Z",
+      "rawDeltaY": 378.189697265625,
+      "deltaMode": 0,
+      "deltaY": 13.557958855470861,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 3.8436399156213774
+    },
+    {
+      "sequence": 2369,
+      "timestamp": "2026-08-25T06:14:09.994Z",
+      "rawDeltaY": 754.588623046875,
+      "deltaMode": 0,
+      "deltaY": 17.46730895011062,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 4.168832847488819
+    },
+    {
+      "sequence": 2370,
+      "timestamp": "2026-08-25T06:14:10.010Z",
+      "rawDeltaY": 756.5313720703125,
+      "deltaMode": 0,
+      "deltaY": 12.809359895508345,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 4.42466565668658
+    },
+    {
+      "sequence": 2371,
+      "timestamp": "2026-08-25T06:14:10.027Z",
+      "rawDeltaY": 376.3702392578125,
+      "deltaMode": 0,
+      "deltaY": 12.310293924265741,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 4.6853136734647665
+    },
+    {
+      "sequence": 2372,
+      "timestamp": "2026-08-25T06:14:10.043Z",
+      "rawDeltaY": 1130.753173828125,
+      "deltaMode": 0,
+      "deltaY": 18.46544089259583,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 5.463488151370836
+    },
+    {
+      "sequence": 2373,
+      "timestamp": "2026-08-25T06:14:10.060Z",
+      "rawDeltaY": 378.218994140625,
+      "deltaMode": 0,
+      "deltaY": 12.559826912985653,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 6.176070055926932
+    },
+    {
+      "sequence": 2374,
+      "timestamp": "2026-08-25T06:14:10.077Z",
+      "rawDeltaY": 756.458740234375,
+      "deltaMode": 0,
+      "deltaY": 13.30842586675095,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 7.032792409209881
+    },
+    {
+      "sequence": 2375,
+      "timestamp": "2026-08-25T06:14:10.094Z",
+      "rawDeltaY": 378.3172607421875,
+      "deltaMode": 0,
+      "deltaY": 6.931471805599454,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 7.525076430452142
+    },
+    {
+      "sequence": 2376,
+      "timestamp": "2026-08-25T06:14:10.110Z",
+      "rawDeltaY": 754.5819091796875,
+      "deltaMode": 0,
+      "deltaY": 24.95329850015803,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 9.60041786875152
+    },
+    {
+      "sequence": 2377,
+      "timestamp": "2026-08-25T06:14:10.127Z",
+      "rawDeltaY": 752.97607421875,
+      "deltaMode": 0,
+      "deltaY": 12.476649250079015,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 10.843756261269444
+    },
+    {
+      "sequence": 2378,
+      "timestamp": "2026-08-25T06:14:10.144Z",
+      "rawDeltaY": 376.2591552734375,
+      "deltaMode": 0,
+      "deltaY": 13.30842586675095,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 12.347963353879438
+    },
+    {
+      "sequence": 2379,
+      "timestamp": "2026-08-25T06:14:10.160Z",
+      "rawDeltaY": 752.7325439453125,
+      "deltaMode": 0,
+      "deltaY": 13.557958849273643,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 14.095117766340717
+    },
+    {
+      "sequence": 2380,
+      "timestamp": "2026-08-25T06:14:10.177Z",
+      "rawDeltaY": 376.319580078125,
+      "deltaMode": 0,
+      "deltaY": 6.931471805599454,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 15.081753067108407
+    },
+    {
+      "sequence": 2381,
+      "timestamp": "2026-08-25T06:14:10.193Z",
+      "rawDeltaY": 374.51416015625,
+      "deltaMode": 0,
+      "deltaY": 19.297217503070545,
+      "decision": "zoom-pointer",
+      "recordedAfterDistance": 18.207672099017415
+    }
+  ]
+}

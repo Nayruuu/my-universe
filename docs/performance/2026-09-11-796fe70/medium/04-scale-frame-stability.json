@@ -1,0 +1,606 @@
+{
+  "schema": "universe-map/performance-evidence@1",
+  "capturedAt": "2026-09-11T13:20:18.586Z",
+  "benchmark": "scale-frame-stability",
+  "evidence": {
+    "measurementKind": "simulated-cpu",
+    "declaredDeviceClass": "unclassified",
+    "deviceLabel": null
+  },
+  "source": {
+    "commit": "796fe70310b28ee17c1a0cd9445688d65f05b36c",
+    "dirty": false
+  },
+  "host": {
+    "platform": "darwin",
+    "release": "25.6.0",
+    "architecture": "arm64",
+    "logicalCpuCount": 18,
+    "cpuModels": [
+      "Apple M5 Max"
+    ],
+    "totalMemoryBytes": 137438953472,
+    "nodeVersion": "v24.2.0"
+  },
+  "browser": {
+    "vendor": "Google Inc. (Apple)",
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Max, Unspecified Version)",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+    "hardwareConcurrency": 18,
+    "reportedDeviceMemoryGiB": 32
+  },
+  "configuration": {
+    "profiles": [
+      "desktop"
+    ],
+    "qualities": [
+      "medium"
+    ],
+    "runs": 3,
+    "mode": "cold",
+    "cpuThrottleRate": 4,
+    "labelsEnabled": true
+  },
+  "summary": [
+    {
+      "profile": "desktop",
+      "quality": "medium",
+      "run": 1,
+      "mode": "cold",
+      "browser": {
+        "vendor": "Google Inc. (Apple)",
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Max, Unspecified Version)",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "hardwareConcurrency": 18,
+        "reportedDeviceMemoryGiB": 32
+      },
+      "frames": 745,
+      "meanMs": 17.426711409395974,
+      "p50Ms": 16.699999999999818,
+      "p95Ms": 16.800000000000182,
+      "p99Ms": 33.399999999999636,
+      "maximumMs": 100,
+      "longFrames": 10,
+      "longFrameRatio": 0.013422818791946308,
+      "stable": true,
+      "phases": [
+        {
+          "phase": "earth-to-milky-way",
+          "frames": 96,
+          "meanMs": 18.75,
+          "p50Ms": 16.699999999999818,
+          "p95Ms": 33.29999999999973,
+          "p99Ms": 100,
+          "maximumMs": 100,
+          "longFrames": 3,
+          "longFrameRatio": 0.03125,
+          "stable": false
+        },
+        {
+          "phase": "milky-way-to-nearby",
+          "frames": 70,
+          "meanMs": 16.904285714285717,
+          "p50Ms": 16.699999999999818,
+          "p95Ms": 16.799999999999272,
+          "p99Ms": 33.399999999999636,
+          "maximumMs": 33.399999999999636,
+          "longFrames": 1,
+          "longFrameRatio": 0.014285714285714285,
+          "stable": true
+        },
+        {
+          "phase": "nearby-to-cosmic-web",
+          "frames": 81,
+          "meanMs": 20.36913580246913,
+          "p50Ms": 16.699999999999818,
+          "p95Ms": 33.399999999999636,
+          "p99Ms": 83.39999999999964,
+          "maximumMs": 83.39999999999964,
+          "longFrames": 5,
+          "longFrameRatio": 0.06172839506172839,
+          "stable": false
+        },
+        {
+          "phase": "cosmic-web-to-earth",
+          "frames": 438,
+          "meanMs": 16.780136986301372,
+          "p50Ms": 16.69999999999891,
+          "p95Ms": 16.799999999999272,
+          "p99Ms": 16.80000000000109,
+          "maximumMs": 33.400000000001455,
+          "longFrames": 1,
+          "longFrameRatio": 0.00228310502283105,
+          "stable": true
+        },
+        {
+          "phase": "earth-settle",
+          "frames": 60,
+          "meanMs": 16.666666666666668,
+          "p50Ms": 16.69999999999891,
+          "p95Ms": 16.700000000000728,
+          "p99Ms": 16.80000000000109,
+          "maximumMs": 16.80000000000109,
+          "longFrames": 0,
+          "longFrameRatio": 0,
+          "stable": true
+        }
+      ],
+      "adaptiveRendering": {
+        "status": "stable",
+        "p95FrameMs": 16.700000762939453,
+        "longFrameRatio": 0,
+        "targetPixelRatio": 1,
+        "currentPixelRatio": 1
+      },
+      "cpuThrottleRate": 4,
+      "labelsEnabled": true
+    },
+    {
+      "profile": "desktop",
+      "quality": "medium",
+      "run": 2,
+      "mode": "cold",
+      "browser": {
+        "vendor": "Google Inc. (Apple)",
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Max, Unspecified Version)",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "hardwareConcurrency": 18,
+        "reportedDeviceMemoryGiB": 32
+      },
+      "frames": 742,
+      "meanMs": 17.497169811320756,
+      "p50Ms": 16.699999999999818,
+      "p95Ms": 16.800000000000182,
+      "p99Ms": 33.40000000000009,
+      "maximumMs": 83.30000000000018,
+      "longFrames": 11,
+      "longFrameRatio": 0.014824797843665768,
+      "stable": true,
+      "phases": [
+        {
+          "phase": "earth-to-milky-way",
+          "frames": 97,
+          "meanMs": 18.72783505154639,
+          "p50Ms": 16.699999999999818,
+          "p95Ms": 33.40000000000009,
+          "p99Ms": 83.30000000000018,
+          "maximumMs": 83.30000000000018,
+          "longFrames": 5,
+          "longFrameRatio": 0.05154639175257732,
+          "stable": false
+        },
+        {
+          "phase": "milky-way-to-nearby",
+          "frames": 70,
+          "meanMs": 16.90428571428571,
+          "p50Ms": 16.699999999999818,
+          "p95Ms": 16.800000000000182,
+          "p99Ms": 33.399999999999636,
+          "maximumMs": 33.399999999999636,
+          "longFrames": 1,
+          "longFrameRatio": 0.014285714285714285,
+          "stable": true
+        },
+        {
+          "phase": "nearby-to-cosmic-web",
+          "frames": 80,
+          "meanMs": 20.415,
+          "p50Ms": 16.699999999999818,
+          "p95Ms": 33.30000000000018,
+          "p99Ms": 83.30000000000018,
+          "maximumMs": 83.30000000000018,
+          "longFrames": 4,
+          "longFrameRatio": 0.05,
+          "stable": false
+        },
+        {
+          "phase": "cosmic-web-to-earth",
+          "frames": 435,
+          "meanMs": 16.89586206896552,
+          "p50Ms": 16.69999999999891,
+          "p95Ms": 16.799999999999272,
+          "p99Ms": 33.29999999999927,
+          "maximumMs": 33.400000000000546,
+          "longFrames": 1,
+          "longFrameRatio": 0.0022988505747126436,
+          "stable": true
+        },
+        {
+          "phase": "earth-settle",
+          "frames": 60,
+          "meanMs": 16.66833333333334,
+          "p50Ms": 16.69999999999891,
+          "p95Ms": 16.799999999999272,
+          "p99Ms": 16.80000000000109,
+          "maximumMs": 16.80000000000109,
+          "longFrames": 0,
+          "longFrameRatio": 0,
+          "stable": true
+        }
+      ],
+      "adaptiveRendering": {
+        "status": "stable",
+        "p95FrameMs": 16.799999237060547,
+        "longFrameRatio": 0,
+        "targetPixelRatio": 1,
+        "currentPixelRatio": 1
+      },
+      "cpuThrottleRate": 4,
+      "labelsEnabled": true
+    },
+    {
+      "profile": "desktop",
+      "quality": "medium",
+      "run": 3,
+      "mode": "cold",
+      "browser": {
+        "vendor": "Google Inc. (Apple)",
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Max, Unspecified Version)",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "hardwareConcurrency": 18,
+        "reportedDeviceMemoryGiB": 32
+      },
+      "frames": 748,
+      "meanMs": 17.44585561497326,
+      "p50Ms": 16.69999999999891,
+      "p95Ms": 16.800000000000182,
+      "p99Ms": 33.399999999999636,
+      "maximumMs": 83.39999999999964,
+      "longFrames": 12,
+      "longFrameRatio": 0.016042780748663103,
+      "stable": true,
+      "phases": [
+        {
+          "phase": "earth-to-milky-way",
+          "frames": 98,
+          "meanMs": 18.536734693877545,
+          "p50Ms": 16.699999999999818,
+          "p95Ms": 33.30000000000018,
+          "p99Ms": 83.30000000000018,
+          "maximumMs": 83.30000000000018,
+          "longFrames": 4,
+          "longFrameRatio": 0.04081632653061224,
+          "stable": false
+        },
+        {
+          "phase": "milky-way-to-nearby",
+          "frames": 70,
+          "meanMs": 16.904285714285717,
+          "p50Ms": 16.699999999999818,
+          "p95Ms": 16.800000000000182,
+          "p99Ms": 33.30000000000018,
+          "maximumMs": 33.30000000000018,
+          "longFrames": 0,
+          "longFrameRatio": 0,
+          "stable": true
+        },
+        {
+          "phase": "nearby-to-cosmic-web",
+          "frames": 82,
+          "meanMs": 20.52682926829268,
+          "p50Ms": 16.699999999999818,
+          "p95Ms": 33.399999999999636,
+          "p99Ms": 83.39999999999964,
+          "maximumMs": 83.39999999999964,
+          "longFrames": 7,
+          "longFrameRatio": 0.08536585365853659,
+          "stable": false
+        },
+        {
+          "phase": "cosmic-web-to-earth",
+          "frames": 438,
+          "meanMs": 16.818264840182646,
+          "p50Ms": 16.69999999999891,
+          "p95Ms": 16.799999999999272,
+          "p99Ms": 16.80000000000109,
+          "maximumMs": 33.399999999999636,
+          "longFrames": 1,
+          "longFrameRatio": 0.00228310502283105,
+          "stable": true
+        },
+        {
+          "phase": "earth-settle",
+          "frames": 60,
+          "meanMs": 16.666666666666668,
+          "p50Ms": 16.69999999999891,
+          "p95Ms": 16.700000000000728,
+          "p99Ms": 16.80000000000109,
+          "maximumMs": 16.80000000000109,
+          "longFrames": 0,
+          "longFrameRatio": 0,
+          "stable": true
+        }
+      ],
+      "adaptiveRendering": {
+        "status": "stable",
+        "p95FrameMs": 16.700000762939453,
+        "longFrameRatio": 0,
+        "targetPixelRatio": 1,
+        "currentPixelRatio": 1
+      },
+      "cpuThrottleRate": 4,
+      "labelsEnabled": true
+    }
+  ],
+  "samples": [
+    {
+      "profile": "desktop",
+      "quality": "medium",
+      "run": 1,
+      "mode": "cold",
+      "browser": {
+        "vendor": "Google Inc. (Apple)",
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Max, Unspecified Version)",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "hardwareConcurrency": 18,
+        "reportedDeviceMemoryGiB": 32
+      },
+      "frames": 745,
+      "meanMs": 17.426711409395974,
+      "p50Ms": 16.699999999999818,
+      "p95Ms": 16.800000000000182,
+      "p99Ms": 33.399999999999636,
+      "maximumMs": 100,
+      "longFrames": 10,
+      "longFrameRatio": 0.013422818791946308,
+      "stable": true,
+      "phases": [
+        {
+          "phase": "earth-to-milky-way",
+          "frames": 96,
+          "meanMs": 18.75,
+          "p50Ms": 16.699999999999818,
+          "p95Ms": 33.29999999999973,
+          "p99Ms": 100,
+          "maximumMs": 100,
+          "longFrames": 3,
+          "longFrameRatio": 0.03125,
+          "stable": false
+        },
+        {
+          "phase": "milky-way-to-nearby",
+          "frames": 70,
+          "meanMs": 16.904285714285717,
+          "p50Ms": 16.699999999999818,
+          "p95Ms": 16.799999999999272,
+          "p99Ms": 33.399999999999636,
+          "maximumMs": 33.399999999999636,
+          "longFrames": 1,
+          "longFrameRatio": 0.014285714285714285,
+          "stable": true
+        },
+        {
+          "phase": "nearby-to-cosmic-web",
+          "frames": 81,
+          "meanMs": 20.36913580246913,
+          "p50Ms": 16.699999999999818,
+          "p95Ms": 33.399999999999636,
+          "p99Ms": 83.39999999999964,
+          "maximumMs": 83.39999999999964,
+          "longFrames": 5,
+          "longFrameRatio": 0.06172839506172839,
+          "stable": false
+        },
+        {
+          "phase": "cosmic-web-to-earth",
+          "frames": 438,
+          "meanMs": 16.780136986301372,
+          "p50Ms": 16.69999999999891,
+          "p95Ms": 16.799999999999272,
+          "p99Ms": 16.80000000000109,
+          "maximumMs": 33.400000000001455,
+          "longFrames": 1,
+          "longFrameRatio": 0.00228310502283105,
+          "stable": true
+        },
+        {
+          "phase": "earth-settle",
+          "frames": 60,
+          "meanMs": 16.666666666666668,
+          "p50Ms": 16.69999999999891,
+          "p95Ms": 16.700000000000728,
+          "p99Ms": 16.80000000000109,
+          "maximumMs": 16.80000000000109,
+          "longFrames": 0,
+          "longFrameRatio": 0,
+          "stable": true
+        }
+      ],
+      "adaptiveRendering": {
+        "status": "stable",
+        "p95FrameMs": 16.700000762939453,
+        "longFrameRatio": 0,
+        "targetPixelRatio": 1,
+        "currentPixelRatio": 1
+      },
+      "cpuThrottleRate": 4,
+      "labelsEnabled": true
+    },
+    {
+      "profile": "desktop",
+      "quality": "medium",
+      "run": 2,
+      "mode": "cold",
+      "browser": {
+        "vendor": "Google Inc. (Apple)",
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Max, Unspecified Version)",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "hardwareConcurrency": 18,
+        "reportedDeviceMemoryGiB": 32
+      },
+      "frames": 742,
+      "meanMs": 17.497169811320756,
+      "p50Ms": 16.699999999999818,
+      "p95Ms": 16.800000000000182,
+      "p99Ms": 33.40000000000009,
+      "maximumMs": 83.30000000000018,
+      "longFrames": 11,
+      "longFrameRatio": 0.014824797843665768,
+      "stable": true,
+      "phases": [
+        {
+          "phase": "earth-to-milky-way",
+          "frames": 97,
+          "meanMs": 18.72783505154639,
+          "p50Ms": 16.699999999999818,
+          "p95Ms": 33.40000000000009,
+          "p99Ms": 83.30000000000018,
+          "maximumMs": 83.30000000000018,
+          "longFrames": 5,
+          "longFrameRatio": 0.05154639175257732,
+          "stable": false
+        },
+        {
+          "phase": "milky-way-to-nearby",
+          "frames": 70,
+          "meanMs": 16.90428571428571,
+          "p50Ms": 16.699999999999818,
+          "p95Ms": 16.800000000000182,
+          "p99Ms": 33.399999999999636,
+          "maximumMs": 33.399999999999636,
+          "longFrames": 1,
+          "longFrameRatio": 0.014285714285714285,
+          "stable": true
+        },
+        {
+          "phase": "nearby-to-cosmic-web",
+          "frames": 80,
+          "meanMs": 20.415,
+          "p50Ms": 16.699999999999818,
+          "p95Ms": 33.30000000000018,
+          "p99Ms": 83.30000000000018,
+          "maximumMs": 83.30000000000018,
+          "longFrames": 4,
+          "longFrameRatio": 0.05,
+          "stable": false
+        },
+        {
+          "phase": "cosmic-web-to-earth",
+          "frames": 435,
+          "meanMs": 16.89586206896552,
+          "p50Ms": 16.69999999999891,
+          "p95Ms": 16.799999999999272,
+          "p99Ms": 33.29999999999927,
+          "maximumMs": 33.400000000000546,
+          "longFrames": 1,
+          "longFrameRatio": 0.0022988505747126436,
+          "stable": true
+        },
+        {
+          "phase": "earth-settle",
+          "frames": 60,
+          "meanMs": 16.66833333333334,
+          "p50Ms": 16.69999999999891,
+          "p95Ms": 16.799999999999272,
+          "p99Ms": 16.80000000000109,
+          "maximumMs": 16.80000000000109,
+          "longFrames": 0,
+          "longFrameRatio": 0,
+          "stable": true
+        }
+      ],
+      "adaptiveRendering": {
+        "status": "stable",
+        "p95FrameMs": 16.799999237060547,
+        "longFrameRatio": 0,
+        "targetPixelRatio": 1,
+        "currentPixelRatio": 1
+      },
+      "cpuThrottleRate": 4,
+      "labelsEnabled": true
+    },
+    {
+      "profile": "desktop",
+      "quality": "medium",
+      "run": 3,
+      "mode": "cold",
+      "browser": {
+        "vendor": "Google Inc. (Apple)",
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Max, Unspecified Version)",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "hardwareConcurrency": 18,
+        "reportedDeviceMemoryGiB": 32
+      },
+      "frames": 748,
+      "meanMs": 17.44585561497326,
+      "p50Ms": 16.69999999999891,
+      "p95Ms": 16.800000000000182,
+      "p99Ms": 33.399999999999636,
+      "maximumMs": 83.39999999999964,
+      "longFrames": 12,
+      "longFrameRatio": 0.016042780748663103,
+      "stable": true,
+      "phases": [
+        {
+          "phase": "earth-to-milky-way",
+          "frames": 98,
+          "meanMs": 18.536734693877545,
+          "p50Ms": 16.699999999999818,
+          "p95Ms": 33.30000000000018,
+          "p99Ms": 83.30000000000018,
+          "maximumMs": 83.30000000000018,
+          "longFrames": 4,
+          "longFrameRatio": 0.04081632653061224,
+          "stable": false
+        },
+        {
+          "phase": "milky-way-to-nearby",
+          "frames": 70,
+          "meanMs": 16.904285714285717,
+          "p50Ms": 16.699999999999818,
+          "p95Ms": 16.800000000000182,
+          "p99Ms": 33.30000000000018,
+          "maximumMs": 33.30000000000018,
+          "longFrames": 0,
+          "longFrameRatio": 0,
+          "stable": true
+        },
+        {
+          "phase": "nearby-to-cosmic-web",
+          "frames": 82,
+          "meanMs": 20.52682926829268,
+          "p50Ms": 16.699999999999818,
+          "p95Ms": 33.399999999999636,
+          "p99Ms": 83.39999999999964,
+          "maximumMs": 83.39999999999964,
+          "longFrames": 7,
+          "longFrameRatio": 0.08536585365853659,
+          "stable": false
+        },
+        {
+          "phase": "cosmic-web-to-earth",
+          "frames": 438,
+          "meanMs": 16.818264840182646,
+          "p50Ms": 16.69999999999891,
+          "p95Ms": 16.799999999999272,
+          "p99Ms": 16.80000000000109,
+          "maximumMs": 33.399999999999636,
+          "longFrames": 1,
+          "longFrameRatio": 0.00228310502283105,
+          "stable": true
+        },
+        {
+          "phase": "earth-settle",
+          "frames": 60,
+          "meanMs": 16.666666666666668,
+          "p50Ms": 16.69999999999891,
+          "p95Ms": 16.700000000000728,
+          "p99Ms": 16.80000000000109,
+          "maximumMs": 16.80000000000109,
+          "longFrames": 0,
+          "longFrameRatio": 0,
+          "stable": true
+        }
+      ],
+      "adaptiveRendering": {
+        "status": "stable",
+        "p95FrameMs": 16.700000762939453,
+        "longFrameRatio": 0,
+        "targetPixelRatio": 1,
+        "currentPixelRatio": 1
+      },
+      "cpuThrottleRate": 4,
+      "labelsEnabled": true
+    }
+  ]
+}

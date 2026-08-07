@@ -1,18 +1,23 @@
 import * as THREE from 'three';
 import { type StarClusterTile } from '../../data/models/universe.models';
 import { CoordinateSystem } from '../coordinates/coordinate-system';
+import {
+  STELLAR_NEIGHBORHOOD_REVEAL_END,
+  STELLAR_NEIGHBORHOOD_REVEAL_START,
+} from '../coordinates/stellar-neighborhood-scale-model';
 import { type StarCatalog } from '../loaders/star-catalog';
 import { StarCatalogRegistry } from '../objects/star-catalog-registry';
+import { PICKING_LAYER } from '../selection/selection-layers';
 import { StarClusterBatch } from './star-cluster-batch';
 
 describe('StarClusterBatch', () => {
-  it('conserve les cellules en cache sans les afficher comme un amas galactique', () => {
+  it('affiche les sources Gaia calculées du Système solaire au voisinage stellaire', () => {
     const batch = new StarClusterBatch(registry());
 
     batch.synchronizeTiles([tile('a', 3, [-1, 2]), tile('b', 3, [-3])]);
     batch.setPixelRatio(1.5);
     batch.setQuality('high');
-    batch.updateLod(3, 10);
+    batch.updateLod(1, 10, 520);
 
     expect(batch.root.children).toHaveLength(1);
     const points = batch.root.children[0];
@@ -26,12 +31,87 @@ describe('StarClusterBatch', () => {
     expect(points.userData['clusterCount']).toBe(3);
     expect(points.userData['scientificConfidence']).toBe('calculated');
     expect(points.geometry.drawRange.count).toBe(3);
-    expect(points.visible).toBe(false);
-    expect((points.material as THREE.ShaderMaterial).uniforms['clusterOpacity']!.value).toBe(0);
+    expect(points.visible).toBe(true);
+    expect(points.name).toBe('calculated-dense-star-samples-lod-3');
+    expect(points.userData['pointRepresentation']).toBe('sampled-source');
+    expect(points.userData['objectIds']).toEqual([
+      'gaia-dr3-source-981',
+      'gaia-dr3-source-971',
+      'gaia-dr3-source-972',
+    ]);
+    expect(points.userData['visibleIndices']).toEqual(new Uint8Array([1, 1, 1]));
+    expect(points.userData['pickingPriority']).toBeGreaterThan(0);
+    const pickingLayers = new THREE.Layers();
+
+    pickingLayers.set(PICKING_LAYER);
+    expect(points.layers.test(pickingLayers)).toBe(true);
+    expect(batch.getPickables()).toEqual([points]);
+    expect(batch.has('gaia-dr3-source-981')).toBe(true);
+    const gaiaDefinition = batch.getDefinition('gaia-dr3-source-981');
+
+    expect(gaiaDefinition).toMatchObject({
+      id: 'gaia-dr3-source-981',
+      name: 'Gaia DR3 981',
+      type: 'star',
+      parentId: 'milky-way',
+      scientificConfidence: 'calculated',
+      referenceEpoch: 2_457_388.5,
+      metadata: {
+        catalogIdentifier: 'Gaia DR3 981',
+        gaiaSourceId: '981',
+        apparentMagnitude: -3,
+        colorIndexBpRp: 0,
+      },
+    });
+    expect(batch.getDefinition('gaia-dr3-source-981')).toBe(gaiaDefinition);
+    expect(batch.getDefinition('missing')).toBeUndefined();
+    expect(batch.getWorldPosition('gaia-dr3-source-981')).toBeInstanceOf(THREE.Vector3);
+    expect(batch.getWorldPosition('missing')).toBeNull();
+    expect(points.userData['visualScale']).toBe('measured-source-sample');
+    expect(points.userData).toMatchObject({
+      visualStyle: 'gaia-photometry-with-white-screen-core-and-restrained-bp-rp-temperature',
+      appearanceConfidence: 'illustrative',
+      photometricTreatment:
+        'magnitude-preserving-faint-source-legibility-with-mesopic-color-restraint',
+      rasterTreatment: 'fine-screen-space-core-with-photometric-bright-source-halo',
+    });
+    expect((points.material as THREE.ShaderMaterial).uniforms['clusterOpacity']!.value).toBeCloseTo(
+      0.137_501,
+      5,
+    );
+    expect((points.material as THREE.ShaderMaterial).uniforms['catalogSignature']!.value).toBe(0);
+    expect((points.material as THREE.ShaderMaterial).depthTest).toBe(false);
     expect(batch.activeTileCount).toBe(2);
-    expect(batch.visibleClusterCount).toBe(0);
+    expect(batch.visibleClusterCount).toBe(3);
     expect(batch.representationCount).toBe(1);
     expect((points.material as THREE.ShaderMaterial).uniforms['pixelRatio']!.value).toBe(1.5);
+
+    batch.updateLod(1, 10, STELLAR_NEIGHBORHOOD_REVEAL_START);
+    expect((points.material as THREE.ShaderMaterial).uniforms['clusterOpacity']!.value).toBeCloseTo(
+      0.96,
+      5,
+    );
+
+    const visibleIndices = points.userData['visibleIndices'];
+
+    if (!(visibleIndices instanceof Uint8Array)) {
+      throw new Error('Indices de sélection Gaia absents.');
+    }
+    const fill = vi.spyOn(visibleIndices, 'fill');
+
+    batch.updateLod(1, 1 / 60, STELLAR_NEIGHBORHOOD_REVEAL_START);
+    expect(fill).not.toHaveBeenCalled();
+
+    batch.updateLod(0, 10, 79);
+    expect(points.visible).toBe(false);
+    expect(points.userData['visibleIndices']).toEqual(new Uint8Array([0, 0, 0]));
+    expect(batch.getPresentationStats(new THREE.PerspectiveCamera()).sampledSources).toBe(0);
+    batch.updateLod(2, 10, 1_400);
+    expect(points.visible).toBe(false);
+    expect(points.userData['visibleIndices']).toEqual(new Uint8Array([0, 0, 0]));
+    batch.updateLod(2, 10, 520);
+    expect(points.visible).toBe(true);
+    expect(points.userData['visibleIndices']).toEqual(new Uint8Array([1, 1, 1]));
 
     batch.setPhotographicRadiance(1.2);
     expect((points.material as THREE.ShaderMaterial).uniforms['radiance']!.value).toBe(1.2);
@@ -49,29 +129,166 @@ describe('StarClusterBatch', () => {
     batch.dispose();
   });
 
-  it('libère immédiatement un ancien lot masqué', () => {
+  it('conserve une source Gaia sélectionnée quand sa tuile sort du champ', () => {
+    const batch = new StarClusterBatch(registry());
+
+    batch.synchronizeTiles([tile('a', 3, [1])]);
+    batch.updateLod(2, 10, 520);
+    batch.select('gaia-dr3-source-971');
+    batch.focus('gaia-dr3-source-971');
+    const selectedPosition = batch.getWorldPosition('gaia-dr3-source-971');
+
+    batch.synchronizeTiles([tile('b', 3, [2])]);
+    batch.updateLod(2, 10, 520);
+
+    expect(batch.has('gaia-dr3-source-971')).toBe(true);
+    expect(batch.getDefinition('gaia-dr3-source-971')?.metadata?.['gaiaSourceId']).toBe('971');
+    expect(batch.getWorldPosition('gaia-dr3-source-971')).toEqual(selectedPosition);
+
+    batch.select(null);
+    expect(batch.has('gaia-dr3-source-971')).toBe(true);
+    batch.focus(null);
+    expect(batch.has('gaia-dr3-source-971')).toBe(false);
+    expect(batch.getDefinition('gaia-dr3-source-971')).toBeUndefined();
+    batch.synchronizeTiles([tile('c', 3, [3])]);
+    const activeDefinition = batch.getDefinition('gaia-dr3-source-991');
+
+    batch.synchronizeTiles([tile('d', 3, [4])]);
+    expect(batch.getDefinition('gaia-dr3-source-991')).toBe(activeDefinition);
+    batch.dispose();
+  });
+
+  it('refuse un lot Gaia détaillé privé de ses identifiants de source', () => {
+    const batch = new StarClusterBatch(registry());
+    const malformed = { ...tile('malformed', 3, [-1]) };
+
+    Reflect.deleteProperty(malformed, 'sourceIds');
+
+    expect(() => batch.synchronizeTiles([malformed])).toThrow(
+      'Une source Gaia détaillée ne peut pas être rendue sans source_id.',
+    );
+    batch.dispose();
+  });
+
+  it('relève les sources Gaia faibles sans modifier la hiérarchie photométrique', () => {
+    const batch = new StarClusterBatch(registry());
+
+    batch.synchronizeTiles([tile('photometry', 3, [12, 8, 0])]);
+    const points = batch.root.children[0] as THREE.Points;
+    const sizes = points.geometry.getAttribute('pointSize');
+    const alphas = points.geometry.getAttribute('pointAlpha');
+    const faintnesses = points.geometry.getAttribute('pointFaintness');
+
+    expect(sizes.getX(0)).toBeCloseTo(1.909_09, 5);
+    expect(sizes.getX(1)).toBeLessThan(sizes.getX(0));
+    expect(sizes.getX(2)).toBeCloseTo(0.989_09, 5);
+    expect(alphas.getX(0)).toBeCloseTo(0.927_27, 5);
+    expect(alphas.getX(1)).toBeLessThan(alphas.getX(0));
+    expect(alphas.getX(2)).toBeCloseTo(0.537_27, 5);
+    expect(faintnesses.getX(0)).toBe(0);
+    expect(faintnesses.getX(1)).toBeGreaterThan(0);
+    expect(faintnesses.getX(1)).toBeLessThan(1);
+    expect(faintnesses.getX(2)).toBe(1);
+    expect((points.material as THREE.ShaderMaterial).fragmentShader).toContain(
+      'sampledHaloStrength',
+    );
+    expect((points.material as THREE.ShaderMaterial).fragmentShader).toContain('coreWhitening');
+    expect((points.material as THREE.ShaderMaterial).vertexShader).toContain('starRasterSize');
+    expect((points.material as THREE.ShaderMaterial).vertexShader).toContain(
+      'starProminence = smoothstep',
+    );
+    expect((points.material as THREE.ShaderMaterial).vertexShader).toContain('sampledRasterSize');
+    expect((points.material as THREE.ShaderMaterial).vertexShader).toContain('minimumRasterSize');
+    expect((points.material as THREE.ShaderMaterial).fragmentShader).toContain('pixelStableCore');
+    expect((points.material as THREE.ShaderMaterial).fragmentShader).toContain(
+      'mix(photometricCore, sampledPixelCore, sampledSource)',
+    );
+    expect((points.material as THREE.ShaderMaterial).fragmentShader).toContain(
+      'chromaticStarColor',
+    );
+    expect((points.material as THREE.ShaderMaterial).fragmentShader).toContain(
+      'float chromaMix = mix(1.0, sampledChromaRetention, sampledSource)',
+    );
+    expect((points.material as THREE.ShaderMaterial).fragmentShader).toContain(
+      'sampledChromaRetention = mix(\n          0.04,\n          0.62,',
+    );
+    expect((points.material as THREE.ShaderMaterial).fragmentShader).toContain(
+      'coreWhitening = mix(\n          0.98,\n          0.64,',
+    );
+    batch.dispose();
+  });
+
+  it('distingue les sources détaillées, les cellules agrégées et leur projection écran', () => {
+    const batch = new StarClusterBatch(registry());
+
+    batch.synchronizeTiles([tile('detail', 3, [-2, -1]), tile('overview', 4, [1])]);
+    batch.setQuality('high');
+    batch.updateLod(2, 10);
+    const points = batch.root.children[0] as THREE.Points;
+    const positions = points.geometry.getAttribute('position');
+    const focus = new THREE.Vector3().fromBufferAttribute(positions, 0);
+
+    points.localToWorld(focus);
+    const camera = new THREE.PerspectiveCamera(60, 1, 0.01, 10_000);
+
+    camera.position.copy(focus).add(new THREE.Vector3(0, 0, 10));
+    camera.lookAt(focus);
+    camera.updateProjectionMatrix();
+    camera.updateMatrixWorld(true);
+
+    expect(batch.getPresentationStats(camera)).toMatchObject({
+      sampledSources: 2,
+      aggregateCells: 1,
+      perceptibleSampledSources: expect.any(Number),
+      projectedSampledSources: expect.any(Number),
+      projectedAggregateCells: expect.any(Number),
+    });
+    expect(batch.getPresentationStats(camera).projectedSampledSources).toBeGreaterThan(0);
+    expect(batch.getPresentationStats(camera).perceptibleSampledSources).toBe(
+      batch.getPresentationStats(camera).projectedSampledSources,
+    );
+
+    batch.updateLod(2, 0.5, STELLAR_NEIGHBORHOOD_REVEAL_END);
+    const fadedStats = batch.getPresentationStats(camera);
+
+    expect(fadedStats.projectedSampledSources).toBeGreaterThan(0);
+    expect(fadedStats.perceptibleSampledSources).toBe(0);
+
+    camera.lookAt(camera.position.clone().add(new THREE.Vector3(0, 0, 10)));
+    camera.updateMatrixWorld(true);
+    expect(batch.getPresentationStats(camera)).toEqual({
+      sampledSources: 2,
+      perceptibleSampledSources: 0,
+      projectedSampledSources: 0,
+      aggregateCells: 1,
+      projectedAggregateCells: 0,
+    });
+    batch.dispose();
+  });
+
+  it('fond puis libère un ancien lot remplacé', () => {
     const batch = new StarClusterBatch(registry());
 
     batch.synchronizeTiles([tile('old', 3, [-1, 0])]);
-    batch.updateLod(3, 10);
+    batch.updateLod(2, 10);
     const oldPoints = batch.root.children[0] as THREE.Points;
     const geometryDispose = vi.spyOn(oldPoints.geometry, 'dispose');
     const materialDispose = vi.spyOn(oldPoints.material as THREE.Material, 'dispose');
 
     batch.synchronizeTiles([tile('new', 3, [-2])]);
     expect(batch.root.children).toHaveLength(2);
-    expect(oldPoints.visible).toBe(false);
+    expect(oldPoints.visible).toBe(true);
 
-    batch.updateLod(3, 0);
+    batch.updateLod(2, 10);
     expect(geometryDispose).toHaveBeenCalledOnce();
     expect(materialDispose).toHaveBeenCalledOnce();
     expect(batch.root.children).toHaveLength(1);
-    batch.updateLod(3, 10);
+    batch.updateLod(2, 10);
     expect(geometryDispose).toHaveBeenCalledOnce();
     expect(materialDispose).toHaveBeenCalledOnce();
     expect(batch.root.children).toHaveLength(1);
     expect(batch.activeTileCount).toBe(1);
-    expect(batch.visibleClusterCount).toBe(0);
+    expect(batch.visibleClusterCount).toBe(1);
     batch.dispose();
   });
 
@@ -79,21 +296,105 @@ describe('StarClusterBatch', () => {
     const batch = new StarClusterBatch(registry());
 
     batch.synchronizeTiles([tile('first', 3, [-1])]);
-    batch.updateLod(3, 10);
+    batch.updateLod(2, 10);
     const firstPoints = batch.root.children[0] as THREE.Points;
     const firstGeometryDispose = vi.spyOn(firstPoints.geometry, 'dispose');
 
     batch.synchronizeTiles([tile('second', 3, [-2])]);
-    batch.updateLod(3, 0.25);
+    batch.updateLod(2, 0.25);
+    const opacityBeforeRapidReplacement = batch.root.children.reduce(
+      (opacity, child) =>
+        opacity +
+        (child as THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial>).material.uniforms[
+          'clusterOpacity'
+        ]!.value,
+      0,
+    );
+
     batch.synchronizeTiles([tile('third', 3, [-3])]);
+    const opacityAfterRapidReplacement = batch.root.children.reduce(
+      (opacity, child) =>
+        opacity +
+        (child as THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial>).material.uniforms[
+          'clusterOpacity'
+        ]!.value,
+      0,
+    );
 
     expect(batch.representationCount).toBe(2);
     expect(batch.root.children).toHaveLength(2);
+    expect(opacityBeforeRapidReplacement).toBeCloseTo(0.96, 5);
+    expect(opacityAfterRapidReplacement).toBeCloseTo(opacityBeforeRapidReplacement, 5);
     expect(firstGeometryDispose).toHaveBeenCalledOnce();
     expect(batch.root.children.map((child) => child.userData['tileIds'])).toEqual([
       ['second'],
       ['third'],
     ]);
+    batch.dispose();
+  });
+
+  it('privilégie la résolution sortante différente pendant le fondu inter-échelles', () => {
+    const batch = new StarClusterBatch(registry());
+
+    batch.synchronizeTiles([tile('detail', 3, [-2, -1]), tile('old-overview', 4, [1])]);
+    batch.updateLod(2, 10);
+
+    batch.synchronizeTiles([tile('new-overview', 4, [2])]);
+
+    expect(batch.representationCount).toBe(2);
+    expect(batch.root.children.map((child) => child.userData['tileIds'])).toEqual([
+      ['detail'],
+      ['new-overview'],
+    ]);
+    batch.updateLod(3, 0.1, 6_200);
+    expect(batch.visibleClusterCount).toBeGreaterThan(1);
+    batch.updateLod(3, 10, 6_200);
+    expect(batch.representationCount).toBe(1);
+    batch.dispose();
+  });
+
+  it("préserve la luminosité détaillée quand l'orientation remplace les deux résolutions", () => {
+    const batch = new StarClusterBatch(registry());
+
+    batch.synchronizeTiles([tile('old-detail', 3, [-2, -1]), tile('old-overview', 4, [1])]);
+    batch.updateLod(2, 10, 520);
+    const oldDetail = batch.root.children.find(
+      (child) => child.userData['tileIds']?.[0] === 'old-detail',
+    ) as THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial>;
+    const oldOverview = batch.root.children.find(
+      (child) => child.userData['tileIds']?.[0] === 'old-overview',
+    ) as THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial>;
+    const oldDetailDispose = vi.spyOn(oldDetail.geometry, 'dispose');
+    const oldOverviewDispose = vi.spyOn(oldOverview.geometry, 'dispose');
+
+    batch.synchronizeTiles([tile('new-detail', 3, [-3, 0]), tile('new-overview', 4, [2])]);
+
+    expect(batch.representationCount).toBe(3);
+    expect(oldDetailDispose).not.toHaveBeenCalled();
+    expect(oldOverviewDispose).toHaveBeenCalledOnce();
+    expect(batch.root.children.map((child) => child.userData['tileIds'])).toEqual([
+      ['old-detail'],
+      ['new-detail'],
+      ['new-overview'],
+    ]);
+
+    batch.updateLod(2, 1 / 60, 520);
+    const combinedDetailedOpacity = batch.root.children
+      .filter((child) => child.userData['pointRepresentation'] === 'sampled-source')
+      .reduce(
+        (opacity, child) =>
+          opacity +
+          (child as THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial>).material.uniforms[
+            'clusterOpacity'
+          ]!.value,
+        0,
+      );
+
+    expect(combinedDetailedOpacity).toBeCloseTo(0.137_501, 5);
+
+    batch.updateLod(2, 10, 520);
+    expect(oldDetailDispose).toHaveBeenCalledOnce();
+    expect(batch.representationCount).toBe(2);
     batch.dispose();
   });
 
@@ -103,10 +404,10 @@ describe('StarClusterBatch', () => {
     batch.synchronizeTiles([tile('detail', 3, [-2, -1, 0]), tile('overview', 4, [1, 2])]);
     batch.setQuality('low');
     batch.setPixelRatio(0.1);
-    batch.updateLod(3, 10);
+    batch.updateLod(2, 10);
 
     expect(batch.root.children).toHaveLength(2);
-    expect(batch.visibleClusterCount).toBe(0);
+    expect(batch.visibleClusterCount).toBe(2);
     for (const child of batch.root.children) {
       const points = child as THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial>;
 
@@ -115,7 +416,7 @@ describe('StarClusterBatch', () => {
     }
 
     batch.setQuality('medium');
-    expect(batch.visibleClusterCount).toBe(0);
+    expect(batch.visibleClusterCount).toBe(3);
     expect(
       batch.root.children.reduce(
         (count, child) => count + (child as THREE.Points).geometry.drawRange.count,
@@ -123,13 +424,25 @@ describe('StarClusterBatch', () => {
       ),
     ).toBe(3);
     batch.setQuality('high');
-    expect(batch.visibleClusterCount).toBe(0);
+    expect(batch.visibleClusterCount).toBe(5);
     expect(
       batch.root.children.reduce(
         (count, child) => count + (child as THREE.Points).geometry.drawRange.count,
         0,
       ),
     ).toBe(5);
+    const aggregatePoints = batch.root.children.find(
+      (child) => child.userData['pointRepresentation'] === 'aggregate-cell',
+    ) as THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial>;
+    const aggregateSizes = aggregatePoints.geometry.getAttribute('pointSize');
+
+    expect(
+      Math.max(
+        ...Array.from({ length: aggregateSizes.count }, (_, index) => aggregateSizes.getX(index)),
+      ),
+    ).toBeLessThanOrEqual(2.9);
+    expect(aggregatePoints.material.uniforms['catalogSignature']!.value).toBe(0.22);
+    expect(batch.getPickables()).not.toContain(aggregatePoints);
 
     batch.synchronizeTiles([]);
     batch.updateLod(2, 10);
@@ -166,21 +479,78 @@ describe('StarClusterBatch', () => {
     const batch = new StarClusterBatch(registry());
 
     batch.synchronizeTiles([{ ...tile('unsupported', 3, [-1]), lodLevel: 99 }]);
-    batch.updateLod(3, 10);
+    batch.updateLod(2, 10);
 
     expect(batch.visibleClusterCount).toBe(0);
     batch.dispose();
   });
 
-  it('masque aussi l’aperçu agrégé dans la Voie lactée', () => {
+  it('fond les racines de la Voie lactée dans le Groupe local puis les masque', () => {
     const batch = new StarClusterBatch(registry());
 
     batch.synchronizeTiles([tile('overview', 4, [-1])]);
+    batch.updateLod(2, 10);
+    expect(batch.visibleClusterCount).toBe(1);
+
     batch.updateLod(3, 10);
     expect(batch.visibleClusterCount).toBe(0);
+    const points = batch.root.children[0] as THREE.Points<
+      THREE.BufferGeometry,
+      THREE.ShaderMaterial
+    >;
+
+    expect(points.material.uniforms['clusterOpacity']!.value).toBe(0);
+
+    batch.updateLod(3, 10, 4_900);
+    expect(points.material.uniforms['clusterOpacity']!.value).toBeGreaterThan(0);
+    expect(points.material.uniforms['clusterOpacity']!.value).toBeLessThan(0.035);
 
     batch.updateLod(4, 10);
+    expect(points.material.uniforms['clusterOpacity']!.value).toBeCloseTo(0.012, 5);
+
+    batch.updateLod(4, 10, 10_300);
+    expect(points.material.uniforms['clusterOpacity']!.value).toBeCloseTo(0.0235, 5);
+    expect(batch.visibleClusterCount).toBe(1);
+
+    batch.updateLod(4, 10, 17_000);
+    expect(points.material.uniforms['clusterOpacity']!.value).toBeCloseTo(0.012, 5);
+    expect(batch.visibleClusterCount).toBe(1);
+
+    batch.updateLod(5, 10, 120_000);
     expect(batch.visibleClusterCount).toBe(0);
+    batch.dispose();
+  });
+
+  it('remplace progressivement les sources Gaia détaillées par une trame galactique discrète', () => {
+    const batch = new StarClusterBatch(registry());
+
+    batch.synchronizeTiles([tile('detail', 3, [-2]), tile('overview', 4, [1])]);
+    batch.updateLod(2, 10, STELLAR_NEIGHBORHOOD_REVEAL_END);
+    const detail = batch.root.children.find(
+      (child) => child.userData['pointRepresentation'] === 'sampled-source',
+    ) as THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial>;
+    const overview = batch.root.children.find(
+      (child) => child.userData['pointRepresentation'] === 'aggregate-cell',
+    ) as THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial>;
+
+    expect(detail.visible).toBe(false);
+    expect(detail.material.uniforms['clusterOpacity']!.value).toBe(0);
+    expect(overview.visible).toBe(false);
+    expect(overview.material.uniforms['clusterOpacity']!.value).toBe(0);
+
+    const transitionMiddle = Math.sqrt(
+      STELLAR_NEIGHBORHOOD_REVEAL_START * STELLAR_NEIGHBORHOOD_REVEAL_END,
+    );
+
+    batch.updateLod(2, 10, transitionMiddle);
+    expect(detail.visible).toBe(true);
+    expect(detail.material.uniforms['clusterOpacity']!.value).toBeGreaterThan(0);
+    expect(detail.material.uniforms['clusterOpacity']!.value).toBeLessThan(0.96);
+    expect(overview.material.uniforms['clusterOpacity']!.value).toBeLessThan(0.18);
+
+    batch.updateLod(2, 10, STELLAR_NEIGHBORHOOD_REVEAL_START);
+    expect(detail.material.uniforms['clusterOpacity']!.value).toBeCloseTo(0.96, 5);
+    expect(overview.material.uniforms['clusterOpacity']!.value).toBeCloseTo(0.18, 5);
     batch.dispose();
   });
 });
@@ -190,6 +560,7 @@ function registry(): StarCatalogRegistry {
     count: 5,
     referenceEpochJulianDay: 2_451_545,
     positionsParsec: new Float32Array(15),
+    velocitiesParsecPerYear: new Float32Array(15),
     apparentMagnitudes: new Float32Array(5),
     colorIndicesBv: new Float32Array(5),
     catalogIds: new Uint32Array([1, 2, 3, 4, 5]),
@@ -208,17 +579,28 @@ function tile(id: string, lodLevel: 3 | 4, magnitudes: number[]): StarClusterTil
   return {
     id,
     parentId: lodLevel === 3 ? 'root' : undefined,
-    version: '2.0.0',
-    sourceCatalog: 'hyg-v41-bright-stars',
+    version: '5.0.0',
+    sourceCatalog: 'gaia-dr3-bright-high-confidence',
     sourceStarCount: clusterCount,
-    referenceEpochJulianDay: 2_451_545,
+    referenceEpochJulianDay: 2_457_388.5,
+    magnitudeBand: 'gaia-g',
+    colorIndexSystem: 'gaia-bp-rp',
     lodLevel,
     cellSizeParsec: lodLevel === 3 ? 40 : 160,
+    representation: lodLevel === 3 ? 'sampled-source' : 'aggregate-cell',
     clusterCount,
     cellCoordinates: Int32Array.from({ length: clusterCount * 3 }, (_, index) => index),
     positionsParsec: Float32Array.from({ length: clusterCount * 3 }, (_, index) => start + index),
     starCounts: Uint32Array.from({ length: clusterCount }, () => 1),
     apparentMagnitudes: Float32Array.from(magnitudes),
-    colorIndicesBv: Float32Array.from({ length: clusterCount }, (_, index) => index / 2),
+    colorIndices: Float32Array.from({ length: clusterCount }, (_, index) => index / 2),
+    ...(lodLevel === 3
+      ? {
+          sourceIds: Array.from(
+            { length: clusterCount },
+            (_, index) => `${id.charCodeAt(0)}${index + 1}`,
+          ),
+        }
+      : {}),
   };
 }

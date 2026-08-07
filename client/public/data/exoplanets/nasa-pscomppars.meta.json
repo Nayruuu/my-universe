@@ -1,0 +1,20 @@
+{
+  "version": "1.0.0",
+  "format": "exoplanet-catalog-v1",
+  "source": {
+    "name": "NASA Exoplanet Archive",
+    "url": "https://exoplanetarchive.ipac.caltech.edu/",
+    "tapUrl": "https://exoplanetarchive.ipac.caltech.edu/TAP/sync",
+    "table": "PSCompPars",
+    "query": "select pl_name,hostname,pl_letter,hd_name,hip_name,tic_id,gaia_dr3_id,sy_snum,sy_pnum,cb_flag,discoverymethod,disc_year,disc_facility,pl_orbper,pl_orbsmax,pl_rade,pl_bmasse,pl_bmassprov,pl_eqt,pl_orbeccen,pl_orbincl,pl_insol,st_teff,st_rad,st_mass,st_spectype,sy_vmag,ra,dec,sy_dist,pl_controv_flag from pscomppars order by hostname,pl_name",
+    "snapshotDate": "2026-08-05",
+    "sha256": "081aa3b6e524fd8d9ec31b871aea57a2a22d184991668c9c8a1d513b8b7e18ee"
+  },
+  "counts": {
+    "hosts": 4747,
+    "planets": 6333,
+    "positionedHosts": 4720,
+    "positionedPlanets": 6306
+  },
+  "missingDistanceFallbackParsec": 1000
+}

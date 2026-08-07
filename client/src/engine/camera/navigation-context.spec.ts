@@ -127,6 +127,22 @@ describe('NavigationContextJourney', () => {
     ]);
   });
 
+  it('préserve un objet canonique directement visé aux niveaux plus fins', () => {
+    const journey = new NavigationContextJourney(getObject);
+
+    journey.adoptObjectTarget('sun');
+
+    expect(targets(journey)).toEqual([
+      'sun',
+      'sun',
+      'sun',
+      'milky-way',
+      'local-group',
+      'nearby-universe',
+      'cosmic-web',
+    ]);
+  });
+
   it('borne les niveaux, tolère les données incomplètes et se réinitialise', () => {
     const journey = new NavigationContextJourney(getObject);
 

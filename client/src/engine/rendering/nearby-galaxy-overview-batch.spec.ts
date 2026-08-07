@@ -16,16 +16,47 @@ describe('NearbyGalaxyOverviewBatch', () => {
     expect(batch.points.userData).toMatchObject({
       catalogCount: 2,
       scientificConfidence: 'observed',
-      visualStyle: 'adaptive-local-volume-overview',
+      appearanceConfidence: 'illustrative',
+      visualStyle: 'structured-local-volume-galaxy-impostors',
+      sceneRole: 'observed-line-of-sight-background',
     });
     expect(geometry.getAttribute('position').count).toBe(2);
     expect(geometry.getAttribute('pointSize').count).toBe(2);
     expect(geometry.getAttribute('pointAlpha').count).toBe(2);
     expect(geometry.getAttribute('color').count).toBe(2);
+    expect(geometry.getAttribute('galaxyAngle').count).toBe(2);
+    expect(geometry.getAttribute('galaxyAxisRatio').count).toBe(2);
+    expect(geometry.getAttribute('galaxyProfile').count).toBe(2);
+    expect(geometry.getAttribute('galaxyProminence').count).toBe(2);
+    expect(geometry.getAttribute('galaxySeed').count).toBe(2);
+    expect(batch.points.material.fragmentShader).toContain('float spiralArms');
+    expect(batch.points.material.fragmentShader).toContain('float dustLane');
+    expect(batch.points.material.fragmentShader).toContain('float stellarKnots');
+    expect(batch.points.material.fragmentShader).toContain('halo < 0.015');
+    expect(batch.points.material.fragmentShader).toContain('radius > 1.0');
+    expect(batch.points.material.vertexShader).toContain('float prominenceScale');
     expect(Array.from(geometry.getAttribute('position').array)).toEqual([
       4_000, 8_000, -4_000, -8_000, 2_000, 12_000,
     ]);
     expect(batch.visibleCount).toBe(0);
+
+    const sizes = geometry.getAttribute('pointSize') as THREE.BufferAttribute;
+    const angles = geometry.getAttribute('galaxyAngle') as THREE.BufferAttribute;
+    const axisRatios = geometry.getAttribute('galaxyAxisRatio') as THREE.BufferAttribute;
+    const profiles = geometry.getAttribute('galaxyProfile') as THREE.BufferAttribute;
+
+    expect(sizes.getX(0)).toBeGreaterThan(5);
+    expect(sizes.getX(0)).toBeLessThan(9);
+    expect(sizes.getX(1)).toBeGreaterThan(sizes.getX(0));
+    for (let index = 0; index < 2; index += 1) {
+      expect(angles.getX(index)).toBeGreaterThanOrEqual(0);
+      expect(angles.getX(index)).toBeLessThan(Math.PI * 2);
+      expect(axisRatios.getX(index)).toBeGreaterThanOrEqual(0.22);
+      expect(axisRatios.getX(index)).toBeLessThanOrEqual(0.96);
+      expect(profiles.getX(index)).toBeGreaterThanOrEqual(0);
+      expect(profiles.getX(index)).toBeLessThan(1);
+    }
+    expect(batch.points.material.blending).toBe(THREE.NormalBlending);
 
     batch.setPixelRatio(0.1);
     expect(batch.points.material.uniforms['pixelRatio']!.value).toBe(0.5);
@@ -45,9 +76,12 @@ describe('NearbyGalaxyOverviewBatch', () => {
   });
 
   it('effectue un fondu continu entre Groupe local, Univers proche et réseau cosmique', () => {
-    expect(getNearbyGalaxyOverviewTargetOpacity(10_000)).toBe(0);
-    expect(getNearbyGalaxyOverviewTargetOpacity(17_000)).toBeGreaterThan(0);
-    expect(getNearbyGalaxyOverviewTargetOpacity(26_000)).toBeCloseTo(0.42, 5);
+    expect(getNearbyGalaxyOverviewTargetOpacity(6_200)).toBe(0);
+    expect(getNearbyGalaxyOverviewTargetOpacity(9_600)).toBeGreaterThan(0.11);
+    expect(getNearbyGalaxyOverviewTargetOpacity(13_300)).toBeGreaterThan(0.36);
+    expect(getNearbyGalaxyOverviewTargetOpacity(17_000)).toBeGreaterThan(0.54);
+    expect(getNearbyGalaxyOverviewTargetOpacity(18_000)).toBeCloseTo(0.56, 5);
+    expect(getNearbyGalaxyOverviewTargetOpacity(26_000)).toBeGreaterThan(0.52);
     expect(getNearbyGalaxyOverviewTargetOpacity(45_000)).toBeGreaterThan(0);
     expect(getNearbyGalaxyOverviewTargetOpacity(120_000)).toBeCloseTo(0.42, 5);
     expect(getNearbyGalaxyOverviewTargetOpacity(220_000)).toBeGreaterThan(0);
@@ -71,7 +105,7 @@ describe('NearbyGalaxyOverviewBatch', () => {
   it('amortit la visibilité sans saut pendant la navigation', () => {
     const batch = new NearbyGalaxyOverviewBatch(entries(), new CoordinateSystem());
 
-    batch.updateDistance(10_000, 10);
+    batch.updateDistance(6_200, 10);
     expect(batch.points.visible).toBe(false);
 
     batch.updateDistance(120_000, 1 / 60);

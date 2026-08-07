@@ -1,0 +1,187 @@
+{
+  "schema": "universe-map/performance-evidence@1",
+  "capturedAt": "2026-09-11T13:19:28.782Z",
+  "benchmark": "resource-stability",
+  "evidence": {
+    "measurementKind": "simulated-cpu",
+    "declaredDeviceClass": "unclassified",
+    "deviceLabel": null
+  },
+  "source": {
+    "commit": "796fe70310b28ee17c1a0cd9445688d65f05b36c",
+    "dirty": false
+  },
+  "host": {
+    "platform": "darwin",
+    "release": "25.6.0",
+    "architecture": "arm64",
+    "logicalCpuCount": 18,
+    "cpuModels": [
+      "Apple M5 Max"
+    ],
+    "totalMemoryBytes": 137438953472,
+    "nodeVersion": "v24.2.0"
+  },
+  "browser": {
+    "vendor": "Google Inc. (Apple)",
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Max, Unspecified Version)",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+    "hardwareConcurrency": 18,
+    "reportedDeviceMemoryGiB": 32
+  },
+  "configuration": {
+    "profiles": [
+      "desktop"
+    ],
+    "qualities": [
+      "medium"
+    ],
+    "cycles": 3,
+    "cpuThrottleRate": 4,
+    "warmupRoundTrips": 3
+  },
+  "summary": [
+    {
+      "profile": "desktop",
+      "quality": "medium",
+      "cpuThrottleRate": 4,
+      "browser": {
+        "vendor": "Google Inc. (Apple)",
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Max, Unspecified Version)",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "hardwareConcurrency": 18,
+        "reportedDeviceMemoryGiB": 32
+      },
+      "samples": [
+        {
+          "cycle": 0,
+          "geometries": 84,
+          "textures": 16,
+          "drawCalls": 40,
+          "usedJsHeapBytes": 175346615
+        },
+        {
+          "cycle": 1,
+          "geometries": 84,
+          "textures": 16,
+          "drawCalls": 40,
+          "usedJsHeapBytes": 175393211
+        },
+        {
+          "cycle": 2,
+          "geometries": 84,
+          "textures": 16,
+          "drawCalls": 40,
+          "usedJsHeapBytes": 175511695
+        },
+        {
+          "cycle": 3,
+          "geometries": 84,
+          "textures": 16,
+          "drawCalls": 40,
+          "usedJsHeapBytes": 175596681
+        }
+      ],
+      "cycles": 3,
+      "baseline": {
+        "cycle": 0,
+        "geometries": 84,
+        "textures": 16,
+        "drawCalls": 40,
+        "usedJsHeapBytes": 175346615
+      },
+      "final": {
+        "cycle": 3,
+        "geometries": 84,
+        "textures": 16,
+        "drawCalls": 40,
+        "usedJsHeapBytes": 175596681
+      },
+      "peak": {
+        "geometries": 84,
+        "textures": 16,
+        "drawCalls": 40,
+        "usedJsHeapBytes": 175596681
+      },
+      "drift": {
+        "geometries": 0,
+        "textures": 0,
+        "drawCalls": 0,
+        "usedJsHeapBytes": 250066
+      },
+      "stable": true
+    }
+  ],
+  "samples": [
+    {
+      "profile": "desktop",
+      "quality": "medium",
+      "cpuThrottleRate": 4,
+      "browser": {
+        "vendor": "Google Inc. (Apple)",
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Max, Unspecified Version)",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "hardwareConcurrency": 18,
+        "reportedDeviceMemoryGiB": 32
+      },
+      "samples": [
+        {
+          "cycle": 0,
+          "geometries": 84,
+          "textures": 16,
+          "drawCalls": 40,
+          "usedJsHeapBytes": 175346615
+        },
+        {
+          "cycle": 1,
+          "geometries": 84,
+          "textures": 16,
+          "drawCalls": 40,
+          "usedJsHeapBytes": 175393211
+        },
+        {
+          "cycle": 2,
+          "geometries": 84,
+          "textures": 16,
+          "drawCalls": 40,
+          "usedJsHeapBytes": 175511695
+        },
+        {
+          "cycle": 3,
+          "geometries": 84,
+          "textures": 16,
+          "drawCalls": 40,
+          "usedJsHeapBytes": 175596681
+        }
+      ],
+      "cycles": 3,
+      "baseline": {
+        "cycle": 0,
+        "geometries": 84,
+        "textures": 16,
+        "drawCalls": 40,
+        "usedJsHeapBytes": 175346615
+      },
+      "final": {
+        "cycle": 3,
+        "geometries": 84,
+        "textures": 16,
+        "drawCalls": 40,
+        "usedJsHeapBytes": 175596681
+      },
+      "peak": {
+        "geometries": 84,
+        "textures": 16,
+        "drawCalls": 40,
+        "usedJsHeapBytes": 175596681
+      },
+      "drift": {
+        "geometries": 0,
+        "textures": 0,
+        "drawCalls": 0,
+        "usedJsHeapBytes": 250066
+      },
+      "stable": true
+    }
+  ]
+}

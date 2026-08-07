@@ -123,10 +123,8 @@ export class CosmicWebVolumeRenderer {
   }
 
   public updateDistance(cameraDistance: number, deltaSeconds: number, radiance = 1): void {
-    const targetOpacity = getCosmicWebVolumeTargetOpacity(
-      cameraDistance,
-      getCosmicWebVolumeProfile(this.quality),
-    );
+    const profile = getCosmicWebVolumeProfile(this.quality);
+    const targetOpacity = getCosmicWebVolumeTargetOpacity(cameraDistance, profile);
 
     this.opacity = dampValue(this.opacity, targetOpacity, VOLUME_OPACITY_DAMPING, deltaSeconds);
     this.material.uniforms['volumeOpacity']!.value = this.opacity;

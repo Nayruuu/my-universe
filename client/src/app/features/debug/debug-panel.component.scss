@@ -8,7 +8,8 @@
   top: 82px;
   right: 76px;
   width: 250px;
-  overflow: hidden;
+  max-height: calc(100dvh - 94px);
+  overflow: hidden auto;
   border: 1px solid rgb(99 222 183 / 20%);
   border-radius: 12px;
   color: rgb(205 244 232 / 80%);
@@ -16,6 +17,13 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.61rem;
   backdrop-filter: blur(16px);
+  pointer-events: auto;
+  scrollbar-color: rgb(116 225 186 / 32%) transparent;
+  scrollbar-width: thin;
+}
+
+.debug-panel--cosmic {
+  right: 312px;
 }
 
 header {
@@ -33,6 +41,89 @@ header {
   strong {
     color: #74e1ba;
     font-weight: 600;
+  }
+}
+
+.trace-tools {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgb(99 222 183 / 14%);
+  pointer-events: auto;
+
+  > span,
+  output {
+    color: rgb(170 216 202 / 62%);
+  }
+
+  output {
+    font-size: 0.56rem;
+  }
+}
+
+.review-tools {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgb(99 222 183 / 14%);
+
+  > span,
+  output {
+    color: rgb(170 216 202 / 62%);
+  }
+
+  output {
+    font-size: 0.56rem;
+  }
+
+  button {
+    min-height: 24px;
+    border: 1px solid rgb(99 222 183 / 22%);
+    border-radius: 6px;
+    color: rgb(205 244 232 / 82%);
+    background: rgb(34 83 75 / 36%);
+    font: inherit;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      border-color: rgb(116 225 186 / 52%);
+      color: #dffcf2;
+      background: rgb(45 112 99 / 50%);
+    }
+
+    &:disabled {
+      cursor: progress;
+      opacity: 0.58;
+    }
+  }
+}
+
+.review-play,
+.review-copy {
+  width: 100%;
+}
+
+.trace-actions {
+  display: flex;
+  gap: 5px;
+
+  button {
+    flex: 1;
+    min-height: 24px;
+    border: 1px solid rgb(99 222 183 / 22%);
+    border-radius: 6px;
+    color: rgb(205 244 232 / 82%);
+    background: rgb(34 83 75 / 36%);
+    font: inherit;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      border-color: rgb(116 225 186 / 52%);
+      color: #dffcf2;
+      background: rgb(45 112 99 / 50%);
+    }
   }
 }
 
@@ -70,7 +161,12 @@ dd {
     top: 112px;
     right: 10px;
     width: 184px;
+    max-height: calc(100dvh - 122px);
     font-size: 0.52rem;
+  }
+
+  .debug-panel--cosmic {
+    right: 10px;
   }
 
   header,

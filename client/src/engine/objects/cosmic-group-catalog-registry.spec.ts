@@ -4,6 +4,64 @@ import { CosmicGroupCatalog } from '../loaders/cosmic-group-catalog';
 import { CosmicGroupCatalogRegistry } from './cosmic-group-catalog-registry';
 
 describe('CosmicGroupCatalogRegistry', () => {
+  it.each([0, 2, 512, 1025])(
+    'prépare %i groupes et leur recherche par lots sans modifier les données',
+    async (count) => {
+      const catalog = createLinearCatalog(count);
+      const coordinates = new CoordinateSystem();
+      const expected = new CosmicGroupCatalogRegistry(catalog, coordinates);
+      const definition = vi.spyOn(CosmicGroupCatalogRegistry.prototype, 'getDefinition');
+      const pause = vi.fn(async () => undefined);
+      const registry = await CosmicGroupCatalogRegistry.create(catalog, coordinates, pause);
+
+      expect(pause).toHaveBeenCalledTimes(2 * Math.floor(count / 512));
+      expect(definition).not.toHaveBeenCalled();
+      expect(registry.objectIds).toEqual(expected.objectIds);
+      expect(registry.renderPositions).toEqual(expected.renderPositions);
+      expect(registry.getLabelObjects(count)).toEqual(expected.getLabelObjects(count));
+      const entries = registry.getSearchEntries();
+
+      expect(entries).toEqual(expected.getSearchEntries());
+      expect(registry.getSearchEntries()).toBe(entries);
+      for (const [index, id] of registry.objectIds.entries()) {
+        expect(registry.getIndex(id)).toBe(index);
+      }
+      definition.mockRestore();
+    },
+  );
+
+  it('propose une préparation navigateur sans ordonnanceur personnalisé', async () => {
+    const registry = await CosmicGroupCatalogRegistry.create(
+      createCatalog(),
+      new CoordinateSystem(),
+    );
+
+    expect(registry.getSearchEntries()).toEqual(createRegistry().getSearchEntries());
+  });
+
+  it.each([1, 3])(
+    'ne publie rien si la pause %i échoue, même pendant la recherche',
+    async (pauseIndex) => {
+      const error = new Error('préparation annulée');
+      let calls = 0;
+      const published = vi.fn();
+      const pending = CosmicGroupCatalogRegistry.create(
+        createLinearCatalog(1025),
+        new CoordinateSystem(),
+        async () => {
+          calls += 1;
+          if (calls === pauseIndex) {
+            throw error;
+          }
+        },
+      ).then(published);
+
+      await expect(pending).rejects.toBe(error);
+      expect(calls).toBe(pauseIndex);
+      expect(published).not.toHaveBeenCalled();
+    },
+  );
+
   it('indexe tous les groupes dans le référentiel cosmique sans objet Three.js individuel', () => {
     const registry = createRegistry();
 
@@ -38,9 +96,16 @@ describe('CosmicGroupCatalogRegistry', () => {
         distanceMpc: expect.closeTo(99.611, 4),
         distanceModulusError: expect.closeTo(0.41, 4),
         velocityCmbKmPerSecond: 6_179,
+        receivedLightDistanceModel: 'flat-lambda-cdm-luminosity-distance',
+        cosmologicalRedshift: expect.any(Number),
+        cosmologicalRedshiftOrigin: 'inferred-from-luminosity-distance',
+        cosmologicalModel: 'Flat ΛCDM · H0=70 km/s/Mpc · Ωm=0.3 · ΩΛ=0.7',
         source: 'Cosmicflows-4 · Tully et al. (2023)',
+        visualAdaptation:
+          'Position du groupe calculée ; silhouettes, orientations, luminosités et membres non résolus illustratifs',
       },
     });
+    expect(group?.metadata?.['cosmologicalRedshift']).toBeCloseTo(0.023, 2);
     expect(registry.getDefinition('cf4-pgc-12')).toBe(group);
     expect(registry.getDefinition('missing')).toBeUndefined();
   });

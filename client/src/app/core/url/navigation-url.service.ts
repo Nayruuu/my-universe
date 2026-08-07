@@ -1,24 +1,29 @@
 import { Injectable } from '@angular/core';
 import {
+  CameraOrientation,
   GraphicQuality,
   LabelDensity,
   NavigationState,
+  NavigationViewMode,
   TemporalMode,
 } from '../../../data/models/universe.models';
 import { dateToJulianDay, julianDayToDate } from '../../../engine/simulation/time-utils';
+
+const ORIENTATION_COMPONENT_PRECISION = 6;
 
 @Injectable({ providedIn: 'root' })
 export class NavigationUrlService {
   private debounceId: number | null = null;
   private maximumWaitId: number | null = null;
   private pendingState: NavigationState | null = null;
+  private viewContext = readViewContext(new URL(window.location.href));
 
   public read(): Partial<NavigationState> {
     return parseNavigationState(new URL(window.location.href));
   }
 
   public scheduleWrite(state: NavigationState): void {
-    this.pendingState = { ...state };
+    this.pendingState = { ...state, ...this.viewContext };
     if (this.debounceId !== null) {
       window.clearTimeout(this.debounceId);
     }
@@ -27,7 +32,20 @@ export class NavigationUrlService {
   }
 
   public createShareUrl(state: NavigationState): string {
-    return serializeNavigationState(state, new URL(window.location.href)).toString();
+    return serializeNavigationState(
+      { ...state, ...this.viewContext },
+      new URL(window.location.href),
+    ).toString();
+  }
+
+  public updateViewContext(view: NavigationViewMode, observerLocationId: string | null): void {
+    this.viewContext = { view, observerLocationId };
+    if (this.pendingState) {
+      this.pendingState = { ...this.pendingState, ...this.viewContext };
+    }
+    const url = serializeNavigationViewContext(this.viewContext, new URL(window.location.href));
+
+    window.history.replaceState(null, '', url);
   }
 
   private flushScheduledWrite(): void {
@@ -57,12 +75,15 @@ export function parseNavigationState(url: URL): Partial<NavigationState> {
   const labelDensity = parseLabelDensity(params.get('density'));
   const time = parseTime(params.get('time'));
   const zoom = parseFiniteNumber(params.get('zoom'));
+  const orientation = parseCameraOrientation(params.get('orientation'));
+  const view = parseView(params.get('view'));
 
   return {
     ...(params.has('target') ? { targetId: params.get('target') || null } : {}),
     ...(params.has('selected') ? { selectedId: params.get('selected') || null } : {}),
     ...(time !== null ? { julianDay: time } : {}),
     ...(zoom !== null && zoom > 0 ? { zoom } : {}),
+    ...(orientation ? { orientation } : {}),
     ...(mode ? { mode } : {}),
     ...(quality ? { quality } : {}),
     ...(labelDensity ? { labelDensity } : {}),
@@ -71,6 +92,8 @@ export function parseNavigationState(url: URL): Partial<NavigationState> {
       ? { showConstellations: params.get('constellations') !== '0' }
       : {}),
     ...(params.has('labels') ? { showLabels: params.get('labels') !== '0' } : {}),
+    ...(view ? { view } : {}),
+    ...(params.has('observer') ? { observerLocationId: params.get('observer') || null } : {}),
   };
 }
 
@@ -86,12 +109,53 @@ export function serializeNavigationState(state: NavigationState, baseUrl: URL): 
     Number.isNaN(date.getTime()) ? state.julianDay.toFixed(5) : date.toISOString(),
   );
   params.set('zoom', state.zoom.toFixed(2));
+  const orientation = normalizeCameraOrientation(state.orientation);
+
+  if (orientation) {
+    params.set(
+      'orientation',
+      [orientation.x, orientation.y, orientation.z]
+        .map((component) => formatOrientationComponent(component))
+        .join(','),
+    );
+  } else {
+    params.delete('orientation');
+  }
   params.set('mode', state.mode);
   params.set('quality', state.quality);
   params.set('density', state.labelDensity);
   params.set('orbits', state.showOrbits ? '1' : '0');
   params.set('constellations', state.showConstellations ? '1' : '0');
   params.set('labels', state.showLabels ? '1' : '0');
+  if (state.view !== undefined) {
+    params.set('view', state.view);
+  }
+  if (state.observerLocationId !== undefined) {
+    setNullable(params, 'observer', state.observerLocationId);
+  }
+
+  return url;
+}
+
+interface NavigationViewContext {
+  readonly view: NavigationViewMode;
+  readonly observerLocationId: string | null;
+}
+
+function readViewContext(url: URL): NavigationViewContext {
+  const navigation = parseNavigationState(url);
+
+  return {
+    view: navigation.view ?? 'map',
+    observerLocationId: navigation.observerLocationId ?? null,
+  };
+}
+
+function serializeNavigationViewContext(context: NavigationViewContext, baseUrl: URL): URL {
+  const url = new URL(baseUrl);
+
+  url.searchParams.set('view', context.view);
+  setNullable(url.searchParams, 'observer', context.observerLocationId);
 
   return url;
 }
@@ -114,6 +178,10 @@ function parseMode(value: string | null): TemporalMode | null {
   return value === 'state' || value === 'observable' ? value : null;
 }
 
+function parseView(value: string | null): NavigationViewMode | null {
+  return value === 'map' || value === 'planetarium' ? value : null;
+}
+
 function parseQuality(value: string | null): GraphicQuality | null {
   return value === 'low' || value === 'medium' || value === 'high' ? value : null;
 }
@@ -129,6 +197,50 @@ function parseFiniteNumber(value: string | null): number | null {
   const parsed = Number(value);
 
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseCameraOrientation(value: string | null): CameraOrientation | null {
+  if (!value) {
+    return null;
+  }
+  const components = value.split(',');
+
+  if (components.length !== 3 || components.some((component) => component.trim() === '')) {
+    return null;
+  }
+  const [x, y, z] = components.map(Number);
+
+  return normalizeCameraOrientation({ x: x!, y: y!, z: z! });
+}
+
+function normalizeCameraOrientation(
+  orientation: CameraOrientation | null | undefined,
+): CameraOrientation | null {
+  if (
+    !orientation ||
+    !Number.isFinite(orientation.x) ||
+    !Number.isFinite(orientation.y) ||
+    !Number.isFinite(orientation.z)
+  ) {
+    return null;
+  }
+  const length = Math.hypot(orientation.x, orientation.y, orientation.z);
+
+  if (!Number.isFinite(length) || length <= Number.EPSILON) {
+    return null;
+  }
+
+  return {
+    x: orientation.x / length,
+    y: orientation.y / length,
+    z: orientation.z / length,
+  };
+}
+
+function formatOrientationComponent(value: number): string {
+  const precisionFloor = 0.5 * 10 ** -ORIENTATION_COMPONENT_PRECISION;
+
+  return (Math.abs(value) < precisionFloor ? 0 : value).toFixed(ORIENTATION_COMPONENT_PRECISION);
 }
 
 function setNullable(params: URLSearchParams, key: string, value: string | null): void {

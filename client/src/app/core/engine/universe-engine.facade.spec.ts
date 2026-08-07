@@ -1,50 +1,95 @@
 import { TestBed } from '@angular/core/testing';
 import {
+  CameraOrientation,
   EngineDebugStats,
   NavigationState,
   UniverseEngineEvent,
+  UniverseTime,
 } from '../../../data/models/universe.models';
 import { NAVIGATION_SCALES } from '../../../engine/camera/navigation-scales';
+import type { NavigationDebugTraceEntry } from '../../../engine/core/navigation-debug-trace';
 import { EarthEclipseEvent } from '../../../engine/simulation/earth-eclipse';
-import { MAX_EARTH_VISUAL_DAYS_PER_SECOND } from '../../../engine/simulation/earth-rotation-playback';
 import { SolarEclipseObserverLocation } from '../../../engine/simulation/solar-eclipse-locations';
 import { SearchService } from '../search/search.service';
 import { TIME_SPEED_OPTIONS } from '../settings/time-speeds';
 import { NavigationUrlService } from '../url/navigation-url.service';
+import { MILKY_WAY_REVIEW_STOPS } from './milky-way-review-stops';
 import {
   EARTH_ECLIPSE_CATALOG_LOADER,
   LOCAL_SOLAR_ECLIPSE_CALCULATOR_LOADER,
   UNIVERSE_ENGINE,
   UniverseEngineFacade,
+  loadUniverseEngine,
 } from './universe-engine.facade';
 
 const engineInstances: FakeUniverseEngine[] = [];
 
 class FakeUniverseEngine {
   public readonly dispose = vi.fn();
-  public readonly setTarget = vi.fn(async () => undefined);
+  public readonly setTarget = vi.fn<
+    (objectId: string, zoom?: number, orientation?: CameraOrientation) => Promise<void>
+  >(async () => undefined);
+  public readonly prepareEarthObservation = vi.fn(async () => undefined);
+  public readonly exitEarthObservation = vi.fn();
+  public readonly setEarthObserverCelestialPresentations = vi.fn();
   public readonly completeTargetTransition = vi.fn();
   public readonly clearSolarEclipsePresentation = vi.fn();
+  public readonly viewRotation = vi.fn(async () => undefined);
   public readonly viewOrbit = vi.fn();
   public readonly viewScale = vi.fn();
   public readonly selectObject = vi.fn();
   public readonly setPlaying = vi.fn();
   public readonly setTimeSpeed = vi.fn();
   public readonly setTime = vi.fn();
+  public readonly ensureObjectAvailable = vi.fn(async () => true);
+  public readonly resolveObject = vi.fn(async (objectId: string) =>
+    objectId === 'sirius'
+      ? ({ id: 'sirius', name: 'Sirius' } as Awaited<
+          ReturnType<UniverseEngineFacade['resolveObject']>
+        >)
+      : null,
+  );
   public readonly zoomBy = vi.fn();
   public readonly resize = vi.fn();
   public readonly setDisplayOptions = vi.fn();
+  public readonly setLabelNameResolver = vi.fn();
   public readonly setCosmicMapLayers = vi.fn();
   public readonly viewSolarEclipse = vi.fn();
   public readonly observeSolarEclipse = vi.fn();
   public readonly setSolarEclipsePathVisible = vi.fn();
   public readonly initialize = vi.fn(async () => undefined);
   public readonly hasObject = vi.fn(() => true);
+  public readonly getObjectVisualDiagnostics = vi.fn(() => objectVisualDiagnostics());
+  public readonly setNavigationDebugTracing = vi.fn();
+  public readonly getNavigationDebugTrace = vi.fn(() => this.navigationDebugTrace);
+  public readonly clearNavigationDebugTrace = vi.fn(() => {
+    this.navigationDebugTrace = [];
+  });
+  public readonly getStellarObservationCatalog = vi.fn(() => [
+    {
+      id: 'sirius',
+      name: 'Sirius',
+      coordinates: { rightAscensionDegrees: 101.287, declinationDegrees: -16.716 },
+      apparentMagnitude: -1.46,
+      color: '#b8ccff',
+    },
+  ]);
+  public readonly getStellarObservationConstellations = vi.fn(() => [
+    {
+      id: 'constellation-canis-major',
+      name: 'Canis Major',
+      abbreviation: 'CMa',
+      segments: [],
+    },
+  ]);
   public readonly start = vi.fn();
   public readonly unsubscribe = vi.fn();
   public recommendedQuality = 'high';
   public currentTime = { julianDay: 2_461_250 };
   public cameraDistance = 42;
+  public cameraOrientation = { x: 0.2, y: -0.3, z: -0.932738 };
+  public cameraTransitioning = false;
+  public navigationDebugTrace: readonly NavigationDebugTraceEntry[] = [];
   public readonly subscribe = vi.fn((listener: (event: unknown) => void) => {
     this.listener = listener;
 
@@ -63,6 +108,9 @@ class FakeUniverseEngine {
 
 const eclipseModule = {
   findUpcomingEarthEclipses: vi.fn((): EarthEclipseEvent[] => []),
+  findEarthEclipsePage: vi.fn<
+    (time: UniverseTime, count: number, direction: 'past' | 'future') => EarthEclipseEvent[]
+  >(() => []),
 };
 const localEclipseModule = {
   calculateLocalSolarEclipse: vi.fn(
@@ -95,6 +143,7 @@ describe('UniverseEngineFacade', () => {
     engineInstances.length = 0;
     urlService.read.mockReturnValue({});
     eclipseModule.findUpcomingEarthEclipses.mockReturnValue([]);
+    eclipseModule.findEarthEclipsePage.mockReturnValue([]);
     localEclipseModule.calculateLocalSolarEclipse.mockImplementation((eclipse, location) => ({
       ...eclipse,
       id: `${eclipse.id}-${location.id}`,
@@ -116,6 +165,7 @@ describe('UniverseEngineFacade', () => {
           provide: EARTH_ECLIPSE_CATALOG_LOADER,
           useValue: async () => ({
             findUpcomingEarthEclipses: eclipseModule.findUpcomingEarthEclipses,
+            findEarthEclipsePage: eclipseModule.findEarthEclipsePage,
           }),
         },
         {
@@ -136,9 +186,16 @@ describe('UniverseEngineFacade', () => {
     TestBed.resetTestingModule();
   });
 
-  it('calcule la sélection, les horloges et la stabilisation terrestre', () => {
+  it('calcule la sélection et les horloges', () => {
     const earth = spaceObject('earth', 'Terre');
     const eventObject = spaceObject('event', 'Événement');
+    const labelResolver = engine.setLabelNameResolver.mock.calls[0]?.[0] as (
+      objectId: string,
+      fallback: string,
+    ) => string;
+
+    expect(labelResolver('earth', 'Terre')).toBe('Terre');
+    expect(engine.setNavigationDebugTracing).toHaveBeenCalledWith(false);
 
     facade.objects.set([earth]);
     facade.selectedId.set('earth');
@@ -151,13 +208,6 @@ describe('UniverseEngineFacade', () => {
     } satisfies UniverseEngineEvent);
     expect(facade.selectedObject()).toBe(eventObject);
 
-    facade.playing.set(false);
-    facade.speed.set(MAX_EARTH_VISUAL_DAYS_PER_SECOND * 2);
-    expect(facade.earthRotationStabilized()).toBe(false);
-    facade.playing.set(true);
-    expect(facade.earthRotationStabilized()).toBe(true);
-    facade.speed.set(MAX_EARTH_VISUAL_DAYS_PER_SECOND);
-    expect(facade.earthRotationStabilized()).toBe(false);
     expect(facade.currentIsoDateTime()).not.toBe('');
     expect(facade.currentLocalClock()).not.toBe('');
   });
@@ -236,6 +286,7 @@ describe('UniverseEngineFacade', () => {
 
   it('résume une éclipse locale avec et sans mesures disponibles', () => {
     expect(facade.localEclipseSummary()).toBeNull();
+    expect(facade.localEclipseContactsSummary()).toBeNull();
 
     facade.currentTime.set({ julianDay: 2_461_265 });
     facade.solarEclipseState.set({
@@ -359,6 +410,21 @@ describe('UniverseEngineFacade', () => {
     expect(facade.loading()).toBe(false);
   });
 
+  it('conserve l’écran de chargement jusqu’à la restauration complète de la vue', async () => {
+    let loadingAfterEngineInitialization = false;
+
+    engine.initialize.mockImplementationOnce(async () => {
+      engine.emit({ type: 'loading-state', loading: false });
+      loadingAfterEngineInitialization = facade.loading();
+    });
+
+    await facade.initialize(document.createElement('div'));
+
+    expect(loadingAfterEngineInitialization).toBe(true);
+    expect(facade.ready()).toBe(true);
+    expect(facade.loading()).toBe(false);
+  });
+
   it('libère un moteur initialisé ou non et permet une nouvelle initialisation', async () => {
     facade.dispose();
     expect(engine.dispose).toHaveBeenCalledOnce();
@@ -380,6 +446,10 @@ describe('UniverseEngineFacade', () => {
 
     expect(engine.clearSolarEclipsePresentation).toHaveBeenCalledOnce();
     expect(engine.setTarget).toHaveBeenCalledWith('earth');
+    expect(facade.isCameraTransitioning()).toBe(false);
+
+    engine.cameraTransitioning = true;
+    expect(facade.isCameraTransitioning()).toBe(true);
 
     engine.setTarget.mockRejectedValueOnce(new Error('Introuvable'));
     await facade.focus('missing');
@@ -388,6 +458,63 @@ describe('UniverseEngineFacade', () => {
     engine.setTarget.mockRejectedValueOnce('échec');
     await facade.focus('missing');
     expect(facade.error()).toBe('Cible inaccessible.');
+  });
+
+  it('prépare une observation terrestre en gardant la cible devant la caméra', async () => {
+    await facade.prepareEarthObservation('sirius');
+
+    expect(engine.prepareEarthObservation).toHaveBeenCalledWith('sirius', undefined, undefined);
+
+    const pitchLimits = {
+      minimumPitchOffsetDegrees: -8,
+      maximumPitchOffsetDegrees: 80,
+    };
+
+    const observerFraming = {
+      initialPitchOffsetDegrees: 18,
+      pitchLimits,
+    };
+
+    await facade.prepareEarthObservation('sirius', observerFraming);
+    expect(engine.prepareEarthObservation).toHaveBeenLastCalledWith(
+      'sirius',
+      observerFraming,
+      undefined,
+    );
+
+    await facade.prepareEarthObservation('sirius', observerFraming, null);
+    expect(engine.prepareEarthObservation).toHaveBeenLastCalledWith(
+      'sirius',
+      observerFraming,
+      null,
+    );
+
+    facade.exitEarthObservation();
+    expect(engine.exitEarthObservation).toHaveBeenCalledOnce();
+    expect(engine.exitEarthObservation).toHaveBeenLastCalledWith(false);
+    facade.exitEarthObservation(true);
+    expect(engine.exitEarthObservation).toHaveBeenLastCalledWith(true);
+
+    const celestialPresentations = [
+      {
+        objectId: 'moon',
+        direction: { x: 0, y: 1, z: 0 },
+        diameterPixels: 36,
+      },
+    ];
+
+    facade.setEarthObserverCelestialPresentations(celestialPresentations);
+    expect(engine.setEarthObserverCelestialPresentations).toHaveBeenCalledWith(
+      celestialPresentations,
+    );
+  });
+
+  it('résout un objet chargé par le moteur sans modifier la navigation', async () => {
+    await expect(facade.resolveObject('sirius')).resolves.toMatchObject({
+      id: 'sirius',
+      name: 'Sirius',
+    });
+    expect(engine.resolveObject).toHaveBeenCalledWith('sirius');
   });
 
   it('centre uniquement une sélection existante', async () => {
@@ -399,6 +526,27 @@ describe('UniverseEngineFacade', () => {
     await Promise.resolve();
 
     expect(engine.setTarget).toHaveBeenCalledWith('mars');
+  });
+
+  it('sélectionne un objet sans déplacer la carte 3D', () => {
+    facade.selectObject('sirius');
+
+    expect(engine.selectObject).toHaveBeenCalledWith('sirius');
+    expect(engine.setTarget).not.toHaveBeenCalled();
+  });
+
+  it('cadre explicitement la rotation et traduit ses erreurs', async () => {
+    await facade.viewRotation('earth');
+    expect(engine.clearSolarEclipsePresentation).toHaveBeenCalledOnce();
+    expect(engine.viewRotation).toHaveBeenCalledWith('earth');
+
+    engine.viewRotation.mockRejectedValueOnce(new Error('Rotation indisponible'));
+    await facade.viewRotation('moon');
+    expect(facade.error()).toBe('Rotation indisponible');
+
+    engine.viewRotation.mockRejectedValueOnce('échec');
+    await facade.viewRotation('moon');
+    expect(facade.error()).toBe('Rotation inaccessible.');
   });
 
   it('cadre une orbite, l’active si nécessaire et traduit les erreurs', () => {
@@ -473,7 +621,10 @@ describe('UniverseEngineFacade', () => {
 
     facade.speed.set(123);
     facade.cycleSpeed(1);
-    expect(facade.speed()).toBe(TIME_SPEED_OPTIONS[4]!.daysPerSecond);
+    expect(facade.speed()).toBe(
+      TIME_SPEED_OPTIONS[TIME_SPEED_OPTIONS.findIndex((option) => option.id === 'month')]!
+        .daysPerSecond,
+    );
   });
 
   it('ignore une date invalide et présente une éclipse sur la Terre', () => {
@@ -511,7 +662,7 @@ describe('UniverseEngineFacade', () => {
     expect(engine.resize).toHaveBeenCalledWith(800, 450);
   });
 
-  it('met à jour toutes les options d’affichage et avertit le mode observable', () => {
+  it('met à jour toutes les options d’affichage sans alerte pour le mode observable', () => {
     facade.toggleOrbits();
     facade.toggleConstellations();
     facade.toggleLabels();
@@ -529,8 +680,18 @@ describe('UniverseEngineFacade', () => {
       labelDensity: 'dense',
       temporalMode: 'observable',
     });
-    expect(facade.performanceWarning()).toContain('Vue observable');
+    expect(facade.performanceWarning()).toBeNull();
     expect(engine.setDisplayOptions).toHaveBeenCalledTimes(7);
+  });
+
+  it('conserve un vrai avertissement de chargement pendant les changements de mode', () => {
+    const warning = 'Streaming stellaire indisponible : catalogue absent';
+
+    facade.performanceWarning.set(warning);
+    facade.setTemporalMode('observable');
+    expect(facade.performanceWarning()).toBe(warning);
+    facade.setTemporalMode('state');
+    expect(facade.performanceWarning()).toBe(warning);
   });
 
   it('pilote les couches cosmiques indépendamment des autres options visuelles', () => {
@@ -540,14 +701,14 @@ describe('UniverseEngineFacade', () => {
       links: true,
       clusters: true,
       superclusters: true,
-      filaments: false,
-      voids: false,
+      filaments: true,
+      voids: true,
     });
 
     facade.toggleCosmicMapLayer('filaments');
-    expect(facade.cosmicMapLayers().filaments).toBe(true);
+    expect(facade.cosmicMapLayers().filaments).toBe(false);
     expect(engine.setCosmicMapLayers).toHaveBeenLastCalledWith(
-      expect.objectContaining({ filaments: true }),
+      expect.objectContaining({ filaments: false }),
     );
 
     facade.toggleCosmicMapLayer('groups');
@@ -559,8 +720,8 @@ describe('UniverseEngineFacade', () => {
       links: true,
       clusters: true,
       superclusters: true,
-      filaments: false,
-      voids: false,
+      filaments: true,
+      voids: true,
     });
     expect(engine.setCosmicMapLayers).toHaveBeenLastCalledWith(facade.cosmicMapLayers());
   });
@@ -584,7 +745,7 @@ describe('UniverseEngineFacade', () => {
     facade.toggleHelp();
     expect(facade.helpOpen()).toBe(false);
 
-    eclipseModule.findUpcomingEarthEclipses.mockReturnValue([eclipse()]);
+    eclipseModule.findEarthEclipsePage.mockReturnValue([eclipse()]);
     facade.toggleEclipseBrowser();
     await vi.waitFor(() => expect(facade.eclipseEventsLoading()).toBe(false));
     expect(facade.upcomingEclipses()).toHaveLength(1);
@@ -592,8 +753,72 @@ describe('UniverseEngineFacade', () => {
     expect(facade.eclipseBrowserOpen()).toBe(false);
   });
 
+  it('parcourt les pages d’éclipses antérieures et suivantes puis revient à la date courante', async () => {
+    const currentEvents = [eclipse({ id: 'current', peak: { julianDay: 200 } })];
+    const previousEvents = [eclipse({ id: 'previous', peak: { julianDay: 100 } })];
+    const nextEvents = [eclipse({ id: 'next', peak: { julianDay: 300 } })];
+
+    facade.currentTime.set({ julianDay: 150 });
+    eclipseModule.findEarthEclipsePage.mockImplementation((_time, _count, direction) =>
+      direction === 'past' ? previousEvents : currentEvents,
+    );
+    facade.toggleEclipseBrowser();
+    await vi.waitFor(() => expect(facade.eclipseEventsLoading()).toBe(false));
+    expect(facade.upcomingEclipses()).toEqual(currentEvents);
+    expect(facade.eclipseCatalogAtPresent()).toBe(true);
+
+    facade.browseEarlierEclipses();
+    await vi.waitFor(() => expect(facade.upcomingEclipses()).toEqual(previousEvents));
+    expect(facade.eclipseCatalogAtPresent()).toBe(false);
+    expect(eclipseModule.findEarthEclipsePage).toHaveBeenLastCalledWith(
+      { julianDay: 200 - 1 / 86_400 },
+      8,
+      'past',
+    );
+
+    eclipseModule.findEarthEclipsePage.mockReturnValueOnce(nextEvents);
+    facade.browseLaterEclipses();
+    await vi.waitFor(() => expect(facade.upcomingEclipses()).toEqual(nextEvents));
+    expect(eclipseModule.findEarthEclipsePage).toHaveBeenLastCalledWith(
+      { julianDay: 100 + 1 / 86_400 },
+      8,
+      'future',
+    );
+
+    eclipseModule.findEarthEclipsePage.mockReturnValueOnce(currentEvents);
+    facade.returnToCurrentEclipses();
+    await vi.waitFor(() => expect(facade.upcomingEclipses()).toEqual(currentEvents));
+    expect(facade.eclipseCatalogAtPresent()).toBe(true);
+    expect(eclipseModule.findEarthEclipsePage).toHaveBeenLastCalledWith(
+      { julianDay: 150 },
+      8,
+      'future',
+    );
+  });
+
+  it('prend la date simulée comme origine lorsque la page d’événements est vide', async () => {
+    facade.currentTime.set({ julianDay: 150 });
+    facade.upcomingEclipses.set([]);
+
+    facade.browseEarlierEclipses();
+    await vi.waitFor(() => expect(facade.eclipseEventsLoading()).toBe(false));
+    expect(eclipseModule.findEarthEclipsePage).toHaveBeenLastCalledWith(
+      { julianDay: 150 - 1 / 86_400 },
+      8,
+      'past',
+    );
+
+    facade.browseLaterEclipses();
+    await vi.waitFor(() => expect(facade.eclipseEventsLoading()).toBe(false));
+    expect(eclipseModule.findEarthEclipsePage).toHaveBeenLastCalledWith(
+      { julianDay: 150 + 1 / 86_400 },
+      8,
+      'future',
+    );
+  });
+
   it('signale un échec du catalogue des éclipses', async () => {
-    eclipseModule.findUpcomingEarthEclipses.mockImplementationOnce(() => {
+    eclipseModule.findEarthEclipsePage.mockImplementationOnce(() => {
       throw new Error('catalogue indisponible');
     });
 
@@ -713,6 +938,134 @@ describe('UniverseEngineFacade', () => {
     expect(facade.shareNotice()).toBeNull();
   });
 
+  it('copie et efface une trace de navigation autonome', async () => {
+    const writeText = vi.fn<(value: string) => Promise<void>>(() => Promise.resolve());
+
+    installClipboard(writeText);
+    expect(await facade.copyNavigationDebugTrace()).toBe('empty');
+
+    engine.navigationDebugTrace = [navigationDebugEntry()];
+    expect(facade.navigationDebugTraceCount()).toBe(1);
+    expect(await facade.copyNavigationDebugTrace()).toBe('copied');
+
+    const report = JSON.parse(writeText.mock.calls[0]![0]) as Record<string, unknown>;
+
+    expect(report).toMatchObject({
+      schema: 'universe-map/navigation-wheel-trace@2',
+      pageUrl: expect.any(String),
+      entries: [expect.objectContaining({ decision: 'zoom-pointer' })],
+    });
+
+    facade.clearNavigationDebugTrace();
+    expect(engine.clearNavigationDebugTrace).toHaveBeenCalledOnce();
+    expect(facade.navigationDebugTraceCount()).toBe(0);
+  });
+
+  it('signale un refus du presse-papiers pour la trace de navigation', async () => {
+    engine.navigationDebugTrace = [navigationDebugEntry()];
+    installClipboard(vi.fn(() => Promise.reject(new Error('refus'))));
+
+    await expect(facade.copyNavigationDebugTrace()).resolves.toBe('failed');
+  });
+
+  it('rejoue tous les arrêts galactiques avec les transitions ordinaires', async () => {
+    facade.ready.set(true);
+    facade.playing.set(true);
+    engine.setTarget.mockImplementation(async (_objectId, zoom) => {
+      engine.cameraTransitioning = true;
+      window.setTimeout(() => {
+        engine.cameraDistance = zoom ?? 0;
+        engine.cameraTransitioning = false;
+      }, 16);
+    });
+
+    const playback = facade.playMilkyWayReview();
+
+    await vi.runAllTimersAsync();
+
+    await expect(playback).resolves.toBe('completed');
+
+    expect(engine.setPlaying).toHaveBeenCalledWith(false);
+    expect(engine.setTarget.mock.calls).toEqual(
+      MILKY_WAY_REVIEW_STOPS.map((stop) => [stop.targetId, stop.zoom, stop.orientation]),
+    );
+    expect(engine.completeTargetTransition).not.toHaveBeenCalled();
+    expect(engine.selectObject).toHaveBeenCalledTimes(MILKY_WAY_REVIEW_STOPS.length);
+    expect(engine.selectObject).toHaveBeenLastCalledWith(null);
+    expect(facade.playing()).toBe(false);
+    expect(facade.milkyWayReviewPlaying()).toBe(false);
+    expect(facade.milkyWayReviewStop()).toBeNull();
+    expect(urlService.scheduleWrite).toHaveBeenCalledOnce();
+  });
+
+  it('signale un parcours indisponible sans produire de transition incomplète', async () => {
+    engine.setTarget.mockRejectedValueOnce(new Error('indisponible'));
+
+    await expect(facade.playMilkyWayReview()).resolves.toBe('failed');
+
+    expect(engine.completeTargetTransition).not.toHaveBeenCalled();
+    expect(engine.selectObject).not.toHaveBeenCalled();
+    expect(facade.error()).toBe('Cible inaccessible.');
+    expect(facade.milkyWayReviewPlaying()).toBe(false);
+  });
+
+  it('interrompt le parcours si une transition est abandonnée par une interaction', async () => {
+    engine.setTarget.mockImplementation(async () => {
+      engine.cameraTransitioning = true;
+      window.setTimeout(() => {
+        engine.cameraTransitioning = false;
+      }, 16);
+    });
+
+    const playback = facade.playMilkyWayReview();
+
+    await vi.runAllTimersAsync();
+
+    await expect(playback).resolves.toBe('interrupted');
+    expect(engine.setTarget).toHaveBeenCalledTimes(1);
+    expect(engine.selectObject).toHaveBeenCalledWith(null);
+  });
+
+  it('refuse un second parcours pendant que le premier est en mouvement', async () => {
+    engine.setTarget.mockImplementation(async () => {
+      engine.cameraTransitioning = true;
+    });
+
+    const playback = facade.playMilkyWayReview();
+
+    await expect(facade.playMilkyWayReview()).resolves.toBe('interrupted');
+
+    engine.cameraTransitioning = false;
+    await vi.runAllTimersAsync();
+    await expect(playback).resolves.toBe('interrupted');
+  });
+
+  it('arrête le parcours si le moteur ne confirme jamais une transition', async () => {
+    engine.setTarget.mockImplementation(async () => {
+      engine.cameraTransitioning = true;
+    });
+
+    const playback = facade.playMilkyWayReview();
+
+    await vi.runAllTimersAsync();
+
+    await expect(playback).resolves.toBe('interrupted');
+    expect(engine.setTarget).toHaveBeenCalledTimes(1);
+    expect(facade.milkyWayReviewPlaying()).toBe(false);
+  });
+
+  it.each([
+    ['copied', () => Promise.resolve()],
+    ['failed', () => Promise.reject(new Error('refus'))],
+  ] as const)('copie l’URL d’un arrêt de revue : %s', async (expected, writeText) => {
+    const clipboard = vi.fn(writeText);
+
+    installClipboard(clipboard);
+
+    await expect(facade.copyMilkyWayReviewUrl()).resolves.toBe(expected);
+    expect(clipboard).toHaveBeenCalledWith('https://example.test/?target=earth');
+  });
+
   it('propose l’URL du navigateur si le presse-papiers échoue', async () => {
     installClipboard(vi.fn(() => Promise.reject(new Error('refus'))));
 
@@ -765,6 +1118,22 @@ describe('UniverseEngineFacade', () => {
     expect(urlService.scheduleWrite).toHaveBeenCalled();
   });
 
+  it('expose le diagnostic visuel de la cible active', () => {
+    expect(facade.targetVisualDiagnostics()).toBeNull();
+
+    facade.targetId.set('earth');
+    expect(facade.targetVisualDiagnostics()).toEqual(objectVisualDiagnostics());
+    expect(engine.getObjectVisualDiagnostics).toHaveBeenCalledWith('earth');
+    expect(facade.getStellarObservationCatalog(3_500)).toEqual([
+      expect.objectContaining({ id: 'sirius' }),
+    ]);
+    expect(engine.getStellarObservationCatalog).toHaveBeenCalledWith(3_500);
+    expect(facade.getStellarObservationConstellations()).toEqual([
+      expect.objectContaining({ id: 'constellation-canis-major' }),
+    ]);
+    expect(engine.getStellarObservationConstellations).toHaveBeenCalledOnce();
+  });
+
   it('ne synchronise l’URL qu’après initialisation et applique les trois replis de zoom', () => {
     const access = facade as unknown as FacadeAccess;
 
@@ -798,8 +1167,16 @@ describe('dépendances par défaut de la façade', () => {
 
     expect(engine).toBeDefined();
     expect(eclipseCatalog.findUpcomingEarthEclipses).toBeTypeOf('function');
+    expect(eclipseCatalog.findEarthEclipsePage).toBeTypeOf('function');
     expect(localCalculator.calculateLocalSolarEclipse).toBeTypeOf('function');
 
+    engine.dispose();
+  });
+
+  it('charge la classe du moteur réel derrière le fournisseur différé', async () => {
+    const engine = await loadUniverseEngine();
+
+    expect(engine).toBeDefined();
     engine.dispose();
   });
 });
@@ -826,6 +1203,7 @@ function eclipse(overrides: Partial<EarthEclipseEvent> = {}): EarthEclipseEvent 
     observerName: null,
     observerTimeZone: null,
     sunAltitudeDegrees: null,
+    localContacts: null,
     ...overrides,
   };
 }
@@ -868,9 +1246,15 @@ function debugStats(): EngineDebugStats {
     textures: 2,
     visibleObjects: 5,
     catalogStars: 1_000,
+    exoplanetHosts: 4_747,
+    exoplanets: 6_333,
     cosmicGroups: 0,
     cosmicFilaments: 0,
     cosmicStructures: 0,
+    tempelFilamentSpines: 0,
+    tempelSpineSegments: 0,
+    visibleTempelSpineSegments: 0,
+    tempelSpineTiles: 0,
     batchedGalaxies: 0,
     loadedTiles: 0,
     indexedGalaxyTiles: 0,
@@ -881,6 +1265,13 @@ function debugStats(): EngineDebugStats {
     activeStarClusters: 0,
     cachedStarClusters: 0,
     visibleStarClusters: 0,
+    gaiaPresentation: {
+      sampledSources: 0,
+      perceptibleSampledSources: 0,
+      projectedSampledSources: 0,
+      aggregateCells: 0,
+      projectedAggregateCells: 0,
+    },
     cameraPosition: { x: 1, y: 2, z: 3 },
     cameraTarget: { x: 0, y: 0, z: 0 },
     cameraDistance: 4,
@@ -892,7 +1283,112 @@ function debugStats(): EngineDebugStats {
     julianDay: 2_451_545,
     quality: 'high',
     pixelRatio: 2,
+    adaptiveRendering: adaptiveRenderingStats(),
+    renderingPrewarm: idleRenderingPrewarm(),
     zoom: null,
+    startupPerformance: idleStartupPerformance(),
+    tempelPerformance: idleTempelPerformance(),
+  };
+}
+
+function idleRenderingPrewarm() {
+  return {
+    initialScene: { status: 'idle' as const, durationMs: null },
+    tempelScene: { status: 'idle' as const, durationMs: null },
+  };
+}
+
+function adaptiveRenderingStats() {
+  return {
+    status: 'stable',
+    p95FrameMs: 16,
+    longFrameRatio: 0,
+    targetPixelRatio: 2,
+    currentPixelRatio: 2,
+  } as const;
+}
+
+function idleTempelPerformance() {
+  return {
+    status: 'idle',
+    execution: null,
+    fetchMs: null,
+    decodeMs: null,
+    workerRoundTripMs: null,
+    geometryPreparationMs: null,
+    sceneInstallationMs: null,
+    preloadHit: null,
+    preloadLeadMs: null,
+    firstVisibleFrameMs: null,
+    activationToFirstVisibleMs: null,
+    timeToFirstVisibleMs: null,
+  } as const;
+}
+
+function idleStartupPerformance() {
+  return {
+    status: 'idle',
+    engineModuleMs: null,
+    dataReadyMs: null,
+    sceneReadyMs: null,
+    firstUsableMapMs: null,
+    budgetStatus: 'pending',
+    exceededBudgets: [],
+  } as const;
+}
+
+function objectVisualDiagnostics() {
+  return {
+    objectId: 'earth',
+    bodyPresent: true,
+    bodyVisible: true,
+    visualVisible: true,
+    nearVisible: true,
+    nearBlend: 1,
+    visibilityBlend: 1,
+    opacity: 1,
+    transparent: true,
+    depthTest: true,
+    depthWrite: true,
+    surfaceTexture: {
+      requested: true,
+      loaded: true,
+      source: 'textures/earth-blue-marble-2048.jpg',
+      width: 2048,
+      height: 1024,
+    },
+  };
+}
+
+function navigationDebugEntry(): NavigationDebugTraceEntry {
+  const state = {
+    cameraPosition: { x: 1, y: 2, z: 3 },
+    cameraTarget: { x: 0, y: 0, z: 0 },
+    distance: 12,
+    minimumDistance: 1.5,
+    maximumDistance: 18_000,
+    targetId: null,
+    navigationOriginId: 'sun',
+    referenceFrame: 'solar-system' as const,
+    lodLevel: 1,
+    atMinimumDistance: false,
+    semanticZoomActive: true,
+    transitioning: false,
+  };
+
+  return {
+    sequence: 1,
+    timestamp: '2026-08-19T18:29:59.000Z',
+    deltaY: -120,
+    rawDeltaY: -749,
+    deltaMode: 0,
+    pointer: { x: 0.2, y: -0.4 },
+    interceptedObjectId: null,
+    decision: 'zoom-pointer',
+    anchor: { anchorType: 'pointer', anchorObjectId: null },
+    zoom: null,
+    before: state,
+    after: { ...state, distance: 6 },
   };
 }
 

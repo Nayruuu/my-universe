@@ -1,0 +1,28 @@
+{
+  "name": "Super Universe — 3D 우주 지도",
+  "short_name": "Super Universe",
+  "description": "태양계에서 관측 가능한 우주까지 탐험하는 인터랙티브 3D 지도입니다.",
+  "id": "/ko/",
+  "start_url": "/ko/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#01030a",
+  "theme_color": "#01030a",
+  "lang": "ko-KR",
+  "categories": ["education", "science", "navigation"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

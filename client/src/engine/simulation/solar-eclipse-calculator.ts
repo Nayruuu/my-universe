@@ -13,8 +13,11 @@ import {
 } from 'astronomy-engine';
 import type { Vector as AstronomyVector } from 'astronomy-engine';
 import { UniverseTime, Vector3Like } from '../../data/models/universe.models';
+import {
+  astronomyEngineDaysSinceJ2000,
+  isAstronomyEngineTimeSupported,
+} from './astronomy-engine-time-domain';
 import { SolarEclipseAppearance, SolarEclipsePhase } from './earth-eclipse';
-import { JULIAN_DAY_J2000 } from './time-utils';
 
 const EQUATORIAL_TO_ECLIPTIC = Rotation_EQJ_ECL();
 const ASTRONOMICAL_UNIT_KM = 149_597_870.7;
@@ -34,6 +37,9 @@ export interface SolarShadowGeometry {
 }
 
 export function calculateSolarEclipseAppearance(time: UniverseTime): SolarEclipseAppearance {
+  if (!isAstronomyEngineTimeSupported(time)) {
+    return noSolarEclipseAppearance();
+  }
   const geometry = calculateSolarShadowGeometry(time);
 
   return createSolarEclipseAppearanceFromGeometry(geometry);
@@ -80,7 +86,7 @@ export function calculateSolarObserverDiscRatio(
   latitude: number,
   longitude: number,
 ): number {
-  const astronomyTime = time.julianDay - JULIAN_DAY_J2000;
+  const astronomyTime = astronomyEngineDaysSinceJ2000(time);
   const observerVector = ObserverVector(astronomyTime, new Observer(latitude, longitude, 0), false);
   const sunDistance = vectorLength(
     subtracted(GeoVector(Body.Sun, astronomyTime, true), observerVector),
@@ -102,9 +108,12 @@ export function calculateSolarEclipsePath(
   displayTime: UniverseTime = peak,
   sampleCount = 121,
 ): Vector3Like[] {
+  if (!isAstronomyEngineTimeSupported(peak)) {
+    return [];
+  }
   const points: Vector3Like[] = [];
   const samples = Math.max(3, sampleCount);
-  const displayAstronomyTime = displayTime.julianDay - JULIAN_DAY_J2000;
+  const displayAstronomyTime = astronomyEngineDaysSinceJ2000(displayTime);
 
   for (let index = 0; index < samples; index += 1) {
     const progress = index / (samples - 1);
@@ -137,12 +146,23 @@ export function calculateSolarEclipsePath(
   return points;
 }
 
-function calculateSolarShadowGeometry(time: UniverseTime): SolarShadowGeometry {
-  const astronomyTime = time.julianDay - JULIAN_DAY_J2000;
+export function calculateSolarShadowGeometry(time: UniverseTime): SolarShadowGeometry {
+  const astronomyTime = astronomyEngineDaysSinceJ2000(time);
   const sunPosition = GeoVector(Body.Sun, astronomyTime, true);
   const moonPosition = GeoMoon(astronomyTime);
 
   return calculateSolarShadowGeometryFromVectors(sunPosition, moonPosition);
+}
+
+function noSolarEclipseAppearance(): SolarEclipseAppearance {
+  return {
+    phase: 'none',
+    sunPositionInEarthRadii: EMPTY_VECTOR,
+    moonPositionInEarthRadii: EMPTY_VECTOR,
+    shadowDirection: EMPTY_VECTOR,
+    centralLatitude: null,
+    centralLongitude: null,
+  };
 }
 
 export function calculateSolarShadowGeometryFromVectors(
@@ -256,7 +276,7 @@ function toEclipticSceneVector(equatorial: AstronomyVector): Vector3Like {
   return {
     x: ecliptic.x,
     y: ecliptic.z,
-    z: ecliptic.y,
+    z: -ecliptic.y,
   };
 }
 
