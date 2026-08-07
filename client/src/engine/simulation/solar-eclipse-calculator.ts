@@ -137,7 +137,7 @@ export function calculateSolarEclipsePath(
   return points;
 }
 
-function calculateSolarShadowGeometry(time: UniverseTime): SolarShadowGeometry {
+export function calculateSolarShadowGeometry(time: UniverseTime): SolarShadowGeometry {
   const astronomyTime = time.julianDay - JULIAN_DAY_J2000;
   const sunPosition = GeoVector(Body.Sun, astronomyTime, true);
   const moonPosition = GeoMoon(astronomyTime);
@@ -256,7 +256,7 @@ function toEclipticSceneVector(equatorial: AstronomyVector): Vector3Like {
   return {
     x: ecliptic.x,
     y: ecliptic.z,
-    z: ecliptic.y,
+    z: -ecliptic.y,
   };
 }
 

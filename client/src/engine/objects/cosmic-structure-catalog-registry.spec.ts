@@ -131,10 +131,10 @@ describe('CosmicStructureCatalogRegistry', () => {
         surveyEdge: true,
       },
     });
-    expect(filament?.description).toContain('Filament extrait');
+    expect(filament?.description).toContain('épine publiée');
     expect(filament?.metadata?.['effectiveRadiusMpc']).toBeUndefined();
     expect(filament?.metadata?.['memberGalaxyCount']).toBeUndefined();
-    expect(filament?.metadata?.['visualAdaptation']).toContain('spine continue');
+    expect(filament?.metadata?.['visualAdaptation']).toContain('points publiés');
 
     const clusterRegistry = createSingleStructureRegistry('cluster', 'PSZ2 G000.04+45.13', 0, 0, 0);
     const cluster = clusterRegistry.getDefinition('lss-test-cluster-psz2-g000-04-45-13');

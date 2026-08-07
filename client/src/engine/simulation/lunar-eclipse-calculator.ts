@@ -81,7 +81,7 @@ function toEclipticSceneVector(equatorial: Vector): Vector3Like {
   return {
     x: ecliptic.x,
     y: ecliptic.z,
-    z: ecliptic.y,
+    z: -ecliptic.y,
   };
 }
 

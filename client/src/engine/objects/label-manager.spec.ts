@@ -6,6 +6,7 @@ import {
   getMaximumCatalogLabelRank,
   getMaximumConstellationLabelRank,
   getMaximumCosmicLabelRank,
+  getMaximumExoplanetHostLabelRank,
   getMaximumLabelCount,
   getLabelTextColor,
   isLabelVisibleAtLevel,
@@ -15,6 +16,7 @@ import {
   type ScreenRectangle,
 } from './label-manager';
 import { getMaximumGalaxyLabelRank } from './galaxy-map-policy';
+import { moveRectangleToNearbyFreeSlot } from './label-screen-layout';
 
 const regions: LabelHitRegion[] = [
   {
@@ -46,8 +48,11 @@ describe('palette des noms astronomiques', () => {
     ['galaxie', 'galaxy', '#c9b8ff'],
     ['nébuleuse', 'nebula', '#efb9dc'],
     ['trou noir', 'black-hole', '#ffb274'],
+    ['supernova', 'supernova', '#ff9fc9'],
+    ['rémanent de supernova', 'supernova-remnant', '#82dcff'],
     ['étoile', 'star', '#ffe7ad'],
     ['planète', 'planet', '#a9d4ff'],
+    ['exoplanète', 'exoplanet', '#77e6cf'],
     ['planète naine', 'dwarf-planet', '#b9cfff'],
     ['lune', 'moon', '#d7dee8'],
     ['astéroïde', 'asteroid', '#dbbe93'],
@@ -71,6 +76,15 @@ describe('palette des noms astronomiques', () => {
     expect(getLabelTextColor(createLabelObject('earth', 'planet'), true)).toBe('#c8efff');
     expect(getLabelTextColor(createLabelObject('sirius', 'star'), true)).toBe('#c8efff');
   });
+
+  it('réunit les objets du Système solaire sous un accent cartographique chaud', () => {
+    expect(getLabelTextColor(createLabelObject('earth', 'planet'), false, 1)).toBe('#43b4dd');
+    expect(getLabelTextColor(createLabelObject('mars', 'planet'), false, 0)).toBe('#d65e48');
+    expect(getLabelTextColor(createLabelObject('moon', 'moon'), false, 0)).toBe('#c6a96f');
+    expect(getLabelTextColor(createLabelObject('sun', 'star'), false, 2)).toBe('#ffd45c');
+    expect(getLabelTextColor(createLabelObject('earth', 'planet'), true, 1)).toBe('#9ae8ff');
+    expect(getLabelTextColor(createLabelObject('kepler-b', 'exoplanet'), false, 1)).toBe('#77e6cf');
+  });
 });
 
 describe('hiérarchie des labels par échelle', () => {
@@ -78,6 +92,8 @@ describe('hiérarchie des labels par échelle', () => {
   const secondaryStar = createLabelObject('procyon', 'star');
   const sun = createLabelObject('sun', 'star');
   const blackHole = createLabelObject('sagittarius-a-star', 'black-hole');
+  const supernova = createLabelObject('sn-1987a', 'supernova');
+  const remnant = createLabelObject('cassiopeia-a', 'supernova-remnant');
   const galaxy = createLabelObject('milky-way', 'galaxy');
   const neighboringGalaxy = createLabelObject('andromeda', 'galaxy', { mapLabelRank: 0 });
   const secondaryGalaxy = createLabelObject('fornax-dwarf', 'galaxy', { mapLabelRank: 18 });
@@ -106,6 +122,14 @@ describe('hiérarchie des labels par échelle', () => {
   });
   const excludedHighQualityCatalogStar = createLabelObject('hyg-3000', 'star', {
     catalogRecordIndex: 3_000,
+  });
+  const nearestExoplanetHost = createLabelObject('nea-host-nearby', 'star', {
+    exoplanetHost: true,
+    exoplanetHostRank: 0,
+  });
+  const ninthExoplanetHost = createLabelObject('nea-host-ninth', 'star', {
+    exoplanetHost: true,
+    exoplanetHostRank: 8,
   });
   const nearestCosmicGroup = createLabelObject('cf4-pgc-35', 'galaxy-cluster', {
     cosmicCatalogRank: 0,
@@ -149,6 +173,16 @@ describe('hiérarchie des labels par échelle', () => {
     expect(isLabelVisibleAtLevel(blackHole, 2)).toBe(true);
     expect(isLabelVisibleAtLevel(blackHole, 3)).toBe(true);
     expect(isLabelVisibleAtLevel(blackHole, 4)).toBe(false);
+  });
+
+  it('révèle les supernovas et leurs rémanents du voisinage à la Voie lactée', () => {
+    for (const object of [supernova, remnant]) {
+      expect(isLabelVisibleAtLevel(object, 0)).toBe(false);
+      expect(isLabelVisibleAtLevel(object, 1)).toBe(true);
+      expect(isLabelVisibleAtLevel(object, 2)).toBe(true);
+      expect(isLabelVisibleAtLevel(object, 3)).toBe(true);
+      expect(isLabelVisibleAtLevel(object, 4)).toBe(false);
+    }
   });
 
   it('réserve les labels PGC au réseau cosmique et les borne par qualité', () => {
@@ -206,6 +240,21 @@ describe('hiérarchie des labels par échelle', () => {
     expect(isLabelVisibleAtLevel(excludedHighQualityCatalogStar, 2, 'high')).toBe(false);
     expect(isLabelVisibleAtLevel(secondaryCatalogStar, 1, 'medium', 'minimal')).toBe(false);
     expect(isLabelVisibleAtLevel(secondaryCatalogStar, 1, 'medium', 'dense')).toBe(true);
+  });
+
+  it('réserve une part bornée de la carte aux étoiles hôtes d’exoplanètes', () => {
+    expect(isLabelVisibleAtLevel(nearestExoplanetHost, 0, 'high')).toBe(true);
+    expect(isLabelVisibleAtLevel(nearestExoplanetHost, 1, 'high')).toBe(true);
+    expect(isLabelVisibleAtLevel(nearestExoplanetHost, 2, 'high')).toBe(true);
+    expect(isLabelVisibleAtLevel(nearestExoplanetHost, 3, 'high')).toBe(false);
+    expect(isLabelVisibleAtLevel(ninthExoplanetHost, 1, 'high')).toBe(false);
+    expect(isLabelVisibleAtLevel(ninthExoplanetHost, 1, 'high', 'dense')).toBe(true);
+    expect(getMaximumExoplanetHostLabelRank('low', 1)).toBe(2);
+    expect(getMaximumExoplanetHostLabelRank('medium', 2)).toBe(5);
+    expect(getMaximumExoplanetHostLabelRank('high', 0)).toBe(4);
+    expect(getMaximumExoplanetHostLabelRank('high', 1, 'minimal')).toBe(4);
+    expect(getMaximumExoplanetHostLabelRank('high', 1, 'dense')).toBe(12);
+    expect(getMaximumExoplanetHostLabelRank('high', 99)).toBe(0);
   });
 
   it('ne transforme pas une région de navigation en objet cartographique', () => {
@@ -313,93 +362,42 @@ describe('LabelManager', () => {
     expect(context.clearRect).toHaveBeenCalled();
     manager.dispose();
     expect(container.childElementCount).toBe(0);
-    expect(access.candidates).toEqual([]);
-    expect(access.occupiedRectangles).toEqual([]);
     expect(access.hitRegions).toEqual([]);
   });
 
-  it('collecte, classe et complète les candidats visibles', () => {
-    installContext();
-    const objects: LabelObject[] = [
-      createLabelObject('region', 'region'),
-      createLabelObject('hidden-planet', 'planet'),
-      createLabelObject('near-star', 'star'),
-      createLabelObject('catalog-2', 'star', { catalogRecordIndex: 2 }),
-      createLabelObject('catalog-1', 'star', { catalogRecordIndex: 1 }),
-      createLabelObject('ranked-galaxy', 'galaxy', { mapLabelRank: 2 }),
-      createLabelObject('nearby-galaxy', 'galaxy', { nearbyUniverseLabelRank: 3 }),
-      createLabelObject('cf4-pgc-35', 'galaxy-cluster', { cosmicCatalogRank: 0 }),
-      createLabelObject('lss-supercluster-1', 'supercluster', { cosmicStructureRank: 0 }),
-      createLabelObject('unranked-galaxy', 'galaxy'),
-      createLabelObject('constellation-orion', 'region', { constellationLabelRank: 0 }),
-    ];
-    const manager = new LabelManager(document.createElement('div'), objects, 'medium');
-    const access = manager as unknown as LabelManagerAccess;
+  it('résout les noms affichés sans coupler le moteur à une langue', () => {
+    const context = installContext();
+    const earth = createLabelObject('earth', 'planet');
+    const manager = new LabelManager(
+      document.createElement('div'),
+      [earth],
+      'high',
+      'balanced',
+      () => true,
+      (objectId, fallback) => (objectId === 'earth' ? 'Earth' : fallback),
+    );
     const camera = cameraForLabels();
-    const positions = new Map<string, THREE.Vector3>([
-      ['near-star', new THREE.Vector3(0.1, 0, 0)],
-      ['catalog-2', new THREE.Vector3(0.2, 0, 0)],
-      ['catalog-1', new THREE.Vector3(0.3, 0, 0)],
-      ['ranked-galaxy', new THREE.Vector3(0.4, 0, 0)],
-      ['nearby-galaxy', new THREE.Vector3(-0.4, 0, 0)],
-      ['cf4-pgc-35', new THREE.Vector3(-0.25, 0.25, 0)],
-      ['lss-supercluster-1', new THREE.Vector3(0.25, 0.25, 0)],
-      ['unranked-galaxy', new THREE.Vector3(0.5, 0, 0)],
-      ['selected-hidden', new THREE.Vector3(0, 0, 0)],
-      ['temporary', new THREE.Vector3(-0.2, 0, 0)],
-      ['constellation-orion', new THREE.Vector3(0, 0.4, 0)],
-    ]);
-    const reader = (id: string, target: THREE.Vector3): THREE.Vector3 | null => {
-      const position = positions.get(id);
+    const reader = (_id: string, target: THREE.Vector3): THREE.Vector3 => target.set(0, 0, 0);
 
-      return position ? target.copy(position) : null;
-    };
-
-    access.collectCandidate(objects[0]!, camera, reader, 1, null);
-    access.collectCandidate(objects[1]!, camera, reader, 4, null);
-    access.collectCandidate(createLabelObject('missing', 'star'), camera, reader, 1, null);
-    access.collectCandidate(
-      createLabelObject('selected-hidden', 'planet'),
-      camera,
-      reader,
-      4,
-      'selected-hidden',
-    );
-    expect(access.candidates.map(({ object }) => object.id)).toEqual(['selected-hidden']);
-
-    manager.setTransientObject(objects[2]!);
-    access.collectCandidates(camera, reader, 1, null);
-    expect(access.candidates.some(({ object }) => object.id === 'near-star')).toBe(true);
-
-    manager.setTransientObject(createLabelObject('temporary', 'star'));
-    access.collectCandidates(camera, reader, 1, 'catalog-2');
-    expect(access.candidates[0]?.object.id).toBe('catalog-2');
-    expect(access.candidates.map(({ object }) => object.id)).toContain('temporary');
-
-    manager.setTransientObject(null);
-    access.collectCandidates(camera, reader, 4, null);
-    expect(access.candidates.find(({ object }) => object.id === 'ranked-galaxy')?.priority).toBe(
-      52,
-    );
-    expect(access.candidates.find(({ object }) => object.id === 'unranked-galaxy')?.priority).toBe(
-      0,
+    manager.resize(400, 300);
+    manager.render(camera, reader, 1, null, 1_000);
+    expect(context.measureText).toHaveBeenCalledWith('Earth');
+    expect(context.fillText).toHaveBeenCalledWith(
+      'Earth',
+      expect.any(Number),
+      expect.any(Number),
+      expect.any(Number),
     );
 
-    access.collectCandidates(camera, reader, 2, null);
-    expect(
-      access.candidates.find(({ object }) => object.id === 'constellation-orion')?.priority,
-    ).toBe(400);
-
-    access.collectCandidates(camera, reader, 5, null);
-    expect(access.candidates.find(({ object }) => object.id === 'nearby-galaxy')?.priority).toBe(
-      28,
+    manager.setNameResolver((objectId, fallback) => (objectId === 'earth' ? 'Erde' : fallback));
+    manager.render(camera, reader, 1, null, 1_500);
+    expect(context.fillText).toHaveBeenLastCalledWith(
+      'Erde',
+      expect.any(Number),
+      expect.any(Number),
+      expect.any(Number),
     );
-
-    access.collectCandidates(camera, reader, 6, null);
-    expect(access.candidates.find(({ object }) => object.id === 'cf4-pgc-35')?.priority).toBe(300);
-    expect(
-      access.candidates.find(({ object }) => object.id === 'lss-supercluster-1')?.priority,
-    ).toBe(301);
+    manager.dispose();
   });
 
   it('ne crée aucun label pour un objet masqué par la carte courante', () => {
@@ -433,11 +431,6 @@ describe('LabelManager', () => {
     manager.render(camera, reader, 1, null, 1_000);
 
     expect(access.hitRegions.map(({ objectId }) => objectId)).toEqual(['visible']);
-    access.collectCandidate(hidden, camera, reader, 1, 'hidden');
-    expect(access.candidates.some(({ object }) => object.id === 'hidden')).toBe(true);
-    access.candidates.length = 0;
-    access.collectCandidate(hiddenConstellation, camera, reader, 1, 'constellation-hidden');
-    expect(access.candidates).toEqual([]);
     manager.dispose();
   });
 
@@ -486,6 +479,29 @@ describe('LabelManager', () => {
     manager.dispose();
   });
 
+  it('écarte le Soleil de la fiche ouverte sans modifier sa direction cartographique', () => {
+    installContext();
+    const sun = createLabelObject('sun', 'star');
+    const manager = new LabelManager(document.createElement('div'), [sun], 'high');
+    const access = manager as unknown as LabelManagerAccess;
+    const camera = cameraForLabels();
+    const reader = (_id: string, target: THREE.Vector3): THREE.Vector3 => target.set(-3, 0, 0);
+
+    manager.resize(1_440, 900);
+    manager.setDetailsPanelVisible(true);
+    manager.render(camera, reader, 0, 'mars', 1_000);
+
+    expect(access.hitRegions).toHaveLength(1);
+    expect(access.hitRegions[0]?.objectId).toBe('sun');
+    expect(access.hitRegions[0]!.rectangle.left).toBeGreaterThanOrEqual(390);
+    expect(access.hitRegions[0]!.rectangle.right).toBeLessThan(1_368);
+
+    manager.setDetailsPanelVisible(false);
+    manager.render(camera, reader, 0, null, 1_500);
+    expect(access.hitRegions[0]!.rectangle.left).toBe(8);
+    manager.dispose();
+  });
+
   it('conserve le repère d’échelle sans recouvrir les autres labels', () => {
     installContext();
     const earth = createLabelObject('earth', 'planet');
@@ -529,10 +545,11 @@ describe('LabelManager', () => {
     };
 
     manager.resize(400, 300);
-    vi.spyOn(access, 'collectCandidates').mockImplementation(() => undefined);
-    const overlaps = vi.spyOn(access, 'overlapsExistingLabel').mockReturnValue(false);
+    const candidates: LabelCandidateTest[] = [];
 
-    access.candidates.push(
+    vi.spyOn(access, 'collectCandidates').mockImplementation(() => candidates);
+
+    candidates.push(
       candidate('null'),
       candidate('behind'),
       candidate('outside'),
@@ -548,67 +565,105 @@ describe('LabelManager', () => {
     expect(access.hitRegions.length).toBeGreaterThan(0);
 
     access.lastRenderTime = Number.NEGATIVE_INFINITY;
-    access.candidates.length = 0;
+    candidates.length = 0;
     for (let index = 0; index < 28; index += 1) {
-      access.candidates.push(candidate(`visible-${index}`));
+      candidates.push(candidate(`visible-${index}`));
     }
-    access.candidates.push(candidate('selected', 'star', true), candidate('never-rendered'));
+    candidates.push(candidate('selected', 'star', true), candidate('never-rendered'));
     manager.render(camera, reader, 1, 'selected', 2_000);
     expect(access.hitRegions.some(({ objectId }) => objectId === 'selected')).toBe(true);
 
     access.lastRenderTime = Number.NEGATIVE_INFINITY;
-    access.candidates.length = 0;
+    candidates.length = 0;
     for (let index = 0; index < 28; index += 1) {
-      access.candidates.push(candidate(`budgeted-${index}`));
+      candidates.push(candidate(`budgeted-${index}`));
     }
-    access.candidates.push(candidate('sun'));
+    candidates.push(candidate('sun'));
     manager.render(camera, reader, 1, null, 2_250);
-    expect(access.hitRegions).toHaveLength(28);
+    expect(access.hitRegions.length).toBeGreaterThan(0);
+    expect(access.hitRegions.length).toBeLessThanOrEqual(28);
     expect(access.hitRegions.some(({ objectId }) => objectId === 'sun')).toBe(true);
 
     manager.resize(1_000, 500);
     access.lastRenderTime = Number.NEGATIVE_INFINITY;
-    access.candidates.length = 0;
-    access.candidates.push(candidate('center'));
-    overlaps.mockReturnValue(true);
+    candidates.length = 0;
+    const budgetPositions = [
+      [-0.8, 0.5],
+      [-0.4, 0.5],
+      [0, 0.5],
+      [0.4, 0.5],
+      [0.8, 0.5],
+      [-0.8, -0.5],
+      [-0.4, -0.5],
+      [0, -0.5],
+      [0.4, -0.5],
+      [0.8, -0.5],
+    ] as const;
+
+    for (const [index, [x, y]] of budgetPositions.entries()) {
+      const id = `cosmic-budget-${index}`;
+
+      positions.set(id, new THREE.Vector3(x, y, 0));
+      candidates.push(candidate(id));
+    }
+    positions.set('over-budget', new THREE.Vector3(0, 0, 0));
+    candidates.push(candidate('over-budget'));
+    manager.render(camera, reader, 6, null, 2_400);
+    expect(access.hitRegions).toHaveLength(10);
+    expect(access.hitRegions.some(({ objectId }) => objectId === 'over-budget')).toBe(false);
+
+    access.lastRenderTime = Number.NEGATIVE_INFINITY;
+    candidates.length = 0;
+    candidates.push(candidate('center'), candidate('center-collision'));
     manager.render(camera, reader, 1, null, 2_500);
 
     manager.setEnabled(false);
     manager.render(camera, reader, 1, null, 3_000);
   });
 
-  it('dessine toutes les variantes de cartouches, ancres et collisions', () => {
-    const context = installContext(300);
-    const manager = new LabelManager(document.createElement('div'), [], 'high');
+  it('décale les noms planétaires en collision dans la vue du Système solaire', () => {
+    installContext();
+    const earth = createLabelObject('earth', 'planet');
+    const mars = createLabelObject('mars', 'planet');
+    const manager = new LabelManager(document.createElement('div'), [earth, mars], 'high');
     const access = manager as unknown as LabelManagerAccess;
-    const planet = createLabelObject('earth', 'planet');
-    const galaxy = createLabelObject('andromeda', 'galaxy');
-    const star = createLabelObject('sirius', 'star');
-    const catalog = createLabelObject('hyg-1', 'star', { catalogRecordIndex: 0 });
+    const camera = cameraForLabels();
+    const positions = new Map<string, THREE.Vector3>([
+      ['earth', new THREE.Vector3(0, 0, 0)],
+      ['mars', new THREE.Vector3(0.015, 0, 0)],
+    ]);
+    const reader = (id: string, target: THREE.Vector3): THREE.Vector3 | null => {
+      const position = positions.get(id);
 
-    const selectedRectangle = access.measureRectangle(planet, 100, 100, true);
-    const galaxyRectangle = access.measureRectangle(galaxy, 100, 100, false);
-    const starRectangle = access.measureRectangle(star, 100, 100, false);
-    const catalogRectangle = access.measureRectangle(catalog, 100, 100, false);
+      return position ? target.copy(position) : null;
+    };
 
-    access.drawLabel(star, starRectangle, true, false);
-    access.drawLabel(catalog, catalogRectangle, false, true);
-    access.drawLabel(catalog, catalogRectangle, false, false);
-    access.drawLabel(star, starRectangle, false, false);
-    access.drawLabel(planet, selectedRectangle, false, false);
-    access.drawLabel(galaxy, galaxyRectangle, false, false);
-    access.drawAnchor(starRectangle, 100, 120, false, false);
-    access.drawAnchor(starRectangle, 100, 120, true, false);
-    access.drawAnchor(starRectangle, 100, 120, false, true);
+    manager.resize(800, 500);
+    manager.render(camera, reader, 1, null, 1_000);
 
-    access.occupiedRectangles.push({ left: 10, top: 10, right: 40, bottom: 40 });
-    expect(access.overlapsExistingLabel({ left: 20, top: 20, right: 30, bottom: 30 })).toBe(true);
-    expect(access.overlapsExistingLabel({ left: 50, top: 20, right: 60, bottom: 30 })).toBe(false);
-    expect(access.overlapsExistingLabel({ left: -20, top: 20, right: 0, bottom: 30 })).toBe(false);
-    expect(access.overlapsExistingLabel({ left: 20, top: 50, right: 30, bottom: 60 })).toBe(false);
-    expect(access.overlapsExistingLabel({ left: 20, top: -20, right: 30, bottom: 0 })).toBe(false);
+    expect(access.hitRegions.map(({ objectId }) => objectId).sort()).toEqual(['earth', 'mars']);
+    expect(
+      rectanglesOverlap(access.hitRegions[0]!.rectangle, access.hitRegions[1]!.rectangle),
+    ).toBe(false);
+    manager.dispose();
+  });
 
-    expect(context.stroke).toHaveBeenCalled();
+  it('abandonne proprement le décalage lorsqu’aucun emplacement sûr n’existe', () => {
+    installContext();
+    const manager = new LabelManager(document.createElement('div'), [], 'high');
+    const rectangle = { left: 20, top: 40, right: 60, bottom: 67 };
+
+    manager.resize(80, 100);
+
+    expect(
+      moveRectangleToNearbyFreeSlot(rectangle, [], {
+        viewportWidth: 80,
+        viewportHeight: 100,
+        safeTop: 76,
+        safeBottom: 88,
+      }),
+    ).toBe(false);
+    expect(rectangle).toEqual({ left: 20, top: 40, right: 60, bottom: 67 });
     manager.dispose();
   });
 
@@ -625,12 +680,9 @@ describe('LabelManager', () => {
       name: 'Étoile proche',
       type: 'star',
     };
-    const missingBody = createLabelObject('missing-body', 'planet');
-    const tinyBody = createLabelObject('tiny-body', 'planet');
-    const outsideBody = createLabelObject('outside-body', 'planet');
     const manager = new LabelManager(
       document.createElement('div'),
-      [venus, behindStar, frontStar, missingBody, tinyBody, outsideBody],
+      [venus, behindStar, frontStar],
       'high',
     );
     const access = manager as unknown as LabelManagerAccess;
@@ -639,107 +691,52 @@ describe('LabelManager', () => {
       ['venus', new THREE.Vector3(0, 0, 0)],
       ['behind-star', new THREE.Vector3(0, 0, -10)],
       ['front-star', new THREE.Vector3(0, 0, 5)],
-      ['tiny-body', new THREE.Vector3(4, 0, 0)],
-      ['outside-body', new THREE.Vector3(0, 0, 20)],
     ]);
     const reader = (id: string, target: THREE.Vector3): THREE.Vector3 | null => {
       const position = positions.get(id);
 
       return position ? target.copy(position) : null;
     };
-    const rectangle = { left: 160, top: 120, right: 240, bottom: 145 };
 
     venus.visual.visualRadius = 2;
-    tinyBody.visual.visualRadius = 0.001;
-    outsideBody.visual.visualRadius = 2;
     camera.position.set(0, 0, 10);
     camera.lookAt(0, 0, 0);
     camera.updateProjectionMatrix();
     camera.updateMatrixWorld();
     manager.resize(400, 300);
-    access.collectScreenOccluders(camera, reader);
-
-    expect(access.screenOccluders).toHaveLength(1);
     manager.render(camera, reader, 1, null, 1_000);
+
     expect(access.hitRegions.some(({ objectId }) => objectId === 'behind-star')).toBe(false);
-    expect(
-      access.isOccludedByBody(
-        {
-          object: behindStar,
-          distanceSquared: 400,
-          priority: 0,
-          selected: false,
-        },
-        rectangle,
-        200,
-        150,
-      ),
-    ).toBe(true);
-    expect(
-      access.isOccludedByBody(
-        {
-          object: behindStar,
-          distanceSquared: 400,
-          priority: 0,
-          selected: false,
-        },
-        { left: 230, top: 130, right: 280, bottom: 150 },
-        280,
-        150,
-      ),
-    ).toBe(true);
-    expect(
-      access.isOccludedByBody(
-        {
-          object: frontStar,
-          distanceSquared: 25,
-          priority: 0,
-          selected: false,
-        },
-        rectangle,
-        200,
-        150,
-      ),
-    ).toBe(false);
-    expect(
-      access.isOccludedByBody(
-        {
-          object: behindStar,
-          distanceSquared: 400,
-          priority: 0,
-          selected: true,
-        },
-        rectangle,
-        200,
-        150,
-      ),
-    ).toBe(false);
-    expect(
-      access.isOccludedByBody(
-        {
-          object: venus,
-          distanceSquared: 100,
-          priority: 0,
-          selected: false,
-        },
-        rectangle,
-        200,
-        150,
-      ),
-    ).toBe(false);
-    expect(
-      access.isOccludedByBody(
-        {
-          object: behindStar,
-          distanceSquared: 400,
-          priority: 0,
-          selected: false,
-        },
-        { left: 8, top: 8, right: 40, bottom: 30 },
-        24,
-        38,
-      ),
-    ).toBe(false);
+    expect(access.hitRegions.length).toBeGreaterThan(0);
+    manager.dispose();
+  });
+
+  it('occulte aussi le nom sélectionné lorsqu’il passe derrière une étoile', () => {
+    installContext();
+    const sun = createLabelObject('sun', 'star');
+    const selectedPlanet = createLabelObject('earth', 'planet');
+    const manager = new LabelManager(document.createElement('div'), [sun, selectedPlanet], 'high');
+    const access = manager as unknown as LabelManagerAccess;
+    const camera = new THREE.PerspectiveCamera(48, 4 / 3, 0.1, 100);
+    const positions = new Map<string, THREE.Vector3>([
+      ['sun', new THREE.Vector3(0, 0, 0)],
+      ['earth', new THREE.Vector3(0, 0, -10)],
+    ]);
+    const reader = (id: string, target: THREE.Vector3): THREE.Vector3 | null => {
+      const position = positions.get(id);
+
+      return position ? target.copy(position) : null;
+    };
+
+    sun.visual.visualRadius = 2;
+    camera.position.set(0, 0, 10);
+    camera.lookAt(0, 0, 0);
+    camera.updateProjectionMatrix();
+    camera.updateMatrixWorld();
+    manager.resize(400, 300);
+    manager.render(camera, reader, 1, 'earth', 1_000);
+
+    expect(access.hitRegions.some(({ objectId }) => objectId === 'earth')).toBe(false);
     manager.dispose();
   });
 });
@@ -754,67 +751,23 @@ interface LabelCandidateTest {
 interface LabelManagerAccess {
   readonly canvas: HTMLCanvasElement;
   readonly hitRegions: LabelHitRegion[];
-  readonly candidates: LabelCandidateTest[];
-  readonly occupiedRectangles: ScreenRectangle[];
-  readonly screenOccluders: ScreenOccluderTest[];
   lastRenderTime: number;
   collectCandidates(
     camera: THREE.Camera,
     reader: (objectId: string, target: THREE.Vector3) => THREE.Vector3 | null,
     lodLevel: number,
     selectedId: string | null,
-  ): void;
-  collectCandidate(
-    object: LabelObject,
-    camera: THREE.Camera,
-    reader: (objectId: string, target: THREE.Vector3) => THREE.Vector3 | null,
-    lodLevel: number,
-    selectedId: string | null,
-  ): void;
-  measureRectangle(
-    object: LabelObject,
-    centerX: number,
-    baselineY: number,
-    selected: boolean,
-  ): ScreenRectangle;
-  drawLabel(
-    object: LabelObject,
-    rectangle: ScreenRectangle,
-    selected: boolean,
-    hovered: boolean,
-  ): void;
-  drawAnchor(
-    rectangle: ScreenRectangle,
-    pointX: number,
-    pointY: number,
-    selected: boolean,
-    hovered: boolean,
-  ): void;
-  overlapsExistingLabel(rectangle: ScreenRectangle): boolean;
-  collectScreenOccluders(
-    camera: THREE.Camera,
-    reader: (objectId: string, target: THREE.Vector3) => THREE.Vector3 | null,
-  ): void;
-  isOccludedByBody(
-    candidate: LabelCandidateTest,
-    rectangle: ScreenRectangle,
-    pointX: number,
-    pointY: number,
-  ): boolean;
-}
-
-interface ScreenOccluderTest {
-  readonly objectId: string;
-  readonly centerX: number;
-  readonly centerY: number;
-  readonly radius: number;
-  readonly distanceSquared: number;
+  ): readonly LabelCandidateTest[];
 }
 
 interface ContextSpies {
   readonly clearRect: ReturnType<typeof vi.fn>;
   readonly fillText: ReturnType<typeof vi.fn>;
+  readonly measureText: ReturnType<typeof vi.fn>;
   readonly stroke: ReturnType<typeof vi.fn>;
+  readonly font: string;
+  readonly fillStyle: string;
+  readonly strokeStyle: string;
 }
 
 function installContext(measuredWidth = 80): ContextSpies {

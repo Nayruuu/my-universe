@@ -21,7 +21,6 @@ export default defineConfig({
     video: 'retain-on-failure',
     actionTimeout: 10_000,
     navigationTimeout: 20_000,
-    ...localChrome,
   },
   projects: [
     {
@@ -39,6 +38,22 @@ export default defineConfig({
       use: {
         ...devices['Pixel 7'],
         ...localChrome,
+      },
+    },
+    {
+      name: 'desktop-firefox-visual',
+      testMatch: '**/visual-regression.desktop.spec.ts',
+      use: {
+        ...devices['Desktop Firefox'],
+        viewport: { width: 1_440, height: 900 },
+      },
+    },
+    {
+      name: 'desktop-webkit-visual',
+      testMatch: '**/visual-regression.desktop.spec.ts',
+      use: {
+        ...devices['Desktop Safari'],
+        viewport: { width: 1_440, height: 900 },
       },
     },
   ],

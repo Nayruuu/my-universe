@@ -1,14 +1,25 @@
+@let t = i18n.content();
 <nav
   class="controls"
   [class.controls--details]="facade.selectedId()"
-  aria-label="Contrôles de la carte"
+  [attr.aria-label]="t.controls.mapAria"
 >
   <div class="control-group">
-    <button type="button" title="Zoomer" aria-label="Zoomer" (click)="facade.zoomIn()">
+    <button
+      type="button"
+      [title]="t.controls.zoomIn"
+      [attr.aria-label]="t.controls.zoomIn"
+      (click)="facade.zoomIn()"
+    >
       <span class="text-icon">+</span>
     </button>
     <span class="separator"></span>
-    <button type="button" title="Dézoomer" aria-label="Dézoomer" (click)="facade.zoomOut()">
+    <button
+      type="button"
+      [title]="t.controls.zoomOut"
+      [attr.aria-label]="t.controls.zoomOut"
+      (click)="facade.zoomOut()"
+    >
       <span class="text-icon">−</span>
     </button>
   </div>
@@ -16,8 +27,8 @@
   <div class="control-group">
     <button
       type="button"
-      title="Retour à la Terre"
-      aria-label="Retour à la Terre"
+      [title]="t.controls.returnEarth"
+      [attr.aria-label]="t.controls.returnEarth"
       (click)="focus('earth')"
     >
       <span class="planet-icon planet-icon--earth" aria-hidden="true"></span>
@@ -25,8 +36,8 @@
     <span class="separator"></span>
     <button
       type="button"
-      title="Retour au Soleil"
-      aria-label="Retour au Soleil"
+      [title]="t.controls.returnSun"
+      [attr.aria-label]="t.controls.returnSun"
       (click)="focus('sun')"
     >
       <span class="sun-icon" aria-hidden="true"></span>
@@ -36,8 +47,8 @@
   <div class="control-group">
     <button
       type="button"
-      title="Afficher ou masquer les orbites"
-      aria-label="Afficher ou masquer les orbites"
+      [title]="t.controls.toggleOrbits"
+      [attr.aria-label]="t.controls.toggleOrbits"
       [class.active]="facade.displayOptions().showOrbits"
       (click)="facade.toggleOrbits()"
     >
@@ -46,8 +57,8 @@
     <span class="separator"></span>
     <button
       type="button"
-      title="Afficher ou masquer les constellations"
-      aria-label="Afficher ou masquer les constellations"
+      [title]="t.controls.toggleConstellations"
+      [attr.aria-label]="t.controls.toggleConstellations"
       [class.active]="facade.displayOptions().showConstellations"
       (click)="facade.toggleConstellations()"
     >
@@ -62,8 +73,8 @@
     <span class="separator"></span>
     <button
       type="button"
-      title="Afficher ou masquer les noms"
-      aria-label="Afficher ou masquer les noms"
+      [title]="t.controls.toggleLabels"
+      [attr.aria-label]="t.controls.toggleLabels"
       [class.active]="facade.displayOptions().showLabels"
       (click)="facade.toggleLabels()"
     >
@@ -74,8 +85,8 @@
   <button
     type="button"
     class="standalone-button"
-    title="Copier le lien de cette vue"
-    aria-label="Copier le lien de cette vue"
+    [title]="t.controls.copyShare"
+    [attr.aria-label]="t.controls.copyShare"
     (click)="facade.copyShareUrl()"
   >
     <span class="share-icon" aria-hidden="true">↗</span>
@@ -83,21 +94,25 @@
 </nav>
 
 @if (facade.settingsOpen()) {
-  <section class="popover settings-popover" aria-label="Paramètres visuels">
+  <section class="popover settings-popover" [attr.aria-label]="t.controls.settingsAria">
     <header>
       <div>
-        <span class="popover__eyebrow">Rendu</span>
-        <h2>Paramètres visuels</h2>
+        <span class="popover__eyebrow">{{ t.controls.render }}</span>
+        <h2>{{ t.controls.settingsTitle }}</h2>
       </div>
-      <button type="button" aria-label="Fermer les paramètres" (click)="facade.toggleSettings()">
+      <button
+        type="button"
+        [attr.aria-label]="t.controls.closeSettings"
+        (click)="facade.toggleSettings()"
+      >
         ×
       </button>
     </header>
 
     <div class="setting-row setting-row--stacked">
       <div>
-        <strong>Qualité graphique</strong>
-        <small>Adapte les particules et la résolution.</small>
+        <strong>{{ t.controls.quality }}</strong>
+        <small>{{ t.controls.qualityDescription }}</small>
       </div>
       <div class="segmented-control">
         @for (quality of ['low', 'medium', 'high']; track quality) {
@@ -106,7 +121,13 @@
             [class.active]="facade.displayOptions().quality === quality"
             (click)="setQuality(quality)"
           >
-            {{ quality === 'low' ? 'Faible' : quality === 'medium' ? 'Moyen' : 'Élevé' }}
+            {{
+              quality === 'low'
+                ? t.controls.qualityLow
+                : quality === 'medium'
+                  ? t.controls.qualityMedium
+                  : t.controls.qualityHigh
+            }}
           </button>
         }
       </div>
@@ -114,19 +135,19 @@
 
     <label class="setting-row">
       <span>
-        <strong>Mode temporel</strong>
-        <small>La vue observable reste expérimentale.</small>
+        <strong>{{ t.controls.temporalMode }}</strong>
+        <small>{{ t.controls.temporalExperimental }}</small>
       </span>
       <select [value]="facade.displayOptions().temporalMode" (change)="changeMode($event)">
-        <option value="state">État simultané</option>
-        <option value="observable">Observable</option>
+        <option value="state">{{ t.controls.simultaneousState }}</option>
+        <option value="observable">{{ t.controls.observable }}</option>
       </select>
     </label>
 
     <label class="toggle-row">
       <span>
-        <strong>Constellations</strong>
-        <small>Tracés culturels illustratifs vus depuis le Système solaire</small>
+        <strong>{{ t.controls.constellations }}</strong>
+        <small>{{ t.controls.constellationsDescription }}</small>
       </span>
       <input
         type="checkbox"
@@ -137,8 +158,8 @@
 
     <label class="toggle-row">
       <span>
-        <strong>Orbites</strong>
-        <small>Trajectoires calculées et illustratives</small>
+        <strong>{{ t.controls.orbits }}</strong>
+        <small>{{ t.controls.orbitsDescription }}</small>
       </span>
       <input
         type="checkbox"
@@ -149,8 +170,8 @@
 
     <label class="toggle-row">
       <span>
-        <strong>Noms astronomiques</strong>
-        <small>Affichés selon le niveau de zoom</small>
+        <strong>{{ t.controls.astronomicalNames }}</strong>
+        <small>{{ t.controls.astronomicalNamesDescription }}</small>
       </span>
       <input
         type="checkbox"
@@ -161,66 +182,97 @@
 
     <label class="setting-row">
       <span>
-        <strong>Densité des noms</strong>
-        <small>Règle la quantité de repères sans modifier le rendu 3D.</small>
+        <strong>{{ t.controls.labelDensity }}</strong>
+        <small>{{ t.controls.labelDensityDescription }}</small>
       </span>
       <select
-        aria-label="Densité des noms"
+        [attr.aria-label]="t.controls.labelDensity"
         [value]="facade.displayOptions().labelDensity"
         [disabled]="!facade.displayOptions().showLabels"
         (change)="changeDensity($event)"
       >
-        <option value="minimal">Épuré</option>
-        <option value="balanced">Équilibré</option>
-        <option value="dense">Dense</option>
+        <option value="minimal">{{ t.controls.densityMinimal }}</option>
+        <option value="balanced">{{ t.controls.densityBalanced }}</option>
+        <option value="dense">{{ t.controls.densityDense }}</option>
       </select>
     </label>
   </section>
 }
 
 @if (facade.helpOpen()) {
-  <section class="popover help-popover" aria-label="Aide à la navigation">
+  <section class="popover help-popover" [attr.aria-label]="t.controls.helpAria">
     <header>
       <div>
-        <span class="popover__eyebrow">Navigation</span>
-        <h2>Explorer Universe Map</h2>
+        <span class="popover__eyebrow">{{ t.controls.navigation }}</span>
+        <h2>{{ t.controls.helpTitle }}</h2>
       </div>
-      <button type="button" aria-label="Fermer l’aide" (click)="facade.toggleHelp()">×</button>
+      <button type="button" [attr.aria-label]="t.controls.closeHelp" (click)="facade.toggleHelp()">
+        ×
+      </button>
     </header>
 
     <div class="gesture-list">
       <div>
-        <span class="gesture">Glisser</span>
-        <p>Tourner autour de la cible</p>
+        <span class="gesture">{{ t.controls.gestureDrag }}</span>
+        <p>{{ t.controls.gestureDragAction }}</p>
       </div>
       <div>
-        <span class="gesture">Clic droit</span>
-        <p>Déplacer latéralement</p>
+        <span class="gesture">{{ t.controls.gestureRightClick }}</span>
+        <p>{{ t.controls.gestureRightClickAction }}</p>
       </div>
       <div>
-        <span class="gesture">Nom</span>
-        <p>Cliquer pour sélectionner et centrer</p>
+        <span class="gesture">{{ t.controls.gestureName }}</span>
+        <p>{{ t.controls.gestureNameAction }}</p>
       </div>
       <div>
-        <span class="gesture">Molette</span>
-        <p>Zoomer vers l’astre pointé</p>
+        <span class="gesture">{{ t.controls.gestureWheel }}</span>
+        <p>{{ t.controls.gestureWheelAction }}</p>
       </div>
       <div>
-        <span class="gesture">Double-clic</span>
-        <p>Centrer un objet</p>
+        <span class="gesture">{{ t.controls.gestureDoubleClick }}</span>
+        <p>{{ t.controls.gestureDoubleClickAction }}</p>
       </div>
       <div>
-        <span class="gesture">Espace</span>
-        <p>Lecture ou pause du temps</p>
+        <span class="gesture">{{ t.controls.gestureSpace }}</span>
+        <p>{{ t.controls.gestureSpaceAction }}</p>
       </div>
       <div>
         <span class="gesture">F</span>
-        <p>Centrer la sélection</p>
+        <p>{{ t.controls.gestureFocusAction }}</p>
       </div>
     </div>
 
-    <p class="touch-help">
-      Sur écran tactile : un doigt pour tourner, deux doigts pour zoomer ou translater.
-    </p>
+    <p class="touch-help">{{ t.controls.touchHelp }}</p>
+
+    <div class="creator-card">
+      <span class="creator-card__eyebrow">{{ t.controls.creatorEyebrow }}</span>
+      <strong>{{ t.controls.creatorTitle }}</strong>
+      <p>{{ t.controls.creatorDescription }}</p>
+      <div class="creator-card__actions">
+        <a
+          class="creator-link"
+          href="https://super-dev.app"
+          target="_blank"
+          rel="me noopener noreferrer"
+        >
+          {{ t.controls.portfolio }}
+          <span aria-hidden="true">↗</span>
+        </a>
+        <a
+          class="creator-link creator-link--support"
+          href="https://buymeacoffee.com/nayruuu"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <span aria-hidden="true">☕</span>
+          {{ t.controls.supportCreator }}
+        </a>
+      </div>
+    </div>
+
+    <a class="documentation-link" [href]="guideHref()">
+      {{ t.controls.guide }}
+      <span aria-hidden="true">↗</span>
+    </a>
   </section>
 }

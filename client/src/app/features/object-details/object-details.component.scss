@@ -85,6 +85,26 @@
     inset 0 0 18px rgb(0 0 0 / 86%);
 }
 
+.object-orb[data-object-type='supernova'],
+.object-orb[data-object-type='supernova-remnant'] {
+  background:
+    radial-gradient(circle at 50% 50%, #fff 0 5%, transparent 12%),
+    conic-gradient(
+      from 22deg,
+      transparent,
+      var(--object-color) 14%,
+      transparent 28%,
+      var(--object-color-secondary) 48%,
+      transparent 66%,
+      var(--object-color) 84%,
+      transparent
+    ),
+    radial-gradient(circle, color-mix(in srgb, var(--object-color) 55%, #fff), transparent 68%);
+  box-shadow:
+    0 0 38px color-mix(in srgb, var(--object-color) 54%, transparent),
+    inset 0 0 18px rgb(255 255 255 / 18%);
+}
+
 .close-button {
   position: absolute;
   z-index: 2;
@@ -303,6 +323,11 @@ h2 {
   background: rgb(255 255 255 / 2.5%);
 }
 
+.supernova-action {
+  border-color: rgb(255 126 174 / 24%);
+  color: rgb(255 209 229 / 88%);
+}
+
 .orbit-action {
   display: flex;
   align-items: center;
@@ -320,12 +345,21 @@ h2 {
 
 @media (width <= 720px) {
   :host {
-    inset: auto 10px 112px;
+    inset: auto max(10px, var(--mobile-right-safe, 0px)) var(--mobile-timeline-clearance, 132px)
+      max(10px, var(--mobile-left-safe, 0px));
     width: auto;
   }
 
   .details {
-    max-height: min(55vh, 460px);
+    max-height: min(
+      48dvh,
+      calc(
+        100dvh - var(--mobile-content-top-clearance, 170px) - var(
+            --mobile-timeline-clearance,
+            140px
+          )
+      )
+    );
   }
 
   .details__hero {
@@ -338,6 +372,76 @@ h2 {
     left: 18px;
     width: 58px;
     height: 58px;
+  }
+
+  h2 {
+    font-size: 1.3rem;
+  }
+
+  .close-button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .details__actions {
+    gap: 6px;
+
+    button {
+      min-width: 0;
+      min-height: 44px;
+      flex: 1 1 0;
+      padding-inline: 6px;
+    }
+  }
+}
+
+@media (height <= 520px) and (width > 720px) and (width <= 1000px) {
+  :host {
+    top: calc(70px + var(--landscape-top-safe, 0px));
+    bottom: var(--landscape-timeline-clearance, 82px);
+    left: max(12px, var(--landscape-left-safe, 0px));
+    width: min(330px, calc(100vw - 24px));
+  }
+
+  .details {
+    height: 100%;
+    max-height: 100%;
+  }
+
+  .details__hero {
+    min-height: 94px;
+    flex: 0 0 auto;
+    padding: 15px 15px 13px 82px;
+  }
+
+  .object-orb {
+    top: 19px;
+    left: 16px;
+    width: 52px;
+    height: 52px;
+  }
+
+  .details__body {
+    min-height: 0;
+    padding: 12px 14px;
+  }
+
+  .details__actions {
+    flex: 0 0 auto;
+    gap: 6px;
+    padding: 8px;
+
+    button {
+      min-width: 0;
+      min-height: 44px;
+      flex: 1 1 0;
+      padding-inline: 6px;
+    }
+  }
+
+  .close-button {
+    width: 44px;
+    height: 44px;
   }
 
   h2 {

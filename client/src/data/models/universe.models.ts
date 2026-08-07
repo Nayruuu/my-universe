@@ -14,8 +14,11 @@ export type SpaceObjectType =
   | 'galaxy'
   | 'black-hole'
   | 'nebula'
+  | 'supernova'
+  | 'supernova-remnant'
   | 'star'
   | 'planet'
+  | 'exoplanet'
   | 'dwarf-planet'
   | 'moon'
   | 'asteroid'
@@ -41,6 +44,8 @@ export type GalaxyVisualShape = 'spiral' | 'elliptical' | 'irregular';
 export type CosmicStructureType =
   'cluster' | 'supercluster' | 'wall' | 'filament' | 'void' | 'basin' | 'attractor' | 'repeller';
 export type BlackHoleActivity = 'dormant' | 'quiescent' | 'active';
+export type RotationDirection = 'prograde' | 'retrograde';
+export type RotationOrientationModel = 'earth-geographic' | 'iau-wgccre-2009' | 'iau-wgccre-2015';
 export type JovianMoon = 'io' | 'europa' | 'ganymede' | 'callisto';
 export type EphemerisBody =
   | 'mercury'
@@ -89,6 +94,15 @@ export interface PhysicalProperties {
   spectralType?: string;
 }
 
+export interface RotationDefinition {
+  siderealPeriodHours: number;
+  direction: RotationDirection;
+  bodyFixedFrame: string;
+  orientationModel: RotationOrientationModel;
+  scientificConfidence: ScientificConfidence;
+  source: string;
+}
+
 export interface VisualDefinition {
   color?: string;
   secondaryColor?: string;
@@ -98,7 +112,6 @@ export interface VisualDefinition {
   scaleMode: 'physical' | 'exaggerated' | 'adaptive';
   atmosphereColor?: string;
   hasRings?: boolean;
-  rotationPeriodHours?: number;
   galaxyShape?: GalaxyVisualShape;
   galaxyAxisRatio?: number;
   galaxyRotationDegrees?: number;
@@ -139,6 +152,16 @@ export type PositionProviderDefinition =
       distanceScale?: number;
     }
   | {
+      type: 'illustrative-orbit';
+      semiMajorAxis: number;
+      orbitalPeriodDays: number;
+      epochJulianDay: number;
+      visualPhaseAtEpochDegrees: number;
+      visualInclinationDegrees: number;
+      unit: DistanceUnit;
+      distanceScale?: number;
+    }
+  | {
       type: 'linear-motion';
       positionAtEpoch: [number, number, number];
       velocityPerDay: [number, number, number];
@@ -173,6 +196,7 @@ export interface SpaceObject {
   description?: string;
   referenceEpoch?: number;
   physical?: PhysicalProperties;
+  rotation?: RotationDefinition;
   visual: VisualDefinition;
   positionProvider: PositionProviderDefinition;
   lod?: LodObjectDefinition;
@@ -186,6 +210,7 @@ export interface SearchEntry {
   type: SpaceObjectType;
   parentName?: string;
   keywords?: readonly string[];
+  metadata?: Readonly<Record<string, string | number | boolean>>;
 }
 
 export interface UniverseDataset {
@@ -285,6 +310,11 @@ export interface StarTileSource {
   starCatalogId: string;
 }
 
+export interface TempelFilamentSpineSource {
+  id: string;
+  url: string;
+}
+
 export type ConstellationSegment = readonly [number, number];
 
 export interface ConstellationFigure {
@@ -356,6 +386,19 @@ export type DatasetManifestEntry =
       url: string;
       type: 'cosmic-web-volume';
       format: 'cosmic-web-volume-v1';
+    }
+  | {
+      id: string;
+      url: string;
+      type: 'tempel-filament-spine-catalog';
+      format: 'tempel-filament-spines-v1';
+    }
+  | {
+      id: string;
+      url: string;
+      metadataUrl: string;
+      type: 'exoplanet-catalog';
+      format: 'exoplanet-catalog-v1';
     };
 
 export interface DatasetManifest {
@@ -394,9 +437,15 @@ export interface EngineDebugStats {
   textures: number;
   visibleObjects: number;
   catalogStars: number;
+  exoplanetHosts: number;
+  exoplanets: number;
   cosmicGroups: number;
   cosmicFilaments: number;
   cosmicStructures: number;
+  tempelFilamentSpines: number;
+  tempelSpineSegments: number;
+  visibleTempelSpineSegments: number;
+  tempelSpineTiles: number;
   batchedGalaxies: number;
   loadedTiles: number;
   indexedGalaxyTiles: number;
@@ -460,10 +509,4 @@ export interface NavigationState {
   showOrbits: boolean;
   showConstellations: boolean;
   showLabels: boolean;
-}
-
-export interface TimeSpeedOption {
-  id: string;
-  label: string;
-  daysPerSecond: number;
 }

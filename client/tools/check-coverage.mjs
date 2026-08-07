@@ -30,6 +30,14 @@ const scientificModules = [
     suffix: '/src/engine/loaders/cosmic-structure-catalog.ts',
   },
   {
+    name: 'épines publiées des filaments Tempel',
+    suffix: '/src/engine/loaders/tempel-filament-spine-catalog.ts',
+  },
+  {
+    name: 'catalogue NASA des exoplanètes',
+    suffix: '/src/engine/loaders/exoplanet-catalog.ts',
+  },
+  {
     name: 'référentiel du catalogue Cosmicflows-4',
     suffix: '/src/engine/objects/cosmic-group-catalog-registry.ts',
   },
@@ -38,8 +46,16 @@ const scientificModules = [
     suffix: '/src/engine/objects/cosmic-structure-catalog-registry.ts',
   },
   {
-    name: 'rotation axiale',
-    suffix: '/src/engine/simulation/body-rotation.ts',
+    name: 'référentiel et orbites des exoplanètes',
+    suffix: '/src/engine/objects/exoplanet-catalog-registry.ts',
+  },
+  {
+    name: 'rendu spatial des filaments Tempel',
+    suffix: '/src/engine/rendering/tempel-filament-spine-batch.ts',
+  },
+  {
+    name: 'modèles de rotation IAU complémentaires',
+    suffix: '/src/engine/simulation/iau-rotation-model.ts',
   },
   {
     name: 'orientation axiale IAU',
@@ -70,8 +86,16 @@ const scientificModules = [
     suffix: '/src/engine/simulation/position-providers.ts',
   },
   {
+    name: 'évolution visuelle des supernovas',
+    suffix: '/src/engine/simulation/supernova-appearance.ts',
+  },
+  {
     name: 'éclipse solaire',
     suffix: '/src/engine/simulation/solar-eclipse-calculator.ts',
+  },
+  {
+    name: 'cartographie des éclipses solaires',
+    suffix: '/src/engine/simulation/solar-eclipse-event-map.ts',
   },
   {
     name: 'lieux d’observation des éclipses',

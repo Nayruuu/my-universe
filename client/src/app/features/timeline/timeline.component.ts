@@ -3,7 +3,8 @@ import { TemporalMode } from '../../../data/models/universe.models';
 import { EarthEclipseEvent, EarthEclipseKind } from '../../../engine/simulation/earth-eclipse';
 import { currentUniverseTime, formatUniverseDate } from '../../../engine/simulation/time-utils';
 import { UniverseEngineFacade } from '../../core/engine/universe-engine.facade';
-import { TIME_SPEED_OPTIONS } from '../../core/settings/time-speeds';
+import { I18nService } from '../../core/i18n/i18n.service';
+import { TIME_SPEED_OPTIONS, type TimeSpeedId } from '../../core/settings/time-speeds';
 import { EclipseBrowserComponent } from '../eclipse-browser/eclipse-browser.component';
 
 @Component({
@@ -15,6 +16,7 @@ import { EclipseBrowserComponent } from '../eclipse-browser/eclipse-browser.comp
 })
 export class TimelineComponent {
   protected readonly facade = inject(UniverseEngineFacade);
+  protected readonly i18n = inject(I18nService);
   protected readonly speeds = TIME_SPEED_OPTIONS;
   protected readonly presentJulianDay = currentUniverseTime().julianDay;
   protected readonly timelineOffset = computed(() =>
@@ -23,7 +25,9 @@ export class TimelineComponent {
       Math.min(3_652.5, this.facade.currentTime().julianDay - this.presentJulianDay),
     ),
   );
-  protected readonly epochLabel = computed(() => formatUniverseDate(this.facade.currentTime()));
+  protected readonly epochLabel = computed(() =>
+    formatUniverseDate(this.facade.currentTime(), this.i18n.locale()),
+  );
 
   protected changeDateTime(event: Event): void {
     this.facade.setDateTime((event.target as HTMLInputElement).value);
@@ -52,13 +56,12 @@ export class TimelineComponent {
   }
 
   protected eclipseKindLabel(kind: EarthEclipseKind): string {
-    const labels: Readonly<Record<EarthEclipseKind, string>> = {
-      penumbral: 'pénombrale',
-      partial: 'partielle',
-      annular: 'annulaire',
-      total: 'totale',
-    };
+    const labels = this.i18n.content().eclipses;
 
     return labels[kind];
+  }
+
+  protected speedLabel(speedId: TimeSpeedId): string {
+    return this.i18n.content().timeSpeeds[speedId];
   }
 }

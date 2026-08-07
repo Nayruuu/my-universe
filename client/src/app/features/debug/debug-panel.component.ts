@@ -1,14 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { type ZoomDebugStatus } from '../../../data/models/universe.models';
 import { UniverseEngineFacade } from '../../core/engine/universe-engine.facade';
-
-const ZOOM_STATUS_LABELS: Record<ZoomDebugStatus, string> = {
-  applied: 'appliqué',
-  minimum: 'limite minimale',
-  maximum: 'limite maximale',
-  ignored: 'ignoré',
-  unchanged: 'sans déplacement',
-};
+import { I18nService } from '../../core/i18n/i18n.service';
 
 @Component({
   selector: 'app-debug-panel',
@@ -18,12 +11,22 @@ const ZOOM_STATUS_LABELS: Record<ZoomDebugStatus, string> = {
 })
 export class DebugPanelComponent {
   protected readonly facade = inject(UniverseEngineFacade);
+  protected readonly i18n = inject(I18nService);
 
   protected format(value: number): string {
     return Math.abs(value) >= 1_000 ? value.toExponential(2) : value.toFixed(2);
   }
 
   protected zoomStatus(status: ZoomDebugStatus): string {
-    return ZOOM_STATUS_LABELS[status];
+    const debug = this.i18n.content().debug;
+    const labels: Readonly<Record<ZoomDebugStatus, string>> = {
+      applied: debug.statusApplied,
+      minimum: debug.statusMinimum,
+      maximum: debug.statusMaximum,
+      ignored: debug.statusIgnored,
+      unchanged: debug.statusUnchanged,
+    };
+
+    return labels[status];
   }
 }

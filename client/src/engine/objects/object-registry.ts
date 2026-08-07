@@ -7,44 +7,33 @@ import {
 } from '../../data/models/universe.models';
 import { CoordinateSystem } from '../coordinates/coordinate-system';
 import {
-  calculateApparentRadiusPixels,
-  calculateNearRepresentationBlend,
-  calculateWorldDiameterForPixels,
-  dampValue,
-  getMinimumVisualDiameterPixels,
-  shouldDisplayObjectAtLevel,
-} from '../lod/screen-space-lod';
-import { calculateMilkyWayTransition } from '../lod/milky-way-transition';
-import {
   CelestialLodRepresentation,
   CelestialVisualAssets,
   createCelestialVisual,
   createCelestialVisualAssets,
-  createSelectionMarker,
-  requestCelestialLodTextures,
 } from '../materials/celestial-visual-factory';
 import { LunarEclipseVisual } from '../materials/lunar-eclipse-visual';
 import { SolarEclipseVisual } from '../materials/solar-eclipse-visual';
-import { calculateAxialRotation } from '../simulation/body-rotation';
-import {
-  calculateBodyOrientation,
-  getRotationalBody,
-  type RotationalBody,
-} from '../simulation/body-orientation';
+import { SupernovaVisual } from '../materials/supernova-visual';
 import {
   PositionProviderFactory,
   TemporalPositionProvider,
 } from '../simulation/position-providers';
 import { FarObjectBatch } from '../rendering/far-object-batch';
-import { getPhotographicProfile } from '../rendering/photographic-profile';
-import { PICKING_LAYER } from '../selection/selection-layers';
 import { EarthEclipseKind, SolarEclipseAppearance } from '../simulation/earth-eclipse';
 import { calculateLunarEclipseAppearance } from '../simulation/lunar-eclipse-calculator';
+import { calculateSolarEclipseAppearance } from '../simulation/solar-eclipse-calculator';
 import {
-  calculateSolarEclipseAppearance,
-  calculateSolarEclipsePath,
-} from '../simulation/solar-eclipse-calculator';
-import { isGalaxyMapRankVisible } from './galaxy-map-policy';
+  ActiveObjectAdornmentController,
+  type ActiveObjectAdornmentDiagnostics,
+} from './active-object-adornment-controller';
+import { BodyRotationController } from './body-rotation-controller';
+import { ObjectLodController } from './object-lod-controller';
+import {
+  createObjectVisualDiagnostics,
+  type ObjectVisualDiagnostics,
+} from './object-visual-diagnostics';
+import { OrbitVisualManager } from './orbit-visual-manager';
 
 interface RegistryEntry {
   definition: SpaceObject;
@@ -54,6 +43,7 @@ interface RegistryEntry {
   rotatingBody: THREE.Object3D | null;
   lunarEclipse: LunarEclipseVisual | null;
   solarEclipse: SolarEclipseVisual | null;
+  supernova: SupernovaVisual | null;
   observerCorona: THREE.Sprite | null;
   lod: CelestialLodRepresentation;
   farBatchIndex: number | null;
@@ -61,36 +51,22 @@ interface RegistryEntry {
   provider: TemporalPositionProvider;
 }
 
-interface OrbitVisual {
-  entry: RegistryEntry;
-  line: THREE.LineLoop<THREE.BufferGeometry, THREE.LineBasicMaterial>;
-  radius: number;
-  baseColor: number;
-  baseOpacity: number;
-}
-
 export class ObjectRegistry {
   private readonly entries = new Map<string, RegistryEntry>();
   private readonly pickables: THREE.Object3D[] = [];
-  private readonly orbitVisuals = new Map<string, OrbitVisual>();
   private readonly registryRoot = new THREE.Group();
-  private readonly selectionMarker = createSelectionMarker();
-  private readonly rotationGuide: THREE.LineSegments<THREE.BufferGeometry, THREE.LineBasicMaterial>;
   private readonly visualAssets: CelestialVisualAssets;
   private readonly farObjectBatch: FarObjectBatch;
   private readonly batchedGalaxyTotal: number;
-  private readonly lodWorldPosition = new THREE.Vector3();
-  private readonly lodLocalPosition = new THREE.Vector3();
-  private readonly registryWorldInverse = new THREE.Matrix4();
-  private readonly bodyOrientationMatrix = new THREE.Matrix4();
-  private readonly bodyXAxis = new THREE.Vector3();
-  private readonly bodyYAxis = new THREE.Vector3();
-  private readonly bodyZAxis = new THREE.Vector3();
-  private readonly earthTargetQuaternion = new THREE.Quaternion();
+  private readonly activeObjectAdornmentController: ActiveObjectAdornmentController;
+  private readonly bodyRotationController = new BodyRotationController();
+  private readonly objectLodController: ObjectLodController;
+  private readonly orbitVisualManager: OrbitVisualManager;
   private selectedId: string | null = null;
   private navigationTargetId: string | null = null;
   private showOrbits = true;
   private solarEclipsePathActive = false;
+  private solarEclipsePathRequest = 0;
   private solarEclipseActive = false;
   private solarObserverActive = false;
   private currentLodLevel = Number.POSITIVE_INFINITY;
@@ -104,10 +80,8 @@ export class ObjectRegistry {
     const providerFactory = new PositionProviderFactory(coordinateSystem);
 
     this.visualAssets = createCelestialVisualAssets(quality);
-    this.rotationGuide = createRotationGuide(quality);
     this.registryRoot.name = 'astronomical-object-registry';
     this.spaceRoot.add(this.registryRoot);
-    this.registryRoot.add(this.rotationGuide);
     const renderableObjects = objects.filter(
       (object) =>
         object.positionProvider.type !== 'catalog' &&
@@ -136,6 +110,7 @@ export class ObjectRegistry {
         rotatingBody: visual.rotatingBody,
         lunarEclipse: visual.lunarEclipse,
         solarEclipse: visual.solarEclipse,
+        supernova: visual.supernova,
         observerCorona: visual.observerCorona,
         lod: visual.lod,
         farBatchIndex: farIndexById.get(definition.id) ?? null,
@@ -146,12 +121,28 @@ export class ObjectRegistry {
     }
 
     for (const entry of this.entries.values()) {
-      const parent = entry.definition.parentId
+      const semanticParent = entry.definition.parentId
         ? this.entries.get(entry.definition.parentId)?.node
         : undefined;
+      const parent =
+        entry.definition.referenceFrame === 'stellar' && entry.definition.parentId === 'milky-way'
+          ? (this.entries.get('sun')?.node ?? semanticParent)
+          : semanticParent;
 
       (parent ?? this.registryRoot).add(entry.node);
     }
+    this.activeObjectAdornmentController = new ActiveObjectAdornmentController(
+      this.registryRoot,
+      this.entries,
+      this.quality,
+    );
+    this.objectLodController = new ObjectLodController(
+      this.registryRoot,
+      this.entries,
+      this.farObjectBatch,
+      this.quality,
+    );
+    this.orbitVisualManager = new OrbitVisualManager(this.registryRoot, this.entries, this.quality);
   }
 
   public updatePositions(time: UniverseTime): SolarEclipseAppearance {
@@ -159,39 +150,20 @@ export class ObjectRegistry {
       const position = entry.provider.getPositionAt(time);
 
       entry.node.position.set(position.x, position.y, position.z);
+      entry.supernova?.updateAppearance(time);
     }
     const solarEclipseAppearance = calculateSolarEclipseAppearance(time);
 
     this.entries.get('moon')?.lunarEclipse?.updateAppearance(calculateLunarEclipseAppearance(time));
     this.entries.get('earth')?.solarEclipse?.updateAppearance(solarEclipseAppearance);
     this.solarEclipseActive = solarEclipseAppearance.phase !== 'none';
-    this.applySelectionMarkerVisibility();
+    this.updateActiveObjectAdornments();
 
     return solarEclipseAppearance;
   }
 
   public updateBodyRotations(time: UniverseTime, earthTime: UniverseTime | null = time): void {
-    for (const entry of this.entries.values()) {
-      if (entry.definition.id === 'earth') {
-        if (earthTime) {
-          this.updateBodyRotation(entry, earthTime);
-        }
-      } else {
-        this.updateBodyRotation(entry, time);
-      }
-    }
-  }
-
-  public synchronizeEarthRotation(time: UniverseTime, maximumRadians: number): boolean {
-    const body = this.entries.get('earth')?.rotatingBody;
-
-    if (!body) {
-      return true;
-    }
-    this.calculateBodyQuaternion(time, 'earth', this.earthTargetQuaternion);
-    body.quaternion.rotateTowards(this.earthTargetQuaternion, Math.max(0, maximumRadians));
-
-    return body.quaternion.angleTo(this.earthTargetQuaternion) < 0.000_01;
+    this.bodyRotationController.update(this.entries.values(), time, earthTime);
   }
 
   public updateLod(
@@ -201,166 +173,21 @@ export class ObjectRegistry {
     deltaSeconds: number,
   ): void {
     this.currentLodLevel = lodLevel;
-    const qualityMinimumPixelDiameter =
-      this.quality === 'low' ? 3.5 : this.quality === 'medium' ? 4.5 : 5;
-    const photographicProfile = getPhotographicProfile(lodLevel, this.quality);
-
-    this.registryRoot.updateWorldMatrix(true, false);
-    this.registryWorldInverse.copy(this.registryRoot.matrixWorld).invert();
-
-    for (const entry of this.entries.values()) {
-      const selected = entry.definition.id === this.selectedId;
-      const navigationTarget = entry.definition.id === this.navigationTargetId;
-      const contextualGalaxy = this.isGalaxyInActiveContext(entry.definition, lodLevel);
-      const milkyWayImpostorAllowed =
-        entry.definition.id !== 'milky-way' || (lodLevel >= 3 && lodLevel <= 5);
-      const keepVisible =
-        (selected || navigationTarget || contextualGalaxy) && milkyWayImpostorAllowed;
-      const allowedInSolarObserver =
-        !this.solarObserverActive ||
-        entry.definition.id === 'sun' ||
-        entry.definition.id === 'moon';
-      const targetVisibility =
-        allowedInSolarObserver &&
-        milkyWayImpostorAllowed &&
-        shouldDisplayObjectAtLevel(entry.definition, lodLevel, keepVisible)
-          ? 1
-          : 0;
-      const lod = entry.lod;
-      const minimumPixelDiameter = getMinimumVisualDiameterPixels(
-        entry.definition,
+    const { selectionMarkerScale } = this.objectLodController.update(
+      camera,
+      viewportHeight,
+      {
         lodLevel,
-        qualityMinimumPixelDiameter,
-      );
+        selectedId: this.selectedId,
+        navigationTargetId: this.navigationTargetId,
+        solarObserverActive: this.solarObserverActive,
+      },
+      deltaSeconds,
+    );
 
-      lod.visibilityBlend = dampValue(lod.visibilityBlend, targetVisibility, 8, deltaSeconds);
-
-      const position = entry.node.getWorldPosition(this.lodWorldPosition);
-      const distance = Math.max(camera.position.distanceTo(position), 0.001);
-      const apparentRadius = calculateApparentRadiusPixels(
-        entry.definition.visual.visualRadius,
-        distance,
-        viewportHeight,
-        camera.fov,
-      );
-      const allowNearRepresentation =
-        lod.nearRoot !== null &&
-        (entry.definition.type !== 'star' || entry.definition.id === 'sun' || keepVisible);
-      const targetNearBlend = allowNearRepresentation
-        ? calculateNearRepresentationBlend(apparentRadius)
-        : 0;
-
-      if (targetVisibility > 0 && targetNearBlend > 0 && lod.deferredTextures.length > 0) {
-        requestCelestialLodTextures(lod);
-      }
-
-      lod.nearBlend = dampValue(lod.nearBlend, targetNearBlend, 10, deltaSeconds);
-
-      const nearOpacity = lod.nearBlend * lod.visibilityBlend;
-
-      entry.lunarEclipse?.setVisibilityBlend(nearOpacity);
-      entry.solarEclipse?.setVisibilityBlend(nearOpacity);
-      if (entry.observerCorona) {
-        entry.observerCorona.material.opacity = this.solarObserverActive ? nearOpacity * 0.32 : 0;
-        entry.observerCorona.visible = this.solarObserverActive && nearOpacity > 0.008;
-      }
-      if (lod.nearRoot) {
-        lod.nearRoot.visible = nearOpacity > 0.008;
-      }
-      for (const managed of lod.nearMaterials) {
-        const glowRadiance = managed.material.userData['photographicGlow']
-          ? photographicProfile.starRadiance
-          : 1;
-
-        managed.material.opacity = Math.min(1, managed.baseOpacity * nearOpacity * glowRadiance);
-        managed.material.depthWrite = managed.baseDepthWrite && nearOpacity > 0.985;
-      }
-
-      const transitionOpacity =
-        entry.definition.id === 'milky-way'
-          ? calculateMilkyWayTransition(distance).impostorOpacity
-          : 1;
-      const photographicRadiance =
-        entry.definition.type === 'galaxy'
-          ? photographicProfile.galaxyRadiance
-          : entry.definition.type === 'star'
-            ? photographicProfile.starRadiance
-            : 1;
-      const farOpacity = Math.min(
-        1,
-        lod.farBaseOpacity *
-          (1 - lod.nearBlend) *
-          lod.visibilityBlend *
-          transitionOpacity *
-          photographicRadiance,
-      );
-
-      lod.farAlpha = farOpacity;
-
-      const minimumWorldDiameter = calculateWorldDiameterForPixels(
-        minimumPixelDiameter,
-        distance,
-        viewportHeight,
-        camera.fov,
-      );
-
-      const useDetailedFarSprite =
-        lod.farSprite !== null && (entry.farBatchIndex === null || keepVisible);
-
-      if (lod.farSprite) {
-        lod.farSprite.material.opacity = useDetailedFarSprite ? farOpacity : 0;
-        lod.farSprite.visible = useDetailedFarSprite && farOpacity > 0.008;
-        const farDiameter = Math.max(lod.farBaseDiameter, minimumWorldDiameter);
-
-        lod.farSprite.scale.set(farDiameter, farDiameter * lod.farAspectRatio, 1);
-      }
-      if (entry.farBatchIndex !== null) {
-        const farPixelDiameter = THREE.MathUtils.clamp(
-          Math.max(minimumPixelDiameter, apparentRadius * 2.25),
-          minimumPixelDiameter,
-          28,
-        );
-
-        this.lodLocalPosition.copy(position).applyMatrix4(this.registryWorldInverse);
-        this.farObjectBatch.updatePoint(
-          entry.farBatchIndex,
-          this.lodLocalPosition,
-          farPixelDiameter,
-          useDetailedFarSprite ? 0 : farOpacity,
-        );
-      }
-      entry.visualRoot.visible =
-        lod.visibilityBlend > 0.008 &&
-        (lod.nearRoot?.visible === true || lod.farSprite?.visible === true);
-      if (this.solarObserverActive && entry.definition.id === 'earth') {
-        entry.visualRoot.visible = false;
-      }
-
-      if (entry.pickTarget) {
-        const individualPickTargetVisible =
-          entry.farBatchIndex === null || lod.farSprite === null || lod.farSprite.visible;
-
-        if (lod.visibilityBlend > 0.02 && individualPickTargetVisible) {
-          entry.pickTarget.layers.enable(PICKING_LAYER);
-        } else {
-          entry.pickTarget.layers.disable(PICKING_LAYER);
-        }
-      }
-
-      if (selected) {
-        const markerScale = Math.max(
-          getSelectionMarkerScale(entry.definition),
-          minimumWorldDiameter * 1.55,
-        );
-
-        this.selectionMarker.scale.setScalar(markerScale);
-      }
-    }
-
-    this.farObjectBatch.commit();
+    this.activeObjectAdornmentController.setSelectionMarkerScale(selectionMarkerScale);
     this.applyOrbitVisibility();
-    this.applyRotationGuideVisibility();
-    this.applySelectionMarkerVisibility();
+    this.updateActiveObjectAdornments();
   }
 
   public setDisplayOptions(options: DisplayOptions): void {
@@ -368,65 +195,51 @@ export class ObjectRegistry {
     this.applyOrbitVisibility();
   }
 
-  public showSolarEclipsePath(time: UniverseTime, kind: EarthEclipseKind): void {
-    const points = calculateSolarEclipsePath(time).map(
-      (point) => new THREE.Vector3(point.x, point.y, point.z),
-    );
+  public async showSolarEclipsePath(time: UniverseTime, kind: EarthEclipseKind): Promise<void> {
+    const request = ++this.solarEclipsePathRequest;
+    const visual = this.entries.get('earth')?.solarEclipse;
 
-    this.entries.get('earth')?.solarEclipse?.setPath(points, kind);
     this.solarEclipsePathActive = true;
-    this.applySelectionMarkerVisibility();
+    this.updateActiveObjectAdornments();
+    if (!visual) {
+      return;
+    }
+    const { calculateSolarEclipseEventMap, createSolarEclipseEventMapRenderData } =
+      await import('../simulation/solar-eclipse-event-map');
+
+    if (request !== this.solarEclipsePathRequest || !this.solarEclipsePathActive) {
+      return;
+    }
+    const eventMap = calculateSolarEclipseEventMap(time);
+
+    visual.setEventMap(eventMap, createSolarEclipseEventMapRenderData(eventMap), kind);
   }
 
   public clearSolarEclipsePath(): void {
+    this.solarEclipsePathRequest += 1;
     this.entries.get('earth')?.solarEclipse?.clearPath();
     this.solarEclipsePathActive = false;
-    this.applySelectionMarkerVisibility();
+    this.updateActiveObjectAdornments();
   }
 
   public setSolarObserverActive(active: boolean, moonVisualScale = 1): void {
     this.solarObserverActive = active;
     this.entries.get('moon')?.visualRoot.scale.setScalar(active ? moonVisualScale : 1);
     this.applyOrbitVisibility();
-    this.applyRotationGuideVisibility();
-    this.applySelectionMarkerVisibility();
+    this.updateActiveObjectAdornments();
   }
 
   public setNavigationTarget(objectId: string | null): void {
     this.navigationTargetId = objectId;
     this.applyOrbitVisibility();
-    this.applyRotationGuideVisibility();
-    this.applySelectionMarkerVisibility();
+    this.updateActiveObjectAdornments();
   }
 
   public select(objectId: string | null): void {
-    this.selectionMarker.removeFromParent();
     this.selectedId = objectId;
-
-    if (!objectId) {
-      this.applyOrbitVisibility();
-      this.applyRotationGuideVisibility();
-      this.applySelectionMarkerVisibility();
-
-      return;
-    }
-
-    const entry = this.entries.get(objectId);
-
-    if (!entry) {
-      this.applyOrbitVisibility();
-      this.applyRotationGuideVisibility();
-      this.applySelectionMarkerVisibility();
-
-      return;
-    }
-    this.selectionMarker.scale.setScalar(getSelectionMarkerScale(entry.definition));
-    if (entry.definition.type !== 'region') {
-      entry.node.add(this.selectionMarker);
-    }
+    this.activeObjectAdornmentController.select(objectId);
     this.applyOrbitVisibility();
-    this.applyRotationGuideVisibility();
-    this.applySelectionMarkerVisibility();
+    this.updateActiveObjectAdornments();
   }
 
   public getDefinition(objectId: string): SpaceObject | undefined {
@@ -461,9 +274,24 @@ export class ObjectRegistry {
   }
 
   public getOrbitRadius(objectId: string): number | null {
-    this.ensureOrbitVisual(objectId);
+    return this.orbitVisualManager.getRadius(objectId);
+  }
 
-    return this.orbitVisuals.get(objectId)?.radius ?? null;
+  public getAdornmentDiagnostics(): ActiveObjectAdornmentDiagnostics {
+    return this.activeObjectAdornmentController.getDiagnostics();
+  }
+
+  public getVisualDiagnostics(objectId: string): ObjectVisualDiagnostics | null {
+    const entry = this.entries.get(objectId);
+
+    return entry
+      ? createObjectVisualDiagnostics({
+          objectId,
+          visualRoot: entry.visualRoot,
+          rotatingBody: entry.rotatingBody,
+          lod: entry.lod,
+        })
+      : null;
   }
 
   public getPickables(): readonly THREE.Object3D[] {
@@ -499,262 +327,36 @@ export class ObjectRegistry {
   }
 
   public dispose(): void {
-    this.selectionMarker.removeFromParent();
-    this.selectionMarker.material.map?.dispose();
-    this.selectionMarker.material.dispose();
-    this.disposeOrbitVisuals();
+    this.solarEclipsePathRequest += 1;
+    this.solarEclipsePathActive = false;
+    this.activeObjectAdornmentController.dispose();
+    this.orbitVisualManager.dispose();
     disposeObjectTree(this.registryRoot);
     this.registryRoot.removeFromParent();
     this.entries.clear();
     this.pickables.length = 0;
   }
 
-  private ensureOrbitVisual(objectId: string): void {
-    if (this.orbitVisuals.has(objectId)) {
-      return;
-    }
-    const entry = this.entries.get(objectId);
-
-    if (entry && hasOrbitalPath(entry.definition)) {
-      this.createOrbitLine(entry);
-    }
-  }
-
-  private synchronizeOrbitVisuals(): void {
-    const requiredIds = new Set<string>();
-
-    if (this.showOrbits && !this.solarObserverActive) {
-      if (this.currentLodLevel <= 1) {
-        for (const entry of this.entries.values()) {
-          if (hasOrbitalPath(entry.definition)) {
-            requiredIds.add(entry.definition.id);
-          }
-        }
-      } else if (this.currentLodLevel <= 2) {
-        const activeOrbitId = this.getActiveOrbitId();
-
-        if (activeOrbitId) {
-          requiredIds.add(activeOrbitId);
-        }
-      }
-    }
-
-    for (const objectId of requiredIds) {
-      this.ensureOrbitVisual(objectId);
-    }
-    for (const objectId of [...this.orbitVisuals.keys()]) {
-      if (!requiredIds.has(objectId)) {
-        this.disposeOrbitVisual(objectId);
-      }
-    }
-  }
-
-  private disposeOrbitVisual(objectId: string): void {
-    const orbit = this.orbitVisuals.get(objectId);
-
-    if (!orbit) {
-      return;
-    }
-    orbit.line.removeFromParent();
-    orbit.line.geometry.dispose();
-    orbit.line.material.dispose();
-    this.orbitVisuals.delete(objectId);
-  }
-
-  private disposeOrbitVisuals(): void {
-    for (const objectId of [...this.orbitVisuals.keys()]) {
-      this.disposeOrbitVisual(objectId);
-    }
-  }
-
-  private createOrbitLine(entry: RegistryEntry): void {
-    const definition = entry.definition.positionProvider;
-
-    if (definition.type !== 'keplerian' && definition.type !== 'ephemeris') {
-      return;
-    }
-
-    const points: THREE.Vector3[] = [];
-    const segments =
-      this.quality === 'low'
-        ? entry.definition.type === 'moon'
-          ? 48
-          : 96
-        : this.quality === 'medium'
-          ? entry.definition.type === 'moon'
-            ? 72
-            : 144
-          : entry.definition.type === 'moon'
-            ? 96
-            : 180;
-
-    for (let index = 0; index < segments; index += 1) {
-      const julianDay =
-        (definition.type === 'keplerian'
-          ? definition.epochJulianDay
-          : definition.orbitEpochJulianDay) +
-        (index / segments) * definition.orbitalPeriodDays;
-      const position = entry.provider.getPositionAt({ julianDay });
-
-      points.push(new THREE.Vector3(position.x, position.y, position.z));
-    }
-
-    const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    const baseColor = entry.definition.type === 'moon' ? 0x718097 : 0x465266;
-    const baseOpacity = entry.definition.type === 'moon' ? 0.5 : 0.34;
-    const material = new THREE.LineBasicMaterial({
-      color: baseColor,
-      transparent: true,
-      opacity: baseOpacity,
-      depthWrite: false,
-    });
-    const orbit = new THREE.LineLoop(geometry, material);
-
-    orbit.name = `${entry.definition.id}-orbit`;
-    orbit.userData['kind'] = 'orbit';
-    const parent = entry.definition.parentId
-      ? this.entries.get(entry.definition.parentId)?.node
-      : undefined;
-
-    (parent ?? this.registryRoot).add(orbit);
-    this.orbitVisuals.set(entry.definition.id, {
-      entry,
-      line: orbit,
-      radius: points.reduce((maximum, point) => Math.max(maximum, point.length()), 0),
-      baseColor,
-      baseOpacity,
-    });
-  }
-
-  private isGalaxyInActiveContext(object: SpaceObject, lodLevel: number): boolean {
-    if (lodLevel !== 3 || object.type !== 'galaxy') {
-      return false;
-    }
-    const activeId = this.navigationTargetId ?? this.selectedId;
-    const active = activeId ? this.entries.get(activeId)?.definition : undefined;
-
-    if (active?.type !== 'galaxy') {
-      return false;
-    }
-    const parent = active.parentId ? this.entries.get(active.parentId)?.definition : undefined;
-    const hostId = parent?.type === 'galaxy' ? parent.id : active.id;
-
-    return (
-      object.id === hostId ||
-      (object.parentId === hostId && isGalaxyMapRankVisible(object, this.quality))
-    );
-  }
-
-  private updateBodyRotation(entry: RegistryEntry, time: UniverseTime): void {
-    const periodHours = entry.definition.visual.rotationPeriodHours;
-
-    if (!entry.rotatingBody || !periodHours) {
-      return;
-    }
-    const body = getRotationalBody(entry.definition.id);
-
-    if (body) {
-      this.calculateBodyQuaternion(time, body, entry.rotatingBody.quaternion);
-
-      return;
-    }
-    entry.rotatingBody.rotation.y = calculateAxialRotation(time, periodHours);
-  }
-
-  private calculateBodyQuaternion(
-    time: UniverseTime,
-    body: RotationalBody,
-    target: THREE.Quaternion,
-  ): void {
-    const orientation = calculateBodyOrientation(time, body);
-
-    this.bodyXAxis.set(orientation.xAxis.x, orientation.xAxis.y, orientation.xAxis.z);
-    this.bodyYAxis.set(orientation.yAxis.x, orientation.yAxis.y, orientation.yAxis.z);
-    this.bodyZAxis.set(orientation.zAxis.x, orientation.zAxis.y, orientation.zAxis.z);
-    this.bodyOrientationMatrix.makeBasis(this.bodyXAxis, this.bodyYAxis, this.bodyZAxis);
-    target.setFromRotationMatrix(this.bodyOrientationMatrix).normalize();
-  }
-
   private applyOrbitVisibility(): void {
-    this.synchronizeOrbitVisuals();
-    const activeOrbitId = this.getActiveOrbitId();
-    const orbitsAllowed = this.showOrbits && !this.solarObserverActive;
-
-    for (const [objectId, orbit] of this.orbitVisuals) {
-      const active = objectId === activeOrbitId;
-
-      orbit.line.visible =
-        orbitsAllowed && (this.currentLodLevel <= 1 || (active && this.currentLodLevel <= 2));
-      orbit.line.material.color.set(
-        active ? (orbit.entry.definition.visual.color ?? 0x8acff4) : orbit.baseColor,
-      );
-      orbit.line.material.opacity = active ? 0.9 : orbit.baseOpacity;
-      orbit.line.renderOrder = active ? 3 : 0;
-      orbit.line.userData['active'] = active;
-    }
+    this.orbitVisualManager.update({
+      showOrbits: this.showOrbits,
+      solarObserverActive: this.solarObserverActive,
+      lodLevel: this.currentLodLevel,
+      selectedId: this.selectedId,
+      navigationTargetId: this.navigationTargetId,
+    });
   }
 
-  private applyRotationGuideVisibility(): void {
-    const entry = this.getActiveRotatingEntry();
-    const rotationPeriodHours = entry?.definition.visual.rotationPeriodHours;
-
-    if (!entry?.rotatingBody || !rotationPeriodHours) {
-      this.rotationGuide.visible = false;
-      this.rotationGuide.userData['objectId'] = null;
-
-      return;
-    }
-    entry.rotatingBody.add(this.rotationGuide);
-    this.rotationGuide.scale.set(1, 1, rotationPeriodHours < 0 ? -1 : 1);
-    this.rotationGuide.material.color.set(
-      entry.definition.visual.atmosphereColor ?? entry.definition.visual.color ?? 0x8acff4,
-    );
-    this.rotationGuide.userData['objectId'] = entry.definition.id;
-    this.rotationGuide.userData['direction'] = rotationPeriodHours < 0 ? 'retrograde' : 'prograde';
-    this.rotationGuide.visible = !this.solarObserverActive && this.currentLodLevel === 0;
+  private updateActiveObjectAdornments(): void {
+    this.activeObjectAdornmentController.update({
+      selectedId: this.selectedId,
+      navigationTargetId: this.navigationTargetId,
+      solarObserverActive: this.solarObserverActive,
+      solarEclipsePathActive: this.solarEclipsePathActive,
+      solarEclipseActive: this.solarEclipseActive,
+      lodLevel: this.currentLodLevel,
+    });
   }
-
-  private getActiveOrbitId(): string | null {
-    const selected = this.selectedId ? this.entries.get(this.selectedId) : undefined;
-
-    if (
-      selected &&
-      hasOrbitalPath(selected.definition) &&
-      selected.definition.parentId === this.navigationTargetId
-    ) {
-      return this.selectedId;
-    }
-
-    return null;
-  }
-
-  private getActiveRotatingEntry(): RegistryEntry | null {
-    const selected = this.selectedId ? this.entries.get(this.selectedId) : undefined;
-
-    if (selected?.rotatingBody && selected.definition.visual.rotationPeriodHours) {
-      return selected;
-    }
-    const target = this.navigationTargetId ? this.entries.get(this.navigationTargetId) : undefined;
-
-    return target?.rotatingBody && target.definition.visual.rotationPeriodHours ? target : null;
-  }
-
-  private applySelectionMarkerVisibility(): void {
-    const selected = this.selectedId ? this.entries.get(this.selectedId) : undefined;
-
-    this.selectionMarker.visible =
-      selected?.definition.type !== 'black-hole' &&
-      !this.solarObserverActive &&
-      !this.solarEclipsePathActive &&
-      !this.solarEclipseActive &&
-      !this.rotationGuide.visible;
-  }
-}
-
-function hasOrbitalPath(object: SpaceObject): boolean {
-  return (
-    object.positionProvider.type === 'keplerian' || object.positionProvider.type === 'ephemeris'
-  );
 }
 
 function usesFarPointBatch(object: SpaceObject): boolean {
@@ -763,84 +365,6 @@ function usesFarPointBatch(object: SpaceObject): boolean {
     object.type !== 'black-hole' &&
     (object.type !== 'galaxy' || object.metadata?.['nearbyUniversePointBatch'] === true)
   );
-}
-
-function createRotationGuide(
-  quality: GraphicQuality,
-): THREE.LineSegments<THREE.BufferGeometry, THREE.LineBasicMaterial> {
-  const segments = quality === 'low' ? 40 : quality === 'medium' ? 56 : 72;
-  const radius = 1.38;
-  const positions: number[] = [];
-  const colors: number[] = [];
-
-  for (let index = 0; index < segments; index += 1) {
-    const start = (index / segments) * Math.PI * 2;
-    const end = ((index + 1) / segments) * Math.PI * 2;
-    const startIntensity = getRotationRingIntensity(start);
-    const endIntensity = getRotationRingIntensity(end);
-
-    positions.push(
-      Math.cos(start) * radius,
-      0,
-      Math.sin(start) * radius,
-      Math.cos(end) * radius,
-      0,
-      Math.sin(end) * radius,
-    );
-    colors.push(
-      startIntensity,
-      startIntensity,
-      startIntensity,
-      endIntensity,
-      endIntensity,
-      endIntensity,
-    );
-  }
-  positions.push(0, -1.62, 0, 0, 1.62, 0);
-  colors.push(0.24, 0.24, 0.24, 0.24, 0.24, 0.24);
-  const geometry = new THREE.BufferGeometry();
-
-  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-  geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-  const guide = new THREE.LineSegments(
-    geometry,
-    new THREE.LineBasicMaterial({
-      color: 0x8acff4,
-      vertexColors: true,
-      transparent: true,
-      opacity: 0.78,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-    }),
-  );
-
-  guide.name = 'active-rotation-guide';
-  guide.visible = false;
-  guide.renderOrder = 4;
-  guide.userData['kind'] = 'rotation-guide';
-  guide.userData['style'] = 'moving-highlight';
-  guide.userData['objectId'] = null;
-
-  return guide;
-}
-
-function getRotationRingIntensity(angle: number): number {
-  const distanceFromHighlight = Math.abs(Math.atan2(Math.sin(angle), Math.cos(angle)));
-  const highlightWidth = Math.PI * 0.26;
-  const normalizedDistance = Math.min(distanceFromHighlight / highlightWidth, 1);
-  const highlight = Math.cos((normalizedDistance * Math.PI) / 2) ** 2;
-
-  return 0.18 + highlight * 0.82;
-}
-
-function getSelectionMarkerScale(object: SpaceObject): number {
-  const radius = object.visual.visualRadius;
-
-  return object.type === 'galaxy'
-    ? radius * 0.5
-    : object.type === 'black-hole'
-      ? radius * 5.2
-      : radius * 3.3;
 }
 
 function disposeObjectTree(root: THREE.Object3D): void {

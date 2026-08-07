@@ -1,0 +1,97 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [Verify]
+    types: [completed]
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AZURE_RESOURCE_GROUP: rg-infra-web
+  AZURE_STATIC_WEB_APP: swa-um-web
+
+jobs:
+  deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main')
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout verified revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install dependencies
+        working-directory: client
+        run: npm ci
+
+      - name: Build production application
+        working-directory: client
+        run: npm run build
+
+      - name: Azure login via OIDC
+        uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install Azure Static Web Apps CLI
+        run: npm install --global @azure/static-web-apps-cli@2.0.10
+
+      - name: Fetch deployment token
+        run: |
+          set -euo pipefail
+          TOKEN=$(az staticwebapp secrets list \
+            --name "$AZURE_STATIC_WEB_APP" \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --query "properties.apiKey" -o tsv)
+          if [ -z "$TOKEN" ]; then
+            echo "::error::Azure returned an empty Static Web Apps deployment token."
+            exit 1
+          fi
+          echo "::add-mask::$TOKEN"
+          echo "SWA_CLI_DEPLOYMENT_TOKEN=$TOKEN" >> "$GITHUB_ENV"
+
+      - name: Deploy production build
+        working-directory: client
+        run: |
+          swa deploy dist/universe-map/browser \
+            --env production
+
+      - name: Verify production endpoint
+        run: |
+          set -euo pipefail
+          HOSTNAME=$(az staticwebapp show \
+            --name "$AZURE_STATIC_WEB_APP" \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --query "defaultHostname" -o tsv)
+          if [ -z "$HOSTNAME" ]; then
+            echo "::error::Azure returned an empty Static Web Apps hostname."
+            exit 1
+          fi
+          for PATH_TO_CHECK in / /guide/ /robots.txt /sitemap.xml; do
+            curl --fail --silent --show-error --location \
+              --retry 6 --retry-all-errors --retry-delay 5 --max-time 30 \
+              --output /dev/null "https://$HOSTNAME$PATH_TO_CHECK"
+          done
+          echo "Universe Map is available at https://$HOSTNAME"

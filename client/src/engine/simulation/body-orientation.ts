@@ -1,5 +1,6 @@
 import {
   Body,
+  MakeTime,
   Observer,
   ObserverVector,
   RotateVector,
@@ -14,8 +15,14 @@ import type {
   Vector3Like,
 } from '../../data/models/universe.models';
 import { JULIAN_DAY_J2000 } from './time-utils';
+import {
+  calculateIauRotationAngles,
+  isIauRotationBody,
+  type IauRotationBody,
+} from './iau-rotation-model';
 
-export type RotationalBody = Exclude<EphemerisBody, JovianMoon> | 'sun';
+type AstronomyEngineRotationalBody = Exclude<EphemerisBody, JovianMoon> | 'sun';
+export type RotationalBody = AstronomyEngineRotationalBody | IauRotationBody;
 
 export interface BodyOrientation {
   xAxis: Vector3Like;
@@ -24,7 +31,7 @@ export interface BodyOrientation {
 }
 
 const EQUATORIAL_TO_ECLIPTIC = Rotation_EQJ_ECL();
-const ROTATIONAL_BODIES: Readonly<Record<RotationalBody, Body>> = {
+const ASTRONOMY_ENGINE_ROTATIONAL_BODIES: Readonly<Record<AstronomyEngineRotationalBody, Body>> = {
   sun: Body.Sun,
   mercury: Body.Mercury,
   venus: Body.Venus,
@@ -39,7 +46,13 @@ const ROTATIONAL_BODIES: Readonly<Record<RotationalBody, Body>> = {
 };
 
 export function getRotationalBody(objectId: string): RotationalBody | null {
-  return Object.hasOwn(ROTATIONAL_BODIES, objectId) ? (objectId as RotationalBody) : null;
+  if (isIauRotationBody(objectId)) {
+    return objectId;
+  }
+
+  return Object.hasOwn(ASTRONOMY_ENGINE_ROTATIONAL_BODIES, objectId)
+    ? (objectId as AstronomyEngineRotationalBody)
+    : null;
 }
 
 export function calculateBodyOrientation(
@@ -49,11 +62,37 @@ export function calculateBodyOrientation(
   if (body === 'earth') {
     return calculateEarthTextureOrientation(time);
   }
+  if (isIauRotationBody(body)) {
+    const astronomyTime = MakeTime(time.julianDay - JULIAN_DAY_J2000);
+    const angles = calculateIauRotationAngles(body, astronomyTime.tt);
+    const north = vectorFromEquatorialCoordinates(
+      angles.rightAscensionDegrees,
+      angles.declinationDegrees,
+      astronomyTime,
+    );
+
+    return calculateOrientationFromAngles(
+      angles.rightAscensionDegrees,
+      angles.declinationDegrees,
+      angles.primeMeridianDegrees,
+      north,
+    );
+  }
   const daysSinceJ2000 = time.julianDay - JULIAN_DAY_J2000;
-  const axis = RotationAxis(ROTATIONAL_BODIES[body], daysSinceJ2000);
-  const rightAscension = axis.ra * (Math.PI / 12);
-  const declination = axis.dec * (Math.PI / 180);
-  const primeMeridian = normalizeDegrees(axis.spin) * (Math.PI / 180);
+  const axis = RotationAxis(ASTRONOMY_ENGINE_ROTATIONAL_BODIES[body], daysSinceJ2000);
+
+  return calculateOrientationFromAngles(axis.ra * 15, axis.dec, axis.spin, axis.north);
+}
+
+function calculateOrientationFromAngles(
+  rightAscensionDegrees: number,
+  declinationDegrees: number,
+  primeMeridianDegrees: number,
+  north: Vector,
+): BodyOrientation {
+  const rightAscension = rightAscensionDegrees * (Math.PI / 180);
+  const declination = declinationDegrees * (Math.PI / 180);
+  const primeMeridian = normalizeDegrees(primeMeridianDegrees) * (Math.PI / 180);
   const secondEulerAngle = Math.PI / 2 - declination;
   const thirdEulerAngle = Math.PI / 2 + rightAscension;
   const cosPrimeMeridian = Math.cos(primeMeridian);
@@ -66,22 +105,39 @@ export function calculateBodyOrientation(
     cosThird * cosPrimeMeridian - sinThird * cosSecond * sinPrimeMeridian,
     sinThird * cosPrimeMeridian + cosThird * cosSecond * sinPrimeMeridian,
     sinSecond * sinPrimeMeridian,
-    axis.north.t,
+    north.t,
   );
   const bodyYAxis = new Vector(
     -cosThird * sinPrimeMeridian - sinThird * cosSecond * cosPrimeMeridian,
     -sinThird * sinPrimeMeridian + cosThird * cosSecond * cosPrimeMeridian,
     sinSecond * cosPrimeMeridian,
-    axis.north.t,
+    north.t,
   );
 
   // IAU uses body +Z for the north pole. The renderer uses local +Y for the
-  // pole and maps astronomical Y to scene Z, preserving a right-handed basis.
+  // pole and local +Z toward geographic west so the basis stays right-handed.
   return {
     xAxis: toEclipticSceneDirection(bodyXAxis),
-    yAxis: toEclipticSceneDirection(axis.north),
-    zAxis: toEclipticSceneDirection(bodyYAxis),
+    yAxis: toEclipticSceneDirection(north),
+    zAxis: toEclipticSceneDirection(bodyYAxis, -1),
   };
+}
+
+function vectorFromEquatorialCoordinates(
+  rightAscensionDegrees: number,
+  declinationDegrees: number,
+  time: ReturnType<typeof MakeTime>,
+): Vector {
+  const rightAscension = rightAscensionDegrees * (Math.PI / 180);
+  const declination = declinationDegrees * (Math.PI / 180);
+  const cosDeclination = Math.cos(declination);
+
+  return new Vector(
+    cosDeclination * Math.cos(rightAscension),
+    cosDeclination * Math.sin(rightAscension),
+    Math.sin(declination),
+    time,
+  );
 }
 
 export function calculateEarthObserverDirection(
@@ -99,18 +155,18 @@ export function calculateEarthTextureOrientation(time: UniverseTime): BodyOrient
   return {
     xAxis: calculateEarthObserverDirection(time, 0, 0),
     yAxis: calculateEarthObserverDirection(time, 90, 0),
-    zAxis: calculateEarthObserverDirection(time, 0, 90),
+    zAxis: calculateEarthObserverDirection(time, 0, -90),
   };
 }
 
-function toEclipticSceneDirection(vector: Vector): Vector3Like {
+function toEclipticSceneDirection(vector: Vector, direction = 1): Vector3Like {
   const ecliptic = RotateVector(EQUATORIAL_TO_ECLIPTIC, vector);
   const length = Math.hypot(ecliptic.x, ecliptic.y, ecliptic.z);
 
   return {
-    x: ecliptic.x / length,
-    y: ecliptic.z / length,
-    z: ecliptic.y / length,
+    x: (ecliptic.x / length) * direction,
+    y: (ecliptic.z / length) * direction,
+    z: (-ecliptic.y / length) * direction,
   };
 }
 

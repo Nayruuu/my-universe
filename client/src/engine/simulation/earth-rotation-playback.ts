@@ -1,20 +1,18 @@
 import { UniverseTime } from '../../data/models/universe.models';
 
 export const MAX_EARTH_VISUAL_DAYS_PER_SECOND = 1 / 24;
-export const EARTH_ROTATION_RECOVERY_RADIANS_PER_SECOND = Math.PI;
 
 export type EarthRotationPlaybackUpdate =
-  | { mode: 'exact'; time: UniverseTime }
-  | { mode: 'stabilized'; time: UniverseTime }
-  | { mode: 'synchronize'; time: UniverseTime };
+  | { mode: 'exact'; time: UniverseTime; forceUpdate: boolean }
+  | { mode: 'stabilized'; time: UniverseTime; forceUpdate: false };
 
 export class EarthRotationPlayback {
   private visualJulianDay: number | null = null;
-  private synchronizationRequired = false;
+  private stabilizedSinceReset = false;
 
   public reset(time: UniverseTime): void {
     this.visualJulianDay = time.julianDay;
-    this.synchronizationRequired = false;
+    this.stabilizedSinceReset = false;
   }
 
   public update(
@@ -33,23 +31,19 @@ export class EarthRotationPlayback {
       this.visualJulianDay ??= initialVisualTime;
       this.visualJulianDay +=
         direction * MAX_EARTH_VISUAL_DAYS_PER_SECOND * Math.max(0, deltaSeconds);
-      this.synchronizationRequired = true;
+      this.stabilizedSinceReset = true;
 
       return {
         mode: 'stabilized',
         time: { julianDay: this.visualJulianDay },
+        forceUpdate: false,
       };
     }
-    if (this.synchronizationRequired) {
-      return { mode: 'synchronize', time };
-    }
+    const forceUpdate = this.stabilizedSinceReset;
 
     this.visualJulianDay = time.julianDay;
+    this.stabilizedSinceReset = false;
 
-    return { mode: 'exact', time };
-  }
-
-  public markSynchronized(time: UniverseTime): void {
-    this.reset(time);
+    return { mode: 'exact', time, forceUpdate };
   }
 }

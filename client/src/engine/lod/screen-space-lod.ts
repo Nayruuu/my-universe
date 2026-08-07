@@ -77,8 +77,12 @@ export function shouldDisplayObjectAtLevel(
   if (object.type === 'black-hole') {
     return lodLevel >= 1 && lodLevel <= 3;
   }
+  if (object.type === 'supernova' || object.type === 'supernova-remnant') {
+    return lodLevel >= 1 && lodLevel <= 3;
+  }
   if (
     object.type === 'planet' ||
+    object.type === 'exoplanet' ||
     object.type === 'dwarf-planet' ||
     object.type === 'moon' ||
     object.type === 'asteroid' ||

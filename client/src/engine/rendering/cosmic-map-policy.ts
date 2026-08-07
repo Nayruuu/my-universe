@@ -19,8 +19,8 @@ export const DEFAULT_COSMIC_MAP_LAYERS: CosmicMapLayers = Object.freeze({
   links: true,
   clusters: true,
   superclusters: true,
-  filaments: false,
-  voids: false,
+  filaments: true,
+  voids: true,
 });
 
 export const ALL_COSMIC_MAP_LAYERS: CosmicMapLayers = Object.freeze({
@@ -43,6 +43,7 @@ const QUALITY_DETAIL_FACTORS = {
   medium: 0.78,
   high: 1,
 } as const satisfies Record<GraphicQuality, number>;
+const FILAMENT_SPINE_REVEAL_RANGE = 0.64;
 
 export function getCosmicMapDetail(cameraDistance: number, quality: GraphicQuality): number {
   const distance = Math.max(0, cameraDistance);
@@ -81,6 +82,10 @@ export function getCosmicGroupRevealThreshold(identifier: string): number {
   return Math.min(1, stableMapPriority(identifier) / 0.72);
 }
 
+export function getCosmicFilamentSpineRevealThreshold(identifier: string): number {
+  return stableMapPriority(identifier) * FILAMENT_SPINE_REVEAL_RANGE;
+}
+
 export function getCosmicStructureRevealThreshold(
   identifier: string,
   structureType: CosmicStructureType,
@@ -98,7 +103,7 @@ export function getCosmicStructureRevealThreshold(
     return 0.04 + priority * 0.96;
   }
   if (structureType === 'void') {
-    return priority * 0.86;
+    return priority * 0.18;
   }
 
   return priority;

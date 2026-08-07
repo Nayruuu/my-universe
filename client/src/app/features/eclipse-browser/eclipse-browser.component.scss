@@ -8,6 +8,7 @@
   bottom: calc(100% + 10px);
   left: 50%;
   display: grid;
+  grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
   width: min(460px, calc(100vw - 36px));
   max-height: min(560px, calc(100vh - 190px));
   overflow: hidden;
@@ -133,10 +134,53 @@
 
 .event-list {
   display: grid;
+  min-height: 0;
   margin: 0;
-  overflow: auto;
+  overflow: hidden auto;
   padding: 0;
   overscroll-behavior: contain;
+  scrollbar-color: rgb(126 190 229 / 24%) transparent;
+  scrollbar-width: thin;
+}
+
+.catalog-navigation {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgb(174 203 233 / 7%);
+  background: rgb(2 7 16 / 35%);
+
+  button {
+    display: flex;
+    min-height: 30px;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 0 9px;
+    border: 1px solid rgb(123 190 231 / 12%);
+    border-radius: 8px;
+    color: rgb(196 219 238 / 62%);
+    background: rgb(44 102 146 / 6%);
+    font: inherit;
+    font-size: 0.58rem;
+    cursor: pointer;
+
+    &:hover:not(:disabled),
+    &:focus-visible {
+      border-color: rgb(126 198 240 / 32%);
+      outline: none;
+      color: #e5f4fe;
+      background: rgb(75 151 202 / 12%);
+    }
+
+    &:disabled {
+      border-color: transparent;
+      color: rgb(171 199 222 / 28%);
+      background: transparent;
+      cursor: default;
+    }
+  }
 }
 
 .event-list__item {
@@ -344,7 +388,15 @@
 @media (width <= 720px) {
   .eclipse-browser {
     width: min(370px, calc(100vw - 20px));
-    max-height: calc(100vh - 270px);
+    max-height: calc(100dvh - 282px - var(--mobile-top-safe, 0px) - var(--mobile-bottom-safe, 0px));
+  }
+
+  .close-button,
+  .catalog-navigation button,
+  .event-card,
+  .observer-action,
+  .observer-picker select {
+    min-height: 44px;
   }
 
   .observer-picker {
