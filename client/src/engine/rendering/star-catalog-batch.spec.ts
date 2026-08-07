@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { CoordinateSystem } from '../coordinates/coordinate-system';
 import { StarCatalog } from '../loaders/star-catalog';
 import { colorIndexToRgb } from '../materials/star-color';
-import { StarCatalogRegistry } from '../objects/star-catalog-registry';
+import { CATALOG_STAR_VISUAL_RADIUS, StarCatalogRegistry } from '../objects/star-catalog-registry';
 import { PICKING_LAYER } from '../selection/selection-layers';
 import { StarCatalogBatch } from './star-catalog-batch';
 
@@ -89,18 +89,107 @@ describe('StarCatalogBatch', () => {
     batch.dispose();
   });
 
+  it('masque sa frontière héliocentrique lorsque la caméra quitte le volume local', () => {
+    const batch = createBatch(6_000);
+    const sphere = batch.points.geometry.boundingSphere!;
+    const radius = sphere.radius + sphere.center.length();
+
+    batch.updateLod(2, 10, new THREE.Vector3(radius * 0.9, 0, 0));
+    expect(batch.visibleCount).toBe(0);
+    expect(batch.points.userData['observerBoundaryOpacity']).toBe(0);
+
+    batch.updateLod(2, 10, new THREE.Vector3(0, 0, 0));
+    expect(batch.visibleCount).toBe(6_000);
+    expect(batch.points.userData['observerBoundaryOpacity']).toBe(1);
+    batch.dispose();
+  });
+
   it('rend les étoiles brillantes plus grandes et chaudes ou froides selon B−V', () => {
     const batch = createBatch(2);
     const sizes = batch.points.geometry.getAttribute('pointSize') as THREE.BufferAttribute;
+    const alphas = batch.points.geometry.getAttribute('pointAlpha') as THREE.BufferAttribute;
+    const surfaceProfiles = batch.points.geometry.getAttribute(
+      'surfaceProfile',
+    ) as THREE.BufferAttribute;
+    const surfaceCellScales = batch.points.geometry.getAttribute(
+      'surfaceCellScale',
+    ) as THREE.BufferAttribute;
+    const surfaceContrasts = batch.points.geometry.getAttribute(
+      'surfaceContrast',
+    ) as THREE.BufferAttribute;
+    const surfaceCoronae = batch.points.geometry.getAttribute(
+      'surfaceCorona',
+    ) as THREE.BufferAttribute;
+    const surfaceSeeds = batch.points.geometry.getAttribute('surfaceSeed') as THREE.BufferAttribute;
+    const intensities = batch.points.geometry.getAttribute(
+      'pointIntensity',
+    ) as THREE.BufferAttribute;
     const blue = colorIndexToRgb(-0.2);
     const red = colorIndexToRgb(1.7);
 
     expect(sizes.getX(0)).toBeGreaterThan(sizes.getX(1));
-    expect(sizes.getX(0)).toBeGreaterThan(8);
+    expect(sizes.getX(0)).toBeGreaterThan(7);
+    expect(sizes.getX(0)).toBeLessThan(9.5);
+    expect(sizes.getX(1)).toBeGreaterThan(1);
+    expect(sizes.getX(1)).toBeLessThan(2.2);
+    expect(alphas.getX(1)).toBeGreaterThan(0.5);
+    expect(intensities.getX(0)).toBeGreaterThan(0.95);
+    expect(intensities.getX(1)).toBeLessThan(0.1);
+    expect(surfaceProfiles.count).toBe(2);
+    expect(surfaceCellScales.getX(0)).toBeGreaterThan(surfaceCellScales.getX(1));
+    expect(surfaceContrasts.getX(1)).toBeGreaterThan(surfaceContrasts.getX(0));
+    expect(surfaceCoronae.getX(0)).toBeGreaterThan(surfaceCoronae.getX(1));
+    expect(surfaceSeeds.getX(0)).toBeGreaterThanOrEqual(0);
+    expect(surfaceSeeds.getX(0)).toBeLessThan(1);
+    expect(surfaceSeeds.getX(0)).not.toBe(surfaceSeeds.getX(1));
     expect(blue[2]).toBeGreaterThan(blue[0]);
     expect(red[0]).toBeGreaterThan(red[2]);
     expect(batch.points.material.uniforms['diffractionStrength']!.value).toBeGreaterThan(0);
-    expect(batch.points.userData['visualStyle']).toBe('photographic-temperature-and-diffraction');
+    expect(batch.points.material.fragmentShader).toContain('moffatProfile');
+    expect(batch.points.material.fragmentShader).toContain('airyRing');
+    expect(batch.points.material.fragmentShader).toContain('temperatureHalo');
+    expect(batch.points.material.fragmentShader).toContain('brightStar');
+    expect(batch.points.material.fragmentShader).toContain('proceduralPhotosphere');
+    expect(batch.points.material.fragmentShader).toContain('stellarSurfaceNoise');
+    expect(batch.points.material.fragmentShader).toContain('illustrativeStellarTint');
+    expect(batch.points.material.fragmentShader).toContain('photosphereDisc');
+    expect(batch.points.material.vertexShader).toContain('vSurfaceReveal');
+    expect(batch.points.material.vertexShader).toContain('smoothstep(8.0, 16.0');
+    expect(batch.points.userData['visualStyle']).toBe('procedural-spectral-photospheres-v3');
+    expect(batch.points.userData['appearanceConfidence']).toBe('illustrative');
+    expect(batch.root.children).toHaveLength(3);
+    batch.dispose();
+  });
+
+  it('réserve les détails optiques coûteux aux qualités moyennes et élevées', () => {
+    const batch = createBatch(2);
+
+    batch.setQuality('low');
+    const lowDiffraction = batch.points.material.uniforms['diffractionStrength']!.value as number;
+    const lowAiry = batch.points.material.uniforms['airyStrength']!.value as number;
+    const lowSurfaceDetail = batch.points.material.uniforms['surfaceDetail']!.value as number;
+
+    batch.setQuality('medium');
+    const mediumDiffraction = batch.points.material.uniforms['diffractionStrength']!
+      .value as number;
+    const mediumAiry = batch.points.material.uniforms['airyStrength']!.value as number;
+    const mediumSurfaceDetail = batch.points.material.uniforms['surfaceDetail']!.value as number;
+
+    batch.setQuality('high');
+    const highDiffraction = batch.points.material.uniforms['diffractionStrength']!.value as number;
+    const highAiry = batch.points.material.uniforms['airyStrength']!.value as number;
+    const highSurfaceDetail = batch.points.material.uniforms['surfaceDetail']!.value as number;
+
+    expect(lowDiffraction).toBe(0);
+    expect(lowAiry).toBe(0);
+    expect(mediumDiffraction).toBeGreaterThan(lowDiffraction);
+    expect(mediumAiry).toBeGreaterThan(lowAiry);
+    expect(highDiffraction).toBeGreaterThan(mediumDiffraction);
+    expect(highAiry).toBeGreaterThan(mediumAiry);
+    expect(lowSurfaceDetail).toBeGreaterThan(0);
+    expect(mediumSurfaceDetail).toBeGreaterThan(lowSurfaceDetail);
+    expect(highSurfaceDetail).toBeGreaterThan(mediumSurfaceDetail);
+    expect(batch.root.children).toHaveLength(3);
     batch.dispose();
   });
 
@@ -157,7 +246,7 @@ describe('StarCatalogBatch', () => {
     batch.setPixelRatio(1.5);
     batch.updateLod(2, 10);
     const haloMaterial = halo.material as THREE.ShaderMaterial;
-    const coreMaterial = core.material as THREE.MeshBasicMaterial;
+    const coreMaterial = core.material as THREE.ShaderMaterial;
     const fieldScaleAtStellarLevel = batch.points.material.uniforms['pointScale']?.value as number;
 
     expect(detail.visible).toBe(true);
@@ -175,12 +264,67 @@ describe('StarCatalogBatch', () => {
     expect(haloMaterial.uniforms['pointSize']!.value).toBeGreaterThan(100);
     expect(core.visible).toBe(true);
     expect(coreMaterial.opacity).toBeGreaterThan(0.95);
+    expect(coreMaterial.fragmentShader).toContain('limbDarkening');
+    expect(coreMaterial.fragmentShader).toContain('granulation');
+    expect(coreMaterial.fragmentShader).toContain('faculae');
+    expect(coreMaterial.fragmentShader).toContain('fbm');
+    expect(haloMaterial.fragmentShader).toContain('coronaRays');
+    expect(haloMaterial.fragmentShader).toContain('photosphereDisc');
+    expect(haloMaterial.fragmentShader).toContain('stellarSurfaceNoise');
+    expect(haloMaterial.fragmentShader).toContain('darkCells');
+    expect(haloMaterial.fragmentShader).toContain('illustrativeStellarTint');
+    expect(halo.userData['visualStyle']).toBe('procedural-spectral-photosphere-impostor');
+    expect(haloMaterial.blending).toBe(THREE.NormalBlending);
+    expect(coreMaterial.blending).toBe(THREE.NormalBlending);
+    expect(core.userData['scientificConfidence']).toBe('illustrative');
+    expect(core.userData['visualStyle']).toBe('procedural-selected-star-photosphere');
     expect(core.scale.x).toBeLessThanOrEqual(0.1);
     expect(core.scale.y).toBe(core.scale.x);
     expect(core.scale.z).toBe(core.scale.x);
 
     batch.select(null);
     expect(detail.visible).toBe(false);
+    batch.dispose();
+  });
+
+  it('différencie la photosphère active selon le type spectral sans multiplier les volumes', () => {
+    const catalog = createCatalog(2);
+
+    (catalog.spectralTypes as (string | null)[])[0] = 'B2V';
+    (catalog.spectralTypes as (string | null)[])[1] = 'M5V';
+    const batch = new StarCatalogBatch(new StarCatalogRegistry(catalog, new CoordinateSystem()));
+
+    batch.select('hyg-1');
+    const hotCellScale = batch.activeCore.material.uniforms['cellScale']!.value as number;
+    const hotContrast = batch.activeCore.material.uniforms['surfaceContrast']!.value as number;
+    const hotCorona = batch.activeHalo.material.uniforms['coronaStrength']!.value as number;
+    const hotHaloContrast = batch.activeHalo.material.uniforms['surfaceContrast']!.value as number;
+
+    const hotSpotStrength = batch.activeCore.material.uniforms['spotStrength']!.value as number;
+    const hotSeed = batch.activeCore.material.uniforms['surfaceSeed']!.value as number;
+
+    expect(batch.activeCore.userData['visualFamily']).toBe('blue-white');
+    expect(batch.activeHalo.userData['visualFamily']).toBe('blue-white');
+
+    batch.select('hyg-2');
+    const coolCellScale = batch.activeCore.material.uniforms['cellScale']!.value as number;
+    const coolContrast = batch.activeCore.material.uniforms['surfaceContrast']!.value as number;
+    const coolCorona = batch.activeHalo.material.uniforms['coronaStrength']!.value as number;
+    const coolHaloContrast = batch.activeHalo.material.uniforms['surfaceContrast']!.value as number;
+
+    const coolSpotStrength = batch.activeCore.material.uniforms['spotStrength']!.value as number;
+    const coolSeed = batch.activeCore.material.uniforms['surfaceSeed']!.value as number;
+
+    expect(batch.activeCore.userData['visualFamily']).toBe('red-dwarf');
+    expect(batch.activeHalo.userData['visualFamily']).toBe('red-dwarf');
+    expect(coolCellScale).toBeLessThan(hotCellScale);
+    expect(coolContrast).toBeGreaterThan(hotContrast);
+    expect(coolCorona).toBeLessThan(hotCorona);
+    expect(coolHaloContrast).toBeGreaterThan(hotHaloContrast);
+    expect(coolSpotStrength).toBeGreaterThan(hotSpotStrength);
+    expect(coolSeed).not.toBe(hotSeed);
+    expect(batch.activeCore.scale.x).toBeLessThan(CATALOG_STAR_VISUAL_RADIUS);
+    expect(batch.root.children).toHaveLength(3);
     batch.dispose();
   });
 

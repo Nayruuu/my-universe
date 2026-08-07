@@ -1,39 +1,35 @@
 import { expect, type Page } from '@playwright/test';
+import type { ScreenPoint } from './support/navigation-helpers';
 
-export interface ScreenPoint {
-  x: number;
-  y: number;
-}
+export {
+  readRotationGuideState,
+  readSunOcclusionState,
+  type RotationGuideState,
+  type SunOcclusionState,
+} from './support/object-adornment-helpers';
+export {
+  findEmptyCanvasPoint,
+  monitorBrowserErrors,
+  numericQueryParameter,
+  openUniverse,
+  queryParameter,
+  readCameraInteractionState,
+  readNavigationAlignmentState,
+  readObjectScreenPoint,
+  universeUrl,
+  waitForCameraSettled,
+  type CameraInteractionState,
+  type NavigationAlignmentState,
+  type ScreenPoint,
+} from './support/navigation-helpers';
 
 export interface QuaternionSample {
   x: number;
   y: number;
   z: number;
   w: number;
-}
-
-export interface CameraInteractionState {
-  rotateEnabled: boolean;
-  panEnabled: boolean;
-  distance: number;
-  minDistance: number;
-  maxDistance: number;
-  position: {
-    x: number;
-    y: number;
-    z: number;
-  };
-  target: {
-    x: number;
-    y: number;
-    z: number;
-  };
-}
-
-export interface NavigationAlignmentState {
-  targetId: string | null;
-  targetError: number;
-  floatingOriginDistance: number;
+  julianDay: number;
+  timestampMs: number;
 }
 
 export interface SpaceTileStreamingState {
@@ -60,6 +56,12 @@ interface LabelRegion {
   };
 }
 
+interface ObjectRuntimeState<Registry> {
+  readonly primaryRegistry: Registry | null;
+  readonly streamedRegistry: Registry | null;
+  getRegistry(objectId: string): Registry | null;
+}
+
 export interface CatalogLabelLayout {
   totalCount: number;
   catalogCount: number;
@@ -77,6 +79,8 @@ export interface ConstellationInteractionState {
   activeObjectId: string | null;
   highlightVisible: boolean;
   highlightVertexCount: number;
+  highlightOpacity: number;
+  highlightStyle: string | null;
   candidate: {
     objectId: string;
     point: ScreenPoint;
@@ -90,6 +94,13 @@ export interface GalaxyImpostorState {
   width: number;
   height: number;
   pickable: boolean;
+  farVisualStyle: string | null;
+  nearVisible: boolean;
+  nearDiskVisible: boolean;
+  nearDiskStyle: string | null;
+  nearStarFieldVisible: boolean;
+  nearStarFieldStyle: string | null;
+  nearParticleCount: number;
 }
 
 export interface MilkyWayDetailState {
@@ -108,10 +119,13 @@ export interface MilkyWayDetailState {
 
 export interface MilkyWayVolumeState {
   visible: boolean;
+  opacity: number;
+  scale: number;
   atlasStatus: string;
   atlasUrl: string | null;
   structure: string | null;
   depthTechnique: string | null;
+  morphologyModel: string | null;
   confidence: string | null;
   cinematicQuality: string | null;
   parallaxStrength: number;
@@ -121,6 +135,49 @@ export interface MilkyWayVolumeState {
   visibleDiscLayerCount: number;
   layerDepthSpan: number;
   bulgeHeight: number;
+}
+
+export interface LocalGalacticSkyState {
+  environmentVisible: boolean;
+  bandVisible: boolean;
+  opacity: number;
+  drawMeshCount: number;
+  maximumDrawMeshCount: number;
+  panoramaStatus: string;
+  panoramaUrl: string | null;
+  panoramaWidth: number;
+  panoramaHeight: number;
+  angularPresentation: string | null;
+  sourceCredit: string | null;
+  sourceImageId: string | null;
+  sourcePageUrl: string | null;
+  sourcePixelDimensions: number[];
+  texturePixelDimensions: number[];
+  sourceAngularLatitudeSpanDegrees: number;
+  angularLatitudeSpanDegrees: number;
+  latitudePresentationScale: number;
+  sourceProjection: string | null;
+  presentationPitchDegrees: number;
+  presentationRollDegrees: number;
+  presentationComposition: string | null;
+  orientationConfidence: string | null;
+  confidence: string | null;
+  referenceFrame: string | null;
+  visualStyle: string | null;
+  galacticCenterDirection: number[];
+  visualLayers: string[];
+  depthTest: boolean;
+}
+
+export interface LocalVolumeDepthBackdropState {
+  visible: boolean;
+  opacity: number;
+  catalogCount: number;
+  activeCount: number;
+  drawCount: number;
+  minimumRadius: number;
+  maximumRadius: number;
+  depthProjection: string | null;
 }
 
 export interface CosmicBackgroundState {
@@ -141,6 +198,13 @@ export interface CosmicBackgroundState {
 export interface BodyLabelOcclusionState {
   radius: number;
   overlappingLabelCount: number;
+}
+
+export interface SunPixelOcclusionState {
+  changedPixels: number;
+  comparedPixels: number;
+  meanOccludedLuminance: number;
+  maximumDifference: number;
 }
 
 export interface BlackHoleVisualState {
@@ -178,95 +242,17 @@ export interface BlackHoleLensingState {
   renderHeight: number;
 }
 
-const FIXED_TIME = '2026-07-27T12:00:00.000Z';
-
-export function universeUrl(parameters: Record<string, string> = {}): string {
-  const query = new URLSearchParams({
-    target: 'earth',
-    quality: 'low',
-    density: 'balanced',
-    time: FIXED_TIME,
-    labels: '1',
-    orbits: '1',
-    constellations: '1',
-    ...parameters,
-  });
-
-  return `/?${query.toString()}`;
-}
-
-export async function openUniverse(page: Page, url: string): Promise<void> {
-  await page.goto(url);
-  await expect(page.locator('canvas.universe-canvas')).toBeVisible();
-  await expect(page.locator('.loading-screen')).toHaveCount(0);
-  await expect.poll(() => new URL(page.url()).searchParams.get('zoom')).not.toBeNull();
-  await waitForCameraSettled(page);
-}
-
-export async function waitForCameraSettled(page: Page): Promise<void> {
-  await expect.poll(() => isCameraSettled(page)).toBe(true);
-}
-
-export async function readCameraInteractionState(page: Page): Promise<CameraInteractionState> {
-  return page.evaluate(() => {
-    interface VectorState {
-      x: number;
-      y: number;
-      z: number;
-    }
-
-    interface ControllerState {
-      distanceToTarget: number;
-      controls: {
-        enableRotate: boolean;
-        enablePan: boolean;
-        minDistance: number;
-        maxDistance: number;
-        target: VectorState;
-      };
-      camera: {
-        position: VectorState;
-      };
-    }
-
-    const root = document.querySelector('app-root');
-    const angularDebug = (
-      window as unknown as {
-        ng?: {
-          getComponent(element: Element): object | null;
-        };
-      }
-    ).ng;
-    const component = root && angularDebug?.getComponent(root);
-    const facade = component ? (Reflect.get(component, 'facade') as object | undefined) : undefined;
-    const engine = facade ? (Reflect.get(facade, 'engine') as object | undefined) : undefined;
-    const controller = engine
-      ? (Reflect.get(engine, 'cameraController') as ControllerState | null)
-      : null;
-
-    if (!controller) {
-      throw new Error('Contrôleur de caméra indisponible.');
-    }
-    const { controls, camera } = controller;
-
-    return {
-      rotateEnabled: controls.enableRotate,
-      panEnabled: controls.enablePan,
-      distance: controller.distanceToTarget,
-      minDistance: controls.minDistance,
-      maxDistance: controls.maxDistance,
-      position: {
-        x: camera.position.x,
-        y: camera.position.y,
-        z: camera.position.z,
-      },
-      target: {
-        x: controls.target.x,
-        y: controls.target.y,
-        z: controls.target.z,
-      },
-    };
-  });
+export interface SupernovaVisualState {
+  objectId: string;
+  phase: string;
+  nearVisible: boolean;
+  farVisible: boolean;
+  shellVisible: boolean;
+  shellLayerCount: number;
+  visibleShellLayerCount: number;
+  flashVisible: boolean;
+  shellStyle: string | null;
+  farAppearanceOpacity: number;
 }
 
 export async function readBlackHoleVisualState(
@@ -308,9 +294,10 @@ export async function readBlackHoleVisualState(
     const component = root && angularDebug?.getComponent(root);
     const facade = component ? (Reflect.get(component, 'facade') as object | undefined) : undefined;
     const engine = facade ? (Reflect.get(facade, 'engine') as object | undefined) : undefined;
-    const registry = engine
-      ? (Reflect.get(engine, 'objectRegistry') as RegistryState | null)
-      : null;
+    const objectRuntime = engine
+      ? (Reflect.get(engine, 'objectRuntime') as ObjectRuntimeState<RegistryState> | undefined)
+      : undefined;
+    const registry = objectRuntime?.getRegistry(id) ?? null;
     const entry = registry?.entries.get(id);
 
     if (!entry) {
@@ -344,6 +331,75 @@ export async function readBlackHoleVisualState(
       opaqueCosmicReferenceBodyPresent:
         registry?.entries.get('cosmic-web')?.visualRoot.getObjectByName('cosmic-web-body') !==
         undefined,
+    };
+  }, objectId);
+}
+
+export async function readSupernovaVisualState(
+  page: Page,
+  objectId: string,
+): Promise<SupernovaVisualState> {
+  return page.evaluate((id) => {
+    interface SceneNode {
+      visible: boolean;
+      userData: Record<string, unknown>;
+      getObjectByName(name: string): SceneNode | undefined;
+    }
+
+    interface RegistryEntryState {
+      visualRoot: SceneNode;
+      supernova: { phase: string } | null;
+      lod: {
+        nearRoot: SceneNode | null;
+        farSprite: SceneNode | null;
+      };
+    }
+
+    interface RegistryState {
+      entries: Map<string, RegistryEntryState>;
+    }
+
+    const root = document.querySelector('app-root');
+    const angularDebug = (
+      window as unknown as {
+        ng?: {
+          getComponent(element: Element): object | null;
+        };
+      }
+    ).ng;
+    const component = root && angularDebug?.getComponent(root);
+    const facade = component ? (Reflect.get(component, 'facade') as object | undefined) : undefined;
+    const engine = facade ? (Reflect.get(facade, 'engine') as object | undefined) : undefined;
+    const objectRuntime = engine
+      ? (Reflect.get(engine, 'objectRuntime') as ObjectRuntimeState<RegistryState> | undefined)
+      : undefined;
+    const registry = objectRuntime?.getRegistry(id) ?? null;
+    const entry = registry?.entries.get(id);
+
+    if (!entry?.supernova) {
+      throw new Error(`Supernova ${id} indisponible dans le registre.`);
+    }
+    const shell = entry.visualRoot.getObjectByName(`${id}-supernova-shell`);
+    const shellLayers = [
+      shell,
+      entry.visualRoot.getObjectByName(`${id}-supernova-filaments`),
+      entry.visualRoot.getObjectByName(`${id}-supernova-emission-knots`),
+    ].filter((layer): layer is SceneNode => layer !== undefined);
+    const flash = entry.visualRoot.getObjectByName(`${id}-supernova-flash`);
+    const shellStyle = shell?.userData['visualStyle'];
+    const appearanceOpacity = entry.lod.farSprite?.userData['appearanceOpacity'];
+
+    return {
+      objectId: id,
+      phase: entry.supernova.phase,
+      nearVisible: entry.lod.nearRoot?.visible ?? false,
+      farVisible: entry.lod.farSprite?.visible ?? false,
+      shellVisible: shell?.visible ?? false,
+      shellLayerCount: shellLayers.length,
+      visibleShellLayerCount: shellLayers.filter((layer) => layer.visible).length,
+      flashVisible: flash?.visible ?? false,
+      shellStyle: typeof shellStyle === 'string' ? shellStyle : null,
+      farAppearanceOpacity: typeof appearanceOpacity === 'number' ? appearanceOpacity : 0,
     };
   }, objectId);
 }
@@ -388,61 +444,20 @@ export async function readBlackHoleLensingState(page: Page): Promise<BlackHoleLe
   });
 }
 
-export async function readNavigationAlignmentState(page: Page): Promise<NavigationAlignmentState> {
-  return page.evaluate(() => {
-    interface VectorState {
-      distanceTo(vector: VectorState): number;
-      length(): number;
-    }
-
-    interface EngineState {
-      targetId: string | null;
-      cameraController: {
-        controls: {
-          target: VectorState;
-        };
-      } | null;
-      floatingOriginManager: {
-        accumulatedOrigin: VectorState;
-      };
-      getWorldPosition(objectId: string): VectorState | null;
-    }
-
-    const root = document.querySelector('app-root');
-    const angularDebug = (
-      window as unknown as {
-        ng?: {
-          getComponent(element: Element): object | null;
-        };
-      }
-    ).ng;
-    const component = root && angularDebug?.getComponent(root);
-    const facade = component ? (Reflect.get(component, 'facade') as object | undefined) : undefined;
-    const engine = facade ? (Reflect.get(facade, 'engine') as EngineState | undefined) : undefined;
-    const targetId = engine?.targetId ?? null;
-    const controlsTarget = engine?.cameraController?.controls.target;
-    const objectPosition = engine && targetId ? engine.getWorldPosition(targetId) : null;
-
-    if (!engine || !controlsTarget) {
-      throw new Error('État de navigation indisponible.');
-    }
-
-    return {
-      targetId,
-      targetError: objectPosition ? controlsTarget.distanceTo(objectPosition) : 0,
-      floatingOriginDistance: engine.floatingOriginManager.accumulatedOrigin.length(),
-    };
-  });
-}
-
 export async function readSpaceTileStreamingState(page: Page): Promise<SpaceTileStreamingState> {
   return page.evaluate(() => {
-    interface TileManagerState {
-      indexedTileCount: number;
-      loadedTileCount: number;
-      cachedTileCount: number;
-      loadedObjects: readonly { id: string }[];
-      tileIdByObjectId: Map<string, string>;
+    interface StreamingCoordinatorState {
+      searchEntries: readonly { id: string }[];
+      loadedSpaceObjects: readonly { id: string }[];
+      stats: {
+        indexedGalaxyTiles: number;
+        loadedTiles: number;
+        cachedGalaxyTiles: number;
+      };
+    }
+
+    interface StreamingRuntimeState {
+      coordinator: StreamingCoordinatorState | null;
     }
 
     const root = document.querySelector('app-root');
@@ -456,20 +471,21 @@ export async function readSpaceTileStreamingState(page: Page): Promise<SpaceTile
     const component = root && angularDebug?.getComponent(root);
     const facade = component ? (Reflect.get(component, 'facade') as object | undefined) : undefined;
     const engine = facade ? (Reflect.get(facade, 'engine') as object | undefined) : undefined;
-    const manager = engine
-      ? (Reflect.get(engine, 'spaceTileManager') as TileManagerState | null)
-      : null;
+    const streamingRuntime = engine
+      ? (Reflect.get(engine, 'streamingRuntime') as StreamingRuntimeState | undefined)
+      : undefined;
+    const coordinator = streamingRuntime?.coordinator ?? null;
 
-    if (!manager) {
-      throw new Error('Gestionnaire de tuiles spatiales indisponible.');
+    if (!coordinator) {
+      throw new Error('Coordinateur de streaming spatial indisponible.');
     }
 
     return {
-      indexedObjectCount: manager.tileIdByObjectId.size,
-      indexedTileCount: manager.indexedTileCount,
-      loadedTileCount: manager.loadedTileCount,
-      cachedTileCount: manager.cachedTileCount,
-      loadedObjectIds: manager.loadedObjects
+      indexedObjectCount: coordinator.searchEntries.length,
+      indexedTileCount: coordinator.stats.indexedGalaxyTiles,
+      loadedTileCount: coordinator.stats.loadedTiles,
+      cachedTileCount: coordinator.stats.cachedGalaxyTiles,
+      loadedObjectIds: coordinator.loadedSpaceObjects
         .map((object) => object.id)
         .sort((left, right) => left.localeCompare(right)),
     };
@@ -494,14 +510,12 @@ export async function readNearbyGalaxyBatchState(page: Page): Promise<NearbyGala
     const component = root && angularDebug?.getComponent(root);
     const facade = component ? (Reflect.get(component, 'facade') as object | undefined) : undefined;
     const engine = facade ? (Reflect.get(facade, 'engine') as object | undefined) : undefined;
-    const registries = engine
-      ? [
-          Reflect.get(engine, 'objectRegistry'),
-          Reflect.get(engine, 'spaceTileObjectRegistry'),
-        ].filter(
-          (registry): registry is object => typeof registry === 'object' && registry !== null,
-        )
-      : [];
+    const objectRuntime = engine
+      ? (Reflect.get(engine, 'objectRuntime') as ObjectRuntimeState<object> | undefined)
+      : undefined;
+    const registries = [objectRuntime?.primaryRegistry, objectRuntime?.streamedRegistry].filter(
+      (registry): registry is object => registry !== null && registry !== undefined,
+    );
     const pointsByRegistry = registries
       .map((registry) => Reflect.get(registry, 'farObjectBatch') as object | undefined)
       .map((farObjectBatch) =>
@@ -554,92 +568,6 @@ export async function readNearbyGalaxyBatchState(page: Page): Promise<NearbyGala
   });
 }
 
-export async function readObjectScreenPoint(page: Page, objectId: string): Promise<ScreenPoint> {
-  return page.evaluate((requestedId) => {
-    interface ProjectableVector {
-      x: number;
-      y: number;
-      z: number;
-      project(camera: unknown): ProjectableVector;
-    }
-
-    interface RegistryState {
-      getWorldPosition(id: string): ProjectableVector | null;
-    }
-
-    const root = document.querySelector('app-root');
-    const canvas = document.querySelector<HTMLCanvasElement>('canvas.universe-canvas');
-    const angularDebug = (
-      window as unknown as {
-        ng?: {
-          getComponent(element: Element): object | null;
-        };
-      }
-    ).ng;
-    const component = root && angularDebug?.getComponent(root);
-    const facade = component ? (Reflect.get(component, 'facade') as object | undefined) : undefined;
-    const engine = facade ? (Reflect.get(facade, 'engine') as object | undefined) : undefined;
-    const registry = engine
-      ? (Reflect.get(engine, 'objectRegistry') as RegistryState | undefined)
-      : undefined;
-    const camera = engine ? (Reflect.get(engine, 'camera') as object | undefined) : undefined;
-    const position = registry?.getWorldPosition(requestedId);
-
-    if (!canvas || !camera || !position) {
-      throw new Error(`Projection écran indisponible pour ${requestedId}.`);
-    }
-    position.project(camera);
-    const bounds = canvas.getBoundingClientRect();
-
-    return {
-      x: bounds.left + (position.x * 0.5 + 0.5) * bounds.width,
-      y: bounds.top + (-position.y * 0.5 + 0.5) * bounds.height,
-    };
-  }, objectId);
-}
-
-export async function findEmptyCanvasPoint(page: Page): Promise<ScreenPoint> {
-  return page.evaluate(() => {
-    interface SelectionManagerState {
-      findObjectAt(event: { clientX: number; clientY: number }): string | null;
-    }
-
-    const root = document.querySelector('app-root');
-    const canvas = document.querySelector<HTMLCanvasElement>('canvas.universe-canvas');
-    const angularDebug = (
-      window as unknown as {
-        ng?: {
-          getComponent(element: Element): object | null;
-        };
-      }
-    ).ng;
-    const component = root && angularDebug?.getComponent(root);
-    const facade = component ? (Reflect.get(component, 'facade') as object | undefined) : undefined;
-    const engine = facade ? (Reflect.get(facade, 'engine') as object | undefined) : undefined;
-    const selectionManager = engine
-      ? (Reflect.get(engine, 'selectionManager') as SelectionManagerState | undefined)
-      : undefined;
-
-    if (!canvas || !selectionManager) {
-      throw new Error('Le gestionnaire de sélection est indisponible.');
-    }
-    const bounds = canvas.getBoundingClientRect();
-
-    for (let y = bounds.top + 120; y < bounds.bottom - 160; y += 80) {
-      for (let x = bounds.left + 100; x < bounds.right - 100; x += 100) {
-        if (
-          document.elementFromPoint(x, y) === canvas &&
-          selectionManager.findObjectAt({ clientX: x, clientY: y }) === null
-        ) {
-          return { x, y };
-        }
-      }
-    }
-
-    throw new Error('Aucune zone vide et interactive du canvas n’a été trouvée.');
-  });
-}
-
 export async function readObjectRotation(page: Page, objectId: string): Promise<number> {
   return page.evaluate((requestedId) => {
     const root = document.querySelector('app-root');
@@ -653,9 +581,10 @@ export async function readObjectRotation(page: Page, objectId: string): Promise<
     const component = root && angularDebug?.getComponent(root);
     const facade = component ? (Reflect.get(component, 'facade') as object | undefined) : undefined;
     const engine = facade ? (Reflect.get(facade, 'engine') as object | undefined) : undefined;
-    const registry = engine
-      ? (Reflect.get(engine, 'objectRegistry') as object | undefined)
+    const objectRuntime = engine
+      ? (Reflect.get(engine, 'objectRuntime') as ObjectRuntimeState<object> | undefined)
       : undefined;
+    const registry = objectRuntime?.getRegistry(requestedId);
     const entries = registry
       ? (Reflect.get(registry, 'entries') as Map<string, object> | undefined)
       : undefined;
@@ -684,9 +613,10 @@ export async function readBodyTextureState(
     const component = root && angularDebug?.getComponent(root);
     const facade = component ? (Reflect.get(component, 'facade') as object | undefined) : undefined;
     const engine = facade ? (Reflect.get(facade, 'engine') as object | undefined) : undefined;
-    const registry = engine
-      ? (Reflect.get(engine, 'objectRegistry') as object | undefined)
+    const objectRuntime = engine
+      ? (Reflect.get(engine, 'objectRuntime') as ObjectRuntimeState<object> | undefined)
       : undefined;
+    const registry = objectRuntime?.getRegistry(requestedId);
     const entries = registry
       ? (Reflect.get(registry, 'entries') as Map<string, object> | undefined)
       : undefined;
@@ -724,28 +654,37 @@ export async function sampleObjectQuaternions(
         ? (Reflect.get(component, 'facade') as object | undefined)
         : undefined;
       const engine = facade ? (Reflect.get(facade, 'engine') as object | undefined) : undefined;
-      const registry = engine
-        ? (Reflect.get(engine, 'objectRegistry') as object | undefined)
+      const objectRuntime = engine
+        ? (Reflect.get(engine, 'objectRuntime') as ObjectRuntimeState<object> | undefined)
         : undefined;
+      const registry = objectRuntime?.getRegistry(requestedId);
       const entries = registry
         ? (Reflect.get(registry, 'entries') as Map<string, object> | undefined)
         : undefined;
       const entry = entries?.get(requestedId);
       const body = entry
         ? (Reflect.get(entry, 'rotatingBody') as {
-            quaternion: QuaternionSample;
+            quaternion: Omit<QuaternionSample, 'julianDay' | 'timestampMs'>;
           } | null)
         : null;
       const samples: QuaternionSample[] = [];
 
-      if (!body) {
+      if (!body || !engine) {
         return samples;
       }
       for (let index = 0; index < requestedCount; index += 1) {
         await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
         const { x, y, z, w } = body.quaternion;
+        const currentTime = Reflect.get(engine, 'currentTime') as { julianDay: number };
 
-        samples.push({ x, y, z, w });
+        samples.push({
+          x,
+          y,
+          z,
+          w,
+          julianDay: currentTime.julianDay,
+          timestampMs: performance.now(),
+        });
       }
 
       return samples;
@@ -769,9 +708,10 @@ export async function readSolarEclipseVisualState(
     const component = root && angularDebug?.getComponent(root);
     const facade = component ? (Reflect.get(component, 'facade') as object | undefined) : undefined;
     const engine = facade ? (Reflect.get(facade, 'engine') as object | undefined) : undefined;
-    const registry = engine
-      ? (Reflect.get(engine, 'objectRegistry') as object | undefined)
+    const objectRuntime = engine
+      ? (Reflect.get(engine, 'objectRuntime') as ObjectRuntimeState<object> | undefined)
       : undefined;
+    const registry = objectRuntime?.getRegistry('earth');
     const entries = registry
       ? (Reflect.get(registry, 'entries') as Map<string, object> | undefined)
       : undefined;
@@ -793,6 +733,191 @@ export async function readSolarEclipseVisualState(
   });
 }
 
+export async function readSolarEclipseEventMapState(page: Page): Promise<{
+  visible: boolean;
+  partialEnvelopeVisible: boolean;
+  corridorVisible: boolean;
+  corridorLimitsVisible: boolean;
+  centralLineVisible: boolean;
+  bodyFixed: boolean;
+  europeCovered: boolean;
+  europeFramed: boolean;
+  overviewFramed: boolean;
+  sufficientSampling: boolean;
+  source: string | null;
+}> {
+  return page.evaluate(() => {
+    const root = document.querySelector('app-root');
+    const angularDebug = (
+      window as unknown as {
+        ng?: {
+          getComponent(element: Element): object | null;
+        };
+      }
+    ).ng;
+    const component = root && angularDebug?.getComponent(root);
+    const facade = component ? (Reflect.get(component, 'facade') as object | undefined) : undefined;
+    const engine = facade ? (Reflect.get(facade, 'engine') as object | undefined) : undefined;
+    const objectRuntime = engine
+      ? (Reflect.get(engine, 'objectRuntime') as ObjectRuntimeState<object> | undefined)
+      : undefined;
+    const registry = objectRuntime?.getRegistry('earth');
+
+    interface RuntimeVector {
+      x: number;
+      y: number;
+      z: number;
+      clone(): RuntimeVector;
+      set(x: number, y: number, z: number): RuntimeVector;
+      normalize(): RuntimeVector;
+      multiplyScalar(scale: number): RuntimeVector;
+      sub(vector: RuntimeVector): RuntimeVector;
+      dot(vector: RuntimeVector): number;
+      project(camera: object): RuntimeVector;
+    }
+    const controller = engine
+      ? (Reflect.get(engine, 'cameraController') as { distanceToTarget: number } | undefined)
+      : undefined;
+    const camera = engine
+      ? (Reflect.get(engine, 'camera') as { position: RuntimeVector } | undefined)
+      : undefined;
+    const entries = registry
+      ? (Reflect.get(registry, 'entries') as Map<string, object> | undefined)
+      : undefined;
+    const earth = entries?.get('earth');
+    const rotatingBody = earth
+      ? (Reflect.get(earth, 'rotatingBody') as {
+          worldToLocal(point: RuntimeVector): RuntimeVector;
+        } | null)
+      : null;
+    const solarEclipse = earth
+      ? (Reflect.get(earth, 'solarEclipse') as {
+          eventMapRoot: {
+            visible: boolean;
+            parent: { name: string } | null;
+            userData: Record<string, unknown>;
+          };
+          partialEnvelope: {
+            visible: boolean;
+            material: { map: { image: HTMLCanvasElement } | null };
+            localToWorld(point: RuntimeVector): RuntimeVector;
+          };
+          corridor: { visible: boolean };
+          corridorLimits: { visible: boolean };
+          path: { visible: boolean };
+        } | null)
+      : null;
+    const footprintCount = solarEclipse?.eventMapRoot.userData['partialFootprintCount'];
+    const corridorCount = solarEclipse?.eventMapRoot.userData['corridorSampleCount'];
+    const source = solarEclipse?.eventMapRoot.userData['source'];
+    const partialCanvas = solarEclipse?.partialEnvelope.material.map?.image;
+    const partialContext = partialCanvas?.getContext('2d');
+    const europeanCities = [
+      [48.8566, 2.3522],
+      [51.5074, -0.1278],
+      [52.52, 13.405],
+      [40.4168, -3.7038],
+    ];
+    const europeanCityStates = europeanCities.map(([latitude, longitude]) => {
+      if (!partialCanvas || !partialContext || !camera || !solarEclipse) {
+        return { covered: false, framed: false, screenX: Number.NaN };
+      }
+      const latitudeRadians = (latitude! * Math.PI) / 180;
+      const longitudeRadians = (longitude! * Math.PI) / 180;
+      const surfacePoint = camera.position
+        .clone()
+        .set(
+          Math.cos(latitudeRadians) * Math.cos(longitudeRadians),
+          Math.sin(latitudeRadians),
+          -Math.cos(latitudeRadians) * Math.sin(longitudeRadians),
+        )
+        .multiplyScalar(1.018);
+      const earthCenter = solarEclipse.partialEnvelope.localToWorld(
+        camera.position.clone().set(0, 0, 0),
+      );
+      const worldPoint = solarEclipse.partialEnvelope.localToWorld(surfacePoint);
+      const screenPoint = worldPoint.clone().project(camera);
+      const frontFacing =
+        worldPoint
+          .clone()
+          .sub(earthCenter)
+          .normalize()
+          .dot(camera.position.clone().sub(earthCenter).normalize()) > 0.2;
+      const pixel = partialContext.getImageData(
+        Math.round(((longitude! + 180) / 360) * (partialCanvas.width - 1)),
+        Math.round(((90 - latitude!) / 180) * (partialCanvas.height - 1)),
+        1,
+        1,
+      ).data;
+
+      return {
+        covered: pixel[3]! > 0,
+        framed: frontFacing && Math.abs(screenPoint.x) < 0.36 && Math.abs(screenPoint.y) < 0.36,
+        screenX: screenPoint.x,
+      };
+    });
+    const newYorkLatitude = (40.7128 * Math.PI) / 180;
+    const newYorkLongitude = (-74.006 * Math.PI) / 180;
+    const newYorkScreenX =
+      camera && solarEclipse
+        ? solarEclipse.partialEnvelope
+            .localToWorld(
+              camera.position
+                .clone()
+                .set(
+                  Math.cos(newYorkLatitude) * Math.cos(newYorkLongitude),
+                  Math.sin(newYorkLatitude),
+                  -Math.cos(newYorkLatitude) * Math.sin(newYorkLongitude),
+                ),
+            )
+            .project(camera).x
+        : Number.NaN;
+    const localCameraDirection =
+      camera && rotatingBody
+        ? rotatingBody.worldToLocal(camera.position.clone()).normalize()
+        : null;
+    const cameraLatitude = localCameraDirection
+      ? (Math.asin(localCameraDirection.y) * 180) / Math.PI
+      : Number.NaN;
+    const cameraLongitude = localCameraDirection
+      ? (-Math.atan2(localCameraDirection.z, localCameraDirection.x) * 180) / Math.PI
+      : Number.NaN;
+    const europeCovered = europeanCityStates.every(({ covered }) => covered);
+    const europeFramed =
+      europeanCityStates.every(({ framed }) => framed) &&
+      europeanCityStates.every(({ screenX }) => screenX > newYorkScreenX) &&
+      cameraLatitude > 52 &&
+      cameraLatitude < 63 &&
+      cameraLongitude > -24 &&
+      cameraLongitude < -8;
+    const definition = earth
+      ? (Reflect.get(earth, 'definition') as { visual: { visualRadius: number } })
+      : null;
+    const overviewDistance =
+      controller && definition
+        ? controller.distanceToTarget / definition.visual.visualRadius
+        : Number.NaN;
+
+    return {
+      visible: solarEclipse?.eventMapRoot.visible ?? false,
+      partialEnvelopeVisible: solarEclipse?.partialEnvelope.visible ?? false,
+      corridorVisible: solarEclipse?.corridor.visible ?? false,
+      corridorLimitsVisible: solarEclipse?.corridorLimits.visible ?? false,
+      centralLineVisible: solarEclipse?.path.visible ?? false,
+      bodyFixed: solarEclipse?.eventMapRoot.parent?.name === 'earth-body',
+      europeCovered,
+      europeFramed,
+      overviewFramed: overviewDistance > 4.7 && overviewDistance < 4.9,
+      sufficientSampling:
+        typeof footprintCount === 'number' &&
+        footprintCount > 12 &&
+        typeof corridorCount === 'number' &&
+        corridorCount > 20,
+      source: typeof source === 'string' ? source : null,
+    };
+  });
+}
+
 export async function readOrbitVisualState(
   page: Page,
   objectId: string,
@@ -800,6 +925,10 @@ export async function readOrbitVisualState(
   visible: boolean;
   active: boolean;
   opacity: number;
+  overviewEmphasis: boolean;
+  color: string | null;
+  mapAccent: string | null;
+  semanticGroup: string | null;
 }> {
   return page.evaluate((requestedId) => {
     interface OrbitLine {
@@ -807,6 +936,9 @@ export async function readOrbitVisualState(
       userData: Record<string, unknown>;
       material: {
         opacity: number;
+        color: {
+          getHexString(): string;
+        };
       };
     }
 
@@ -821,78 +953,28 @@ export async function readOrbitVisualState(
     const component = root && angularDebug?.getComponent(root);
     const facade = component ? (Reflect.get(component, 'facade') as object | undefined) : undefined;
     const engine = facade ? (Reflect.get(facade, 'engine') as object | undefined) : undefined;
-    const registry = engine
-      ? (Reflect.get(engine, 'objectRegistry') as object | undefined)
+    const objectRuntime = engine
+      ? (Reflect.get(engine, 'objectRuntime') as ObjectRuntimeState<object> | undefined)
       : undefined;
-    const orbitVisuals = registry
-      ? (Reflect.get(registry, 'orbitVisuals') as Map<string, { line: OrbitLine }> | undefined)
+    const registry = objectRuntime?.getRegistry(requestedId);
+    const registryRoot = registry
+      ? (Reflect.get(registry, 'registryRoot') as
+          { getObjectByName(name: string): OrbitLine | undefined } | undefined)
       : undefined;
-    const line = orbitVisuals?.get(requestedId)?.line;
+    const line = registryRoot?.getObjectByName(`${requestedId}-orbit`);
+    const mapAccent = line?.userData['mapAccent'];
+    const semanticGroup = line?.userData['semanticGroup'];
 
     return {
       visible: line?.visible ?? false,
       active: line?.userData['active'] === true,
       opacity: line?.material.opacity ?? 0,
+      overviewEmphasis: line?.userData['overviewEmphasis'] === true,
+      color: line ? `#${line.material.color.getHexString()}` : null,
+      mapAccent: typeof mapAccent === 'string' ? mapAccent : null,
+      semanticGroup: typeof semanticGroup === 'string' ? semanticGroup : null,
     };
   }, objectId);
-}
-
-export async function readRotationGuideState(page: Page): Promise<{
-  visible: boolean;
-  objectId: string | null;
-  direction: string | null;
-  style: string | null;
-  parentName: string | null;
-  directionScale: number;
-  vertexCount: number;
-  hasVertexColors: boolean;
-}> {
-  return page.evaluate(() => {
-    const root = document.querySelector('app-root');
-    const angularDebug = (
-      window as unknown as {
-        ng?: {
-          getComponent(element: Element): object | null;
-        };
-      }
-    ).ng;
-    const component = root && angularDebug?.getComponent(root);
-    const facade = component ? (Reflect.get(component, 'facade') as object | undefined) : undefined;
-    const engine = facade ? (Reflect.get(facade, 'engine') as object | undefined) : undefined;
-    const registry = engine
-      ? (Reflect.get(engine, 'objectRegistry') as object | undefined)
-      : undefined;
-    const guide = registry
-      ? (Reflect.get(registry, 'rotationGuide') as
-          | {
-              visible: boolean;
-              userData: Record<string, unknown>;
-              parent: { name: string } | null;
-              scale: { z: number };
-              geometry: {
-                getAttribute(name: string): { count: number } | undefined;
-              };
-            }
-          | undefined)
-      : undefined;
-    const objectId = guide?.userData['objectId'];
-    const direction = guide?.userData['direction'];
-    const style = guide?.userData['style'];
-    const positionAttribute = guide?.geometry.getAttribute('position');
-    const colorAttribute = guide?.geometry.getAttribute('color');
-
-    return {
-      visible: guide?.visible ?? false,
-      objectId: typeof objectId === 'string' ? objectId : null,
-      direction: typeof direction === 'string' ? direction : null,
-      style: typeof style === 'string' ? style : null,
-      parentName: guide?.parent?.name ?? null,
-      directionScale: guide?.scale.z ?? 0,
-      vertexCount: positionAttribute?.count ?? 0,
-      hasVertexColors:
-        colorAttribute !== undefined && colorAttribute.count === positionAttribute?.count,
-    };
-  });
 }
 
 export async function readPlanetaryRingVisualState(
@@ -933,9 +1015,10 @@ export async function readPlanetaryRingVisualState(
     const component = root && angularDebug?.getComponent(root);
     const facade = component ? (Reflect.get(component, 'facade') as object | undefined) : undefined;
     const engine = facade ? (Reflect.get(facade, 'engine') as object | undefined) : undefined;
-    const registry = engine
-      ? (Reflect.get(engine, 'objectRegistry') as object | undefined)
+    const objectRuntime = engine
+      ? (Reflect.get(engine, 'objectRuntime') as ObjectRuntimeState<object> | undefined)
       : undefined;
+    const registry = objectRuntime?.getRegistry(requestedId);
     const entries = registry
       ? (Reflect.get(registry, 'entries') as Map<string, object> | undefined)
       : undefined;
@@ -1002,8 +1085,11 @@ export async function readStarCatalogBatchState(page: Page): Promise<{
             }
           | undefined)
       : undefined;
-    const starCatalogBatch = universeScene
-      ? (Reflect.get(universeScene, 'starCatalogBatch') as object | null)
+    const stellarCatalogLayers = universeScene
+      ? (Reflect.get(universeScene, 'stellarCatalogLayers') as object | undefined)
+      : undefined;
+    const starCatalogBatch = stellarCatalogLayers
+      ? (Reflect.get(stellarCatalogLayers, 'starCatalogBatch') as object | null)
       : null;
     const points = starCatalogBatch
       ? (Reflect.get(starCatalogBatch, 'points') as CatalogPoints | undefined)
@@ -1033,6 +1119,84 @@ export async function readStarCatalogBatchState(page: Page): Promise<{
   });
 }
 
+export async function readHeliocentricCatalogPresentationState(page: Page): Promise<{
+  hyg: {
+    visible: boolean;
+    observerBoundaryOpacity: number;
+  };
+  exoplanetHosts: {
+    visible: boolean;
+    opacity: number;
+    pointScale: number;
+    hostSignatureStrength: number;
+    observerBoundaryOpacity: number;
+  };
+}> {
+  return page.evaluate(() => {
+    interface CatalogPoints {
+      visible: boolean;
+      userData: Record<string, unknown>;
+      material: {
+        uniforms: Record<string, { value: unknown } | undefined>;
+      };
+    }
+
+    const root = document.querySelector('app-root');
+    const angularDebug = (
+      window as unknown as {
+        ng?: {
+          getComponent(element: Element): object | null;
+        };
+      }
+    ).ng;
+    const component = root && angularDebug?.getComponent(root);
+    const facade = component ? (Reflect.get(component, 'facade') as object | undefined) : undefined;
+    const engine = facade ? (Reflect.get(facade, 'engine') as object | undefined) : undefined;
+    const universeScene = engine
+      ? (Reflect.get(engine, 'universeScene') as object | undefined)
+      : undefined;
+    const stellarCatalogLayers = universeScene
+      ? (Reflect.get(universeScene, 'stellarCatalogLayers') as object | undefined)
+      : undefined;
+    const starCatalogBatch = stellarCatalogLayers
+      ? (Reflect.get(stellarCatalogLayers, 'starCatalogBatch') as object | null)
+      : null;
+    const exoplanetHostBatch = stellarCatalogLayers
+      ? (Reflect.get(stellarCatalogLayers, 'exoplanetHostBatch') as object | null)
+      : null;
+    const hygPoints = starCatalogBatch
+      ? (Reflect.get(starCatalogBatch, 'points') as CatalogPoints | undefined)
+      : undefined;
+    const hostPoints = exoplanetHostBatch
+      ? (Reflect.get(exoplanetHostBatch, 'points') as CatalogPoints | undefined)
+      : undefined;
+    const numericUniform = (points: CatalogPoints | undefined, name: string): number => {
+      const value = points?.material.uniforms[name]?.value;
+
+      return typeof value === 'number' ? value : 0;
+    };
+    const numericMetadata = (points: CatalogPoints | undefined, name: string): number => {
+      const value = points?.userData[name];
+
+      return typeof value === 'number' ? value : 0;
+    };
+
+    return {
+      hyg: {
+        visible: hygPoints?.visible ?? false,
+        observerBoundaryOpacity: numericMetadata(hygPoints, 'observerBoundaryOpacity'),
+      },
+      exoplanetHosts: {
+        visible: hostPoints?.visible ?? false,
+        opacity: numericUniform(hostPoints, 'catalogOpacity'),
+        pointScale: numericUniform(hostPoints, 'pointScale'),
+        hostSignatureStrength: numericUniform(hostPoints, 'hostSignatureStrength'),
+        observerBoundaryOpacity: numericMetadata(hostPoints, 'observerBoundaryOpacity'),
+      },
+    };
+  });
+}
+
 export async function readCosmicGroupBatchState(page: Page): Promise<{
   catalogCount: number;
   activeCount: number;
@@ -1040,6 +1204,9 @@ export async function readCosmicGroupBatchState(page: Page): Promise<{
   visible: boolean;
   opacity: number;
   confidence: string | null;
+  appearanceConfidence: string | null;
+  visualStyle: string | null;
+  impostorBlend: number;
   batchCount: number;
   selectedObjectId: string | null;
   filamentEdgeCount: number;
@@ -1089,8 +1256,11 @@ export async function readCosmicGroupBatchState(page: Page): Promise<{
             }
           | undefined)
       : undefined;
-    const catalogBatch = universeScene
-      ? (Reflect.get(universeScene, 'cosmicGroupCatalogBatch') as object | null)
+    const cosmicCatalogLayers = universeScene
+      ? (Reflect.get(universeScene, 'cosmicCatalogLayers') as object | undefined)
+      : undefined;
+    const catalogBatch = cosmicCatalogLayers
+      ? (Reflect.get(cosmicCatalogLayers, 'cosmicGroupCatalogBatch') as object | null)
       : null;
     const points = catalogBatch
       ? (Reflect.get(catalogBatch, 'points') as CatalogPoints | undefined)
@@ -1113,11 +1283,14 @@ export async function readCosmicGroupBatchState(page: Page): Promise<{
       }
     });
     const confidence = points?.userData['scientificConfidence'];
+    const appearanceConfidence = points?.userData['appearanceConfidence'];
+    const visualStyle = points?.userData['visualStyle'];
     const catalogCount = points?.userData['catalogCount'];
     const activeCount = points?.userData['activeCount'];
     const layerState = points?.userData['layerState'];
     const selectedObjectId = selectionPoint?.userData['objectId'];
     const opacity = points?.material.uniforms['catalogOpacity']?.value;
+    const impostorBlend = points?.material.uniforms['impostorBlend']?.value;
     const detail = points?.material.uniforms['detailLevel']?.value;
     const filamentEdgeCount = filaments?.userData['edgeCount'];
     const filamentActiveCount = filaments?.userData['activeEdgeCount'];
@@ -1132,6 +1305,9 @@ export async function readCosmicGroupBatchState(page: Page): Promise<{
       visible: points?.visible ?? false,
       opacity: typeof opacity === 'number' ? opacity : 0,
       confidence: typeof confidence === 'string' ? confidence : null,
+      appearanceConfidence: typeof appearanceConfidence === 'string' ? appearanceConfidence : null,
+      visualStyle: typeof visualStyle === 'string' ? visualStyle : null,
+      impostorBlend: typeof impostorBlend === 'number' ? impostorBlend : 0,
       batchCount,
       selectedObjectId: typeof selectedObjectId === 'string' ? selectedObjectId : null,
       filamentEdgeCount: typeof filamentEdgeCount === 'number' ? filamentEdgeCount : 0,
@@ -1147,6 +1323,87 @@ export async function readCosmicGroupBatchState(page: Page): Promise<{
         typeof layerState === 'object' && layerState !== null
           ? (layerState as Record<string, boolean>)
           : {},
+    };
+  });
+}
+
+export async function readLocalVolumeDepthBackdropState(
+  page: Page,
+): Promise<LocalVolumeDepthBackdropState> {
+  return page.evaluate(() => {
+    interface DepthPoints {
+      visible: boolean;
+      userData: Record<string, unknown>;
+      geometry: {
+        drawRange: { count: number };
+        attributes: {
+          position?: { array: ArrayLike<number> };
+        };
+      };
+      material: {
+        uniforms: Record<string, { value: unknown } | undefined>;
+      };
+    }
+
+    const root = document.querySelector('app-root');
+    const angularDebug = (
+      window as unknown as {
+        ng?: {
+          getComponent(element: Element): object | null;
+        };
+      }
+    ).ng;
+    const component = root && angularDebug?.getComponent(root);
+    const facade = component ? (Reflect.get(component, 'facade') as object | undefined) : undefined;
+    const engine = facade ? (Reflect.get(facade, 'engine') as object | undefined) : undefined;
+    const universeScene = engine
+      ? (Reflect.get(engine, 'universeScene') as object | undefined)
+      : undefined;
+    const cosmicCatalogLayers = universeScene
+      ? (Reflect.get(universeScene, 'cosmicCatalogLayers') as object | undefined)
+      : undefined;
+    const backdrop = cosmicCatalogLayers
+      ? (Reflect.get(cosmicCatalogLayers, 'localVolumeDepthBackdrop') as {
+          points: DepthPoints;
+        } | null)
+      : null;
+
+    if (!backdrop) {
+      throw new Error('Arrière-plan de profondeur du volume local indisponible.');
+    }
+    const { points } = backdrop;
+    const positions = points.geometry.attributes.position?.array;
+    const drawCount = points.geometry.drawRange.count;
+    let minimumRadius = Number.POSITIVE_INFINITY;
+    let maximumRadius = 0;
+
+    if (positions) {
+      for (let index = 0; index < drawCount; index += 1) {
+        const offset = index * 3;
+        const radius = Math.hypot(
+          Number(positions[offset]),
+          Number(positions[offset + 1]),
+          Number(positions[offset + 2]),
+        );
+
+        minimumRadius = Math.min(minimumRadius, radius);
+        maximumRadius = Math.max(maximumRadius, radius);
+      }
+    }
+    const opacity = points.material.uniforms['opacity']?.value;
+    const catalogCount = points.userData['catalogCount'];
+    const activeCount = points.userData['activeCount'];
+    const depthProjection = points.userData['depthProjection'];
+
+    return {
+      visible: points.visible,
+      opacity: typeof opacity === 'number' ? opacity : 0,
+      catalogCount: typeof catalogCount === 'number' ? catalogCount : 0,
+      activeCount: typeof activeCount === 'number' ? activeCount : 0,
+      drawCount,
+      minimumRadius: Number.isFinite(minimumRadius) ? minimumRadius : 0,
+      maximumRadius,
+      depthProjection: typeof depthProjection === 'string' ? depthProjection : null,
     };
   });
 }
@@ -1185,8 +1442,11 @@ export async function readCosmicWebVolumeState(page: Page): Promise<{
     const universeScene = engine
       ? (Reflect.get(engine, 'universeScene') as object | undefined)
       : undefined;
-    const renderer = universeScene
-      ? (Reflect.get(universeScene, 'cosmicWebVolumeRenderer') as object | null)
+    const cosmicCatalogLayers = universeScene
+      ? (Reflect.get(universeScene, 'cosmicCatalogLayers') as object | undefined)
+      : undefined;
+    const renderer = cosmicCatalogLayers
+      ? (Reflect.get(cosmicCatalogLayers, 'cosmicWebVolumeRenderer') as object | null)
       : null;
     const mesh = renderer ? (Reflect.get(renderer, 'mesh') as VolumeMesh | undefined) : undefined;
     const scene = universeScene
@@ -1234,6 +1494,9 @@ export async function readCosmicStructureBatchState(page: Page): Promise<{
   batchCount: number;
   selectedObjectId: string | null;
   structureCounts: Record<string, number>;
+  activeVoidCount: number;
+  voidRepresentation: string | null;
+  voidBoundaryStyle: string | null;
   detail: number;
   layerState: Record<string, boolean>;
 }> {
@@ -1273,11 +1536,17 @@ export async function readCosmicStructureBatchState(page: Page): Promise<{
             }
           | undefined)
       : undefined;
-    const catalogBatch = universeScene
-      ? (Reflect.get(universeScene, 'cosmicStructureCatalogBatch') as object | null)
+    const cosmicCatalogLayers = universeScene
+      ? (Reflect.get(universeScene, 'cosmicCatalogLayers') as object | undefined)
+      : undefined;
+    const catalogBatch = cosmicCatalogLayers
+      ? (Reflect.get(cosmicCatalogLayers, 'cosmicStructureCatalogBatch') as object | null)
       : null;
     const points = catalogBatch
       ? (Reflect.get(catalogBatch, 'points') as CatalogPoints | undefined)
+      : undefined;
+    const renderStructureTypes = catalogBatch
+      ? (Reflect.get(catalogBatch, 'renderStructureTypes') as readonly string[] | undefined)
       : undefined;
     const selectionPoint = catalogBatch
       ? (Reflect.get(catalogBatch, 'selectionPoint') as CatalogPoints | undefined)
@@ -1296,8 +1565,20 @@ export async function readCosmicStructureBatchState(page: Page): Promise<{
     const selectedObjectId = selectionPoint?.userData['objectId'];
     const structureCounts = points?.userData['structureCounts'];
     const layerState = points?.userData['layerState'];
+    const visibleIndices = points?.userData['visibleIndices'];
+    const voidRepresentation = points?.userData['voidRepresentation'];
+    const voidBoundaryStyle = points?.userData['voidBoundaryStyle'];
     const opacity = points?.material.uniforms['catalogOpacity']?.value;
     const detail = points?.material.uniforms['detailLevel']?.value;
+    let activeVoidCount = 0;
+
+    if (renderStructureTypes && visibleIndices instanceof Uint8Array) {
+      for (let index = 0; index < renderStructureTypes.length; index += 1) {
+        if (visibleIndices[index] === 1 && renderStructureTypes[index] === 'void') {
+          activeVoidCount += 1;
+        }
+      }
+    }
 
     return {
       catalogCount: typeof catalogCount === 'number' ? catalogCount : 0,
@@ -1313,12 +1594,300 @@ export async function readCosmicStructureBatchState(page: Page): Promise<{
         typeof structureCounts === 'object' && structureCounts !== null
           ? (structureCounts as Record<string, number>)
           : {},
+      activeVoidCount,
+      voidRepresentation: typeof voidRepresentation === 'string' ? voidRepresentation : null,
+      voidBoundaryStyle: typeof voidBoundaryStyle === 'string' ? voidBoundaryStyle : null,
       detail: typeof detail === 'number' ? detail : 0,
       layerState:
         typeof layerState === 'object' && layerState !== null
           ? (layerState as Record<string, boolean>)
           : {},
     };
+  });
+}
+
+export async function readTempelFilamentSpineState(page: Page): Promise<{
+  loaded: boolean;
+  tileCount: number;
+  visibleTileCount: number;
+  visibleHaloTileCount: number;
+  filamentCount: number;
+  pointCount: number;
+  segmentCount: number;
+  visibleSegmentCount: number;
+  haloSegmentCount: number;
+  haloOpacity: number;
+  haloWidthPixels: number;
+  haloConfidence: string | null;
+  haloRepresentation: string | null;
+  haloPhysicalWidth: boolean | null;
+  confidence: string | null;
+  representation: string | null;
+  selectedObjectId: string | null;
+  selectedHaloObjectId: string | null;
+}> {
+  return page.evaluate(() => {
+    interface FilamentTile {
+      visible: boolean;
+      userData: Record<string, unknown>;
+    }
+
+    interface FilamentHaloTile extends FilamentTile {
+      geometry: { instanceCount: number };
+      material: {
+        opacity: number;
+        uniforms: Record<string, { value: unknown } | undefined>;
+      };
+    }
+
+    const root = document.querySelector('app-root');
+    const angularDebug = (
+      window as unknown as {
+        ng?: {
+          getComponent(element: Element): object | null;
+        };
+      }
+    ).ng;
+    const component = root && angularDebug?.getComponent(root);
+    const facade = component ? (Reflect.get(component, 'facade') as object | undefined) : undefined;
+    const engine = facade ? (Reflect.get(facade, 'engine') as object | undefined) : undefined;
+    const universeScene = engine
+      ? (Reflect.get(engine, 'universeScene') as object | undefined)
+      : undefined;
+    const cosmicCatalogLayers = universeScene
+      ? (Reflect.get(universeScene, 'cosmicCatalogLayers') as object | undefined)
+      : undefined;
+    const batch = cosmicCatalogLayers
+      ? (Reflect.get(cosmicCatalogLayers, 'tempelFilamentSpineBatch') as object | null)
+      : null;
+
+    if (!batch) {
+      return {
+        loaded: false,
+        tileCount: 0,
+        visibleTileCount: 0,
+        visibleHaloTileCount: 0,
+        filamentCount: 0,
+        pointCount: 0,
+        segmentCount: 0,
+        visibleSegmentCount: 0,
+        haloSegmentCount: 0,
+        haloOpacity: 0,
+        haloWidthPixels: 0,
+        haloConfidence: null,
+        haloRepresentation: null,
+        haloPhysicalWidth: null,
+        confidence: null,
+        representation: null,
+        selectedObjectId: null,
+        selectedHaloObjectId: null,
+      };
+    }
+    const tiles = Reflect.get(batch, 'tiles') as readonly FilamentTile[];
+    const haloTiles = Reflect.get(batch, 'haloTiles') as readonly FilamentHaloTile[];
+    const firstTile = tiles[0];
+    const firstHaloTile = haloTiles[0];
+    const selectionLine = Reflect.get(batch, 'selectionLine') as {
+      userData: Record<string, unknown>;
+    };
+    const selectionHalo = Reflect.get(batch, 'selectionHalo') as {
+      userData: Record<string, unknown>;
+    };
+    const selectedObjectId = selectionLine.userData['objectId'];
+    const selectedHaloObjectId = selectionHalo.userData['objectId'];
+    const confidence = firstTile?.userData['scientificConfidence'];
+    const representation = firstTile?.userData['representation'];
+    const haloConfidence = firstHaloTile?.userData['scientificConfidence'];
+    const haloRepresentation = firstHaloTile?.userData['representation'];
+    const haloPhysicalWidth = firstHaloTile?.userData['physicalWidth'];
+    const haloWidthPixels = firstHaloTile?.material.uniforms['linewidth']?.value;
+
+    return {
+      loaded: true,
+      tileCount: Number(Reflect.get(batch, 'tileCount')),
+      visibleTileCount: tiles.filter((tile) => tile.visible).length,
+      visibleHaloTileCount: haloTiles.filter((tile) => tile.visible).length,
+      filamentCount: Number(Reflect.get(batch, 'catalogFilamentCount')),
+      pointCount: Number(Reflect.get(batch, 'catalogPointCount')),
+      segmentCount: Number(Reflect.get(batch, 'catalogSegmentCount')),
+      visibleSegmentCount: Number(Reflect.get(batch, 'visibleSegmentCount')),
+      haloSegmentCount: haloTiles.reduce((total, tile) => total + tile.geometry.instanceCount, 0),
+      haloOpacity: firstHaloTile?.material.opacity ?? 0,
+      haloWidthPixels: typeof haloWidthPixels === 'number' ? haloWidthPixels : 0,
+      haloConfidence: typeof haloConfidence === 'string' ? haloConfidence : null,
+      haloRepresentation: typeof haloRepresentation === 'string' ? haloRepresentation : null,
+      haloPhysicalWidth: typeof haloPhysicalWidth === 'boolean' ? haloPhysicalWidth : null,
+      confidence: typeof confidence === 'string' ? confidence : null,
+      representation: typeof representation === 'string' ? representation : null,
+      selectedObjectId: typeof selectedObjectId === 'string' ? selectedObjectId : null,
+      selectedHaloObjectId: typeof selectedHaloObjectId === 'string' ? selectedHaloObjectId : null,
+    };
+  });
+}
+
+export async function findTempelFilamentSegmentPoint(
+  page: Page,
+): Promise<{ objectId: string; point: ScreenPoint } | null> {
+  return page.evaluate(() => {
+    interface ProjectedVector {
+      x: number;
+      y: number;
+      z: number;
+      set(x: number, y: number, z: number): ProjectedVector;
+      project(camera: CameraState): ProjectedVector;
+    }
+
+    interface CameraState {
+      position: {
+        clone(): ProjectedVector;
+      };
+    }
+
+    interface PositionAttribute {
+      count: number;
+      getX(index: number): number;
+      getY(index: number): number;
+      getZ(index: number): number;
+    }
+
+    interface FilamentTile {
+      visible: boolean;
+      userData: Record<string, unknown>;
+      geometry: {
+        drawRange: { count: number };
+        getAttribute(name: string): PositionAttribute;
+      };
+      localToWorld(vector: ProjectedVector): ProjectedVector;
+      updateWorldMatrix(updateParents: boolean, updateChildren: boolean): void;
+    }
+
+    interface SelectionManagerState {
+      findObjectAt(event: { clientX: number; clientY: number }): string | null;
+    }
+
+    interface LabelManagerState {
+      hitTest(clientX: number, clientY: number): string | null;
+    }
+
+    interface Candidate {
+      readonly objectId: string;
+      readonly clientX: number;
+      readonly clientY: number;
+      readonly centerDistance: number;
+    }
+
+    const root = document.querySelector('app-root');
+    const canvas = document.querySelector<HTMLCanvasElement>('canvas.universe-canvas');
+    const angularDebug = (
+      window as unknown as {
+        ng?: {
+          getComponent(element: Element): object | null;
+        };
+      }
+    ).ng;
+    const component = root && angularDebug?.getComponent(root);
+    const facade = component ? (Reflect.get(component, 'facade') as object | undefined) : undefined;
+    const engine = facade ? (Reflect.get(facade, 'engine') as object | undefined) : undefined;
+    const universeScene = engine
+      ? (Reflect.get(engine, 'universeScene') as object | undefined)
+      : undefined;
+    const cosmicCatalogLayers = universeScene
+      ? (Reflect.get(universeScene, 'cosmicCatalogLayers') as object | undefined)
+      : undefined;
+    const batch = cosmicCatalogLayers
+      ? (Reflect.get(cosmicCatalogLayers, 'tempelFilamentSpineBatch') as object | null)
+      : null;
+    const tiles = batch
+      ? (Reflect.get(batch, 'tiles') as readonly FilamentTile[] | undefined)
+      : undefined;
+    const camera = engine ? (Reflect.get(engine, 'camera') as CameraState | undefined) : undefined;
+    const selectionManager = engine
+      ? (Reflect.get(engine, 'selectionManager') as SelectionManagerState | undefined)
+      : undefined;
+    const labelManager = engine
+      ? (Reflect.get(engine, 'labelManager') as LabelManagerState | undefined)
+      : undefined;
+
+    if (!canvas || !tiles || !camera || !selectionManager) {
+      return null;
+    }
+    const bounds = canvas.getBoundingClientRect();
+    const candidates: Candidate[] = [];
+
+    for (const tile of tiles) {
+      if (!tile.visible) {
+        continue;
+      }
+      const positions = tile.geometry.getAttribute('position');
+      const objectIds = tile.userData['objectIds'];
+      const drawCount = Math.min(tile.geometry.drawRange.count, positions.count);
+      const segmentCount = Math.floor(drawCount / 2);
+      const segmentStride = Math.max(1, Math.floor(segmentCount / 320));
+
+      if (!Array.isArray(objectIds)) {
+        continue;
+      }
+      tile.updateWorldMatrix(true, false);
+      for (let segmentIndex = 0; segmentIndex < segmentCount; segmentIndex += segmentStride) {
+        const vertexIndex = segmentIndex * 2;
+        const objectId: unknown = objectIds[vertexIndex];
+
+        if (typeof objectId !== 'string') {
+          continue;
+        }
+        const projected = camera.position
+          .clone()
+          .set(
+            (positions.getX(vertexIndex) + positions.getX(vertexIndex + 1)) / 2,
+            (positions.getY(vertexIndex) + positions.getY(vertexIndex + 1)) / 2,
+            (positions.getZ(vertexIndex) + positions.getZ(vertexIndex + 1)) / 2,
+          );
+
+        tile.localToWorld(projected).project(camera);
+        if (projected.z < -1 || projected.z > 1) {
+          continue;
+        }
+        const clientX = bounds.left + (projected.x * 0.5 + 0.5) * bounds.width;
+        const clientY = bounds.top + (-projected.y * 0.5 + 0.5) * bounds.height;
+
+        if (
+          clientX < bounds.left + 360 ||
+          clientX > bounds.right - 160 ||
+          clientY < bounds.top + 130 ||
+          clientY > bounds.bottom - 180 ||
+          document.elementFromPoint(clientX, clientY) !== canvas ||
+          labelManager?.hitTest(clientX, clientY) !== null
+        ) {
+          continue;
+        }
+        candidates.push({
+          objectId,
+          clientX,
+          clientY,
+          centerDistance: Math.hypot(
+            clientX - (bounds.left + bounds.width / 2),
+            clientY - (bounds.top + bounds.height / 2),
+          ),
+        });
+      }
+    }
+    candidates.sort((left, right) => left.centerDistance - right.centerDistance);
+
+    for (const candidate of candidates.slice(0, 24)) {
+      if (
+        selectionManager.findObjectAt({
+          clientX: candidate.clientX,
+          clientY: candidate.clientY,
+        }) === candidate.objectId
+      ) {
+        return {
+          objectId: candidate.objectId,
+          point: { x: candidate.clientX, y: candidate.clientY },
+        };
+      }
+    }
+
+    return null;
   });
 }
 
@@ -1357,12 +1926,18 @@ export async function readStarClusterBatchState(page: Page): Promise<{
       visibleClusterCount: number;
     }
 
-    interface TileManager {
-      activeTileCount: number;
-      cachedPackCount: number;
-      cachedTileCount: number;
-      activeClusterCount: number;
-      cachedClusterCount: number;
+    interface StreamingCoordinator {
+      stats: {
+        activeStarTiles: number;
+        cachedStarPacks: number;
+        cachedStarTiles: number;
+        activeStarClusters: number;
+        cachedStarClusters: number;
+      };
+    }
+
+    interface StreamingRuntime {
+      coordinator: StreamingCoordinator | null;
     }
 
     const root = document.querySelector('app-root');
@@ -1379,9 +1954,15 @@ export async function readStarClusterBatchState(page: Page): Promise<{
     const universeScene = engine
       ? (Reflect.get(engine, 'universeScene') as object | undefined)
       : undefined;
-    const manager = engine ? (Reflect.get(engine, 'starTileManager') as TileManager | null) : null;
-    const batch = universeScene
-      ? (Reflect.get(universeScene, 'starClusterBatch') as ClusterBatch | null)
+    const streamingRuntime = engine
+      ? (Reflect.get(engine, 'streamingRuntime') as StreamingRuntime | undefined)
+      : undefined;
+    const coordinator = streamingRuntime?.coordinator ?? null;
+    const stellarCatalogLayers = universeScene
+      ? (Reflect.get(universeScene, 'stellarCatalogLayers') as object | undefined)
+      : undefined;
+    const batch = stellarCatalogLayers
+      ? (Reflect.get(stellarCatalogLayers, 'starClusterBatch') as ClusterBatch | null)
       : null;
     const representations = batch ? [...batch.representations.values()] : [];
     const pointBatchCount = representations.filter((representation) =>
@@ -1394,11 +1975,11 @@ export async function readStarClusterBatchState(page: Page): Promise<{
     const confidence = representations[0]?.points.userData['scientificConfidence'];
 
     return {
-      activeTileCount: manager?.activeTileCount ?? 0,
-      cachedPackCount: manager?.cachedPackCount ?? 0,
-      cachedTileCount: manager?.cachedTileCount ?? 0,
-      activeClusterCount: manager?.activeClusterCount ?? 0,
-      cachedClusterCount: manager?.cachedClusterCount ?? 0,
+      activeTileCount: coordinator?.stats.activeStarTiles ?? 0,
+      cachedPackCount: coordinator?.stats.cachedStarPacks ?? 0,
+      cachedTileCount: coordinator?.stats.cachedStarTiles ?? 0,
+      activeClusterCount: coordinator?.stats.activeStarClusters ?? 0,
+      cachedClusterCount: coordinator?.stats.cachedStarClusters ?? 0,
       representationCount: batch?.representationCount ?? 0,
       visibleClusterCount: batch?.visibleClusterCount ?? 0,
       pointBatchCount,
@@ -1440,8 +2021,11 @@ export async function readConstellationLineState(page: Page): Promise<{
     const universeScene = engine
       ? (Reflect.get(engine, 'universeScene') as object | undefined)
       : undefined;
-    const constellationBatch = universeScene
-      ? (Reflect.get(universeScene, 'constellationBatch') as object | null)
+    const stellarCatalogLayers = universeScene
+      ? (Reflect.get(universeScene, 'stellarCatalogLayers') as object | undefined)
+      : undefined;
+    const constellationBatch = stellarCatalogLayers
+      ? (Reflect.get(stellarCatalogLayers, 'constellationBatch') as object | null)
       : null;
     const lines = constellationBatch
       ? (Reflect.get(constellationBatch, 'lines') as ConstellationLines | undefined)
@@ -1482,6 +2066,9 @@ export async function readConstellationInteractionState(
     interface HighlightLines {
       visible: boolean;
       userData: Record<string, unknown>;
+      material: {
+        opacity: number;
+      };
       geometry: {
         drawRange: {
           count: number;
@@ -1504,8 +2091,11 @@ export async function readConstellationInteractionState(
     const universeScene = engine
       ? (Reflect.get(engine, 'universeScene') as object | undefined)
       : undefined;
-    const constellationBatch = universeScene
-      ? (Reflect.get(universeScene, 'constellationBatch') as object | null)
+    const stellarCatalogLayers = universeScene
+      ? (Reflect.get(universeScene, 'stellarCatalogLayers') as object | undefined)
+      : undefined;
+    const constellationBatch = stellarCatalogLayers
+      ? (Reflect.get(stellarCatalogLayers, 'constellationBatch') as object | null)
       : null;
     const labelManager = engine
       ? (Reflect.get(engine, 'labelManager') as object | undefined)
@@ -1537,6 +2127,7 @@ export async function readConstellationInteractionState(
         );
       });
     const activeObjectId = highlight?.userData['objectId'];
+    const highlightStyle = highlight?.userData['visualStyle'];
 
     return {
       definitionCount: definitions?.length ?? 0,
@@ -1544,6 +2135,8 @@ export async function readConstellationInteractionState(
       activeObjectId: typeof activeObjectId === 'string' ? activeObjectId : null,
       highlightVisible: highlight?.visible ?? false,
       highlightVertexCount: highlight?.geometry.drawRange.count ?? 0,
+      highlightOpacity: highlight?.material.opacity ?? 0,
+      highlightStyle: typeof highlightStyle === 'string' ? highlightStyle : null,
       candidate:
         bounds && candidate
           ? {
@@ -1616,8 +2209,11 @@ export async function findConstellationSegmentPoint(
     const universeScene = engine
       ? (Reflect.get(engine, 'universeScene') as object | undefined)
       : undefined;
-    const constellationBatch = universeScene
-      ? (Reflect.get(universeScene, 'constellationBatch') as object | null)
+    const stellarCatalogLayers = universeScene
+      ? (Reflect.get(universeScene, 'stellarCatalogLayers') as object | undefined)
+      : undefined;
+    const constellationBatch = stellarCatalogLayers
+      ? (Reflect.get(stellarCatalogLayers, 'constellationBatch') as object | null)
       : null;
     const lines = constellationBatch
       ? (Reflect.get(constellationBatch, 'lines') as ConstellationLines | undefined)
@@ -1689,6 +2285,10 @@ export async function readActiveCatalogStarState(page: Page): Promise<{
   visible: boolean;
   haloVisible: boolean;
   haloPointSize: number;
+  haloVisualStyle: string | null;
+  visualFamily: string | null;
+  catalogVisualStyle: string | null;
+  catalogSurfaceDetail: number;
   coreVisible: boolean;
   coreOpacity: number;
   catalogPointScale: number;
@@ -1728,12 +2328,21 @@ export async function readActiveCatalogStarState(page: Page): Promise<{
     const objectId = detail?.userData['objectId'];
     const haloPointSize = halo?.material?.uniforms?.['pointSize']?.value;
     const catalogPointScale = catalog?.material?.uniforms?.['pointScale']?.value;
+    const haloVisualStyle = halo?.userData['visualStyle'];
+    const visualFamily = core?.userData['visualFamily'];
+    const catalogVisualStyle = catalog?.userData['visualStyle'];
+    const catalogSurfaceDetail = catalog?.material?.uniforms?.['surfaceDetail']?.value;
 
     return {
       objectId: typeof objectId === 'string' ? objectId : null,
       visible: detail?.visible ?? false,
       haloVisible: halo?.visible ?? false,
       haloPointSize: typeof haloPointSize === 'number' ? haloPointSize : Number.NaN,
+      haloVisualStyle: typeof haloVisualStyle === 'string' ? haloVisualStyle : null,
+      visualFamily: typeof visualFamily === 'string' ? visualFamily : null,
+      catalogVisualStyle: typeof catalogVisualStyle === 'string' ? catalogVisualStyle : null,
+      catalogSurfaceDetail:
+        typeof catalogSurfaceDetail === 'number' ? catalogSurfaceDetail : Number.NaN,
       coreVisible: core?.visible ?? false,
       coreOpacity: core?.material?.opacity ?? Number.NaN,
       catalogPointScale: typeof catalogPointScale === 'number' ? catalogPointScale : Number.NaN,
@@ -1746,8 +2355,18 @@ export async function readGalaxyImpostorStates(page: Page): Promise<GalaxyImpost
     interface GalaxySprite {
       visible: boolean;
       layers: { mask: number };
-      material: { opacity: number };
+      material: { opacity: number; userData?: Record<string, unknown> };
       scale: { x: number; y: number };
+    }
+
+    interface GalaxyNearNode {
+      visible: boolean;
+      name: string;
+      userData: Record<string, unknown>;
+      children: GalaxyNearNode[];
+      geometry?: {
+        getAttribute(name: string): { count: number } | undefined;
+      };
     }
 
     const root = document.querySelector('app-root');
@@ -1761,14 +2380,12 @@ export async function readGalaxyImpostorStates(page: Page): Promise<GalaxyImpost
     const component = root && angularDebug?.getComponent(root);
     const facade = component ? (Reflect.get(component, 'facade') as object | undefined) : undefined;
     const engine = facade ? (Reflect.get(facade, 'engine') as object | undefined) : undefined;
-    const registries = engine
-      ? [
-          Reflect.get(engine, 'objectRegistry'),
-          Reflect.get(engine, 'spaceTileObjectRegistry'),
-        ].filter(
-          (registry): registry is object => typeof registry === 'object' && registry !== null,
-        )
-      : [];
+    const objectRuntime = engine
+      ? (Reflect.get(engine, 'objectRuntime') as ObjectRuntimeState<object> | undefined)
+      : undefined;
+    const registries = [objectRuntime?.primaryRegistry, objectRuntime?.streamedRegistry].filter(
+      (registry): registry is object => registry !== null && registry !== undefined,
+    );
     const entriesByRegistry = registries
       .map((registry) => Reflect.get(registry, 'entries') as Map<string, object> | undefined)
       .filter((entries): entries is Map<string, object> => entries instanceof Map);
@@ -1781,12 +2398,27 @@ export async function readGalaxyImpostorStates(page: Page): Promise<GalaxyImpost
         if (definition?.type !== 'galaxy') {
           continue;
         }
-        const lod = Reflect.get(entry, 'lod') as { farSprite?: GalaxySprite | null } | undefined;
+        const lod = Reflect.get(entry, 'lod') as
+          | {
+              farSprite?: GalaxySprite | null;
+              nearRoot?: GalaxyNearNode | null;
+            }
+          | undefined;
         const sprite = lod?.farSprite;
 
         if (!sprite) {
           continue;
         }
+        const disk = lod?.nearRoot?.children.find((child) =>
+          child.name.endsWith('-galaxy-structured-disk'),
+        );
+        const starField = lod?.nearRoot?.children.find((child) =>
+          child.name.endsWith('-galaxy-stellar-volume'),
+        );
+        const farVisualStyle = sprite.material.userData?.['visualStyle'];
+        const nearDiskStyle = disk?.userData['visualStyle'];
+        const nearStarFieldStyle = starField?.userData['visualStyle'];
+
         states.push({
           objectId,
           visible: sprite.visible,
@@ -1794,6 +2426,13 @@ export async function readGalaxyImpostorStates(page: Page): Promise<GalaxyImpost
           width: sprite.scale.x,
           height: sprite.scale.y,
           pickable: (sprite.layers.mask & (1 << 1)) !== 0,
+          farVisualStyle: typeof farVisualStyle === 'string' ? farVisualStyle : null,
+          nearVisible: lod?.nearRoot?.visible ?? false,
+          nearDiskVisible: disk?.visible ?? false,
+          nearDiskStyle: typeof nearDiskStyle === 'string' ? nearDiskStyle : null,
+          nearStarFieldVisible: starField?.visible ?? false,
+          nearStarFieldStyle: typeof nearStarFieldStyle === 'string' ? nearStarFieldStyle : null,
+          nearParticleCount: starField?.geometry?.getAttribute('position')?.count ?? 0,
         });
       }
     }
@@ -1843,16 +2482,16 @@ export async function readMilkyWayDetailState(page: Page): Promise<MilkyWayDetai
     const universeScene = engine
       ? (Reflect.get(engine, 'universeScene') as object | undefined)
       : undefined;
-    const milkyWay = universeScene
-      ? (Reflect.get(universeScene, 'milkyWay') as MilkyWayPoints | undefined)
-      : undefined;
     const spaceRoot = universeScene
       ? (Reflect.get(universeScene, 'spaceRoot') as
           | {
+              getObjectByName(name: string): SceneNode | undefined;
               traverse(callback: (object: SceneNode) => void): void;
             }
           | undefined)
       : undefined;
+    const milkyWay = spaceRoot?.getObjectByName('illustrative-milky-way') as
+      MilkyWayPoints | undefined;
     const stellarRoot = universeScene
       ? (Reflect.get(universeScene, 'stellarNeighborhoodRoot') as SceneNode | undefined)
       : undefined;
@@ -1906,8 +2545,11 @@ export async function readMilkyWayVolumeState(page: Page): Promise<MilkyWayVolum
       name: string;
       visible: boolean;
       position: { y: number };
-      scale: { y: number };
+      scale: { x: number; y: number };
       userData: Record<string, unknown>;
+      material?: {
+        uniforms: Record<string, { value: unknown } | undefined>;
+      };
       children: VolumeNode[];
     }
 
@@ -1944,9 +2586,11 @@ export async function readMilkyWayVolumeState(page: Page): Promise<MilkyWayVolum
     );
     const bulge = volume.root.children.find((child) => child.name === 'milky-way-volume-bulge');
     const depths = discs.map((disc) => disc.position.y);
+    const opacity = discs[0]?.material?.uniforms['opacity']?.value;
     const atlasUrl = volume.root.userData['atlasUrl'];
     const structure = volume.root.userData['visualStructure'];
     const depthTechnique = volume.root.userData['depthTechnique'];
+    const morphologyModel = volume.root.userData['morphologyModel'];
     const confidence = volume.root.userData['scientificConfidence'];
     const cinematicQuality = volume.root.userData['cinematicQuality'];
     const cinematicProfile = volume.root.userData['cinematicProfile'] as
@@ -1954,10 +2598,13 @@ export async function readMilkyWayVolumeState(page: Page): Promise<MilkyWayVolum
 
     return {
       visible: volume.root.visible,
+      opacity: typeof opacity === 'number' ? opacity : 0,
+      scale: volume.root.scale.x,
       atlasStatus: volume.atlasStatus,
       atlasUrl: typeof atlasUrl === 'string' ? atlasUrl : null,
       structure: typeof structure === 'string' ? structure : null,
       depthTechnique: typeof depthTechnique === 'string' ? depthTechnique : null,
+      morphologyModel: typeof morphologyModel === 'string' ? morphologyModel : null,
       confidence: typeof confidence === 'string' ? confidence : null,
       cinematicQuality: typeof cinematicQuality === 'string' ? cinematicQuality : null,
       parallaxStrength: Number(cinematicProfile?.['parallaxStrength']),
@@ -1967,6 +2614,136 @@ export async function readMilkyWayVolumeState(page: Page): Promise<MilkyWayVolum
       visibleDiscLayerCount: volume.visibleDiscLayerCount,
       layerDepthSpan: Math.max(...depths) - Math.min(...depths),
       bulgeHeight: (bulge?.scale.y ?? 0) * 2,
+    };
+  });
+}
+
+export async function readLocalGalacticSkyState(page: Page): Promise<LocalGalacticSkyState> {
+  return page.evaluate(() => {
+    interface EnvironmentNode {
+      name: string;
+      visible: boolean;
+      userData: Record<string, unknown>;
+      material?: {
+        depthTest: boolean;
+        uniforms: Record<string, { value: unknown } | undefined>;
+      };
+      children: EnvironmentNode[];
+    }
+
+    interface EnvironmentRenderer {
+      root: EnvironmentNode;
+      drawMeshCount: number;
+      maximumDrawMeshCount: number;
+      panoramaStatus: string;
+    }
+
+    const root = document.querySelector('app-root');
+    const angularDebug = (
+      window as unknown as {
+        ng?: {
+          getComponent(element: Element): object | null;
+        };
+      }
+    ).ng;
+    const component = root && angularDebug?.getComponent(root);
+    const facade = component ? (Reflect.get(component, 'facade') as object | undefined) : undefined;
+    const engine = facade ? (Reflect.get(facade, 'engine') as object | undefined) : undefined;
+    const universeScene = engine
+      ? (Reflect.get(engine, 'universeScene') as object | undefined)
+      : undefined;
+    const environment = universeScene
+      ? (Reflect.get(universeScene, 'localSpaceEnvironment') as EnvironmentRenderer | undefined)
+      : undefined;
+
+    if (!environment) {
+      throw new Error('Le ciel galactique local est indisponible.');
+    }
+    const band = environment.root.children.find(
+      (child) => child.name === 'illustrative-local-milky-way-sky',
+    );
+
+    if (!band) {
+      throw new Error('La bande intérieure de la Voie lactée est indisponible.');
+    }
+    const opacity = band.material?.uniforms['opacity']?.value;
+    const centerDirection = band.userData['galacticCenterDirection'];
+    const visualLayers = band.userData['visualLayers'];
+    const confidence = band.userData['scientificConfidence'];
+    const referenceFrame = band.userData['referenceFrame'];
+    const visualStyle = band.userData['visualStyle'];
+    const panoramaUrl = band.userData['panoramaUrl'];
+    const angularPresentation = band.userData['angularPresentation'];
+    const sourceCredit = band.userData['sourceCredit'];
+    const sourceImageId = band.userData['sourceImageId'];
+    const sourcePageUrl = band.userData['sourcePageUrl'];
+    const sourcePixelDimensions = band.userData['sourcePixelDimensions'];
+    const texturePixelDimensions = band.userData['texturePixelDimensions'];
+    const sourceAngularLatitudeSpanDegrees = band.userData['sourceAngularLatitudeSpanDegrees'];
+    const angularLatitudeSpanDegrees = band.userData['angularLatitudeSpanDegrees'];
+    const latitudePresentationScale = band.userData['latitudePresentationScale'];
+    const sourceProjection = band.userData['sourceProjection'];
+    const presentationPitchDegrees = band.userData['presentationPitchDegrees'];
+    const presentationRollDegrees = band.userData['presentationRollDegrees'];
+    const presentationComposition = band.userData['presentationComposition'];
+    const orientationConfidence = band.userData['orientationConfidence'];
+    const panoramaTexture = band.material?.uniforms['panorama']?.value as
+      | {
+          image?: {
+            naturalWidth?: number;
+            naturalHeight?: number;
+            width?: number;
+            height?: number;
+          };
+        }
+      | undefined;
+    const panoramaImage = panoramaTexture?.image;
+
+    return {
+      environmentVisible: environment.root.visible,
+      bandVisible: band.visible,
+      opacity: typeof opacity === 'number' ? opacity : 0,
+      drawMeshCount: environment.drawMeshCount,
+      maximumDrawMeshCount: environment.maximumDrawMeshCount,
+      panoramaStatus: environment.panoramaStatus,
+      panoramaUrl: typeof panoramaUrl === 'string' ? panoramaUrl : null,
+      panoramaWidth: panoramaImage?.naturalWidth ?? panoramaImage?.width ?? 0,
+      panoramaHeight: panoramaImage?.naturalHeight ?? panoramaImage?.height ?? 0,
+      angularPresentation: typeof angularPresentation === 'string' ? angularPresentation : null,
+      sourceCredit: typeof sourceCredit === 'string' ? sourceCredit : null,
+      sourceImageId: typeof sourceImageId === 'string' ? sourceImageId : null,
+      sourcePageUrl: typeof sourcePageUrl === 'string' ? sourcePageUrl : null,
+      sourcePixelDimensions: Array.isArray(sourcePixelDimensions)
+        ? sourcePixelDimensions.filter((value): value is number => typeof value === 'number')
+        : [],
+      texturePixelDimensions: Array.isArray(texturePixelDimensions)
+        ? texturePixelDimensions.filter((value): value is number => typeof value === 'number')
+        : [],
+      sourceAngularLatitudeSpanDegrees:
+        typeof sourceAngularLatitudeSpanDegrees === 'number' ? sourceAngularLatitudeSpanDegrees : 0,
+      angularLatitudeSpanDegrees:
+        typeof angularLatitudeSpanDegrees === 'number' ? angularLatitudeSpanDegrees : 0,
+      latitudePresentationScale:
+        typeof latitudePresentationScale === 'number' ? latitudePresentationScale : 0,
+      sourceProjection: typeof sourceProjection === 'string' ? sourceProjection : null,
+      presentationPitchDegrees:
+        typeof presentationPitchDegrees === 'number' ? presentationPitchDegrees : 0,
+      presentationRollDegrees:
+        typeof presentationRollDegrees === 'number' ? presentationRollDegrees : 0,
+      presentationComposition:
+        typeof presentationComposition === 'string' ? presentationComposition : null,
+      orientationConfidence:
+        typeof orientationConfidence === 'string' ? orientationConfidence : null,
+      confidence: typeof confidence === 'string' ? confidence : null,
+      referenceFrame: typeof referenceFrame === 'string' ? referenceFrame : null,
+      visualStyle: typeof visualStyle === 'string' ? visualStyle : null,
+      galacticCenterDirection: Array.isArray(centerDirection)
+        ? centerDirection.filter((value): value is number => typeof value === 'number')
+        : [],
+      visualLayers: Array.isArray(visualLayers)
+        ? visualLayers.filter((value): value is string => typeof value === 'string')
+        : [],
+      depthTest: band.material?.depthTest ?? true,
     };
   });
 }
@@ -2128,8 +2905,11 @@ async function readIsolatedCatalogPoint(
             }
           | undefined)
       : undefined;
-    const batch = universeScene
-      ? (Reflect.get(universeScene, 'starCatalogBatch') as object | null)
+    const stellarCatalogLayers = universeScene
+      ? (Reflect.get(universeScene, 'stellarCatalogLayers') as object | undefined)
+      : undefined;
+    const batch = stellarCatalogLayers
+      ? (Reflect.get(stellarCatalogLayers, 'starCatalogBatch') as object | null)
       : null;
     const points = batch ? (Reflect.get(batch, 'points') as CatalogPoints | undefined) : undefined;
 
@@ -2172,11 +2952,12 @@ async function readIsolatedCatalogPoint(
         (other) =>
           other === candidate || Math.hypot(other.x - candidate.x, other.y - candidate.y) > 18,
       );
+      const labelHit = labelManager?.hitTest(candidate.x, candidate.y) ?? null;
+      const labelAllowsPoint = unlabelledOnly
+        ? labelHit === null
+        : labelHit === null || labelHit === candidate.objectId;
 
-      if (
-        isolated &&
-        (!unlabelledOnly || labelManager?.hitTest(candidate.x, candidate.y) === null)
-      ) {
+      if (isolated && labelAllowsPoint) {
         return {
           objectId: candidate.objectId,
           point: { x: candidate.x, y: candidate.y },
@@ -2424,8 +3205,11 @@ export async function readBodyLabelOcclusionState(
     const labelManager = engine
       ? (Reflect.get(engine, 'labelManager') as object | undefined)
       : undefined;
-    const occluders = labelManager
-      ? (Reflect.get(labelManager, 'screenOccluders') as ScreenOccluderState[] | undefined)
+    const occlusionManager = labelManager
+      ? (Reflect.get(labelManager, 'occlusionManager') as object | undefined)
+      : undefined;
+    const occluders = occlusionManager
+      ? (Reflect.get(occlusionManager, 'occluders') as ScreenOccluderState[] | undefined)
       : undefined;
     const regions = labelManager
       ? (Reflect.get(labelManager, 'hitRegions') as LabelRegion[] | undefined)
@@ -2463,51 +3247,169 @@ export async function readBodyLabelOcclusionState(
   }, objectId);
 }
 
-async function isCameraSettled(page: Page): Promise<boolean> {
+export async function readSunPixelOcclusionState(page: Page): Promise<SunPixelOcclusionState> {
   return page.evaluate(() => {
+    interface VectorState {
+      x: number;
+      y: number;
+      clone(): VectorState;
+      addScaledVector(vector: VectorState, scale: number): VectorState;
+      normalize(): VectorState;
+      project(camera: object): VectorState;
+    }
+
+    interface CameraState {
+      up: VectorState;
+    }
+
+    interface MaterialState {
+      depthWrite: boolean;
+    }
+
+    interface BodyState {
+      material: MaterialState;
+      position: VectorState;
+      getWorldPosition(target: VectorState): VectorState;
+      getWorldScale(target: VectorState): VectorState;
+    }
+
+    interface RendererState {
+      domElement: HTMLCanvasElement;
+      getContext(): WebGL2RenderingContext;
+      render(scene: object, camera: object): void;
+    }
+
+    interface EngineState {
+      start(): void;
+      stop(): void;
+    }
+
+    const empty = {
+      changedPixels: 0,
+      comparedPixels: 0,
+      meanOccludedLuminance: 0,
+      maximumDifference: 0,
+    };
     const root = document.querySelector('app-root');
     const angularDebug = (
       window as unknown as {
-        ng?: {
-          getComponent(element: Element): object | null;
-        };
+        ng?: { getComponent(element: Element): object | null };
       }
     ).ng;
-
-    if (!root || !angularDebug) {
-      return false;
-    }
-
-    const component = angularDebug.getComponent(root);
+    const component = root && angularDebug?.getComponent(root);
     const facade = component ? (Reflect.get(component, 'facade') as object | undefined) : undefined;
-    const engine = facade ? (Reflect.get(facade, 'engine') as object | undefined) : undefined;
-    const controller = engine
-      ? (Reflect.get(engine, 'cameraController') as object | undefined)
+    const engine = facade
+      ? (Reflect.get(facade, 'engine') as (EngineState & object) | undefined)
       : undefined;
+    const renderer = engine
+      ? (Reflect.get(engine, 'renderer') as RendererState | undefined)
+      : undefined;
+    const camera = engine ? (Reflect.get(engine, 'camera') as CameraState | undefined) : undefined;
+    const universeScene = engine
+      ? (Reflect.get(engine, 'universeScene') as { scene: object } | undefined)
+      : undefined;
+    const objectRuntime = engine
+      ? (Reflect.get(engine, 'objectRuntime') as ObjectRuntimeState<object> | undefined)
+      : undefined;
+    const registry = objectRuntime?.getRegistry('sun');
+    const entries = registry
+      ? (Reflect.get(registry, 'entries') as Map<string, object> | undefined)
+      : undefined;
+    const sun = entries?.get('sun');
+    const body = sun ? (Reflect.get(sun, 'rotatingBody') as BodyState | undefined) : undefined;
 
-    return controller ? Reflect.get(controller, 'isTransitioning') === false : false;
-  });
-}
+    if (!engine || !renderer || !camera || !universeScene || !body) {
+      return empty;
+    }
 
-export function queryParameter(page: Page, name: string): string | null {
-  return new URL(page.url()).searchParams.get(name);
-}
+    const center = body.getWorldPosition(body.position.clone());
+    const worldScale = body.getWorldScale(body.position.clone()).x;
+    const projectedCenter = center.clone().project(camera);
+    const projectedEdge = center
+      .clone()
+      .addScaledVector(camera.up.clone().normalize(), worldScale)
+      .project(camera);
+    const canvas = renderer.domElement;
+    const centerX = Math.round((projectedCenter.x * 0.5 + 0.5) * canvas.width);
+    const centerY = Math.round((projectedCenter.y * 0.5 + 0.5) * canvas.height);
+    const radius = Math.abs(projectedEdge.y - projectedCenter.y) * canvas.height * 0.5;
+    const sampleRadius = Math.max(2, Math.floor(radius * 0.72));
+    const sampleSize = sampleRadius * 2 + 1;
+    const sampleX = Math.max(0, Math.min(canvas.width - sampleSize, centerX - sampleRadius));
+    const sampleY = Math.max(0, Math.min(canvas.height - sampleSize, centerY - sampleRadius));
+    const context = renderer.getContext();
 
-export function numericQueryParameter(page: Page, name: string): number {
-  const value = queryParameter(page, name);
+    if (sampleSize > canvas.width || sampleSize > canvas.height) {
+      return empty;
+    }
 
-  return value === null ? Number.NaN : Number(value);
-}
+    const capture = (): Uint8Array => {
+      const pixels = new Uint8Array(sampleSize * sampleSize * 4);
 
-export function monitorBrowserErrors(page: Page): string[] {
-  const errors: string[] = [];
+      renderer.render(universeScene.scene, camera);
+      context.finish();
+      context.readPixels(
+        sampleX,
+        sampleY,
+        sampleSize,
+        sampleSize,
+        context.RGBA,
+        context.UNSIGNED_BYTE,
+        pixels,
+      );
 
-  page.on('pageerror', (error) => errors.push(error.message));
-  page.on('console', (message) => {
-    if (message.type() === 'error') {
-      errors.push(message.text());
+      return pixels;
+    };
+    const originalDepthWrite = body.material.depthWrite;
+
+    engine.stop();
+    try {
+      body.material.depthWrite = true;
+      const occluded = capture();
+
+      body.material.depthWrite = false;
+      const unoccluded = capture();
+      let changedPixels = 0;
+      let comparedPixels = 0;
+      let occludedLuminance = 0;
+      let maximumDifference = 0;
+
+      for (let y = 0; y < sampleSize; y += 1) {
+        for (let x = 0; x < sampleSize; x += 1) {
+          const localX = x - sampleRadius;
+          const localY = y - sampleRadius;
+
+          if (Math.hypot(localX, localY) > sampleRadius) {
+            continue;
+          }
+          const offset = (y * sampleSize + x) * 4;
+          const difference =
+            Math.abs(occluded[offset]! - unoccluded[offset]!) +
+            Math.abs(occluded[offset + 1]! - unoccluded[offset + 1]!) +
+            Math.abs(occluded[offset + 2]! - unoccluded[offset + 2]!);
+
+          comparedPixels += 1;
+          occludedLuminance +=
+            occluded[offset]! * 0.2126 +
+            occluded[offset + 1]! * 0.7152 +
+            occluded[offset + 2]! * 0.0722;
+          maximumDifference = Math.max(maximumDifference, difference);
+          if (difference >= 12) {
+            changedPixels += 1;
+          }
+        }
+      }
+
+      return {
+        changedPixels,
+        comparedPixels,
+        meanOccludedLuminance: occludedLuminance / Math.max(1, comparedPixels),
+        maximumDifference,
+      };
+    } finally {
+      body.material.depthWrite = originalDepthWrite;
+      renderer.render(universeScene.scene, camera);
+      engine.start();
     }
   });
-
-  return errors;
 }

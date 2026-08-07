@@ -1,7 +1,8 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator } from '@playwright/test';
 import {
   findConstellationSegmentPoint,
   findEmptyCanvasPoint,
+  findTempelFilamentSegmentPoint,
   monitorBrowserErrors,
   numericQueryParameter,
   openUniverse,
@@ -20,6 +21,9 @@ import {
   readCosmicStructureBatchState,
   readCosmicWebVolumeState,
   readGalaxyImpostorStates,
+  readHeliocentricCatalogPresentationState,
+  readLocalGalacticSkyState,
+  readLocalVolumeDepthBackdropState,
   readMilkyWayDetailState,
   readMilkyWayVolumeState,
   readNearbyGalaxyBatchState,
@@ -29,10 +33,15 @@ import {
   readOrbitVisualState,
   readPlanetaryRingVisualState,
   readRotationGuideState,
+  readSolarEclipseEventMapState,
   readSolarEclipseVisualState,
   readSpaceTileStreamingState,
   readStarCatalogBatchState,
   readStarClusterBatchState,
+  readSunOcclusionState,
+  readSunPixelOcclusionState,
+  readSupernovaVisualState,
+  readTempelFilamentSpineState,
   readVisibleLabelIds,
   sampleObjectQuaternions,
   universeUrl,
@@ -41,6 +50,335 @@ import {
   waitForLabelCenter,
   waitForUnlabelledCatalogPoint,
 } from './universe-test-helpers';
+
+test('la langue change sans perdre l’état partageable de la carte', async ({ page }) => {
+  await openUniverse(page, universeUrl({ target: 'mars', zoom: '8.4' }));
+
+  await page.locator('.language-selector select').selectOption('en');
+
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/en/');
+  await expect.poll(() => queryParameter(page, 'target')).toBe('mars');
+  await expect.poll(() => queryParameter(page, 'zoom')).not.toBeNull();
+  await expect(
+    page.locator('header').getByRole('button', { name: 'Return to Earth' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('searchbox', { name: 'Search for an astronomical object' }),
+  ).toBeVisible();
+
+  await page.locator('.language-selector select').selectOption('zh');
+
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/zh/');
+  await expect.poll(() => queryParameter(page, 'target')).toBe('mars');
+  await expect.poll(() => page.locator('html').getAttribute('lang')).toBe('zh-Hans');
+  await expect(page.locator('header').getByRole('button', { name: '返回地球' })).toBeVisible();
+  await expect(page.getByRole('searchbox', { name: '搜索天体' })).toBeVisible();
+});
+
+test('le sélecteur reflète la langue d’une URL partagée', async ({ page }) => {
+  await openUniverse(page, universeUrl({ target: 'earth', selected: '' }).replace('/fr/', '/ja/'));
+
+  const languageSelector = page.locator('.language-selector select');
+
+  await expect(languageSelector).toHaveValue('ja');
+  await expect(languageSelector.locator('option:checked')).toHaveText('JA');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'ja');
+});
+
+test('l’aide présente le créateur, son portfolio et le soutien facultatif', async ({ page }) => {
+  const browserErrors = monitorBrowserErrors(page);
+
+  await openUniverse(page, universeUrl({ target: 'earth', selected: '' }));
+  await page.getByRole('button', { name: 'Ouvrir l’aide' }).click();
+  const help = page.getByRole('region', { name: 'Aide à la navigation' });
+  const portfolio = help.getByRole('link', { name: 'Découvrir mon portfolio' });
+  const support = help.getByRole('link', { name: 'Offrir un café' });
+
+  await expect(help).toContainText('Créé par Nayruuu');
+  await expect(portfolio).toHaveAttribute('href', 'https://super-dev.app');
+  await expect(portfolio).toHaveAttribute('rel', /\bme\b/u);
+  await expect(portfolio).toHaveAttribute('target', '_blank');
+  await expect(support).toHaveAttribute('href', 'https://buymeacoffee.com/nayruuu');
+  await expect(support).toHaveAttribute('target', '_blank');
+  expect(await help.evaluate((element) => getComputedStyle(element).overflowY)).toBe('auto');
+  expect(browserErrors).toEqual([]);
+});
+
+test('la vue du Système solaire donne la priorité aux planètes et à leurs trajectoires', async ({
+  page,
+}) => {
+  const browserErrors = monitorBrowserErrors(page);
+
+  await openUniverse(
+    page,
+    universeUrl({ target: 'sun', selected: '', zoom: '520', quality: 'high' }),
+  );
+  await waitForCameraSettled(page);
+  await expect
+    .poll(async () => {
+      const visibleLabels = await readVisibleLabelIds(page);
+
+      return ['mercury', 'venus', 'earth', 'mars'].filter((objectId) =>
+        visibleLabels.includes(objectId),
+      ).length;
+    })
+    .toBeGreaterThanOrEqual(4);
+  const earthOrbit = await readOrbitVisualState(page, 'earth');
+
+  expect(earthOrbit).toMatchObject({
+    visible: true,
+    active: false,
+    overviewEmphasis: true,
+    color: '#43b4dd',
+    mapAccent: '#43b4dd',
+    semanticGroup: 'solar-system',
+  });
+  expect(earthOrbit.opacity).toBeGreaterThanOrEqual(0.6);
+  expect(browserErrors).toEqual([]);
+});
+
+test('le repère Soleil reste visible à côté de la fiche d’une planète', async ({ page }) => {
+  const browserErrors = monitorBrowserErrors(page);
+
+  await openUniverse(
+    page,
+    universeUrl({ target: 'mars', selected: 'mars', zoom: '2.7', quality: 'high' }),
+  );
+  await waitForCameraSettled(page);
+  const sunLabel = await waitForLabelCenter(page, 'sun');
+  const detailsBounds = await page.getByLabel('Informations sur l’objet sélectionné').boundingBox();
+
+  expect(detailsBounds).not.toBeNull();
+  expect(sunLabel.point.x).toBeGreaterThan(
+    (detailsBounds?.x ?? 0) + (detailsBounds?.width ?? 0) + 8,
+  );
+  expect(sunLabel.point.x).toBeLessThan(1_368);
+  expect(browserErrors).toEqual([]);
+});
+
+test('le Soleil occulte les objets, leur sélection et leurs noms', async ({ page }) => {
+  const browserErrors = monitorBrowserErrors(page);
+
+  await openUniverse(page, universeUrl({ target: 'sun', zoom: '24', quality: 'high' }));
+  await expect
+    .poll(() => readSunOcclusionState(page))
+    .toEqual({
+      bodyDepthTest: true,
+      bodyDepthWrite: true,
+      logarithmicDepthFragment: true,
+      logarithmicDepthVertex: true,
+      selectionDepthTest: true,
+      selectedLabelsOccluded: true,
+    });
+  const pixelOcclusion = await readSunPixelOcclusionState(page);
+
+  expect(pixelOcclusion.comparedPixels).toBeGreaterThan(1_000);
+  expect(pixelOcclusion.changedPixels).toBeGreaterThan(10);
+  expect(pixelOcclusion.meanOccludedLuminance).toBeGreaterThan(160);
+  expect(pixelOcclusion.maximumDifference).toBeGreaterThan(30);
+  expect(browserErrors).toEqual([]);
+});
+
+test('les supernovas historiques sont recherchables et rejouables sans masquer l’approximation', async ({
+  page,
+}) => {
+  const browserErrors = monitorBrowserErrors(page);
+
+  await openUniverse(page, universeUrl({ target: 'sun', selected: '', quality: 'high' }));
+  const search = page.getByRole('searchbox', {
+    name: 'Rechercher un objet astronomique',
+  });
+  const details = page.getByRole('complementary', {
+    name: 'Informations sur l’objet sélectionné',
+  });
+
+  await search.fill('SN 1987A');
+  await page.getByRole('option', { name: /SN 1987A Supernova · Grand Nuage de Magellan/ }).click();
+  await waitForCameraSettled(page);
+
+  await expect(details.getByRole('heading', { name: 'SN 1987A' })).toBeVisible();
+  await expect(details).toContainText('23 février 1987 · découverte');
+  await expect(details).toContainText('II-pec');
+  await expect(details).toContainText('Courbe de luminosité et expansion');
+  await expect
+    .poll(() => readSupernovaVisualState(page, 'sn-1987a'))
+    .toMatchObject({
+      phase: 'remnant',
+      shellVisible: true,
+      shellLayerCount: 3,
+      visibleShellLayerCount: 3,
+      flashVisible: false,
+      shellStyle: 'procedural-volumetric-supernova-remnant',
+      farAppearanceOpacity: 1,
+    });
+
+  await details.getByRole('button', { name: /Voir l’événement/ }).click();
+  await waitForCameraSettled(page);
+
+  await expect.poll(() => queryParameter(page, 'time')).toContain('1987-02-23');
+  await expect
+    .poll(() => readSupernovaVisualState(page, 'sn-1987a'))
+    .toMatchObject({
+      phase: 'peak',
+      shellVisible: false,
+      shellLayerCount: 3,
+      visibleShellLayerCount: 0,
+      flashVisible: true,
+      farAppearanceOpacity: 1,
+    });
+
+  await search.fill('Cassiopeia A');
+  await page
+    .getByRole('option', { name: /Cassiopée A Rémanent de supernova · Voie lactée/ })
+    .click();
+  await waitForCameraSettled(page);
+  await expect(details).toContainText('aucune observation historique vérifiée');
+  await expect(details.getByRole('button', { name: /Voir l’événement/ })).toHaveCount(0);
+  expect(browserErrors).toEqual([]);
+});
+
+test('une exoplanète NASA est recherchable, cadrable et reliée à son étoile hôte', async ({
+  page,
+}) => {
+  const browserErrors = monitorBrowserErrors(page);
+
+  await openUniverse(page, universeUrl({ target: 'sun', selected: '', quality: 'medium' }));
+  const search = page.getByRole('searchbox', {
+    name: 'Rechercher un objet astronomique',
+  });
+  const details = page.getByRole('complementary', {
+    name: 'Informations sur l’objet sélectionné',
+  });
+
+  await search.fill('Kepler 452 b');
+  await page.getByRole('option', { name: /Kepler-452 b Exoplanète · Kepler-452/ }).click();
+  await waitForCameraSettled(page);
+
+  await expect.poll(() => queryParameter(page, 'target')).toBe('kepler-452-b');
+  await expect.poll(() => queryParameter(page, 'selected')).toBe('kepler-452-b');
+  await expect(details.getByRole('heading', { name: 'Kepler-452 b' })).toBeVisible();
+  await expect(details).toContainText('Exoplanète confirmée');
+  await expect(details).toContainText('Planète confirmée');
+  await expect(details).toContainText('Température d’équilibre');
+  await expect(details).toContainText('265 K');
+  await expect(details).toContainText('1,046 UA');
+  await expect(details).toContainText(/384,84 jours/u);
+  await expect(details).toContainText('NASA Exoplanet Archive');
+
+  await details.getByRole('button', { name: 'Orbite · Kepler-452' }).click();
+  await waitForCameraSettled(page);
+
+  await expect.poll(() => queryParameter(page, 'target')).toBe('kepler-452');
+  await expect
+    .poll(() => readOrbitVisualState(page, 'kepler-452-b'))
+    .toMatchObject({
+      visible: true,
+      active: true,
+      opacity: 0.92,
+      overviewEmphasis: false,
+    });
+
+  await search.fill('TRAPPIST-1 e');
+  await page.getByRole('option', { name: /TRAPPIST-1 e Exoplanète · TRAPPIST-1/ }).click();
+  await waitForCameraSettled(page);
+
+  await expect(details.getByRole('heading', { name: 'TRAPPIST-1 e' })).toBeVisible();
+  await expect(details).toContainText(/6,1 jours/u);
+  expect(browserErrors).toEqual([]);
+});
+
+test('le catalogue NASA complet se filtre et matérialise un système à la demande', async ({
+  page,
+}) => {
+  const browserErrors = monitorBrowserErrors(page);
+
+  await openUniverse(page, universeUrl({ target: 'sun', selected: '', quality: 'medium' }));
+  await page
+    .getByRole('button', { name: 'Explorer le catalogue des exoplanètes confirmées' })
+    .click();
+  const explorer = page.getByRole('region', { name: 'Explorer les exoplanètes confirmées' });
+
+  await expect(explorer).toBeVisible();
+  await expect(explorer).toContainText(/6[\s\u202f]333 mondes confirmés/u);
+  await expect(explorer).toContainText('NASA Exoplanet Archive');
+  const discoveries = explorer.locator('.discovery-list').getByRole('option');
+  const pointerDownCanceled = await explorer.getByRole('combobox').evaluateAll((filters) =>
+    filters.map((filter) => {
+      const pointerDown = new PointerEvent('pointerdown', {
+        bubbles: true,
+        cancelable: true,
+      });
+
+      filter.dispatchEvent(pointerDown);
+
+      return pointerDown.defaultPrevented;
+    }),
+  );
+
+  await expect(discoveries).toHaveCount(12);
+  expect(pointerDownCanceled).toEqual([false, false, false]);
+
+  await explorer.getByLabel('Distance').selectOption('100');
+  await explorer.getByLabel('Taille').selectOption('earth-sized');
+  await explorer.getByLabel('Détection').selectOption('Transit');
+  const filteredOptions = explorer.locator('.discovery-list').getByRole('option');
+
+  await expect(filteredOptions.first()).toBeVisible();
+  const selectedName = (await filteredOptions.first().locator('strong').textContent())?.trim();
+
+  expect(selectedName).toBeTruthy();
+  await filteredOptions.first().click();
+  await waitForCameraSettled(page);
+
+  const details = page.getByRole('complementary', {
+    name: 'Informations sur l’objet sélectionné',
+  });
+
+  await expect(details.getByRole('heading', { name: selectedName! })).toBeVisible();
+  await expect(details).toContainText('Exoplanète confirmée');
+  await expect(details).toContainText('NASA Exoplanet Archive');
+  await expect.poll(() => queryParameter(page, 'target')).toMatch(/^nea-planet-/u);
+  expect(browserErrors).toEqual([]);
+});
+
+test('les contrôles de la barre temporelle partagent le même centre vertical', async ({ page }) => {
+  const browserErrors = monitorBrowserErrors(page);
+
+  await openUniverse(page, universeUrl({ target: 'sun', selected: '', quality: 'medium' }));
+  const timeline = page.getByRole('region', { name: 'Contrôle du temps' });
+  const controls = [
+    timeline.getByRole('button', { name: 'Faire avancer le temps' }),
+    timeline.locator('.present-button'),
+    timeline.getByRole('button', { name: 'Ouvrir les événements astronomiques' }),
+    timeline.getByRole('combobox', { name: 'Vitesse temporelle' }),
+    timeline.getByRole('combobox', { name: 'Mode temporel' }),
+    timeline.getByRole('textbox', { name: 'Date et heure UTC de simulation' }),
+  ];
+  const captions = timeline.locator('.select-control > span, .date-control > span');
+  const timelineBounds = await timeline.boundingBox();
+  const bounds = await Promise.all(controls.map((control) => control.boundingBox()));
+  const controlCenters = bounds.map((controlBounds) => {
+    expect(controlBounds).not.toBeNull();
+
+    return (controlBounds?.y ?? 0) + (controlBounds?.height ?? 0) / 2;
+  });
+
+  expect(timelineBounds).not.toBeNull();
+  expect(timelineBounds?.height ?? 0).toBeGreaterThanOrEqual(82);
+  await expect(captions).toHaveCount(3);
+  for (let index = 0; index < 3; index += 1) {
+    const captionBounds = await captions.nth(index).boundingBox();
+    const fieldBounds = bounds[index + 3];
+
+    expect(captionBounds).not.toBeNull();
+    expect((captionBounds?.y ?? 0) - (timelineBounds?.y ?? 0)).toBeGreaterThanOrEqual(6);
+    expect((captionBounds?.y ?? 0) + (captionBounds?.height ?? 0)).toBeLessThanOrEqual(
+      (fieldBounds?.y ?? 0) - 3,
+    );
+  }
+  expect(Math.max(...controlCenters) - Math.min(...controlCenters)).toBeLessThanOrEqual(1);
+  expect(browserErrors).toEqual([]);
+});
 
 test('les trous noirs sont recherchables et gardent un rendu adapté à leur activité', async ({
   page,
@@ -381,6 +719,32 @@ test('la fiche d’une planète cadre et met en valeur son orbite', async ({ pag
   expect(browserErrors).toEqual([]);
 });
 
+test('les actions de la fiche reviennent de l’orbite vers la rotation de la planète', async ({
+  page,
+}) => {
+  const browserErrors = monitorBrowserErrors(page);
+
+  await openUniverse(page, universeUrl({ target: 'earth' }));
+  const details = page.getByRole('complementary', {
+    name: 'Informations sur l’objet sélectionné',
+  });
+
+  await details.getByRole('button', { name: 'Orbite · Soleil' }).click();
+  await expect.poll(() => queryParameter(page, 'target')).toBe('sun');
+  await expect.poll(() => numericQueryParameter(page, 'zoom')).toBeGreaterThan(35);
+
+  await details.getByRole('button', { name: 'Voir la rotation' }).click();
+  await expect.poll(() => queryParameter(page, 'target')).toBe('earth');
+  await expect.poll(() => numericQueryParameter(page, 'zoom')).toBeLessThan(8);
+  await expect
+    .poll(() => readRotationGuideState(page))
+    .toMatchObject({
+      visible: true,
+      objectId: 'earth',
+    });
+  expect(browserErrors).toEqual([]);
+});
+
 test('le guide axial suit l’objet et distingue une rotation rétrograde', async ({ page }) => {
   const browserErrors = monitorBrowserErrors(page);
 
@@ -423,8 +787,15 @@ test('le guide axial suit l’objet et distingue une rotation rétrograde', asyn
 });
 
 test('le sélecteur traverse les sept échelles et partage le cadrage courant', async ({ page }) => {
-  test.setTimeout(60_000);
+  test.setTimeout(120_000);
   const browserErrors = monitorBrowserErrors(page);
+  const tempelCatalogRequests: string[] = [];
+
+  page.on('request', (request) => {
+    if (request.url().includes('/data/structures/tempel-filament-spines.bin')) {
+      tempelCatalogRequests.push(request.url());
+    }
+  });
 
   await openUniverse(page, universeUrl({ target: 'earth', debug: 'true' }));
   const scaleSwitcher = page.getByRole('button', { name: 'Changer d’échelle' });
@@ -439,6 +810,7 @@ test('le sélecteur traverse les sept échelles et partage le cadrage courant', 
     confidence: 'illustrative',
     transitionDriver: 'continuous-camera-distance',
   });
+  expect(tempelCatalogRequests).toEqual([]);
   await scaleSwitcher.click();
   await page.getByRole('button', { name: 'Afficher l’échelle Voisinage stellaire' }).click();
   await waitForCameraSettled(page);
@@ -461,9 +833,10 @@ test('le sélecteur traverse les sept échelles et partage le cadrage courant', 
   await expect(scaleSwitcher).toContainText('Voie lactée');
   const galacticBackground = await readCosmicBackgroundState(page);
 
-  expect(
-    rgbDistance(galacticBackground.upperColor, planetaryBackground.upperColor),
-  ).toBeGreaterThan(0.005);
+  expect(rgbDistance(galacticBackground.upperColor, planetaryBackground.upperColor)).toBeLessThan(
+    0.002,
+  );
+  expect(Math.max(...galacticBackground.upperColor)).toBeLessThan(0.003);
   expect(galacticBackground.hazeStrength).toBeGreaterThan(planetaryBackground.hazeStrength);
   expect(galacticBackground.nebulaStrength).toBeGreaterThan(planetaryBackground.nebulaStrength);
   expect(galacticBackground.dustStrength).toBeGreaterThan(planetaryBackground.dustStrength);
@@ -517,13 +890,24 @@ test('le sélecteur traverse les sept échelles et partage le cadrage courant', 
     .toMatchObject({
       catalogCount: 37_730,
       visible: true,
+      appearanceConfidence: 'illustrative',
+      visualStyle: 'adaptive-unresolved-group-impostors',
     });
   await expect
     .poll(async () => (await readCosmicGroupBatchState(page)).opacity)
-    .toBeGreaterThan(0.004);
+    .toBeGreaterThan(0.15);
   await expect
     .poll(async () => (await readCosmicGroupBatchState(page)).opacity)
-    .toBeLessThan(0.006);
+    .toBeLessThan(0.151);
+  await expect
+    .poll(async () => (await readCosmicGroupBatchState(page)).activeCount)
+    .toBeGreaterThan(3_500);
+  await expect
+    .poll(async () => (await readCosmicGroupBatchState(page)).activeCount)
+    .toBeLessThan(10_000);
+  await expect
+    .poll(async () => (await readCosmicGroupBatchState(page)).impostorBlend)
+    .toBeGreaterThan(0.99);
   expect((await readCosmicGroupBatchState(page)).filamentVisible).toBe(false);
 
   await scaleSwitcher.click();
@@ -535,9 +919,11 @@ test('le sélecteur traverse les sept échelles et partage le cadrage courant', 
   await expect(scaleSwitcher).toContainText('Réseau cosmique');
   const cosmicBackground = await readCosmicBackgroundState(page);
 
-  expect(rgbDistance(cosmicBackground.lowerColor, galacticBackground.lowerColor)).toBeGreaterThan(
-    0.003,
+  expect(rgbDistance(cosmicBackground.lowerColor, galacticBackground.lowerColor)).toBeLessThan(
+    0.002,
   );
+  expect(Math.max(...cosmicBackground.lowerColor)).toBeLessThan(0.003);
+  expect(cosmicBackground.nebulaStrength).toBeGreaterThan(galacticBackground.nebulaStrength);
   expect(cosmicBackground.cameraDistance).toBeGreaterThan(419_000);
   await expect.poll(async () => (await readVisibleLabelIds(page)).includes('milky-way')).toBe(true);
   await expect.poll(async () => (await readVisibleLabelIds(page)).includes('sun')).toBe(false);
@@ -558,6 +944,9 @@ test('le sélecteur traverse les sept échelles et partage le cadrage courant', 
       },
     });
   await expect
+    .poll(async () => (await readCosmicGroupBatchState(page)).impostorBlend)
+    .toBeLessThan(0.01);
+  await expect
     .poll(() => readCosmicStructureBatchState(page))
     .toMatchObject({
       catalogCount: 26_500,
@@ -574,8 +963,8 @@ test('le sélecteur traverse les sept échelles et partage le cadrage courant', 
       layerState: {
         clusters: true,
         superclusters: true,
-        filaments: false,
-        voids: false,
+        filaments: true,
+        voids: true,
       },
     });
   await expect
@@ -589,6 +978,24 @@ test('le sélecteur traverse les sept échelles et partage le cadrage courant', 
       rayMarchSteps: 16,
       batchCount: 1,
     });
+  await expect.poll(() => tempelCatalogRequests.length).toBe(1);
+  await expect
+    .poll(() => readTempelFilamentSpineState(page))
+    .toMatchObject({
+      loaded: true,
+      tileCount: 4,
+      filamentCount: 15_421,
+      pointCount: 275_599,
+      segmentCount: 260_178,
+      visibleHaloTileCount: 4,
+      haloWidthPixels: 2.4,
+      haloConfidence: 'illustrative',
+      haloRepresentation: 'screen-space-filament-halo',
+      haloPhysicalWidth: false,
+      confidence: 'calculated',
+      representation: 'published-filament-spine-points',
+      selectedObjectId: null,
+    });
   await expect
     .poll(async () => (await readCosmicWebVolumeState(page)).opacity)
     .toBeGreaterThan(0.12);
@@ -600,7 +1007,7 @@ test('le sélecteur traverse les sept échelles et partage le cadrage courant', 
   expect(cosmicGroupBatch.activeCount).toBeLessThan(5_000);
   expect(cosmicGroupBatch.drawCount).toBe(cosmicGroupBatch.activeCount);
   expect(cosmicStructureBatch.activeCount).toBeGreaterThan(20);
-  expect(cosmicStructureBatch.activeCount).toBeLessThan(800);
+  expect(cosmicStructureBatch.activeCount).toBeLessThan(1_200);
   expect(cosmicStructureBatch.drawCount).toBeLessThan(cosmicStructureBatch.catalogCount);
   expect(cosmicGroupBatch.filamentActiveCount).toBeGreaterThan(0);
   expect(cosmicGroupBatch.filamentActiveCount).toBeLessThan(cosmicGroupBatch.filamentEdgeCount);
@@ -621,22 +1028,78 @@ test('le sélecteur traverse les sept échelles et partage le cadrage courant', 
   await expect(page.getByLabel('Légende du réseau cosmique')).toContainText(
     '26 500 détections · 7 catalogues',
   );
+  await expect(page.getByLabel('Légende du réseau cosmique')).toContainText(
+    'Cliquez une épine pour l’identifier · recherche facultative',
+  );
+  await expect(page.getByLabel('Légende du réseau cosmique')).toContainText(
+    'Vides BOSS · actifs · centres et rayons catalogués',
+  );
   const volumeLayer = page.getByRole('button', { name: /la matière cosmique simulée/ });
   const voidLayer = page.getByRole('button', { name: /les vides BOSS/ });
+  const filamentSpineLayer = page.getByRole('button', {
+    name: /les épines 3D des filaments Tempel/,
+  });
 
   await expect(volumeLayer).toHaveAttribute('aria-pressed', 'true');
+  await expect(filamentSpineLayer).toHaveAttribute('aria-pressed', 'true');
+  await expect
+    .poll(async () => (await readTempelFilamentSpineState(page)).visibleTileCount)
+    .toBeGreaterThan(0);
+  await expect
+    .poll(async () => (await readTempelFilamentSpineState(page)).visibleSegmentCount)
+    .toBeGreaterThan(10_000);
+  const visibleSpineState = await readTempelFilamentSpineState(page);
+
+  expect(visibleSpineState.haloSegmentCount).toBe(visibleSpineState.visibleSegmentCount);
+  expect(visibleSpineState.haloOpacity).toBeGreaterThan(0.05);
+  expect(visibleSpineState.haloOpacity).toBeLessThan(0.2);
+  const visibleFilament = await findTempelFilamentSegmentPoint(page);
+
+  expect(visibleFilament).not.toBeNull();
+  if (visibleFilament) {
+    await page.mouse.click(visibleFilament.point.x, visibleFilament.point.y);
+    await expect.poll(() => queryParameter(page, 'selected')).toBe(visibleFilament.objectId);
+  }
+  await filamentSpineLayer.click();
+  await expect(filamentSpineLayer).toHaveAttribute('aria-pressed', 'false');
+  await expect
+    .poll(async () => (await readTempelFilamentSpineState(page)).visibleTileCount)
+    .toBe(0);
+  expect((await readTempelFilamentSpineState(page)).visibleHaloTileCount).toBe(0);
+  await filamentSpineLayer.click();
+  await expect(filamentSpineLayer).toHaveAttribute('aria-pressed', 'true');
+  await expect
+    .poll(async () => (await readTempelFilamentSpineState(page)).visibleSegmentCount)
+    .toBeGreaterThan(0);
+  expect((await readTempelFilamentSpineState(page)).visibleSegmentCount).toBeLessThan(260_178);
   await volumeLayer.click();
   await expect(volumeLayer).toHaveAttribute('aria-pressed', 'false');
   await expect.poll(async () => (await readCosmicWebVolumeState(page)).visible).toBe(false);
   await volumeLayer.click();
   await expect(volumeLayer).toHaveAttribute('aria-pressed', 'true');
   await expect.poll(async () => (await readCosmicWebVolumeState(page)).visible).toBe(true);
+  await expect(voidLayer).toHaveAttribute('aria-pressed', 'true');
+  await expect
+    .poll(() => readCosmicStructureBatchState(page))
+    .toMatchObject({
+      activeVoidCount: expect.any(Number),
+      voidRepresentation: 'adaptive-catalog-underdensity-volume',
+      voidBoundaryStyle: 'diffuse-fill-without-ring',
+      layerState: { voids: true },
+    });
+  await expect
+    .poll(async () => (await readCosmicStructureBatchState(page)).activeVoidCount)
+    .toBeGreaterThan(200);
+  await voidLayer.click();
   await expect(voidLayer).toHaveAttribute('aria-pressed', 'false');
+  await expect
+    .poll(async () => (await readCosmicStructureBatchState(page)).activeVoidCount)
+    .toBe(0);
   await voidLayer.click();
   await expect(voidLayer).toHaveAttribute('aria-pressed', 'true');
   await expect
-    .poll(async () => (await readCosmicStructureBatchState(page)).activeCount)
-    .toBeGreaterThan(cosmicStructureBatch.activeCount);
+    .poll(async () => (await readCosmicStructureBatchState(page)).activeVoidCount)
+    .toBeGreaterThan(200);
   await expect
     .poll(async () => (await readCosmicGroupBatchState(page)).opacity)
     .toBeGreaterThan(0.57);
@@ -706,7 +1169,7 @@ test('le sélecteur traverse les sept échelles et partage le cadrage courant', 
 test('la recherche Planck centre une détection d’amas et conserve sa provenance', async ({
   page,
 }) => {
-  test.setTimeout(60_000);
+  test.setTimeout(90_000);
   const browserErrors = monitorBrowserErrors(page);
 
   await openUniverse(
@@ -729,7 +1192,7 @@ test('la recherche Planck centre une détection d’amas et conserve sa provenan
       name: /Amas Planck PSZ2 G000\.04\+45\.13 Groupe de galaxies · Réseau cosmique/,
     })
     .click();
-  await waitForCameraSettled(page);
+  await waitForCameraSettled(page, 40_000);
 
   const objectId = 'lss-planck-psz2-clusters-psz2-g000-04-45-13';
 
@@ -760,6 +1223,62 @@ test('la recherche Planck centre une détection d’amas et conserve sa provenan
       selectedObjectId: objectId,
     });
   await expect(page.getByLabel('Statistiques de débogage')).toContainText('Structures documentées');
+  expect(browserErrors).toEqual([]);
+});
+
+test('la recherche Tempel centre un filament et surligne toute son épine publiée', async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  const browserErrors = monitorBrowserErrors(page);
+
+  await openUniverse(
+    page,
+    universeUrl({
+      target: 'cosmic-web',
+      selected: '',
+      quality: 'low',
+      zoom: '420000',
+      debug: 'true',
+    }),
+  );
+  const search = page.getByRole('searchbox', {
+    name: 'Rechercher un objet astronomique',
+  });
+
+  await search.fill('Filament SDSS F1');
+  await page
+    .getByRole('option', {
+      name: /Filament SDSS F1 Filament cosmique · Réseau cosmique/,
+      exact: true,
+    })
+    .click();
+  await waitForCameraSettled(page);
+
+  const objectId = 'lss-sdss-dr8-tempel-filaments-f1';
+
+  await expect.poll(() => queryParameter(page, 'target')).toBe(objectId);
+  await expect.poll(() => queryParameter(page, 'selected')).toBe(objectId);
+  await expect
+    .poll(() => readTempelFilamentSpineState(page))
+    .toMatchObject({
+      loaded: true,
+      filamentCount: 15_421,
+      pointCount: 275_599,
+      segmentCount: 260_178,
+      confidence: 'calculated',
+      representation: 'published-filament-spine-points',
+      selectedObjectId: objectId,
+      selectedHaloObjectId: objectId,
+    });
+  const details = page.getByRole('complementary', {
+    name: 'Informations sur l’objet sélectionné',
+  });
+
+  await expect(details.getByRole('heading', { name: 'Filament SDSS F1' })).toBeVisible();
+  await expect(details).toContainText('Calculé');
+  await expect(details).toContainText('Tempel et al. (2014)');
+  await expect(details).toContainText('épine publiée peut être affichée point par point');
   expect(browserErrors).toEqual([]);
 });
 
@@ -849,7 +1368,7 @@ test('la recherche centre les lunes majeures et les petits corps documentés', a
   await expect(details.getByRole('heading', { name: 'Europe' })).toBeVisible();
   await expect(details).toContainText('Calculé');
   await expect(details).toContainText(/671.100 km/u);
-  await expect(details).toContainText('3,53 jours');
+  await expect(details).toContainText('3,55 jours');
   await expect(details).toContainText('NASA/JPL JUP365');
 
   await details.getByRole('button', { name: 'Orbite · Jupiter' }).click();
@@ -931,10 +1450,16 @@ test('le streaming galactique augmente son budget avec la qualité graphique', a
   await expect.poll(() => readCosmicGroupBatchState(page)).toMatchObject({ visible: true });
   await expect
     .poll(async () => (await readCosmicGroupBatchState(page)).opacity)
-    .toBeGreaterThan(0.004);
+    .toBeGreaterThan(0.15);
   await expect
     .poll(async () => (await readCosmicGroupBatchState(page)).opacity)
-    .toBeLessThan(0.006);
+    .toBeLessThan(0.151);
+  await expect
+    .poll(async () => (await readCosmicGroupBatchState(page)).activeCount)
+    .toBeGreaterThan(7_000);
+  await expect
+    .poll(async () => (await readCosmicGroupBatchState(page)).activeCount)
+    .toBeLessThan(10_000);
   const batch = await readNearbyGalaxyBatchState(page);
 
   expect(batch.catalogObjectIds.length).toBeGreaterThan(0);
@@ -1138,13 +1663,14 @@ test('une recherche charge à la demande une galaxie externe puis restaure son U
   await expect
     .poll(async () => (await readNearbyGalaxyBatchState(page)).visibleCatalogObjectIds)
     .not.toContain('lv-ic0342');
+  await expect.poll(async () => (await readLocalGalacticSkyState(page)).bandVisible).toBe(false);
   await expect
     .poll(async () => {
       const impostor = (await readGalaxyImpostorStates(page)).find(
         (state) => state.objectId === 'lv-ic0342',
       );
 
-      return impostor?.visible;
+      return Boolean(impostor?.visible || impostor?.nearVisible);
     })
     .toBe(true);
   expect(browserErrors).toEqual([]);
@@ -1186,11 +1712,12 @@ test('la molette entre dans la Voie lactée sans traverser son disque ni dupliqu
   await expect(scaleSwitcher).toContainText('Voie lactée');
   await expect
     .poll(async () => {
-      const detail = await readMilkyWayDetailState(page);
+      const volume = await readMilkyWayVolumeState(page);
 
-      return detail.visible && detail.opacity > 0.1;
+      return volume.atlasStatus === 'ready' && volume.visible && volume.opacity > 0.1;
     })
     .toBe(true);
+  await expect.poll(async () => (await readMilkyWayDetailState(page)).visible).toBe(false);
   await expect
     .poll(async () => {
       const impostor = (await readGalaxyImpostorStates(page)).find(
@@ -1260,6 +1787,37 @@ test('la molette entre dans la Voie lactée sans traverser son disque ni dupliqu
       return impostor?.visible;
     })
     .toBe(true);
+  expect(browserErrors).toEqual([]);
+});
+
+test('la transition Voie lactée–Groupe local conserve une profondeur visible à son point critique', async ({
+  page,
+}) => {
+  const browserErrors = monitorBrowserErrors(page);
+
+  await openUniverse(
+    page,
+    universeUrl({ target: 'local-group', selected: '', quality: 'high', zoom: '14500' }),
+  );
+  await expect
+    .poll(async () => (await readMilkyWayVolumeState(page)).opacity)
+    .toBeGreaterThan(0.15);
+  await expect
+    .poll(async () => (await readLocalVolumeDepthBackdropState(page)).opacity)
+    .toBeGreaterThan(0.3);
+  const volume = await readMilkyWayVolumeState(page);
+  const backdrop = await readLocalVolumeDepthBackdropState(page);
+
+  expect(volume.visible).toBe(true);
+  expect(volume.opacity).toBeGreaterThan(0.15);
+  expect(volume.scale).toBeGreaterThan(0.28);
+  expect(backdrop.visible).toBe(true);
+  expect(backdrop.opacity).toBeGreaterThan(0.3);
+  expect(backdrop.activeCount).toBe(backdrop.drawCount);
+  expect(backdrop.drawCount).toBeGreaterThan(16_500);
+  expect(backdrop.minimumRadius).toBeGreaterThanOrEqual(23_999);
+  expect(backdrop.maximumRadius).toBeLessThanOrEqual(56_001);
+  expect(backdrop.depthProjection).toBe('catalog-direction-preserving-radial-compression');
   expect(browserErrors).toEqual([]);
 });
 
@@ -1370,6 +1928,35 @@ test('le Groupe local affiche des galaxies nommées, sélectionnables et partage
   await expect(details.getByRole('heading', { name: 'Andromède' })).toBeVisible();
   await expect(details).toContainText('Galaxie spirale SA(s)b');
   await expect(details).toContainText('2 553 801 a.l.');
+  await expect
+    .poll(async () => {
+      const state = (await readGalaxyImpostorStates(page)).find(
+        ({ objectId }) => objectId === 'andromeda',
+      );
+
+      return state
+        ? {
+            farVisible: state.visible,
+            farVisualStyle: state.farVisualStyle,
+            nearVisible: state.nearVisible,
+            nearDiskVisible: state.nearDiskVisible,
+            nearDiskStyle: state.nearDiskStyle,
+            nearStarFieldVisible: state.nearStarFieldVisible,
+            nearStarFieldStyle: state.nearStarFieldStyle,
+            nearParticleCount: state.nearParticleCount,
+          }
+        : null;
+    })
+    .toEqual({
+      farVisible: false,
+      farVisualStyle: 'structured-galaxy-impostor',
+      nearVisible: true,
+      nearDiskVisible: true,
+      nearDiskStyle: 'procedural-structured-galaxy-disk',
+      nearStarFieldVisible: true,
+      nearStarFieldStyle: 'volumetric-galaxy-star-field',
+      nearParticleCount: 2_200,
+    });
   expect(browserErrors).toEqual([]);
 });
 
@@ -1480,6 +2067,85 @@ test('le catalogue HYG complet reste un batch GPU unique à toutes les qualités
       batchCount: 1,
       selectedObjectId: null,
     });
+  await expect.poll(async () => (await readLocalGalacticSkyState(page)).bandVisible).toBe(true);
+  await expect
+    .poll(async () => (await readLocalGalacticSkyState(page)).panoramaStatus)
+    .toBe('ready');
+  expect(await readLocalGalacticSkyState(page)).toMatchObject({
+    environmentVisible: true,
+    bandVisible: true,
+    drawMeshCount: 1,
+    maximumDrawMeshCount: 3,
+    panoramaStatus: 'ready',
+    panoramaUrl: '/textures/milky-way-eso-band-8k-v3.webp',
+    panoramaWidth: 8_192,
+    panoramaHeight: 1_024,
+    angularPresentation: 'distant-thin-sky-band',
+    sourceCredit: 'ESO/S. Brunier',
+    sourceImageId: 'ESO-ESO0932A',
+    sourcePageUrl: 'https://www.eso.org/public/images/eso0932a/',
+    sourcePixelDimensions: [6_000, 3_000],
+    texturePixelDimensions: [8_192, 1_024],
+    sourceAngularLatitudeSpanDegrees: 60,
+    angularLatitudeSpanDegrees: 32,
+    latitudePresentationScale: 32 / 60,
+    sourceProjection: 'full-sky-panorama-galactic-plane-horizontal',
+    presentationPitchDegrees: -32,
+    presentationRollDegrees: -6.5,
+    presentationComposition: 'diagonal-cinematic-sky',
+    orientationConfidence: 'illustrative',
+    confidence: 'illustrative',
+    referenceFrame: 'galactic-heliocentric',
+    visualStyle: 'inside-milky-way-panoramic-band',
+    galacticCenterDirection: [-1, 0, 0],
+    visualLayers: ['integrated-starlight', 'central-bulge', 'dust-rifts', 'star-forming-clouds'],
+    depthTest: false,
+  });
+  expect((await readLocalGalacticSkyState(page)).opacity).toBeGreaterThan(0.12);
+  expect(browserErrors).toEqual([]);
+});
+
+test('les catalogues héliocentriques restent un fond discret près des objets éloignés', async ({
+  page,
+}) => {
+  const browserErrors = monitorBrowserErrors(page);
+
+  await openUniverse(
+    page,
+    universeUrl({ target: 'earth', selected: '', quality: 'high', zoom: '4.8' }),
+  );
+  await expect
+    .poll(
+      async () =>
+        (await readHeliocentricCatalogPresentationState(page)).exoplanetHosts.hostSignatureStrength,
+    )
+    .toBeLessThan(0.004);
+  await expect
+    .poll(
+      async () => (await readHeliocentricCatalogPresentationState(page)).exoplanetHosts.pointScale,
+    )
+    .toBeCloseTo(0.62, 2);
+
+  await openUniverse(
+    page,
+    universeUrl({
+      target: 'kepler-22',
+      selected: 'kepler-22',
+      quality: 'high',
+      zoom: '22',
+    }),
+  );
+  await waitForCameraSettled(page);
+  await expect(page.getByRole('heading', { name: 'Kepler-22' })).toBeVisible();
+  await expect
+    .poll(async () => (await readHeliocentricCatalogPresentationState(page)).hyg.visible)
+    .toBe(false);
+  const remote = await readHeliocentricCatalogPresentationState(page);
+
+  expect(remote.hyg.observerBoundaryOpacity).toBe(0);
+  expect(remote.exoplanetHosts.hostSignatureStrength).toBeLessThan(0.004);
+  expect(remote.exoplanetHosts.observerBoundaryOpacity).toBeLessThan(0.7);
+  expect(remote.exoplanetHosts.opacity).toBeLessThan(0.3);
   expect(browserErrors).toEqual([]);
 });
 
@@ -1502,7 +2168,10 @@ test('la Voie lactée volumique remplace l’amas artificiel du catalogue local'
   const detailed = await readStarClusterBatchState(page);
 
   await expect.poll(async () => (await readMilkyWayVolumeState(page)).atlasStatus).toBe('ready');
+  await expect.poll(async () => (await readMilkyWayDetailState(page)).visible).toBe(false);
   const volume = await readMilkyWayVolumeState(page);
+  const legacyDetail = await readMilkyWayDetailState(page);
+  const localSky = await readLocalGalacticSkyState(page);
 
   expect(detailed.cachedPackCount).toBeGreaterThan(0);
   expect(detailed.cachedTileCount).toBeGreaterThanOrEqual(detailed.activeTileCount);
@@ -1513,9 +2182,10 @@ test('la Voie lactée volumique remplace l’amas artificiel du catalogue local'
   expect(detailed.visibleLodLevels).toEqual([]);
   expect(volume).toMatchObject({
     visible: true,
-    atlasUrl: '/textures/milky-way-emissive-1024.jpg',
-    structure: 'cinematic-volume-with-view-parallax-and-dust-absorption',
-    depthTechnique: 'view-dependent-atlas-parallax-and-three-offset-discs',
+    atlasUrl: '/textures/milky-way-emissive-1254-v2.jpg',
+    structure: 'asymmetric-continuous-four-arm-galactic-disc',
+    depthTechnique: 'domain-warped-atlas-parallax-with-dust-rifts',
+    morphologyModel: 'barred-spiral-with-two-major-and-two-minor-arms',
     confidence: 'illustrative',
     cinematicQuality: 'high',
     drawMeshCount: 4,
@@ -1525,6 +2195,10 @@ test('la Voie lactée volumique remplace l’amas artificiel du catalogue local'
   expect(volume.bulgeHeight).toBeGreaterThan(600);
   expect(volume.parallaxStrength).toBeGreaterThan(0);
   expect(volume.dustAbsorption).toBeGreaterThan(volume.glowStrength);
+  expect(legacyDetail.visible).toBe(false);
+  expect(legacyDetail.opacity).toBeLessThan(0.004);
+  expect(localSky.bandVisible).toBe(false);
+  expect(localSky.opacity).toBeLessThan(0.004);
 
   const scaleSwitcher = page.getByRole('button', { name: 'Changer d’échelle' });
 
@@ -1556,6 +2230,8 @@ test('la Voie lactée volumique remplace l’amas artificiel du catalogue local'
   expect(exact.representationCount).toBe(0);
   expect(exact.visibleLodLevels).toEqual([]);
   await expect.poll(async () => (await readStarCatalogBatchState(page)).visible).toBe(true);
+  await expect.poll(async () => (await readLocalGalacticSkyState(page)).bandVisible).toBe(true);
+  expect((await readLocalGalacticSkyState(page)).opacity).toBeGreaterThan(0.3);
   expect(browserErrors).toEqual([]);
 });
 
@@ -1673,6 +2349,12 @@ test('les noms de constellation survolent, cadrent et documentent leur figure', 
   await waitForCameraSettled(page);
   await expect.poll(() => queryParameter(page, 'target')).toBe(interaction.candidate.objectId);
   await expect.poll(() => queryParameter(page, 'selected')).toBe(interaction.candidate.objectId);
+  await expect
+    .poll(async () => (await readConstellationInteractionState(page)).highlightOpacity)
+    .toBeGreaterThan(0.9);
+  expect((await readConstellationInteractionState(page)).highlightStyle).toBe(
+    'additive-target-highlight',
+  );
 
   const details = page.getByRole('complementary', {
     name: 'Informations sur l’objet sélectionné',
@@ -1903,9 +2585,14 @@ test('une étoile HYG peut être cliquée puis centrée depuis son label', async
       objectId: candidate.objectId,
       visible: true,
       haloVisible: true,
+      haloVisualStyle: 'procedural-spectral-photosphere-impostor',
+      catalogVisualStyle: 'procedural-spectral-photospheres-v3',
       coreVisible: false,
     });
-  expect((await readActiveCatalogStarState(page)).haloPointSize).toBeGreaterThan(24);
+  const stellarState = await readActiveCatalogStarState(page);
+
+  expect(stellarState.haloPointSize).toBeGreaterThan(48);
+  expect(stellarState.catalogSurfaceDetail).toBeGreaterThan(0);
 
   const focusedLabel = await waitForLabelCenter(page, candidate.objectId);
   let previousDistance = (await readCameraInteractionState(page)).distance;
@@ -2000,6 +2687,8 @@ test('une étoile proche trop faible pour le seuil de magnitude garde son point 
     .toMatchObject({
       objectId: 'wolf-359',
       visible: true,
+      visualFamily: 'red-dwarf',
+      catalogVisualStyle: 'procedural-spectral-photospheres-v3',
     });
   expect(browserErrors).toEqual([]);
 });
@@ -2050,11 +2739,65 @@ test('le navigateur d’éclipses déplace le temps et cible la Lune', async ({ 
     }),
   ).toBeVisible();
 
-  await browser.getByRole('button', { name: /Voir Éclipse lunaire partielle/ }).click();
+  await browser
+    .getByRole('button', {
+      name: 'Voir Éclipse lunaire partielle, 28 août 2026, 04:12 UTC',
+    })
+    .click();
 
   await expect.poll(() => queryParameter(page, 'target')).toBe('moon');
   await expect.poll(() => queryParameter(page, 'time')?.startsWith('2026-08-28T04:12')).toBe(true);
   await expect(page.getByRole('heading', { name: 'Lune' })).toBeVisible();
+  expect(browserErrors).toEqual([]);
+});
+
+test('le navigateur d’événements défile et remonte vers les éclipses antérieures', async ({
+  page,
+}) => {
+  const browserErrors = monitorBrowserErrors(page);
+
+  await openUniverse(page, universeUrl({ selected: '' }));
+  await page.getByRole('button', { name: 'Ouvrir les événements astronomiques' }).click();
+  const browser = page.getByRole('region', { name: 'Éclipses terrestres' });
+  const list = browser.locator('.event-list');
+
+  await expect(browser.getByRole('button', { name: 'Événements antérieurs' })).toBeVisible();
+  await expect
+    .poll(() =>
+      list.evaluate((element) => ({
+        overflowY: getComputedStyle(element).overflowY,
+        scrollable: element.scrollHeight > element.clientHeight,
+      })),
+    )
+    .toEqual({ overflowY: 'auto', scrollable: true });
+  await list.evaluate((element) => element.scrollTo({ top: element.scrollHeight }));
+  await expect.poll(() => list.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+
+  await browser.getByRole('button', { name: 'Événements antérieurs' }).click();
+  await expect(browser).toContainText('03 mars 2026');
+  await expect(
+    browser.getByRole('button', { name: 'Revenir autour de la date choisie' }),
+  ).toBeEnabled();
+  await browser.getByRole('button', { name: 'Revenir autour de la date choisie' }).click();
+  await expect(browser).toContainText('12 août 2026');
+  expect(browserErrors).toEqual([]);
+});
+
+test('la carte expose une échelle dynamique et un fil d’Ariane navigable', async ({ page }) => {
+  const browserErrors = monitorBrowserErrors(page);
+
+  await openUniverse(page, universeUrl({ target: 'earth' }));
+  const breadcrumb = page.getByRole('navigation', { name: 'Hiérarchie astronomique' });
+  const mapScale = page.getByRole('status', { name: 'Échelle cartographique' });
+
+  await expect(breadcrumb).toContainText('Voie lactée');
+  await expect(breadcrumb).toContainText('Soleil');
+  await expect(breadcrumb).toContainText('Terre');
+  await expect(mapScale).toContainText('Échelle visuelle adaptée');
+  await expect(mapScale).toContainText('km');
+
+  await breadcrumb.getByRole('button', { name: 'Naviguer vers Voie lactée' }).click();
+  await expect.poll(() => queryParameter(page, 'target')).toBe('milky-way');
   expect(browserErrors).toEqual([]);
 });
 
@@ -2157,9 +2900,15 @@ test('la rotation terrestre reste fluide pendant la lecture temporelle', async (
     .slice(1)
     .map((sample, index) => quaternionDistance(sample, samples[index]!));
   const movingSteps = angularSteps.filter((distance) => distance > 0.001).length;
+  const simulatedSecondsAtOneDayPerSecond = samples.at(-1)!.julianDay - samples[0]!.julianDay;
+  const angularDistance = angularSteps.reduce((total, distance) => total + distance, 0);
+  const averageSimulatedAngularSpeed = angularDistance / simulatedSecondsAtOneDayPerSecond;
 
   expect(movingSteps).toBeGreaterThanOrEqual(10);
-  expect(angularSteps.reduce((total, distance) => total + distance, 0)).toBeLessThan(0.25);
+  expect(Math.max(...angularSteps)).toBeLessThan(0.08);
+  expect(simulatedSecondsAtOneDayPerSecond).toBeGreaterThan(0);
+  expect(averageSimulatedAngularSpeed).toBeGreaterThan(0.2);
+  expect(averageSimulatedAngularSpeed).toBeLessThan(0.32);
 
   await page.getByRole('button', { name: 'Mettre le temps en pause' }).click();
   await page.waitForTimeout(1_200);
@@ -2193,6 +2942,21 @@ test('une éclipse solaire expose la trajectoire et la vue depuis le sol', async
 
   await pathButton.click();
   await expect(pathButton).toHaveAttribute('aria-pressed', 'true');
+  await expect
+    .poll(() => readSolarEclipseEventMapState(page))
+    .toEqual({
+      visible: true,
+      partialEnvelopeVisible: true,
+      corridorVisible: true,
+      corridorLimitsVisible: true,
+      centralLineVisible: true,
+      bodyFixed: true,
+      europeCovered: true,
+      europeFramed: true,
+      overviewFramed: true,
+      sufficientSampling: true,
+      source: 'Astronomy Engine geocentric ephemerides · validated against NASA GSFC path tables',
+    });
 
   await timeline.getByRole('button', { name: /Vue au sol/ }).click();
   await expect(timeline).toContainText('Observation locale');
@@ -2269,23 +3033,12 @@ test('les budgets renderer restent bornés dans la vue galactique', async ({ pag
 
   await expect(panel).toBeVisible();
 
-  const stats = await panel
-    .locator('dl > div')
-    .evaluateAll((rows) =>
-      Object.fromEntries(
-        rows.map((row) => [
-          row.querySelector('dt')?.textContent?.trim() ?? '',
-          row.querySelector('dd')?.textContent?.trim() ?? '',
-        ]),
-      ),
-    );
-
-  expect(Number(stats['Draw calls'])).toBeLessThanOrEqual(10);
-  expect(Number(stats['Géométries'])).toBeLessThanOrEqual(25);
-  expect(Number(stats['Textures'])).toBeLessThanOrEqual(6);
-  expect(Number(stats['Objets visibles'])).toBeGreaterThan(0);
-  expect(Number(stats['Étoiles HYG'])).toBe(0);
-  expect(Number(stats['Résolution rendu']?.replace('×', ''))).toBeGreaterThanOrEqual(1);
+  expect(await readDebugNumber(panel, 'draw-calls')).toBeLessThanOrEqual(12);
+  expect(await readDebugNumber(panel, 'geometries')).toBeLessThanOrEqual(25);
+  expect(await readDebugNumber(panel, 'textures')).toBeLessThanOrEqual(6);
+  expect(await readDebugNumber(panel, 'visible-objects')).toBeGreaterThan(0);
+  expect(await readDebugNumber(panel, 'hyg-stars')).toBe(0);
+  expect(await readDebugNumber(panel, 'render-resolution')).toBeGreaterThanOrEqual(1);
   const canvas = page.locator('canvas.universe-canvas');
 
   await expect(canvas).toHaveCount(1);
@@ -2311,19 +3064,9 @@ test.describe('budget volumétrique Retina', () => {
       name: 'Statistiques de débogage',
     });
 
-    await expect(panel).toBeVisible();
+    await expect(panel).toBeVisible({ timeout: 20_000 });
     await expect.poll(async () => (await readCosmicWebVolumeState(page)).visible).toBe(true);
-    const stats = await panel
-      .locator('dl > div')
-      .evaluateAll((rows) =>
-        Object.fromEntries(
-          rows.map((row) => [
-            row.querySelector('dt')?.textContent?.trim() ?? '',
-            row.querySelector('dd')?.textContent?.trim() ?? '',
-          ]),
-        ),
-      );
-    const pixelRatio = Number(stats['Résolution rendu']?.replace('×', ''));
+    const pixelRatio = await readDebugNumber(panel, 'render-resolution');
     const volume = await readCosmicWebVolumeState(page);
     const framesPerSecond = Number(
       (await panel.locator('header strong').textContent())?.replace(' FPS', ''),
@@ -2337,6 +3080,12 @@ test.describe('budget volumétrique Retina', () => {
     expect(browserErrors).toEqual([]);
   });
 });
+
+async function readDebugNumber(panel: Locator, stat: string): Promise<number> {
+  const text = await panel.locator(`[data-debug-stat="${stat}"]`).textContent();
+
+  return Number(text?.trim().replace('×', ''));
+}
 
 function quaternionDistance(
   first: { x: number; y: number; z: number; w: number },

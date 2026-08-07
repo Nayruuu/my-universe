@@ -53,14 +53,21 @@
         "luminositySolar": 1,
         "spectralType": "G2V"
       },
+      "rotation": {
+        "siderealPeriodHours": 609.119878,
+        "direction": "prograde",
+        "bodyFixedFrame": "IAU_SUN",
+        "orientationModel": "iau-wgccre-2015",
+        "scientificConfidence": "calculated",
+        "source": "NASA/JPL NAIF pck00011.tpc · IAU WGCCRE 2015"
+      },
       "visual": {
         "color": "#fff0c2",
         "secondaryColor": "#f6a84b",
         "emissiveColor": "#ffb347",
         "emissiveIntensity": 1.6,
         "visualRadius": 2.35,
-        "scaleMode": "exaggerated",
-        "rotationPeriodHours": 609.12
+        "scaleMode": "exaggerated"
       },
       "positionProvider": {
         "type": "static",
@@ -90,12 +97,19 @@
         "massKg": 3.3011e23,
         "temperatureK": 440
       },
+      "rotation": {
+        "siderealPeriodHours": 1407.507502,
+        "direction": "prograde",
+        "bodyFixedFrame": "IAU_MERCURY",
+        "orientationModel": "iau-wgccre-2015",
+        "scientificConfidence": "calculated",
+        "source": "NASA/JPL NAIF pck00011.tpc · IAU WGCCRE 2015"
+      },
       "visual": {
         "color": "#aaa39a",
         "secondaryColor": "#665f58",
         "visualRadius": 0.34,
-        "scaleMode": "exaggerated",
-        "rotationPeriodHours": 1407.6
+        "scaleMode": "exaggerated"
       },
       "positionProvider": {
         "type": "ephemeris",
@@ -123,13 +137,20 @@
         "massKg": 4.8675e24,
         "temperatureK": 737
       },
+      "rotation": {
+        "siderealPeriodHours": 5832.443616,
+        "direction": "retrograde",
+        "bodyFixedFrame": "IAU_VENUS",
+        "orientationModel": "iau-wgccre-2015",
+        "scientificConfidence": "calculated",
+        "source": "NASA/JPL NAIF pck00011.tpc · IAU WGCCRE 2015"
+      },
       "visual": {
         "color": "#d7bc86",
         "secondaryColor": "#8f7045",
         "atmosphereColor": "#d9a85f",
         "visualRadius": 0.56,
-        "scaleMode": "exaggerated",
-        "rotationPeriodHours": -5832.5
+        "scaleMode": "exaggerated"
       },
       "positionProvider": {
         "type": "ephemeris",
@@ -161,13 +182,20 @@
         "massKg": 5.97237e24,
         "temperatureK": 288
       },
+      "rotation": {
+        "siderealPeriodHours": 23.9344696,
+        "direction": "prograde",
+        "bodyFixedFrame": "EARTH_GEOGRAPHIC",
+        "orientationModel": "earth-geographic",
+        "scientificConfidence": "calculated",
+        "source": "Astronomy Engine · base géographique avec précession et nutation"
+      },
       "visual": {
         "color": "#3076ac",
         "secondaryColor": "#77a86b",
         "atmosphereColor": "#5ca9e6",
         "visualRadius": 0.62,
-        "scaleMode": "exaggerated",
-        "rotationPeriodHours": 23.934
+        "scaleMode": "exaggerated"
       },
       "positionProvider": {
         "type": "ephemeris",
@@ -201,12 +229,19 @@
         "massKg": 7.342e22,
         "temperatureK": 220
       },
+      "rotation": {
+        "siderealPeriodHours": 655.719881,
+        "direction": "prograde",
+        "bodyFixedFrame": "IAU_MOON",
+        "orientationModel": "iau-wgccre-2009",
+        "scientificConfidence": "calculated",
+        "source": "Astronomy Engine · approximation IAU WGCCRE 2009 Mean Earth/Polar Axis"
+      },
       "visual": {
         "color": "#b9b7b1",
         "secondaryColor": "#6d6a65",
         "visualRadius": 0.2,
-        "scaleMode": "exaggerated",
-        "rotationPeriodHours": 655.7
+        "scaleMode": "exaggerated"
       },
       "positionProvider": {
         "type": "ephemeris",
@@ -242,13 +277,20 @@
         "massKg": 6.4171e23,
         "temperatureK": 210
       },
+      "rotation": {
+        "siderealPeriodHours": 24.622962,
+        "direction": "prograde",
+        "bodyFixedFrame": "IAU_MARS",
+        "orientationModel": "iau-wgccre-2015",
+        "scientificConfidence": "calculated",
+        "source": "NASA/JPL NAIF pck00011.tpc · IAU WGCCRE 2015"
+      },
       "visual": {
         "color": "#b75d3f",
         "secondaryColor": "#603026",
         "atmosphereColor": "#b76045",
         "visualRadius": 0.46,
-        "scaleMode": "exaggerated",
-        "rotationPeriodHours": 24.623
+        "scaleMode": "exaggerated"
       },
       "positionProvider": {
         "type": "ephemeris",
@@ -280,12 +322,19 @@
         "massKg": 1.8982e27,
         "temperatureK": 165
       },
+      "rotation": {
+        "siderealPeriodHours": 9.92492,
+        "direction": "prograde",
+        "bodyFixedFrame": "IAU_JUPITER",
+        "orientationModel": "iau-wgccre-2015",
+        "scientificConfidence": "calculated",
+        "source": "NASA/JPL NAIF pck00011.tpc · IAU WGCCRE 2015"
+      },
       "visual": {
         "color": "#d2b28e",
         "secondaryColor": "#8d6247",
         "visualRadius": 1.25,
-        "scaleMode": "exaggerated",
-        "rotationPeriodHours": 9.925
+        "scaleMode": "exaggerated"
       },
       "positionProvider": {
         "type": "ephemeris",
@@ -315,13 +364,20 @@
         "massKg": 5.6834e26,
         "temperatureK": 134
       },
+      "rotation": {
+        "siderealPeriodHours": 10.656222,
+        "direction": "prograde",
+        "bodyFixedFrame": "IAU_SATURN",
+        "orientationModel": "iau-wgccre-2015",
+        "scientificConfidence": "calculated",
+        "source": "NASA/JPL NAIF pck00011.tpc · IAU WGCCRE 2015"
+      },
       "visual": {
         "color": "#d7c193",
         "secondaryColor": "#9b835f",
         "visualRadius": 1.08,
         "scaleMode": "exaggerated",
-        "hasRings": true,
-        "rotationPeriodHours": 10.7
+        "hasRings": true
       },
       "positionProvider": {
         "type": "ephemeris",
@@ -351,13 +407,20 @@
         "massKg": 8.681e25,
         "temperatureK": 76
       },
+      "rotation": {
+        "siderealPeriodHours": 17.24,
+        "direction": "retrograde",
+        "bodyFixedFrame": "IAU_URANUS",
+        "orientationModel": "iau-wgccre-2015",
+        "scientificConfidence": "calculated",
+        "source": "NASA/JPL NAIF pck00011.tpc · IAU WGCCRE 2015"
+      },
       "visual": {
         "color": "#92c9cf",
         "secondaryColor": "#5e9ca8",
         "visualRadius": 0.86,
         "scaleMode": "exaggerated",
-        "hasRings": true,
-        "rotationPeriodHours": -17.24
+        "hasRings": true
       },
       "positionProvider": {
         "type": "ephemeris",
@@ -385,13 +448,20 @@
         "massKg": 1.02413e26,
         "temperatureK": 72
       },
+      "rotation": {
+        "siderealPeriodHours": 16.11,
+        "direction": "prograde",
+        "bodyFixedFrame": "IAU_NEPTUNE",
+        "orientationModel": "iau-wgccre-2015",
+        "scientificConfidence": "calculated",
+        "source": "NASA/JPL NAIF pck00011.tpc · IAU WGCCRE 2015"
+      },
       "visual": {
         "color": "#315aa8",
         "secondaryColor": "#17366f",
         "atmosphereColor": "#356bc4",
         "visualRadius": 0.84,
-        "scaleMode": "exaggerated",
-        "rotationPeriodHours": 16.11
+        "scaleMode": "exaggerated"
       },
       "positionProvider": {
         "type": "ephemeris",
@@ -419,18 +489,25 @@
         "massKg": 8.93194e22,
         "temperatureK": 110
       },
+      "rotation": {
+        "siderealPeriodHours": 42.459307194,
+        "direction": "prograde",
+        "bodyFixedFrame": "IAU_IO",
+        "orientationModel": "iau-wgccre-2015",
+        "scientificConfidence": "calculated",
+        "source": "NASA/JPL NAIF pck00011.tpc · IAU WGCCRE 2015"
+      },
       "visual": {
         "color": "#d8b96e",
         "secondaryColor": "#76613c",
         "visualRadius": 0.26,
-        "scaleMode": "exaggerated",
-        "rotationPeriodHours": 42.305568
+        "scaleMode": "exaggerated"
       },
       "positionProvider": {
         "type": "ephemeris",
         "body": "io",
         "origin": "jupiter",
-        "orbitalPeriodDays": 1.762732,
+        "orbitalPeriodDays": 1.769137799754,
         "orbitEpochJulianDay": 2451545,
         "distanceScale": 40
       },
@@ -454,18 +531,25 @@
         "massKg": 4.79984e22,
         "temperatureK": 102
       },
+      "rotation": {
+        "siderealPeriodHours": 85.2283459,
+        "direction": "prograde",
+        "bodyFixedFrame": "IAU_EUROPA",
+        "orientationModel": "iau-wgccre-2015",
+        "scientificConfidence": "calculated",
+        "source": "NASA/JPL NAIF pck00011.tpc · IAU WGCCRE 2015"
+      },
       "visual": {
         "color": "#d5c7a4",
         "secondaryColor": "#8f7655",
         "visualRadius": 0.24,
-        "scaleMode": "exaggerated",
-        "rotationPeriodHours": 84.611112
+        "scaleMode": "exaggerated"
       },
       "positionProvider": {
         "type": "ephemeris",
         "body": "europa",
         "origin": "jupiter",
-        "orbitalPeriodDays": 3.525463,
+        "orbitalPeriodDays": 3.551181079177,
         "orbitEpochJulianDay": 2451545,
         "distanceScale": 40
       },
@@ -489,18 +573,25 @@
         "massKg": 1.4819e23,
         "temperatureK": 110
       },
+      "rotation": {
+        "siderealPeriodHours": 171.709274869,
+        "direction": "prograde",
+        "bodyFixedFrame": "IAU_GANYMEDE",
+        "orientationModel": "iau-wgccre-2015",
+        "scientificConfidence": "calculated",
+        "source": "NASA/JPL NAIF pck00011.tpc · IAU WGCCRE 2015"
+      },
       "visual": {
         "color": "#a99b83",
         "secondaryColor": "#5f5549",
         "visualRadius": 0.3,
-        "scaleMode": "exaggerated",
-        "rotationPeriodHours": 171.734112
+        "scaleMode": "exaggerated"
       },
       "positionProvider": {
         "type": "ephemeris",
         "body": "ganymede",
         "origin": "jupiter",
-        "orbitalPeriodDays": 7.155588,
+        "orbitalPeriodDays": 7.154553119547,
         "orbitEpochJulianDay": 2451545,
         "distanceScale": 40
       },
@@ -524,18 +615,25 @@
         "massKg": 1.07594e23,
         "temperatureK": 134
       },
+      "rotation": {
+        "siderealPeriodHours": 400.536431396,
+        "direction": "prograde",
+        "bodyFixedFrame": "IAU_CALLISTO",
+        "orientationModel": "iau-wgccre-2015",
+        "scientificConfidence": "calculated",
+        "source": "NASA/JPL NAIF pck00011.tpc · IAU WGCCRE 2015"
+      },
       "visual": {
         "color": "#77716a",
         "secondaryColor": "#3d3936",
         "visualRadius": 0.29,
-        "scaleMode": "exaggerated",
-        "rotationPeriodHours": 400.57056
+        "scaleMode": "exaggerated"
       },
       "positionProvider": {
         "type": "ephemeris",
         "body": "callisto",
         "origin": "jupiter",
-        "orbitalPeriodDays": 16.69044,
+        "orbitalPeriodDays": 16.689017974837,
         "orbitEpochJulianDay": 2451545,
         "distanceScale": 40
       },
@@ -559,13 +657,20 @@
         "massKg": 1.3452e23,
         "temperatureK": 94
       },
+      "rotation": {
+        "siderealPeriodHours": 382.690741836,
+        "direction": "prograde",
+        "bodyFixedFrame": "IAU_TITAN",
+        "orientationModel": "iau-wgccre-2015",
+        "scientificConfidence": "calculated",
+        "source": "NASA/JPL NAIF pck00011.tpc · IAU WGCCRE 2015"
+      },
       "visual": {
         "color": "#c7954e",
         "secondaryColor": "#76552f",
         "atmosphereColor": "#d69a49",
         "visualRadius": 0.32,
-        "scaleMode": "exaggerated",
-        "rotationPeriodHours": 382.690752
+        "scaleMode": "exaggerated"
       },
       "positionProvider": {
         "type": "keplerian",
@@ -601,12 +706,19 @@
         "massKg": 1.30246e22,
         "temperatureK": 44
       },
+      "rotation": {
+        "siderealPeriodHours": 153.293352,
+        "direction": "retrograde",
+        "bodyFixedFrame": "IAU_PLUTO",
+        "orientationModel": "iau-wgccre-2015",
+        "scientificConfidence": "calculated",
+        "source": "NASA/JPL NAIF pck00011.tpc · IAU WGCCRE 2015"
+      },
       "visual": {
         "color": "#c5ad96",
         "secondaryColor": "#756158",
         "visualRadius": 0.32,
-        "scaleMode": "exaggerated",
-        "rotationPeriodHours": -153.2928
+        "scaleMode": "exaggerated"
       },
       "positionProvider": {
         "type": "ephemeris",
@@ -634,12 +746,19 @@
         "massKg": 9.3835e20,
         "temperatureK": 167
       },
+      "rotation": {
+        "siderealPeriodHours": 9.07417,
+        "direction": "prograde",
+        "bodyFixedFrame": "IAU_CERES",
+        "orientationModel": "iau-wgccre-2015",
+        "scientificConfidence": "calculated",
+        "source": "NASA/JPL NAIF pck00011.tpc · IAU WGCCRE 2015"
+      },
       "visual": {
         "color": "#8e8b84",
         "secondaryColor": "#4d4b48",
         "visualRadius": 0.24,
-        "scaleMode": "exaggerated",
-        "rotationPeriodHours": 9.07417
+        "scaleMode": "exaggerated"
       },
       "positionProvider": {
         "type": "keplerian",
@@ -673,12 +792,19 @@
         "massKg": 2.59076e20,
         "temperatureK": 172
       },
+      "rotation": {
+        "siderealPeriodHours": 5.342128,
+        "direction": "prograde",
+        "bodyFixedFrame": "IAU_VESTA",
+        "orientationModel": "iau-wgccre-2015",
+        "scientificConfidence": "calculated",
+        "source": "NASA/JPL NAIF pck00011.tpc · IAU WGCCRE 2015"
+      },
       "visual": {
         "color": "#a9a39a",
         "secondaryColor": "#625d57",
         "visualRadius": 0.2,
-        "scaleMode": "exaggerated",
-        "rotationPeriodHours": 5.3421276322
+        "scaleMode": "exaggerated"
       },
       "positionProvider": {
         "type": "keplerian",

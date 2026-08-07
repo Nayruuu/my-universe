@@ -1,150 +1,197 @@
 @if (facade.debugEnabled() && facade.debugStats(); as stats) {
-  <aside class="debug-panel" aria-label="Statistiques de débogage">
+  @let t = i18n.content();
+  <aside class="debug-panel" [attr.aria-label]="t.debug.aria">
     <header>
       <span>DEBUG</span><strong>{{ stats.fps }} FPS</strong>
     </header>
     <dl>
       <div>
-        <dt>Draw calls</dt>
-        <dd>{{ stats.drawCalls }}</dd>
+        <dt>{{ t.debug.drawCalls }}</dt>
+        <dd data-debug-stat="draw-calls">{{ stats.drawCalls }}</dd>
       </div>
       <div>
-        <dt>Triangles</dt>
+        <dt>{{ t.debug.triangles }}</dt>
         <dd>{{ stats.triangles }}</dd>
       </div>
       <div>
-        <dt>Géométries</dt>
-        <dd>{{ stats.geometries }}</dd>
+        <dt>{{ t.debug.geometries }}</dt>
+        <dd data-debug-stat="geometries">{{ stats.geometries }}</dd>
       </div>
       <div>
-        <dt>Textures</dt>
-        <dd>{{ stats.textures }}</dd>
+        <dt>{{ t.debug.textures }}</dt>
+        <dd data-debug-stat="textures">{{ stats.textures }}</dd>
       </div>
       <div>
-        <dt>Objets visibles</dt>
-        <dd>{{ stats.visibleObjects }}</dd>
+        <dt>{{ t.debug.visibleObjects }}</dt>
+        <dd data-debug-stat="visible-objects">{{ stats.visibleObjects }}</dd>
       </div>
       <div>
-        <dt>Étoiles HYG</dt>
-        <dd>{{ stats.catalogStars }}</dd>
+        <dt>{{ t.debug.hygStars }}</dt>
+        <dd data-debug-stat="hyg-stars">{{ stats.catalogStars }}</dd>
       </div>
       <div>
-        <dt>Groupes Cosmicflows-4</dt>
+        <dt>{{ t.debug.visibleExoplanetHosts }}</dt>
+        <dd>{{ stats.exoplanetHosts }}</dd>
+      </div>
+      <div>
+        <dt>{{ t.debug.indexedExoplanets }}</dt>
+        <dd>{{ stats.exoplanets }}</dd>
+      </div>
+      <div>
+        <dt>{{ t.debug.cosmicGroups }}</dt>
         <dd>{{ stats.cosmicGroups }}</dd>
       </div>
       <div>
-        <dt>Filaments dérivés</dt>
+        <dt>{{ t.debug.derivedFilaments }}</dt>
         <dd>{{ stats.cosmicFilaments }}</dd>
       </div>
       <div>
-        <dt>Structures documentées</dt>
+        <dt>{{ t.debug.documentedStructures }}</dt>
         <dd>{{ stats.cosmicStructures }}</dd>
       </div>
       <div>
-        <dt>Galaxies groupées</dt>
+        <dt>{{ t.debug.loadedTempelSpines }}</dt>
+        <dd>{{ stats.tempelFilamentSpines }}</dd>
+      </div>
+      <div>
+        <dt>{{ t.debug.tempelSegments }}</dt>
+        <dd>{{ stats.visibleTempelSpineSegments }} / {{ stats.tempelSpineSegments }}</dd>
+      </div>
+      <div>
+        <dt>{{ t.debug.tempelGpuTiles }}</dt>
+        <dd>{{ stats.tempelSpineTiles }}</dd>
+      </div>
+      <div>
+        <dt>{{ t.debug.batchedGalaxies }}</dt>
         <dd>{{ stats.batchedGalaxies }}</dd>
       </div>
       <div>
-        <dt>Tuiles galactiques actives / index</dt>
+        <dt>{{ t.debug.galaxyTiles }}</dt>
         <dd>{{ stats.loadedTiles }} / {{ stats.indexedGalaxyTiles }}</dd>
       </div>
       <div>
-        <dt>Tuiles galactiques en cache</dt>
+        <dt>{{ t.debug.cachedGalaxyTiles }}</dt>
         <dd>{{ stats.cachedGalaxyTiles }}</dd>
       </div>
       <div>
-        <dt>Tuiles stellaires actives</dt>
+        <dt>{{ t.debug.activeStarTiles }}</dt>
         <dd>{{ stats.activeStarTiles }}</dd>
       </div>
       <div>
-        <dt>Paquets stellaires en cache</dt>
+        <dt>{{ t.debug.cachedStarPacks }}</dt>
         <dd>{{ stats.cachedStarPacks }}</dd>
       </div>
       <div>
-        <dt>Tuiles stellaires en cache</dt>
+        <dt>{{ t.debug.cachedStarTiles }}</dt>
         <dd>{{ stats.cachedStarTiles }}</dd>
       </div>
       <div>
-        <dt>Cellules actives / cache</dt>
+        <dt>{{ t.debug.activeCells }}</dt>
         <dd>{{ stats.activeStarClusters }} / {{ stats.cachedStarClusters }}</dd>
       </div>
       <div>
-        <dt>Cellules visibles</dt>
+        <dt>{{ t.debug.visibleCells }}</dt>
         <dd>{{ stats.visibleStarClusters }}</dd>
       </div>
       <div>
-        <dt>Niveau de détail</dt>
+        <dt>{{ t.debug.lodLevel }}</dt>
         <dd>{{ stats.lodLevel }}</dd>
       </div>
       <div>
-        <dt>Référentiel actif</dt>
+        <dt>{{ t.debug.referenceFrame }}</dt>
         <dd>{{ stats.navigationReferenceFrame }}</dd>
       </div>
       <div>
-        <dt>Distance caméra</dt>
+        <dt>{{ t.debug.cameraDistance }}</dt>
         <dd>{{ format(stats.cameraDistance) }}</dd>
       </div>
       <div>
-        <dt>Cible</dt>
-        <dd>{{ stats.targetId ?? 'libre' }}</dd>
+        <dt>{{ t.debug.target }}</dt>
+        <dd>{{ stats.targetId ?? t.debug.free }}</dd>
       </div>
       <div>
-        <dt>Origine navigation</dt>
-        <dd>{{ stats.navigationOriginId ?? 'point libre' }}</dd>
+        <dt>{{ t.debug.navigationOrigin }}</dt>
+        <dd>{{ stats.navigationOriginId ?? t.debug.freePoint }}</dd>
       </div>
       <div>
-        <dt>Qualité</dt>
+        <dt>{{ t.debug.quality }}</dt>
         <dd>{{ stats.quality }}</dd>
       </div>
       <div>
-        <dt>Résolution rendu</dt>
-        <dd>{{ format(stats.pixelRatio) }}×</dd>
+        <dt>{{ t.debug.renderResolution }}</dt>
+        <dd data-debug-stat="render-resolution">{{ format(stats.pixelRatio) }}×</dd>
       </div>
+      @if (facade.targetVisualDiagnostics(); as visual) {
+        <div class="wide">
+          <dt>{{ t.debug.targetSurface }}</dt>
+          <dd data-debug-stat="target-surface">
+            {{ visual.surfaceTexture.loaded ? '✓' : visual.surfaceTexture.requested ? '…' : '—' }}
+            · {{ visual.surfaceTexture.width }}×{{ visual.surfaceTexture.height }} ·
+            {{ visual.surfaceTexture.source ?? '—' }}
+          </dd>
+        </div>
+        <div class="wide">
+          <dt>{{ t.debug.targetLodBlend }}</dt>
+          <dd>
+            body={{ visual.bodyVisible }} · {{ format(visual.nearBlend) }} /
+            {{ format(visual.visibilityBlend) }}
+          </dd>
+        </div>
+        <div class="wide">
+          <dt>{{ t.debug.targetOpacity }}</dt>
+          <dd>{{ format(visual.opacity) }} / {{ visual.transparent }}</dd>
+        </div>
+        <div class="wide">
+          <dt>{{ t.debug.targetDepth }}</dt>
+          <dd>{{ visual.depthTest }} / {{ visual.depthWrite }}</dd>
+        </div>
+      }
       @if (stats.zoom; as zoom) {
         <div class="wide">
-          <dt>Dernier zoom · {{ zoomStatus(zoom.status) }}</dt>
+          <dt>{{ i18n.interpolate(t.debug.lastZoom, { status: zoomStatus(zoom.status) }) }}</dt>
           <dd>
             {{
-              zoom.anchorObjectId ?? (zoom.anchorType === 'target' ? 'cible caméra' : 'point libre')
+              zoom.anchorObjectId ??
+                (zoom.anchorType === 'target' ? t.debug.cameraTargetAnchor : t.debug.freePoint)
             }}
             · Δ {{ format(zoom.deltaY) }}
           </dd>
         </div>
         <div class="wide">
-          <dt>Avant → demandée → appliquée</dt>
+          <dt>{{ t.debug.zoomDistances }}</dt>
           <dd>
             {{ format(zoom.beforeDistance) }} → {{ format(zoom.requestedDistance) }} →
             {{ format(zoom.appliedDistance) }}
           </dd>
         </div>
         <div class="wide">
-          <dt>Limites min. / max.</dt>
+          <dt>{{ t.debug.zoomLimits }}</dt>
           <dd>{{ format(zoom.minimumDistance) }} / {{ format(zoom.maximumDistance) }}</dd>
         </div>
       }
       <div class="wide">
-        <dt>Caméra</dt>
+        <dt>{{ t.debug.camera }}</dt>
         <dd>
           {{ format(stats.cameraPosition.x) }}, {{ format(stats.cameraPosition.y) }},
           {{ format(stats.cameraPosition.z) }}
         </dd>
       </div>
       <div class="wide">
-        <dt>Cible caméra</dt>
+        <dt>{{ t.debug.cameraTarget }}</dt>
         <dd>
           {{ format(stats.cameraTarget.x) }}, {{ format(stats.cameraTarget.y) }},
           {{ format(stats.cameraTarget.z) }}
         </dd>
       </div>
       <div class="wide">
-        <dt>Floating origin</dt>
+        <dt>{{ t.debug.floatingOrigin }}</dt>
         <dd>
           {{ format(stats.floatingOrigin.x) }}, {{ format(stats.floatingOrigin.y) }},
           {{ format(stats.floatingOrigin.z) }}
         </dd>
       </div>
       <div class="wide">
-        <dt>Jour julien</dt>
+        <dt>{{ t.debug.julianDay }}</dt>
         <dd>{{ stats.julianDay.toFixed(4) }}</dd>
       </div>
     </dl>

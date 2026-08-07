@@ -9,13 +9,18 @@ describe('EclipseBrowserComponent', () => {
   const eclipseBrowserOpen = signal(false);
   const eclipseEventsLoading = signal(false);
   const localEclipseLoading = signal(false);
+  const eclipseCatalogAtPresent = signal(true);
   const upcomingEclipses = signal<readonly EarthEclipseEvent[]>([]);
   const facade = {
     browserTimeZone: 'Europe/Paris',
     eclipseBrowserOpen,
     eclipseEventsLoading,
     localEclipseLoading,
+    eclipseCatalogAtPresent,
     upcomingEclipses,
+    browseEarlierEclipses: vi.fn(),
+    browseLaterEclipses: vi.fn(),
+    returnToCurrentEclipses: vi.fn(),
     toggleEclipseBrowser: vi.fn(),
     viewEarthEclipse: vi.fn(() => Promise.resolve()),
     viewLocalSolarEclipse: vi.fn(() => Promise.resolve()),
@@ -26,6 +31,7 @@ describe('EclipseBrowserComponent', () => {
     eclipseBrowserOpen.set(false);
     eclipseEventsLoading.set(false);
     localEclipseLoading.set(false);
+    eclipseCatalogAtPresent.set(true);
     upcomingEclipses.set([]);
     vi.clearAllMocks();
     TestBed.configureTestingModule({
@@ -54,6 +60,18 @@ describe('EclipseBrowserComponent', () => {
       expect.objectContaining({ id: 'biarritz' }),
     );
     expect(facade.observeEarthEclipse).toHaveBeenCalledWith(eclipse);
+  });
+
+  it('parcourt les événements antérieurs, suivants et revient à la date courante', () => {
+    const component = createComponent();
+
+    component.browseEarlier();
+    component.browseLater();
+    component.returnToCurrent();
+
+    expect(facade.browseEarlierEclipses).toHaveBeenCalledOnce();
+    expect(facade.browseLaterEclipses).toHaveBeenCalledOnce();
+    expect(facade.returnToCurrentEclipses).toHaveBeenCalledOnce();
   });
 
   it('retombe sur le premier lieu lorsque l’identifiant est inconnu', () => {
@@ -147,6 +165,15 @@ describe('EclipseBrowserComponent', () => {
 
     expect(fixture.nativeElement.querySelectorAll('.event-list__item')).toHaveLength(3);
     expect(fixture.nativeElement.textContent).toContain('Maximum depuis Paris');
+    expect(fixture.nativeElement.querySelectorAll('.catalog-navigation button')).toHaveLength(3);
+
+    eclipseCatalogAtPresent.set(false);
+    fixture.detectChanges();
+    const presentButton = fixture.nativeElement.querySelector(
+      '.catalog-navigation__present',
+    ) as HTMLButtonElement | null;
+
+    expect(presentButton?.disabled).toBe(false);
 
     localEclipseLoading.set(true);
     fixture.detectChanges();
@@ -160,6 +187,9 @@ interface EclipseBrowserAccess {
   view(event: EarthEclipseEvent): void;
   viewLocal(event: EarthEclipseEvent): void;
   observe(event: EarthEclipseEvent): void;
+  browseEarlier(): void;
+  browseLater(): void;
+  returnToCurrent(): void;
   changeLocation(event: Event): void;
   eventTitle(event: EarthEclipseEvent): string;
   kindLabel(kind: EarthEclipseKind): string;

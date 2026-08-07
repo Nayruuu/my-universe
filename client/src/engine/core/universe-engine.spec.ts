@@ -3,7 +3,6 @@ import {
   ConstellationCatalog,
   SpaceObject,
   SpaceTileIndex,
-  StarClusterTile,
   UniverseEngineEvent,
 } from '../../data/models/universe.models';
 import { type CameraZoomDiagnostics } from '../camera/camera-controller';
@@ -34,15 +33,39 @@ import {
   STAR_CATALOG_RECORD_BYTES,
   STAR_CATALOG_VERSION,
 } from '../loaders/star-catalog';
+import {
+  EXOPLANET_CATALOG_HEADER_BYTES,
+  EXOPLANET_CATALOG_HOST_RECORD_BYTES,
+  EXOPLANET_CATALOG_MAGIC,
+  EXOPLANET_CATALOG_PLANET_RECORD_BYTES,
+  EXOPLANET_CATALOG_VERSION,
+} from '../loaders/exoplanet-catalog';
+import { createNasaCatalogObjectId } from '../objects/exoplanet-catalog-registry';
+import {
+  TEMPEL_FILAMENT_SPINE_HEADER_BYTES,
+  TEMPEL_FILAMENT_SPINE_INDEX_BYTES,
+  TEMPEL_FILAMENT_SPINE_MAGIC,
+  TEMPEL_FILAMENT_SPINE_POINT_BYTES,
+  TEMPEL_FILAMENT_SPINE_VERSION,
+} from '../loaders/tempel-filament-spine-catalog';
 import { EarthRotationPlayback } from '../simulation/earth-rotation-playback';
 import { EarthEclipseEvent, SolarEclipseAppearance } from '../simulation/earth-eclipse';
+import { calculateEarthObserverDirection } from '../simulation/body-orientation';
+import { calculateSolarEclipseAppearance } from '../simulation/solar-eclipse-calculator';
 import { TimeController } from '../simulation/time-controller';
 import { dateToJulianDay } from '../simulation/time-utils';
 import { type BlackHoleLensingEffect } from '../rendering/black-hole-lensing-pass';
 import { getPhotographicProfile } from '../rendering/photographic-profile';
-import { type SpaceTileView } from '../tiles/space-tile-selection';
-import { type StarTileView } from '../tiles/star-tile-selection';
+import {
+  SolarEclipsePresentationController,
+  type SolarEclipsePresentationRegistry,
+} from './solar-eclipse-presentation';
+import { SolarEclipseStatePublisher } from './solar-eclipse-state-publisher';
+import { SpaceStreamingCoordinator } from './space-streaming-coordinator';
+import { UniverseDebugRuntime } from './universe-debug-runtime';
 import { UniverseEngine, type WebGlRendererConstructor } from './universe-engine';
+import { UniverseInitializationBootstrap } from './universe-initialization-bootstrap';
+import { UniverseStreamingRuntime } from './universe-streaming-runtime';
 
 const rendererHarness = vi.hoisted(() => {
   class FakeWebGLRenderer {
@@ -104,6 +127,10 @@ describe('UniverseEngine', () => {
     const events: UniverseEngineEvent[] = [];
     const unsubscribe = engine.subscribe((event) => events.push(event));
 
+    engine.setLabelNameResolver((objectId, fallback) =>
+      objectId === 'earth' ? 'Earth' : fallback,
+    );
+
     await engine.initialize(container, {
       quality: 'low',
       showLabels: false,
@@ -135,10 +162,88 @@ describe('UniverseEngine', () => {
     expect(events.at(-1)).toEqual({ type: 'loading-state', loading: false });
     expect(rendererHarness.instances).toHaveLength(1);
 
+    const access = engine as unknown as EngineAccess;
+    const setNameResolver = vi.spyOn(access.labelManager!, 'setNameResolver');
+
+    engine.setLabelNameResolver((objectId, fallback) => (objectId === 'earth' ? 'Erde' : fallback));
+    expect(setNameResolver).toHaveBeenCalledOnce();
+    const initialViewDirection = access
+      .cameraController!.controls.target.clone()
+      .sub(access.camera!.position)
+      .normalize();
+    const initialGalacticLatitude = THREE.MathUtils.radToDeg(Math.asin(initialViewDirection.y));
+
+    expect(Math.abs(initialGalacticLatitude)).toBeLessThan(15);
+    expect(initialViewDirection.x).toBeLessThan(-0.7);
+
     unsubscribe();
     engine.dispose();
     expect(renderer.dispose).toHaveBeenCalledOnce();
     expect(container.contains(renderer.domElement)).toBe(false);
+  });
+
+  it('partage une initialisation encore en cours entre les appelants', async () => {
+    installAssets([]);
+    const engine = createTestEngine();
+    const access = engine as unknown as EngineAccess;
+    const createRuntime = access.initializationBootstrap.create.bind(
+      access.initializationBootstrap,
+    );
+    let releaseInitialization!: () => void;
+    const initializationGate = new Promise<void>((resolve) => {
+      releaseInitialization = resolve;
+    });
+
+    vi.spyOn(access.initializationBootstrap, 'create').mockImplementation(async (options) => {
+      await initializationGate;
+
+      return createRuntime(options);
+    });
+    const firstInitialization = engine.initialize(sizedContainer(960, 540));
+    const concurrentInitialization = engine.initialize(sizedContainer(320, 180));
+
+    expect(concurrentInitialization).toBe(firstInitialization);
+    expect(rendererHarness.instances).toHaveLength(0);
+
+    releaseInitialization();
+    await concurrentInitialization;
+
+    expect(rendererHarness.instances).toHaveLength(1);
+    engine.dispose();
+  });
+
+  it('annule et libère une initialisation terminée après la destruction du moteur', async () => {
+    installAssets([]);
+    const engine = createTestEngine();
+    const access = engine as unknown as EngineAccess;
+    const createRuntime = access.initializationBootstrap.create.bind(
+      access.initializationBootstrap,
+    );
+    let releaseInitialization!: () => void;
+    const initializationGate = new Promise<void>((resolve) => {
+      releaseInitialization = resolve;
+    });
+
+    vi.spyOn(access.initializationBootstrap, 'create').mockImplementation(async (options) => {
+      await initializationGate;
+
+      return createRuntime(options);
+    });
+    const staleInitialization = engine.initialize(sizedContainer(960, 540));
+
+    engine.dispose();
+    releaseInitialization();
+
+    await expect(staleInitialization).rejects.toThrow('Initialisation de UniverseEngine annulée');
+    const staleRenderer = rendererHarness.instances[0]!;
+
+    expect(staleRenderer.dispose).toHaveBeenCalledOnce();
+    expect(staleRenderer.domElement.isConnected).toBe(false);
+    expect(engine.allObjects).toEqual([]);
+
+    await engine.initialize(sizedContainer(640, 360));
+    expect(rendererHarness.instances).toHaveLength(2);
+    engine.dispose();
   });
 
   it('choisit la qualité recommandée et transmet les avertissements de données', async () => {
@@ -169,7 +274,7 @@ describe('UniverseEngine', () => {
     engine.subscribe((event) => events.push(event));
     await engine.initialize(sizedContainer(960, 540), { quality: 'low' });
     const setLabelObjects = vi.spyOn(access.labelManager!, 'setObjects');
-    const baseRegistry = access.objectRegistry;
+    const baseRegistry = access.objectRuntime.primaryRegistry;
 
     expect(engine.allObjects.map((object) => object.id)).toEqual(['nearby-universe']);
     expect(engine.hasObject('galaxy-a')).toBe(true);
@@ -185,30 +290,30 @@ describe('UniverseEngine', () => {
 
     await engine.setTarget('galaxy-a');
     expect(engine.allObjects.map((object) => object.id)).toEqual(['nearby-universe', 'galaxy-a']);
-    expect(access.spaceTileManager?.loadedTileCount).toBe(1);
+    expect(access.streamingRuntime.coordinator?.stats.loadedTiles).toBe(1);
     expect(setLabelObjects).toHaveBeenCalled();
     expect(events.filter((event) => event.type === 'data-ready')).toHaveLength(1);
-    expect(access.objectRegistry).toBe(baseRegistry);
+    expect(access.objectRuntime.primaryRegistry).toBe(baseRegistry);
     expect(
       (
-        access.spaceTileObjectRegistry as unknown as {
+        access.objectRuntime.streamedRegistry as unknown as {
           has(objectId: string): boolean;
         } | null
       )?.has('galaxy-a'),
     ).toBe(true);
 
-    await access.synchronizeSpaceTiles(spaceTileRequest({ quality: 'high' }));
-    expect(access.spaceTileManager?.loadedTileCount).toBe(2);
+    await access.streamingRuntime.coordinator?.ensureObject('galaxy-b');
+    expect(access.streamingRuntime.coordinator?.stats.loadedTiles).toBe(2);
     expect(engine.allObjects.map((object) => object.id)).toEqual([
       'nearby-universe',
       'galaxy-a',
       'galaxy-b',
     ]);
     expect(events.filter((event) => event.type === 'data-ready')).toHaveLength(1);
-    expect(access.objectRegistry).toBe(baseRegistry);
+    expect(access.objectRuntime.primaryRegistry).toBe(baseRegistry);
     expect(
       (
-        access.spaceTileObjectRegistry as unknown as {
+        access.objectRuntime.streamedRegistry as unknown as {
           has(objectId: string): boolean;
         } | null
       )?.has('galaxy-b'),
@@ -216,225 +321,25 @@ describe('UniverseEngine', () => {
 
     access.targetId = 'nearby-universe';
     access.selectedId = null;
-    await access.synchronizeSpaceTiles(spaceTileRequest({ lodLevel: 4 }));
-    expect(access.spaceTileManager?.loadedTileCount).toBe(0);
+    access.streamingRuntime.coordinator?.update(
+      {
+        camera: access.camera!,
+        viewportHeight: 540,
+        lodLevel: 4,
+        quality: 'low',
+        worldOffset: access.universeScene!.spaceRoot.position,
+        transitioning: false,
+        targetId: access.targetId,
+        selectedId: access.selectedId,
+      },
+      0,
+    );
+    await vi.waitFor(() => expect(access.streamingRuntime.coordinator?.stats.loadedTiles).toBe(0));
     expect(engine.allObjects.map((object) => object.id)).toEqual(['nearby-universe']);
     expect(events.filter((event) => event.type === 'data-ready')).toHaveLength(1);
-    expect(access.objectRegistry).toBe(baseRegistry);
-    expect(access.spaceTileObjectRegistry).toBeNull();
+    expect(access.objectRuntime.primaryRegistry).toBe(baseRegistry);
+    expect(access.objectRuntime.streamedRegistry).toBeNull();
     engine.dispose();
-  });
-
-  it('orchestre, déduplique et signale les synchronisations de tuiles', async () => {
-    installNearbyUniverseAssets();
-    const engine = createTestEngine();
-    const access = engine as unknown as EngineAccess;
-    const events: UniverseEngineEvent[] = [];
-
-    engine.subscribe((event) => events.push(event));
-    await engine.initialize(sizedContainer(960, 540), { quality: 'low' });
-
-    const startDrain = vi.spyOn(access, 'drainSpaceTileSynchronizations').mockResolvedValueOnce();
-
-    access.targetId = 'galaxy-a';
-    access.selectedId = 'galaxy-b';
-    access.requestSpaceTileSynchronization(5, 0);
-    expect(startDrain).toHaveBeenCalledOnce();
-    expect(access.pendingSpaceTileRequest).toMatchObject({
-      retainedObjectIds: ['galaxy-a', 'galaxy-b'],
-      view: { lodLevel: 5, quality: 'low' },
-    });
-    startDrain.mockRestore();
-    await access.drainSpaceTileSynchronizations();
-    expect(access.spaceTileManager?.loadedTileCount).toBe(2);
-
-    access.requestSpaceTileSynchronization(5, 0.1);
-    expect(access.pendingSpaceTileRequest).toBeNull();
-
-    access.targetId = 'nearby-universe';
-    access.selectedId = null;
-    access.tileSynchronizationRunning = true;
-    access.requestSpaceTileSynchronization(4, 0);
-    expect(access.pendingSpaceTileRequest?.view.lodLevel).toBe(4);
-    access.tileSynchronizationRunning = false;
-    await access.drainSpaceTileSynchronizations();
-    expect(access.spaceTileManager?.loadedTileCount).toBe(0);
-
-    await access.synchronizeSpaceTiles(spaceTileRequest({ lodLevel: 4 }));
-    access.initialized = false;
-    await access.synchronizeSpaceTiles(spaceTileRequest({ quality: 'high' }));
-    expect(engine.allObjects.map((object) => object.id)).toEqual(['nearby-universe']);
-    access.initialized = true;
-
-    const synchronize = vi
-      .spyOn(access, 'synchronizeSpaceTiles')
-      .mockRejectedValueOnce(new Error('tuile cassée'))
-      .mockRejectedValueOnce('échec brut');
-
-    access.pendingSpaceTileRequest = spaceTileRequest();
-    await access.drainSpaceTileSynchronizations();
-    access.pendingSpaceTileRequest = spaceTileRequest({ lodLevel: 4 });
-    await access.drainSpaceTileSynchronizations();
-    synchronize.mockRestore();
-
-    expect(events).toContainEqual({
-      type: 'performance-warning',
-      message: 'Chargement spatial partiel : tuile cassée',
-    });
-    expect(events).toContainEqual({
-      type: 'performance-warning',
-      message: 'Chargement spatial partiel : erreur inconnue',
-    });
-
-    access.spaceTileManager = null;
-    access.requestSpaceTileSynchronization(4, 0);
-    await access.synchronizeSpaceTiles(spaceTileRequest({ lodLevel: 4 }));
-    access.applyLoadedSpaceTiles();
-    expect(engine.allObjects.map((object) => object.id)).toEqual(['nearby-universe']);
-    engine.dispose();
-  });
-
-  it('recapture périodiquement la caméra pour le streaming des galaxies', async () => {
-    installNearbyUniverseAssets();
-    const engine = createTestEngine();
-    const access = engine as unknown as EngineAccess;
-
-    await engine.initialize(sizedContainer(960, 540), { quality: 'medium' });
-    expect(rendererHarness.instances.at(-1)?.options['antialias']).toBe(false);
-    access.targetId = 'nearby-universe';
-    const startDrain = vi.spyOn(access, 'drainSpaceTileSynchronizations').mockResolvedValue();
-    const initialPosition = access.camera!.position.clone();
-
-    const transitioning = vi
-      .spyOn(access.cameraController!, 'isTransitioning', 'get')
-      .mockReturnValue(true);
-
-    access.requestSpaceTileSynchronization(5, 1);
-    expect(startDrain).not.toHaveBeenCalled();
-    expect(access.pendingSpaceTileRequest).toBeNull();
-
-    transitioning.mockReturnValue(false);
-    access.requestSpaceTileSynchronization(5, 0);
-    expect(startDrain).toHaveBeenCalledOnce();
-    expect(access.pendingSpaceTileRequest?.view.cameraPosition.toArray()).toEqual(
-      initialPosition.toArray(),
-    );
-    access.pendingSpaceTileRequest = null;
-    startDrain.mockClear();
-
-    access.camera!.position.set(90, 80, 70);
-    access.camera!.updateMatrixWorld();
-    access.container = null;
-    access.requestSpaceTileSynchronization(5, 0.24);
-    expect(startDrain).not.toHaveBeenCalled();
-    access.requestSpaceTileSynchronization(5, 0.01);
-    expect(startDrain).toHaveBeenCalledOnce();
-    expect(readPendingSpaceTileRequest(access)?.view.cameraPosition.toArray()).toEqual([
-      90, 80, 70,
-    ]);
-    expect(readPendingSpaceTileRequest(access)?.view.viewportHeight).toBe(1);
-
-    access.pendingSpaceTileRequest = null;
-    startDrain.mockRestore();
-    engine.dispose();
-  });
-
-  it('synchronise les cellules stellaires avec la caméra et limite la fréquence des requêtes', async () => {
-    const runtime = createRuntime();
-    const tile = testStarClusterTile(3);
-    const synchronize = vi.fn(async (view: StarTileView) => ({
-      changed: true,
-      tiles: view.lodLevel === 3 ? [tile] : [],
-    }));
-
-    runtime.access.starTileManager = {
-      ...starTileStats(),
-      synchronize,
-    };
-    runtime.access.requestStarTileSynchronization(3, 0);
-    await vi.waitFor(() =>
-      expect(runtime.scene.setStarClusterTiles).toHaveBeenCalledWith([tile], runtime.catalog),
-    );
-    expect(synchronize).toHaveBeenCalledOnce();
-    expect(synchronize.mock.calls[0]?.[0]).toMatchObject({ lodLevel: 3, quality: 'medium' });
-
-    runtime.access.requestStarTileSynchronization(3, 0.1);
-    expect(synchronize).toHaveBeenCalledOnce();
-    runtime.access.requestStarTileSynchronization(3, 0.15);
-    await vi.waitFor(() => expect(synchronize).toHaveBeenCalledTimes(2));
-
-    runtime.access.requestStarTileSynchronization(2, 0);
-    await vi.waitFor(() =>
-      expect(runtime.scene.setStarClusterTiles).toHaveBeenLastCalledWith([], runtime.catalog),
-    );
-
-    runtime.access.container = null;
-    runtime.access.requestStarTileSynchronization(4, 0);
-    await vi.waitFor(() => expect(synchronize).toHaveBeenCalledTimes(4));
-    expect(synchronize.mock.calls[3]?.[0].viewportHeight).toBe(450);
-
-    runtime.access.starTileManager = null;
-    runtime.access.pendingStarTileView = synchronize.mock.calls[0]![0];
-    await runtime.access.drainStarTileSynchronizations();
-    expect(runtime.access.starTileSynchronizationRunning).toBe(false);
-    runtime.access.requestStarTileSynchronization(4, 1);
-    runtime.engine.dispose();
-  });
-
-  it('abandonne un résultat caméra obsolète et applique uniquement la vue la plus récente', async () => {
-    const runtime = createRuntime();
-    const first = deferredStarTileResult();
-    const detailed = testStarClusterTile(3);
-    const overview = testStarClusterTile(4);
-    const synchronize = vi
-      .fn<
-        (view: StarTileView) => Promise<{ changed: boolean; tiles: readonly StarClusterTile[] }>
-      >()
-      .mockReturnValueOnce(first.promise)
-      .mockResolvedValueOnce({ changed: true, tiles: [overview] });
-
-    runtime.access.starTileManager = { ...starTileStats(), synchronize };
-    runtime.access.requestStarTileSynchronization(3, 0);
-    runtime.access.requestStarTileSynchronization(4, 0);
-    first.resolve({ changed: true, tiles: [detailed] });
-
-    await vi.waitFor(() => expect(synchronize).toHaveBeenCalledTimes(2));
-    await vi.waitFor(() =>
-      expect(runtime.scene.setStarClusterTiles).toHaveBeenCalledWith([overview], runtime.catalog),
-    );
-    expect(runtime.scene.setStarClusterTiles).not.toHaveBeenCalledWith([detailed], runtime.catalog);
-    runtime.engine.dispose();
-  });
-
-  it('déduplique les avertissements de streaming et normalise une erreur non standard', async () => {
-    const failedRuntime = createRuntime();
-    const events: UniverseEngineEvent[] = [];
-    const synchronize = vi
-      .fn()
-      .mockRejectedValueOnce(new Error('cellules cassées'))
-      .mockRejectedValueOnce(new Error('cellules cassées'))
-      .mockRejectedValueOnce('rupture')
-      .mockResolvedValueOnce({ changed: false, tiles: [] });
-
-    failedRuntime.engine.subscribe((event) => events.push(event));
-    failedRuntime.access.starTileManager = { ...starTileStats(), synchronize };
-
-    for (let index = 0; index < 4; index += 1) {
-      failedRuntime.access.requestStarTileSynchronization(index % 2 === 0 ? 3 : 4, 0);
-      await vi.waitFor(() => expect(synchronize).toHaveBeenCalledTimes(index + 1));
-    }
-
-    expect(events.filter((event) => event.type === 'performance-warning')).toEqual([
-      {
-        type: 'performance-warning',
-        message: 'Streaming stellaire indisponible : cellules cassées',
-      },
-      {
-        type: 'performance-warning',
-        message: 'Streaming stellaire indisponible : erreur inconnue',
-      },
-    ]);
-    failedRuntime.engine.dispose();
   });
 
   it('ignore une tuile terminée après la destruction logique du moteur', async () => {
@@ -450,10 +355,10 @@ describe('UniverseEngine', () => {
       resolveLoad = resolve;
     });
 
-    vi.spyOn(access.spaceTileManager!, 'ensureObject').mockReturnValue(pendingLoad);
+    vi.spyOn(access.streamingRuntime.coordinator!, 'ensureObject').mockReturnValue(pendingLoad);
     const targeting = engine.setTarget('galaxy-a');
 
-    access.objectRegistry = null;
+    access.objectRuntime.replacePrimary(null);
     access.initialized = false;
     resolveLoad(true);
 
@@ -477,6 +382,10 @@ describe('UniverseEngine', () => {
     installAssets([object('milky-way', 'Voie lactée', 'galaxy'), sun], {
       binaryBuffer: starCatalogBuffer(),
       starTileSource: true,
+      starTileIndex: starTileIndexFixture(),
+      starTilePacks: {
+        '/data/stars/tiles/root.json': starTilePackFixture(),
+      },
     });
     const engine = createTestEngine();
     const access = engine as unknown as EngineAccess;
@@ -484,7 +393,7 @@ describe('UniverseEngine', () => {
 
     engine.subscribe((event) => events.push(event));
     await engine.initialize(sizedContainer(960, 540), { quality: 'low' });
-    expect(access.starTileManager).not.toBeNull();
+    expect(access.streamingRuntime.coordinator).not.toBeNull();
     const stellarRoot = access.universeScene?.spaceRoot.getObjectByName(
       'solar-neighborhood-reference',
     );
@@ -492,6 +401,31 @@ describe('UniverseEngine', () => {
 
     expect(stellarRoot?.position.x).toBeGreaterThan(2_000);
     expect(stellarRoot?.position.toArray()).toEqual(sunPosition?.toArray());
+
+    const setStarClusterTiles = vi.spyOn(access.universeScene!, 'setStarClusterTiles');
+
+    access.camera!.position.copy(stellarRoot!.position).add(new THREE.Vector3(0, 0, 500));
+    access.camera!.lookAt(stellarRoot!.position);
+    access.camera!.updateMatrixWorld();
+    access.streamingRuntime.coordinator!.update(
+      {
+        camera: access.camera!,
+        viewportHeight: 540,
+        lodLevel: 4,
+        quality: 'high',
+        worldOffset: access.universeScene!.spaceRoot.position,
+        transitioning: false,
+        targetId: null,
+        selectedId: null,
+      },
+      0,
+    );
+    await vi.waitFor(() =>
+      expect(setStarClusterTiles).toHaveBeenCalledWith(
+        [expect.objectContaining({ id: 'root' })],
+        access.catalogRuntime?.starCatalogRegistry,
+      ),
+    );
 
     const selection = access.selectionManager as unknown as {
       getPickables(): readonly THREE.Object3D[];
@@ -502,6 +436,11 @@ describe('UniverseEngine', () => {
       isBackgroundObject(objectId: string): boolean;
       isWheelNavigationObject(objectId: string): boolean;
       labelHoverCallback(objectId: string | null): void;
+      semanticZoomCallback(
+        objectId: string | null,
+        deltaY: number,
+        pointer: { x: number; y: number },
+      ): void;
     };
     const controller = access.cameraController as unknown as {
       onCameraSettled(distance: number, source: 'interaction'): void;
@@ -511,15 +450,18 @@ describe('UniverseEngine', () => {
       callback(deltaSeconds: number, elapsedSeconds: number): void;
     };
     const initializedServices = {
-      registry: access.objectRegistry,
+      registry: access.objectRuntime.primaryRegistry,
       scene: access.universeScene,
       labels: access.labelManager,
       controller: access.cameraController,
-      catalog: access.starCatalogRegistry,
+      catalogRuntime: access.catalogRuntime,
     };
     const handlePick = vi.spyOn(access, 'handlePick').mockImplementation(() => undefined);
     const handleNavigation = vi
       .spyOn(access, 'handleNavigationIntent')
+      .mockImplementation(() => undefined);
+    const handleSemanticZoom = vi
+      .spyOn(access, 'handleSemanticZoomIntent')
       .mockImplementation(() => undefined);
     const renderFrame = vi.spyOn(access, 'renderFrame').mockImplementation(() => undefined);
     const labelManager = access.labelManager as unknown as {
@@ -542,11 +484,16 @@ describe('UniverseEngine', () => {
     expect(selection.isWheelNavigationObject('milky-way')).toBe(true);
     expect(selection.isWheelNavigationObject('hyg-3229')).toBe(false);
     selection.labelHoverCallback('hyg-3229');
+    selection.semanticZoomCallback('hyg-3229', -120, { x: 0.25, y: -0.5 });
     controller.onCameraSettled(42, 'interaction');
     loop.callback(0.02, 0.02);
 
     expect(handlePick).toHaveBeenCalledWith('hyg-3229', true);
     expect(handleNavigation).toHaveBeenCalledWith('hyg-3229');
+    expect(handleSemanticZoom).toHaveBeenCalledWith('hyg-3229', -120, {
+      x: 0.25,
+      y: -0.5,
+    });
     expect(hover).toHaveBeenCalledWith('hyg-3229');
     expect(renderFrame).toHaveBeenCalledWith(0.02);
     expect(events).toContainEqual({ type: 'camera-changed', zoom: 42 });
@@ -554,11 +501,11 @@ describe('UniverseEngine', () => {
       catalogEntries: [expect.objectContaining({ id: 'hyg-3229', name: 'Sirius' })],
     });
 
-    access.objectRegistry = null;
+    access.objectRuntime.replacePrimary(null);
     access.universeScene = null;
     access.labelManager = null;
     access.cameraController = null;
-    access.starCatalogRegistry = null;
+    access.catalogRuntime = null;
     expect(selection.getPickables()).toEqual([]);
     expect(selection.getLabelObjectAt(10, 20)).toBeNull();
     expect(selection.getReferenceDistance()).toBe(1);
@@ -566,11 +513,46 @@ describe('UniverseEngine', () => {
     expect(selection.isWheelNavigationObject('milky-way')).toBe(false);
     selection.labelHoverCallback(null);
 
-    access.objectRegistry = initializedServices.registry;
+    access.objectRuntime.replacePrimary(initializedServices.registry);
     access.universeScene = initializedServices.scene;
     access.labelManager = initializedServices.labels;
     access.cameraController = initializedServices.controller;
-    access.starCatalogRegistry = initializedServices.catalog;
+    access.catalogRuntime = initializedServices.catalogRuntime;
+    engine.dispose();
+  });
+
+  it('relaie les avertissements du streaming stellaire', async () => {
+    installAssets([], {
+      binaryBuffer: starCatalogBuffer(),
+      starTileSource: true,
+    });
+    const engine = createTestEngine();
+    const access = engine as unknown as EngineAccess;
+    const events: UniverseEngineEvent[] = [];
+
+    engine.subscribe((event) => events.push(event));
+    await engine.initialize(sizedContainer(960, 540), { quality: 'low' });
+    access.streamingRuntime.coordinator!.update(
+      {
+        camera: access.camera!,
+        viewportHeight: 540,
+        lodLevel: 4,
+        quality: 'low',
+        worldOffset: access.universeScene!.spaceRoot.position,
+        transitioning: false,
+        targetId: null,
+        selectedId: null,
+      },
+      0,
+    );
+
+    await vi.waitFor(() =>
+      expect(events).toContainEqual({
+        type: 'performance-warning',
+        message:
+          'Streaming stellaire indisponible : Impossible de charger l’index stellaire hyg-star-tiles (404).',
+      }),
+    );
     engine.dispose();
   });
 
@@ -616,6 +598,145 @@ describe('UniverseEngine', () => {
     expect(events).toContainEqual({ type: 'target-changed', objectId: 'cf4-pgc-42' });
     (access.cameraController as unknown as { update(deltaSeconds: number): void }).update(10);
     expect(access.cameraController?.distanceToTarget).toBeGreaterThan(200_000);
+    engine.dispose();
+  });
+
+  it('branche le catalogue NASA, puis matérialise un seul système exoplanétaire à la demande', async () => {
+    installAssets([], {
+      exoplanetBuffer: exoplanetCatalogBuffer(),
+      exoplanetMetadata: exoplanetCatalogMetadata(),
+    });
+    const engine = createTestEngine();
+    const access = engine as unknown as EngineAccess;
+    const events: UniverseEngineEvent[] = [];
+    const hostId = createNasaCatalogObjectId('host', 'Test Host');
+    const planetId = createNasaCatalogObjectId('planet', 'Test Host b');
+
+    engine.subscribe((event) => events.push(event));
+    await engine.initialize(sizedContainer(960, 540), { quality: 'low' });
+
+    expect(engine.hasObject(hostId)).toBe(true);
+    expect(engine.hasObject(planetId)).toBe(true);
+    expect(access.objectRuntime.exoplanetSystemRegistry).toBeNull();
+    expect(events.find((event) => event.type === 'data-ready')).toMatchObject({
+      catalogEntries: [
+        expect.objectContaining({ id: hostId, name: 'Test Host' }),
+        expect.objectContaining({
+          id: planetId,
+          name: 'Test Host b',
+          metadata: expect.objectContaining({ discoveryMethod: 'Transit' }),
+        }),
+      ],
+    });
+    expect(
+      access.universeScene?.spaceRoot.getObjectByName('observed-nasa-exoplanet-hosts'),
+    ).toBeInstanceOf(THREE.Points);
+
+    await engine.setTarget(planetId);
+    expect(access.objectRuntime.exoplanetSystemRegistry?.has(hostId)).toBe(true);
+    expect(access.objectRuntime.exoplanetSystemRegistry?.has(planetId)).toBe(true);
+    expect(access.streamingRuntime.activeExoplanetSystemObjects).toHaveLength(2);
+    expect(engine.allObjects.map(({ id }) => id)).toEqual([hostId, planetId]);
+    expect(events).toContainEqual({
+      type: 'object-selected',
+      objectId: planetId,
+      object: expect.objectContaining({ type: 'exoplanet', parentId: hostId }),
+    });
+    expect(() => engine.viewOrbit(planetId)).not.toThrow();
+    const positionBefore = access.objectRuntime.exoplanetSystemRegistry
+      ?.getWorldPosition(planetId)
+      ?.clone();
+
+    engine.setTime({ julianDay: 2_451_565 });
+    const positionAfter = access.objectRuntime.exoplanetSystemRegistry?.getWorldPosition(planetId);
+
+    expect(positionBefore?.distanceTo(positionAfter!)).toBeGreaterThan(0.1);
+
+    await engine.setTarget(hostId);
+    access.rebuildObjectRegistry();
+    expect(access.objectRuntime.exoplanetSystemRegistry?.has(hostId)).toBe(true);
+    access.objectRuntime.setNavigationTarget('missing');
+    access.objectRuntime.select('missing');
+
+    const container = access.container;
+    const canvas = access.renderer!.domElement;
+
+    Object.defineProperties(canvas, {
+      clientWidth: { configurable: true, value: 960 },
+      clientHeight: { configurable: true, value: 540 },
+    });
+    access.container = null;
+    expect(() => access.renderFrame(0.016)).not.toThrow();
+    access.container = container;
+    engine.dispose();
+  });
+
+  it('conserve la sélection détaillée lorsqu’une exoplanète locale est aussi liée au catalogue NASA', async () => {
+    const host = {
+      ...object('test-host', 'Test Host', 'star'),
+      referenceFrame: 'stellar' as const,
+      scientificConfidence: 'observed' as const,
+      metadata: {
+        sourceTable: 'PSCompPars',
+        exoplanetHost: true,
+      },
+      positionProvider: {
+        type: 'static' as const,
+        position: [10, 0, 0] as const,
+        unit: 'parsec' as const,
+      },
+    } satisfies SpaceObject;
+    const planet = {
+      ...object('test-host-b', 'Test Host b', 'exoplanet', host.id),
+      referenceFrame: 'stellar' as const,
+      scientificConfidence: 'observed' as const,
+      metadata: { sourceTable: 'PSCompPars' },
+      positionProvider: {
+        type: 'illustrative-orbit' as const,
+        semiMajorAxis: 0.2,
+        orbitalPeriodDays: 20,
+        epochJulianDay: 2_451_545,
+        visualPhaseAtEpochDegrees: 0,
+        visualInclinationDegrees: 0,
+        unit: 'astronomical-unit' as const,
+      },
+    } satisfies SpaceObject;
+
+    installAssets([host, planet], {
+      exoplanetBuffer: exoplanetCatalogBuffer(),
+      exoplanetMetadata: exoplanetCatalogMetadata(),
+    });
+    const engine = createTestEngine();
+    const access = engine as unknown as EngineAccess;
+
+    await engine.initialize(sizedContainer(960, 540), { quality: 'high' });
+    expect(access.objectRuntime.exoplanetSystemRegistry).toBeNull();
+
+    const baseRegistry = access.objectRuntime.primaryRegistry as unknown as {
+      selectedId: string | null;
+      updateLod(
+        camera: THREE.PerspectiveCamera,
+        viewportHeight: number,
+        lodLevel: number,
+        deltaSeconds: number,
+      ): void;
+      registryRoot: THREE.Group;
+    };
+
+    baseRegistry.updateLod(access.camera!, 540, 0, 0);
+    engine.viewOrbit(planet.id);
+
+    expect(baseRegistry.selectedId).toBe(planet.id);
+    expect(
+      baseRegistry.registryRoot.getObjectByName(`${planet.id}-orbit`)?.userData['active'],
+    ).toBe(true);
+    const catalogBatch = access.universeScene?.spaceRoot.getObjectByName(
+      'observed-nasa-exoplanet-hosts',
+    ) as THREE.Points | undefined;
+
+    expect(catalogBatch).toBeInstanceOf(THREE.Points);
+    expect(catalogBatch?.userData['catalogCount']).toBe(1);
+    expect(catalogBatch?.userData['renderedHostCount']).toBe(0);
     engine.dispose();
   });
 
@@ -686,6 +807,217 @@ describe('UniverseEngine', () => {
     (access.cameraController as unknown as { update(deltaSeconds: number): void }).update(10);
     expect(access.cameraController?.distanceToTarget).toBeGreaterThan(1_000);
     engine.dispose();
+  });
+
+  it('charge les épines Tempel à la demande puis conserve une seule requête', async () => {
+    const cosmicWeb = {
+      ...object('cosmic-web', 'Réseau cosmique', 'universe'),
+      referenceFrame: 'cosmic-web' as const,
+    };
+
+    installAssets([cosmicWeb], {
+      cosmicStructureBuffer: tempelCosmicStructureCatalogBuffer(),
+      cosmicStructureMetadata: testTempelCosmicStructureMetadata(),
+      tempelSpineBuffer: tempelSpineCatalogBuffer(),
+    });
+    const fetchMock = vi.mocked(fetch);
+    const engine = createTestEngine();
+    const access = engine as unknown as EngineAccess;
+    const events: UniverseEngineEvent[] = [];
+
+    engine.subscribe((event) => events.push(event));
+    await engine.initialize(sizedContainer(960, 540), { quality: 'high' });
+    events.length = 0;
+    expect(fetchMock).not.toHaveBeenCalledWith('/data/tempel-spines.bin');
+    expect(access.universeScene?.tempelFilamentSpineCount).toBe(0);
+
+    engine.setCosmicMapLayers({
+      volume: true,
+      groups: true,
+      links: true,
+      clusters: true,
+      superclusters: true,
+      filaments: true,
+      voids: false,
+    });
+    await Promise.resolve();
+    expect(fetchMock).not.toHaveBeenCalledWith('/data/tempel-spines.bin');
+    expect(access.universeScene?.tempelFilamentSpineCount).toBe(0);
+
+    access.camera?.position.set(420_000, 0, 0);
+    access.cameraController?.controls.target.set(0, 0, 0);
+    access.renderFrame(0.05);
+    await vi.waitFor(() => {
+      expect(access.universeScene?.tempelFilamentSpineCount).toBe(1);
+    });
+    expect(access.universeScene?.tempelFilamentSpinePointCount).toBe(2);
+    expect(access.universeScene?.tempelFilamentSpineSegmentCount).toBe(1);
+    expect(fetchMock.mock.calls.filter(([url]) => url === '/data/tempel-spines.bin')).toHaveLength(
+      1,
+    );
+
+    engine.setCosmicMapLayers({
+      volume: true,
+      groups: true,
+      links: true,
+      clusters: true,
+      superclusters: true,
+      filaments: true,
+      voids: false,
+    });
+    await access.ensureTempelFilamentSpines();
+    expect(fetchMock.mock.calls.filter(([url]) => url === '/data/tempel-spines.bin')).toHaveLength(
+      1,
+    );
+    expect(events.filter((event) => event.type === 'loading-state')).toEqual([]);
+
+    engine.selectObject('lss-sdss-dr8-tempel-filaments-f1');
+    expect(
+      access.universeScene?.spaceRoot.getObjectByName('selected-tempel-filament-spine')?.userData[
+        'objectId'
+      ],
+    ).toBe('lss-sdss-dr8-tempel-filaments-f1');
+    await engine.setTarget('lss-sdss-dr8-tempel-filaments-f1');
+    engine.dispose();
+  });
+
+  it('signale une épine Tempel indisponible une seule fois sans casser la carte', async () => {
+    installAssets([], {
+      cosmicStructureBuffer: tempelCosmicStructureCatalogBuffer(),
+      cosmicStructureMetadata: testTempelCosmicStructureMetadata(),
+      tempelSpineStatus: 503,
+    });
+    const engine = createTestEngine();
+    const access = engine as unknown as EngineAccess;
+    const events: UniverseEngineEvent[] = [];
+
+    engine.subscribe((event) => events.push(event));
+    await engine.initialize(sizedContainer(960, 540));
+    engine.setCosmicMapLayers({
+      volume: true,
+      groups: true,
+      links: true,
+      clusters: true,
+      superclusters: true,
+      filaments: true,
+      voids: false,
+    });
+    access.camera?.position.set(420_000, 0, 0);
+    access.cameraController?.controls.target.set(0, 0, 0);
+    access.renderFrame(0.05);
+    await access.ensureTempelFilamentSpines();
+    engine.setCosmicMapLayers({
+      volume: true,
+      groups: true,
+      links: true,
+      clusters: true,
+      superclusters: true,
+      filaments: true,
+      voids: false,
+    });
+    await access.ensureTempelFilamentSpines();
+
+    expect(
+      events.filter(
+        (event) => event.type === 'performance-warning' && event.message.includes('Épines Tempel'),
+      ),
+    ).toEqual([
+      {
+        type: 'performance-warning',
+        message:
+          'Épines Tempel indisponibles : Impossible de charger tempel-filament-spines (503).',
+      },
+    ]);
+    engine.dispose();
+  });
+
+  it('ignore un catalogue Tempel qui termine après la destruction du moteur', async () => {
+    const runtime = createRuntime();
+    const pendingBuffer = deferredValue<ArrayBuffer>();
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      arrayBuffer: () => pendingBuffer.promise,
+    }));
+
+    vi.stubGlobal('fetch', fetchMock);
+    runtime.catalog.tempelFilamentSpineSource = {
+      id: 'tempel-spines',
+      url: '/tempel-spines.bin',
+    };
+    runtime.catalog.cosmicStructureCatalogRegistry = { has: () => true };
+    const loading = runtime.access.ensureTempelFilamentSpines();
+
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
+    runtime.engine.dispose();
+    pendingBuffer.resolve(tempelSpineCatalogBuffer());
+    await loading;
+
+    expect(runtime.scene.setTempelFilamentSpineCatalog).not.toHaveBeenCalled();
+  });
+
+  it('ignore le chargement Tempel tant que sa source statique est absente', async () => {
+    const fetchMock = vi.fn();
+
+    vi.stubGlobal('fetch', fetchMock);
+    const runtime = createRuntime();
+
+    runtime.catalog.tempelFilamentSpineSource = null;
+    await runtime.access.ensureTempelFilamentSpines();
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(runtime.scene.setTempelFilamentSpineCatalog).not.toHaveBeenCalled();
+  });
+
+  it('nettoie une scène détruite pendant l’installation différée des épines', async () => {
+    const runtime = createRuntime();
+    const installation = deferredValue<void>();
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => successfulBinaryResponse(tempelSpineCatalogBuffer())),
+    );
+    runtime.catalog.tempelFilamentSpineSource = {
+      id: 'tempel-spines',
+      url: '/tempel-spines.bin',
+    };
+    runtime.catalog.cosmicStructureCatalogRegistry = { has: () => true };
+    runtime.scene.setTempelFilamentSpineCatalog.mockImplementation(() => installation.promise);
+    const loading = runtime.access.ensureTempelFilamentSpines();
+
+    await vi.waitFor(() =>
+      expect(runtime.scene.setTempelFilamentSpineCatalog).toHaveBeenCalledOnce(),
+    );
+    runtime.access.initialized = false;
+    runtime.access.universeScene = null;
+    installation.resolve();
+    await loading;
+
+    expect(runtime.scene.dispose).toHaveBeenCalledOnce();
+    runtime.engine.dispose();
+  });
+
+  it('normalise une erreur Tempel non standard', async () => {
+    const first = createRuntime();
+    const firstEvents: UniverseEngineEvent[] = [];
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        arrayBuffer: async () => Promise.reject('échec brut'),
+      })),
+    );
+    first.catalog.tempelFilamentSpineSource = { id: 'tempel-spines', url: '/spines.bin' };
+    first.catalog.cosmicStructureCatalogRegistry = { has: () => true };
+    first.engine.subscribe((event) => firstEvents.push(event));
+    await first.access.ensureTempelFilamentSpines();
+    expect(firstEvents).toContainEqual({
+      type: 'performance-warning',
+      message: 'Épines Tempel indisponibles : erreur inconnue',
+    });
+    first.engine.dispose();
   });
 
   it('branche le catalogue illustratif des constellations sur le batch stellaire', async () => {
@@ -778,7 +1110,19 @@ describe('UniverseEngine', () => {
     expect(engine.cameraDistance).toBe(0);
     expect(engine.allObjects).toEqual([]);
     expect(engine.hasObject('earth')).toBe(false);
+    expect(engine.getObjectAdornmentDiagnostics('earth')).toBeNull();
+    expect(engine.getObjectVisualDiagnostics('earth')).toBeNull();
     expect(['low', 'medium', 'high']).toContain(engine.recommendedQuality);
+  });
+
+  it('expose les ornements actifs par un diagnostic public stable', () => {
+    const runtime = createRuntime();
+
+    expect(runtime.engine.getObjectAdornmentDiagnostics('earth')).toEqual(
+      objectAdornmentDiagnostics(),
+    );
+    expect(runtime.engine.getObjectVisualDiagnostics('earth')).toEqual(objectVisualDiagnostics());
+    runtime.engine.dispose();
   });
 
   it('protège le démarrage puis délègue start, stop et resize', () => {
@@ -869,12 +1213,36 @@ describe('UniverseEngine', () => {
     expect(runtime.controller.completeFocusTransition).toHaveBeenCalledOnce();
   });
 
+  it('cadre suffisamment près un corps en rotation', async () => {
+    const runtime = createRuntime();
+    const earth = runtime.definitions.get('earth')!;
+
+    earth.rotation = rotationDefinition('earth', 23.934);
+    await runtime.engine.viewRotation('earth');
+
+    expect(runtime.controller.focusOn).toHaveBeenCalledWith(
+      expect.any(THREE.Vector3),
+      earth,
+      expect.any(Number),
+    );
+    expect(runtime.controller.focusOn.mock.calls.at(-1)?.[2]).toBeLessThan(10);
+    expect(runtime.registry.select).toHaveBeenCalledWith('earth');
+  });
+
+  it('refuse la vue de rotation pour un objet sans période axiale', async () => {
+    const runtime = createRuntime();
+
+    await expect(runtime.engine.viewRotation('earth')).rejects.toThrow('Rotation indisponible');
+    await expect(runtime.engine.viewRotation('unknown')).rejects.toThrow('Rotation indisponible');
+  });
+
   it('centre un objet de catalogue avec sa distance dédiée', async () => {
     const runtime = createRuntime();
     const catalogObject = object('hyg-1', 'Sirius', 'star');
     const catalogPosition = new THREE.Vector3(30, 2, -4);
 
     runtime.catalog.has.mockImplementation((id: string) => id === 'hyg-1');
+    runtime.catalog.isCatalogStar.mockImplementation((id: string) => id === 'hyg-1');
     runtime.catalog.getDefinition.mockImplementation((id: string) =>
       id === 'hyg-1' ? catalogObject : undefined,
     );
@@ -976,7 +1344,7 @@ describe('UniverseEngine', () => {
   });
 
   it.each([
-    ['registre', (runtime: Runtime) => (runtime.access.objectRegistry = null)],
+    ['registre', (runtime: Runtime) => runtime.access.objectRuntime.replacePrimary(null)],
     ['contrôleur', (runtime: Runtime) => (runtime.access.cameraController = null)],
     ['caméra', (runtime: Runtime) => (runtime.access.camera = null)],
     ['objet', (runtime: Runtime) => runtime.registry.getDefinition.mockReturnValue(undefined)],
@@ -1031,7 +1399,7 @@ describe('UniverseEngine', () => {
   });
 
   it.each([
-    ['registre', (runtime: Runtime) => (runtime.access.objectRegistry = null)],
+    ['registre', (runtime: Runtime) => runtime.access.objectRuntime.replacePrimary(null)],
     ['contrôleur', (runtime: Runtime) => (runtime.access.cameraController = null)],
     ['cible', (runtime: Runtime) => runtime.registry.getDefinition.mockReturnValue(undefined)],
     ['position', (runtime: Runtime) => runtime.registry.getWorldPosition.mockReturnValue(null)],
@@ -1043,22 +1411,38 @@ describe('UniverseEngine', () => {
     expect(() => runtime.engine.viewScale(NAVIGATION_SCALES[1]!)).toThrow('Cadrage indisponible');
   });
 
-  it('cadre l’ombre d’une éclipse solaire totale', () => {
+  it('cadre une éclipse solaire totale vers la progression de sa trajectoire', () => {
     const runtime = createRuntime();
     const events: UniverseEngineEvent[] = [];
+    const event = solarEvent();
+    const appearance = calculateSolarEclipseAppearance(event.peak);
+    const framing = calculateEarthObserverDirection(
+      event.peak,
+      appearance.centralLatitude! * 0.86,
+      appearance.centralLongitude! + 10,
+    );
 
     runtime.engine.subscribe((event) => events.push(event));
-    runtime.engine.viewSolarEclipse(solarEvent());
+    runtime.engine.viewSolarEclipse(event);
 
     expect(runtime.registry.setSolarObserverActive).toHaveBeenCalledWith(false);
     expect(runtime.registry.setNavigationTarget).toHaveBeenCalledWith('earth');
     expect(runtime.registry.clearSolarEclipsePath).toHaveBeenCalled();
-    expect(runtime.controller.focusOnFromDirection).toHaveBeenCalled();
+    expect(
+      runtime.controller.focusOnFromDirection.mock.calls
+        .at(-1)?.[2]
+        .distanceTo(new THREE.Vector3(framing.x, framing.y, framing.z)),
+    ).toBeLessThan(1e-12);
+    expect(runtime.controller.focusOnFromDirection.mock.calls.at(-1)?.[3]).toBeCloseTo(9.6);
     expect(events).toContainEqual({ type: 'target-changed', objectId: 'earth' });
   });
 
   it.each([
-    ['registre', (runtime: Runtime) => (runtime.access.objectRegistry = null), solarEvent()],
+    [
+      'registre',
+      (runtime: Runtime) => runtime.access.objectRuntime.replacePrimary(null),
+      solarEvent(),
+    ],
     ['contrôleur', (runtime: Runtime) => (runtime.access.cameraController = null), solarEvent()],
     [
       'position terrestre',
@@ -1090,7 +1474,7 @@ describe('UniverseEngine', () => {
 
     mutate(runtime);
 
-    expect(() => runtime.engine.viewSolarEclipse(event)).toThrow('ne peut pas être affichée');
+    expect(() => runtime.engine.viewSolarEclipse(event)).toThrow('indisponible');
   });
 
   it('place la caméra sur le géoïde pour observer une éclipse', () => {
@@ -1121,7 +1505,11 @@ describe('UniverseEngine', () => {
   });
 
   it.each([
-    ['registre', (runtime: Runtime) => (runtime.access.objectRegistry = null), solarEvent()],
+    [
+      'registre',
+      (runtime: Runtime) => runtime.access.objectRuntime.replacePrimary(null),
+      solarEvent(),
+    ],
     ['contrôleur', (runtime: Runtime) => (runtime.access.cameraController = null), solarEvent()],
     ['Terre', (runtime: Runtime) => runtime.positions.delete('earth'), solarEvent()],
     ['Lune', (runtime: Runtime) => runtime.positions.delete('moon'), solarEvent()],
@@ -1160,9 +1548,9 @@ describe('UniverseEngine', () => {
 
     runtime.engine.clearSolarEclipsePresentation();
     expect(runtime.registry.setSolarObserverActive).toHaveBeenCalledWith(false);
-    expect(runtime.access.activeSolarEclipse).toBeNull();
+    expect(runtime.access.solarEclipsePresentation.activeEvent).toBeNull();
 
-    runtime.access.objectRegistry = null;
+    runtime.access.objectRuntime.replacePrimary(null);
     runtime.engine.setSolarEclipsePathVisible(event, true);
     runtime.engine.setSolarEclipsePathVisible(event, false);
     runtime.engine.clearSolarEclipsePresentation();
@@ -1180,6 +1568,7 @@ describe('UniverseEngine', () => {
     runtime.engine.selectObject('earth');
     expect(runtime.registry.select).toHaveBeenLastCalledWith('earth');
     expect(runtime.scene.selectCatalogObject).toHaveBeenLastCalledWith(null);
+    expect(runtime.labels.setDetailsPanelVisible).toHaveBeenLastCalledWith(true);
 
     runtime.catalog.has.mockImplementation((id: string) => id === 'hyg-1');
     runtime.catalog.getDefinition.mockImplementation((id: string) =>
@@ -1191,6 +1580,7 @@ describe('UniverseEngine', () => {
     expect(runtime.labels.setTransientObject).toHaveBeenLastCalledWith(catalogObject);
 
     runtime.engine.selectObject(null);
+    expect(runtime.labels.setDetailsPanelVisible).toHaveBeenLastCalledWith(false);
     expect(events.at(-1)).toMatchObject({
       type: 'object-selected',
       objectId: null,
@@ -1215,21 +1605,21 @@ describe('UniverseEngine', () => {
       dispose: vi.fn(),
     };
 
-    runtime.access.spaceTileObjectRegistry = spaceTileRegistry;
+    runtime.access.objectRuntime.replaceStreamed(spaceTileRegistry);
 
-    expect(runtime.access.getObjectRegistry(galaxy.id)).toBe(spaceTileRegistry);
-    expect(runtime.access.getObjectRegistry('unknown')).toBeNull();
+    expect(runtime.access.objectRuntime.getRegistry(galaxy.id)).toBe(spaceTileRegistry);
+    expect(runtime.access.objectRuntime.getRegistry('unknown')).toBeNull();
     expect(runtime.access.getWorldPosition(galaxy.id)).toEqual(galaxyPosition);
 
-    runtime.access.setNavigationTargetOnRegistries(galaxy.id);
-    runtime.access.selectOnRegistries(galaxy.id);
+    runtime.access.objectRuntime.setNavigationTarget(galaxy.id);
+    runtime.access.objectRuntime.select(galaxy.id);
     expect(runtime.registry.setNavigationTarget).toHaveBeenLastCalledWith(null);
     expect(spaceTileRegistry.setNavigationTarget).toHaveBeenLastCalledWith(galaxy.id);
     expect(runtime.registry.select).toHaveBeenLastCalledWith(null);
     expect(spaceTileRegistry.select).toHaveBeenLastCalledWith(galaxy.id);
 
-    runtime.access.setNavigationTargetOnRegistries(null);
-    runtime.access.selectOnRegistries(null);
+    runtime.access.objectRuntime.setNavigationTarget(null);
+    runtime.access.objectRuntime.select(null);
     expect(spaceTileRegistry.setNavigationTarget).toHaveBeenLastCalledWith(null);
     expect(spaceTileRegistry.select).toHaveBeenLastCalledWith(null);
   });
@@ -1268,14 +1658,42 @@ describe('UniverseEngine', () => {
     expect(runtime.labels.setEnabled).toHaveBeenCalledWith(false);
     expect(runtime.labels.setDensity).toHaveBeenCalledWith('dense');
     expect(runtime.labels.setObjects).toHaveBeenCalled();
-    expect(runtime.catalog.getLabelObjects).toHaveBeenCalledWith(expect.any(Array), 3_300);
+    expect(runtime.catalog.getLabelObjects).toHaveBeenCalledWith(expect.any(Array), 3_300, 72);
     expect(runtime.registry.setDisplayOptions).toHaveBeenCalledWith(options);
     expect(rebuild).not.toHaveBeenCalled();
     expect(runtime.labels.setQuality).not.toHaveBeenCalled();
   });
 
+  it('conserve les objets locaux lorsque la façade de catalogue est absente', () => {
+    const runtime = createRuntime();
+    const events: UniverseEngineEvent[] = [];
+
+    runtime.engine.subscribe((event) => events.push(event));
+    runtime.access.catalogRuntime = null;
+
+    expect(runtime.access.getLabelObjects().map(({ id }) => id)).toEqual([
+      'sun',
+      'earth',
+      'moon',
+      'mars',
+    ]);
+
+    runtime.access.emitDataReady({
+      searchEntries: [],
+    } as unknown as SpaceStreamingCoordinator);
+
+    expect(events.at(-1)).toMatchObject({
+      type: 'data-ready',
+      catalogEntries: [],
+    });
+  });
+
   it('transmet la sélection des couches du réseau cosmique à la scène', () => {
     const runtime = createRuntime();
+    const ensureSpines = vi
+      .spyOn(runtime.access, 'ensureTempelFilamentSpines')
+      .mockResolvedValue(undefined);
+    const lodLevel = vi.spyOn(runtimeInternals(runtime).lodManager, 'level', 'get');
     const layers = {
       volume: true,
       groups: true,
@@ -1286,12 +1704,24 @@ describe('UniverseEngine', () => {
       voids: true,
     } as const;
 
+    lodLevel.mockReturnValue(5);
     runtime.engine.setCosmicMapLayers(layers);
     expect(runtime.scene.setCosmicMapLayers).toHaveBeenCalledWith(layers);
+    expect(ensureSpines).not.toHaveBeenCalled();
+
+    lodLevel.mockReturnValue(6);
+    runtime.engine.setCosmicMapLayers(layers);
+    expect(ensureSpines).toHaveBeenCalledOnce();
+
+    runtime.engine.setCosmicMapLayers({ ...layers, filaments: false });
+    expect(runtime.scene.setCosmicMapLayers).toHaveBeenLastCalledWith({
+      ...layers,
+      filaments: false,
+    });
 
     runtime.access.universeScene = null;
-    runtime.engine.setCosmicMapLayers(layers);
-    expect(runtime.scene.setCosmicMapLayers).toHaveBeenCalledOnce();
+    runtime.engine.setCosmicMapLayers({ ...layers, filaments: false });
+    expect(runtime.scene.setCosmicMapLayers).toHaveBeenCalledTimes(3);
   });
 
   it('reconfigure le rendu et reconstruit le registre lors d’un changement de qualité', () => {
@@ -1317,7 +1747,7 @@ describe('UniverseEngine', () => {
 
     const noServices = createRuntime();
 
-    noServices.access.objectRegistry = null;
+    noServices.access.objectRuntime.replacePrimary(null);
     noServices.access.universeScene = null;
     noServices.access.renderer = null;
     noServices.engine.setDisplayOptions({
@@ -1377,8 +1807,9 @@ describe('UniverseEngine', () => {
     ['renderer', (runtime: Runtime) => (runtime.access.renderer = null)],
     ['caméra', (runtime: Runtime) => (runtime.access.camera = null)],
     ['scène', (runtime: Runtime) => (runtime.access.universeScene = null)],
-    ['registre', (runtime: Runtime) => (runtime.access.objectRegistry = null)],
+    ['registre', (runtime: Runtime) => runtime.access.objectRuntime.replacePrimary(null)],
     ['contrôleur', (runtime: Runtime) => (runtime.access.cameraController = null)],
+    ['passe de lentille', (runtime: Runtime) => (runtime.access.blackHoleLensingPass = null)],
   ])('ignore une frame incomplète sans %s', (_label, mutate) => {
     const runtime = createRuntime();
 
@@ -1386,6 +1817,38 @@ describe('UniverseEngine', () => {
     runtime.access.renderFrame(0.5);
 
     expect(runtime.renderer.render).not.toHaveBeenCalled();
+  });
+
+  it('orchestre chaque frame dans l’ordre simulation, navigation, contenu, rendu et diagnostic', () => {
+    const runtime = createRuntime();
+    const internals = runtimeInternals(runtime);
+    const phases: string[] = [];
+    const simulation = vi
+      .spyOn(internals.frameSimulation, 'update')
+      .mockImplementation(() => phases.push('simulation'));
+    const navigation = vi.spyOn(internals.frameNavigation, 'update').mockImplementation(() => {
+      phases.push('navigation');
+
+      return 3;
+    });
+    const content = vi
+      .spyOn(internals.frameContent, 'update')
+      .mockImplementation(() => phases.push('content'));
+    const render = vi
+      .spyOn(internals.frameRenderer, 'render')
+      .mockImplementation(() => phases.push('render'));
+
+    vi.spyOn(internals.debugRuntime, 'update').mockImplementation(() => {
+      phases.push('diagnostic');
+    });
+
+    runtime.access.renderFrame(0.016);
+
+    expect(phases).toEqual(['simulation', 'navigation', 'content', 'render', 'diagnostic']);
+    expect(simulation).toHaveBeenCalledWith(0.016, runtime.registry);
+    expect(navigation).toHaveBeenCalledWith(0.016, expect.any(Object));
+    expect(content).toHaveBeenCalledWith(0.016, expect.any(Object), 3);
+    expect(render).toHaveBeenCalledWith(0.016, expect.any(Object), 3);
   });
 
   it('rend une frame avancée, publie le LOD, le temps et les statistiques', () => {
@@ -1399,6 +1862,7 @@ describe('UniverseEngine', () => {
     vi.spyOn(internals.earthRotationPlayback, 'update').mockReturnValue({
       mode: 'stabilized',
       time: { julianDay: currentTime.julianDay - 0.01 },
+      forceUpdate: false,
     });
     vi.spyOn(internals.lodManager, 'selectLevel').mockReturnValue(2);
     vi.spyOn(internals.lodManager, 'level', 'get').mockReturnValue(2);
@@ -1406,10 +1870,7 @@ describe('UniverseEngine', () => {
 
     runtime.access.targetId = 'earth';
     runtime.access.selectedId = 'mars';
-    runtime.access.simulationAccumulator = 1;
-    runtime.access.timeEventAccumulator = 1;
-    runtime.access.statsAccumulator = 1;
-    runtime.access.statsFrames = 5;
+    runtimeInternals(runtime).debugRuntime.update(0.75);
     runtime.renderer.toneMappingExposure = 1;
     runtime.labels.render.mockImplementation(
       (
@@ -1433,7 +1894,7 @@ describe('UniverseEngine', () => {
     expect(originUpdate).toHaveBeenCalled();
     expect(runtime.registry.updateLod).toHaveBeenCalledWith(runtime.camera, 450, 2, 0.25);
     expect(runtime.scene.ensureMilkyWayAtlas).toHaveBeenCalledOnce();
-    expect(runtime.scene.updateLod).toHaveBeenCalledWith(2, 0.25, 24);
+    expect(runtime.scene.updateLod).toHaveBeenCalledWith(2, 0.25, 24, runtime.camera.position);
     expect(runtime.renderer.toneMappingExposure).toBeGreaterThan(1);
     expect(runtime.renderer.toneMappingExposure).toBeLessThan(
       getPhotographicProfile(2, 'medium').exposure,
@@ -1448,6 +1909,18 @@ describe('UniverseEngine', () => {
     expect(events).toContainEqual({ type: 'lod-changed', level: 2 });
     expect(events).toContainEqual({ type: 'time-changed', time: currentTime });
     expect(events.some((event) => event.type === 'debug-stats')).toBe(true);
+  });
+
+  it('précharge les épines Tempel en entrant dans le LOD du réseau cosmique', () => {
+    const runtime = createRuntime();
+    const ensureSpines = vi
+      .spyOn(runtime.access, 'ensureTempelFilamentSpines')
+      .mockResolvedValue(undefined);
+
+    runtime.controller.distanceToTarget = 420_000;
+    runtime.access.renderFrame(0.05);
+
+    expect(ensureSpines).toHaveBeenCalledOnce();
   });
 
   it('active la distorsion écran lorsque la cible ou la sélection est un trou noir visible', () => {
@@ -1496,11 +1969,12 @@ describe('UniverseEngine', () => {
       updateLod: vi.fn(),
     };
 
-    runtime.access.spaceTileObjectRegistry = spaceTileRegistry;
+    runtime.access.objectRuntime.replaceStreamed(spaceTileRegistry);
     runtime.access.container = null;
     runtime.access.renderFrame(0.05);
 
     expect(spaceTileRegistry.updateLod).toHaveBeenCalledWith(runtime.camera, 450, 0, 0.05);
+    expect(runtime.scene.ensureMilkyWayAtlas).toHaveBeenCalledOnce();
   });
 
   it('applique la résolution adaptative au renderer et à la scène', () => {
@@ -1512,11 +1986,9 @@ describe('UniverseEngine', () => {
     ) as PerformanceManager;
 
     vi.spyOn(performanceManager, 'observeFrameRate').mockReturnValue(1.25);
-    runtime.access.statsAccumulator = 1;
-    runtime.access.statsFrames = 19;
     runtime.engine.subscribe((event) => events.push(event));
 
-    runtime.access.updateDebugStats(0);
+    runtimeInternals(runtime).debugRuntime.update(1);
 
     expect(runtime.renderer.setPixelRatio).toHaveBeenCalledWith(1.25);
     expect(runtime.scene.setPixelRatio).toHaveBeenCalledWith(1.25);
@@ -1524,20 +1996,18 @@ describe('UniverseEngine', () => {
     expect(events).toContainEqual(
       expect.objectContaining({
         type: 'debug-stats',
-        stats: expect.objectContaining({ fps: 20, pixelRatio: 1.25 }),
+        stats: expect.objectContaining({ fps: 1, pixelRatio: 1.25 }),
       }),
     );
 
     runtime.access.container = null;
     runtime.renderer.setSize.mockClear();
-    runtime.access.statsAccumulator = 1;
-    runtime.access.statsFrames = 19;
-    runtime.access.updateDebugStats(0);
+    runtimeInternals(runtime).debugRuntime.update(1);
     expect(runtime.renderer.setPixelRatio).toHaveBeenLastCalledWith(1.25);
     expect(runtime.renderer.setSize).not.toHaveBeenCalled();
   });
 
-  it('gère les frames stables, la synchronisation terrestre et la vue sans labels', () => {
+  it('gère les frames stables, le retour terrestre exact et la vue sans labels', () => {
     const runtime = createRuntime();
     const internals = runtimeInternals(runtime);
     const currentTime = { julianDay: 2_460_100 };
@@ -1549,34 +2019,27 @@ describe('UniverseEngine', () => {
       .mockReturnValueOnce(false);
     const updatePlayback = vi
       .spyOn(internals.earthRotationPlayback, 'update')
-      .mockReturnValueOnce({ mode: 'synchronize', time: currentTime })
-      .mockReturnValueOnce({ mode: 'synchronize', time: currentTime })
-      .mockReturnValueOnce({ mode: 'exact', time: currentTime })
-      .mockReturnValueOnce({ mode: 'exact', time: currentTime });
-    const synchronized = runtime.registry.synchronizeEarthRotation
-      .mockReturnValueOnce(false)
-      .mockReturnValueOnce(true);
-    const markSynchronized = vi.spyOn(internals.earthRotationPlayback, 'markSynchronized');
+      .mockReturnValueOnce({ mode: 'exact', time: currentTime, forceUpdate: false })
+      .mockReturnValueOnce({ mode: 'exact', time: currentTime, forceUpdate: true })
+      .mockReturnValueOnce({ mode: 'exact', time: currentTime, forceUpdate: false })
+      .mockReturnValueOnce({ mode: 'exact', time: currentTime, forceUpdate: false });
 
     vi.spyOn(internals.timeController, 'currentTime', 'get').mockReturnValue(currentTime);
     vi.spyOn(internals.lodManager, 'selectLevel').mockReturnValue(1);
-    runtime.access.lastEmittedLodLevel = 1;
     runtime.access.container = null;
     runtime.access.targetId = 'earth';
     runtime.access.selectedId = null;
-    runtime.access.activeSolarEclipse = solarEvent();
+    runtime.access.solarEclipsePresentation.showOrbitalView(solarEvent(), runtime.registry);
 
     runtime.access.renderFrame(0.01);
     runtime.access.renderFrame(0.01);
     runtime.access.renderFrame(0.01);
-    runtime.access.activeSolarEclipse = null;
+    runtime.access.solarEclipsePresentation.clear(null);
     runtime.access.renderFrame(0.01);
 
     expect(updateTime).toHaveBeenCalledTimes(4);
     expect(updatePlayback).toHaveBeenCalledTimes(4);
-    expect(synchronized).toHaveBeenCalledTimes(2);
-    expect(markSynchronized).toHaveBeenCalledOnce();
-    expect(runtime.registry.updateBodyRotations).toHaveBeenCalledWith(currentTime, null);
+    expect(runtime.registry.updateBodyRotations).toHaveBeenCalledTimes(2);
     expect(runtime.registry.updateBodyRotations).toHaveBeenCalledWith(currentTime, currentTime);
     expect(runtime.registry.updatePositions).not.toHaveBeenCalled();
     expect(runtime.labels.clear).toHaveBeenCalledTimes(3);
@@ -1592,34 +2055,52 @@ describe('UniverseEngine', () => {
   it.each([
     ['renderer', (runtime: Runtime) => (runtime.access.renderer = null)],
     ['caméra', (runtime: Runtime) => (runtime.access.camera = null)],
-    ['registre', (runtime: Runtime) => (runtime.access.objectRegistry = null)],
+    ['registre', (runtime: Runtime) => runtime.access.objectRuntime.replacePrimary(null)],
     ['scène', (runtime: Runtime) => (runtime.access.universeScene = null)],
   ])('ignore les statistiques sans %s', (_label, mutate) => {
     const runtime = createRuntime();
 
     mutate(runtime);
-    runtime.access.updateDebugStats(2);
+    runtimeInternals(runtime).debugRuntime.update(2);
   });
 
   it('attend une seconde avant de publier les statistiques et accepte une caméra sans contrôleur', () => {
     const runtime = createRuntime();
     const events: UniverseEngineEvent[] = [];
 
-    runtime.access.starTileManager = {
-      activeTileCount: 8,
-      cachedPackCount: 5,
-      cachedTileCount: 19,
-      activeClusterCount: 302,
-      cachedClusterCount: 2_610,
-      synchronize: vi.fn(async () => ({ changed: false, tiles: [] })),
-    };
+    runtime.access.streamingRuntime.reset();
+    runtimeInternals(runtime).debugRuntime.update(1);
+    runtimeInternals(runtime).debugRuntime.reset();
+
+    const streamingCoordinator = new SpaceStreamingCoordinator(
+      null,
+      {
+        activeTileCount: 8,
+        cachedPackCount: 5,
+        cachedTileCount: 19,
+        activeClusterCount: 302,
+        cachedClusterCount: 2_610,
+        synchronize: vi.fn(async () => ({ changed: false, tiles: [] })),
+      },
+      {
+        isActive: () => true,
+        onSpaceTilesChanged: vi.fn(),
+        onStarTilesChanged: vi.fn(),
+        onWarning: vi.fn(),
+      },
+    );
+
+    runtime.access.streamingRuntime.install(
+      runtime.access.streamingRuntime.baseObjects,
+      streamingCoordinator,
+    );
     runtime.scene.visibleStarClusterCount = 302;
     runtime.engine.subscribe((event) => events.push(event));
-    runtime.access.updateDebugStats(0.25);
+    runtimeInternals(runtime).debugRuntime.update(0.25);
     expect(events.some((event) => event.type === 'debug-stats')).toBe(false);
 
     runtime.access.cameraController = null;
-    runtime.access.updateDebugStats(1);
+    runtimeInternals(runtime).debugRuntime.update(1);
 
     const debugEvent = events.find((event) => event.type === 'debug-stats');
 
@@ -1636,6 +2117,10 @@ describe('UniverseEngine', () => {
         cosmicGroups: 37_730,
         cosmicFilaments: 42_000,
         cosmicStructures: 9_985,
+        tempelFilamentSpines: 15_421,
+        tempelSpineSegments: 260_178,
+        visibleTempelSpineSegments: 18_000,
+        tempelSpineTiles: 8,
         activeStarTiles: 8,
         cachedStarPacks: 5,
         cachedStarTiles: 19,
@@ -1661,7 +2146,7 @@ describe('UniverseEngine', () => {
     };
     runtime.engine.subscribe((event) => events.push(event));
     runtime.access.handleSemanticZoomIntent('mars', -480);
-    runtime.access.updateDebugStats(1);
+    runtimeInternals(runtime).debugRuntime.update(1);
 
     const debugEvent = events.find((event) => event.type === 'debug-stats');
 
@@ -1691,9 +2176,9 @@ describe('UniverseEngine', () => {
     runtime.access.followCurrentTarget();
     expect(runtime.controller.follow).toHaveBeenCalledOnce();
 
-    runtime.access.objectRegistry = null;
+    runtime.access.objectRuntime.replacePrimary(null);
     runtime.access.followCurrentTarget();
-    runtime.access.objectRegistry = runtime.registry;
+    runtime.access.objectRuntime.replacePrimary(runtime.registry);
     runtime.access.cameraController = null;
     runtime.access.followCurrentTarget();
   });
@@ -1764,7 +2249,8 @@ describe('UniverseEngine', () => {
     expect(runtime.access.targetId).toBe('mars');
     expect(runtime.registry.setNavigationTarget).toHaveBeenLastCalledWith(null);
     expect(runtime.controller.adoptZoomTarget).not.toHaveBeenCalled();
-    expect(runtime.controller.setNavigationConstraints).toHaveBeenCalledWith(
+    expect(runtime.controller.trackTarget).toHaveBeenCalledWith(
+      runtime.positions.get('mars'),
       runtime.definitions.get('mars'),
     );
     expect(runtime.controller.adoptZoomAnchor).toHaveBeenLastCalledWith(
@@ -1792,6 +2278,19 @@ describe('UniverseEngine', () => {
 
     runtime.access.cameraController = null;
     runtime.access.handleSemanticZoomIntent('earth', 480);
+  });
+
+  it('ignore une ancre transitoire pendant un changement de référentiel', () => {
+    const runtime = createRuntime();
+
+    runtime.access.targetId = 'earth';
+    runtime.controller.isTransitioning = true;
+    runtime.access.handleSemanticZoomIntent('mars', -480, { x: 0.4, y: -0.2 });
+
+    expect(runtime.access.targetId).toBe('earth');
+    expect(runtime.controller.trackTarget).not.toHaveBeenCalled();
+    expect(runtime.controller.adoptZoomPointer).toHaveBeenCalledWith(0.4, -0.2);
+    expect(runtime.controller.zoomSemantically).toHaveBeenCalledWith(-480);
   });
 
   it('change de référentiel avec les échelles pendant un aller-retour à la molette', () => {
@@ -1933,6 +2432,19 @@ describe('UniverseEngine', () => {
     );
   });
 
+  it('répercute un recentrage d’origine sur la position suivie par la caméra', () => {
+    const runtime = createRuntime();
+    const internals = runtimeInternals(runtime);
+    const originShift = new THREE.Vector3(2_000, 3, -4);
+
+    runtime.controller.controls.target.copy(originShift);
+    vi.spyOn(internals.floatingOriginManager, 'update').mockReturnValue(true);
+
+    runtime.access.renderFrame(0.01);
+
+    expect(runtime.controller.shiftTrackedPosition).toHaveBeenCalledWith(originShift);
+  });
+
   it('conserve le référentiel courant si la cible d’échelle est indisponible', () => {
     const runtime = createRuntime();
 
@@ -1951,7 +2463,7 @@ describe('UniverseEngine', () => {
   });
 
   it.each([
-    ['registre', (runtime: Runtime) => (runtime.access.objectRegistry = null)],
+    ['registre', (runtime: Runtime) => runtime.access.objectRuntime.replacePrimary(null)],
     ['contrôleur', (runtime: Runtime) => (runtime.access.cameraController = null)],
     ['position', (runtime: Runtime) => runtime.positions.delete('earth')],
     ['définition', (runtime: Runtime) => runtime.definitions.delete('earth')],
@@ -1973,7 +2485,7 @@ describe('UniverseEngine', () => {
     expect(events).toEqual([]);
 
     runtime.access.cameraController = null;
-    runtime.access.objectRegistry = null;
+    runtime.access.objectRuntime.replacePrimary(null);
     runtime.access.targetId = 'earth';
     runtime.access.releaseNavigationTarget();
     expect(events).toContainEqual({ type: 'target-changed', objectId: null });
@@ -1984,9 +2496,9 @@ describe('UniverseEngine', () => {
     const events: UniverseEngineEvent[] = [];
 
     runtime.engine.subscribe((event) => events.push(event));
-    runtime.access.emitSolarEclipseState(appearance('partial'), true);
-    runtime.access.emitSolarEclipseState(appearance('partial'), false);
-    runtime.access.emitSolarEclipseState(appearance('total'), false);
+    runtime.access.solarEclipseStatePublisher.publish(appearance('partial'), true);
+    runtime.access.solarEclipseStatePublisher.publish(appearance('partial'), false);
+    runtime.access.solarEclipseStatePublisher.publish(appearance('total'), false);
 
     expect(events.filter((event) => event.type === 'solar-eclipse-state')).toHaveLength(2);
   });
@@ -1998,7 +2510,7 @@ describe('UniverseEngine', () => {
     runtime.catalog.has.mockImplementation((id: string) => id === 'hyg-1');
 
     expect(runtime.engine.hasObject('hyg-1')).toBe(true);
-    runtime.access.objectRegistry = null;
+    runtime.access.objectRuntime.replacePrimary(null);
     expect(runtime.engine.hasObject('unknown')).toBe(false);
   });
 
@@ -2009,46 +2521,46 @@ describe('UniverseEngine', () => {
     earlyReturn.access.rebuildObjectRegistry();
     expect(earlyReturn.registry.dispose).not.toHaveBeenCalled();
 
+    earlyReturn.access.streamingRuntime.applyLoadedSpaceTiles([
+      earlyReturn.catalog.baseObjects[0]!,
+    ]);
+    expect(earlyReturn.access.objectRuntime.streamedRegistry).toBeNull();
+
     const runtime = createRuntime();
     const event = solarEvent();
 
     runtime.catalog.has.mockImplementation((id: string) => id === 'hyg-1');
     runtime.access.targetId = 'earth';
     runtime.access.selectedId = 'hyg-1';
-    runtime.access.activeSolarEclipse = event;
-    runtime.access.solarEclipsePathVisible = true;
-    runtime.access.solarObserverActive = false;
+    runtime.access.solarEclipsePresentation.setPathVisible(event, true, null);
     runtime.access.rebuildObjectRegistry();
 
     expect(runtime.registry.dispose).toHaveBeenCalledOnce();
     expect(runtime.scene.selectCatalogObject).toHaveBeenLastCalledWith('hyg-1');
-    expect(runtime.access.objectRegistry).not.toBe(runtime.registry);
+    expect(runtime.access.objectRuntime.primaryRegistry).not.toBe(runtime.registry);
 
     runtime.scene.hasConstellation.mockImplementation(
       (objectId: string) => objectId === 'constellation-orion',
     );
     runtime.access.targetId = null;
     runtime.access.selectedId = 'constellation-orion';
+    runtime.access.solarEclipsePresentation.clear(null);
     runtime.access.rebuildObjectRegistry();
     expect(runtime.scene.selectConstellation).toHaveBeenLastCalledWith('constellation-orion');
 
     runtime.access.targetId = 'unknown';
     runtime.access.selectedId = 'earth';
-    runtime.access.activeSolarEclipse = event;
-    runtime.access.solarEclipsePathVisible = true;
-    runtime.access.solarObserverActive = true;
+    runtime.access.solarEclipsePresentation.showObserverView(event, 1.08, runtime.registry);
+    runtime.access.solarEclipsePresentation.setPathVisible(event, true, null);
     runtime.access.rebuildObjectRegistry();
     expect(runtime.scene.selectCatalogObject).toHaveBeenLastCalledWith(null);
 
     runtime.access.targetId = null;
     runtime.access.selectedId = null;
-    runtime.access.activeSolarEclipse = event;
-    runtime.access.solarEclipsePathVisible = false;
-    runtime.access.solarObserverActive = false;
+    runtime.access.solarEclipsePresentation.showOrbitalView(event, runtime.registry);
     runtime.access.rebuildObjectRegistry();
 
-    runtime.access.activeSolarEclipse = null;
-    runtime.access.solarEclipsePathVisible = false;
+    runtime.access.solarEclipsePresentation.clear(null);
     runtime.access.rebuildObjectRegistry();
 
     runtime.engine.dispose();
@@ -2061,12 +2573,18 @@ interface AssetOptions {
   readonly constellationCatalog?: ConstellationCatalog;
   readonly spaceTileIndex?: SpaceTileIndex;
   readonly starTileSource?: boolean;
+  readonly starTileIndex?: object;
+  readonly starTilePacks?: Readonly<Record<string, object>>;
   readonly tileBodies?: Readonly<Record<string, unknown>>;
   readonly cosmicGroupBuffer?: ArrayBuffer;
   readonly cosmicGroupStatus?: number;
   readonly cosmicStructureBuffer?: ArrayBuffer;
   readonly cosmicStructureMetadata?: unknown;
   readonly cosmicWebVolumeBuffer?: ArrayBuffer;
+  readonly tempelSpineBuffer?: ArrayBuffer;
+  readonly tempelSpineStatus?: number;
+  readonly exoplanetBuffer?: ArrayBuffer;
+  readonly exoplanetMetadata?: unknown;
 }
 
 function installAssets(objects: readonly SpaceObject[], options: AssetOptions = {}): void {
@@ -2136,6 +2654,29 @@ function installAssets(objects: readonly SpaceObject[], options: AssetOptions = 
       options.cosmicWebVolumeBuffer,
     );
   }
+  if (options.tempelSpineBuffer !== undefined || options.tempelSpineStatus !== undefined) {
+    datasets.push({
+      id: 'tempel-filament-spines',
+      url: '/data/tempel-spines.bin',
+      type: 'tempel-filament-spine-catalog',
+      format: 'tempel-filament-spines-v1',
+    });
+    responses['/data/tempel-spines.bin'] =
+      options.tempelSpineBuffer !== undefined
+        ? successfulBinaryResponse(options.tempelSpineBuffer)
+        : failedResponse(options.tempelSpineStatus!);
+  }
+  if (options.exoplanetBuffer !== undefined && options.exoplanetMetadata) {
+    datasets.push({
+      id: 'nasa-confirmed-exoplanets',
+      url: '/data/exoplanets.bin',
+      metadataUrl: '/data/exoplanets.meta.json',
+      type: 'exoplanet-catalog',
+      format: 'exoplanet-catalog-v1',
+    });
+    responses['/data/exoplanets.meta.json'] = jsonResponse(options.exoplanetMetadata);
+    responses['/data/exoplanets.bin'] = successfulBinaryResponse(options.exoplanetBuffer);
+  }
   if (options.constellationCatalog) {
     datasets.push({
       id: 'constellations',
@@ -2153,6 +2694,12 @@ function installAssets(objects: readonly SpaceObject[], options: AssetOptions = 
       format: 'star-tiles-v2',
       starCatalogId: 'stars',
     });
+    if (options.starTileIndex) {
+      responses['/data/stars/tiles/index.json'] = jsonResponse(options.starTileIndex);
+    }
+    for (const [url, pack] of Object.entries(options.starTilePacks ?? {})) {
+      responses[url] = jsonResponse(pack);
+    }
   }
   if (options.spaceTileIndex) {
     datasets.push({
@@ -2274,59 +2821,24 @@ function successfulBinaryResponse(buffer: ArrayBuffer): Response {
 
 interface EngineAccess {
   initialized: boolean;
+  initializationBootstrap: UniverseInitializationBootstrap;
   renderer: FakeRenderer | null;
   camera: THREE.PerspectiveCamera | null;
   universeScene: FakeUniverseScene | null;
   cameraController: FakeCameraController | null;
-  objectRegistry: FakeRegistry | null;
-  spaceTileObjectRegistry: FakeRegistry | null;
+  objectRuntime: FakeObjectRuntime;
+  streamingRuntime: UniverseStreamingRuntime;
   labelManager: FakeLabelManager | null;
-  starCatalogRegistry: FakeStarCatalogRegistry | null;
+  catalogRuntime: FakeCatalogRuntime | null;
   selectionManager: FakeSelectionManager | null;
   renderLoop: FakeRenderLoop | null;
-  blackHoleLensingPass: FakeBlackHoleLensingPass;
+  blackHoleLensingPass: FakeBlackHoleLensingPass | null;
   container: HTMLElement | null;
-  objects: SpaceObject[];
-  baseObjects: SpaceObject[];
-  spaceTileManager: {
-    readonly cachedTileCount: number;
-    readonly indexedTileCount: number;
-    readonly loadedTileCount: number;
-    readonly loadedObjects: readonly SpaceObject[];
-    ensureObject(objectId: string): Promise<boolean>;
-  } | null;
-  starTileManager: {
-    readonly activeTileCount: number;
-    readonly cachedPackCount: number;
-    readonly cachedTileCount: number;
-    readonly activeClusterCount: number;
-    readonly cachedClusterCount: number;
-    synchronize(
-      view: StarTileView,
-    ): Promise<{ changed: boolean; tiles: readonly StarClusterTile[] }>;
-  } | null;
-  pendingStarTileView: StarTileView | null;
-  starTileSynchronizationRunning: boolean;
-  starTileSynchronizationAccumulator: number;
-  lastStarTileLod: number;
-  lastStarTileWarning: string | null;
   targetId: string | null;
   selectedId: string | null;
-  activeSolarEclipse: EarthEclipseEvent | null;
-  solarEclipsePathVisible: boolean;
-  solarObserverActive: boolean;
-  solarObserverMoonScale: number;
-  simulationAccumulator: number;
-  timeEventAccumulator: number;
-  statsAccumulator: number;
-  statsFrames: number;
-  lastEmittedLodLevel: number;
-  lastSolarEclipsePhase: string | null;
-  pendingSpaceTileRequest: SpaceTileSynchronizationRequest | null;
-  spaceTileSynchronizationAccumulator: number;
-  tileSynchronizationRunning: boolean;
+  solarEclipsePresentation: SolarEclipsePresentationController;
+  solarEclipseStatePublisher: SolarEclipseStatePublisher;
   renderFrame(deltaSeconds: number): void;
-  updateDebugStats(deltaSeconds: number): void;
   followCurrentTarget(): void;
   handlePick(objectId: string | null, focusRequested: boolean): void;
   handleNavigationIntent(objectId: string | null): void;
@@ -2342,27 +2854,11 @@ interface EngineAccess {
   synchronizeNavigationContextTarget(controller: FakeCameraController, lodLevel: number): void;
   releaseNavigationTarget(): void;
   rebuildObjectRegistry(): void;
-  requestSpaceTileSynchronization(lodLevel: number, deltaSeconds: number): void;
-  requestStarTileSynchronization(lodLevel: number, deltaSeconds: number): void;
-  drainStarTileSynchronizations(): Promise<void>;
-  drainSpaceTileSynchronizations(): Promise<void>;
-  synchronizeSpaceTiles(request: SpaceTileSynchronizationRequest): Promise<void>;
-  applyLoadedSpaceTiles(): void;
   getDefinition(objectId: string): SpaceObject | undefined;
-  getObjectRegistry(objectId: string): FakeRegistry | null;
   getWorldPosition(objectId: string, target?: THREE.Vector3): THREE.Vector3 | null;
-  setNavigationTargetOnRegistries(objectId: string | null): void;
-  selectOnRegistries(objectId: string | null): void;
-  emitSolarEclipseState(appearance: SolarEclipseAppearance, force: boolean): void;
-}
-
-interface SpaceTileSynchronizationRequest {
-  readonly view: SpaceTileView;
-  readonly retainedObjectIds: readonly string[];
-}
-
-function readPendingSpaceTileRequest(access: EngineAccess): SpaceTileSynchronizationRequest | null {
-  return access.pendingSpaceTileRequest;
+  getLabelObjects(): readonly { readonly id: string }[];
+  emitDataReady(streamingCoordinator: SpaceStreamingCoordinator): void;
+  ensureTempelFilamentSpines(): Promise<void>;
 }
 
 interface Runtime {
@@ -2374,7 +2870,7 @@ interface Runtime {
   controller: FakeCameraController;
   registry: FakeRegistry;
   labels: FakeLabelManager;
-  catalog: FakeStarCatalogRegistry;
+  catalog: FakeCatalogRuntime;
   selection: FakeSelectionManager;
   loop: FakeRenderLoop;
   lensing: FakeBlackHoleLensingPass;
@@ -2387,6 +2883,19 @@ interface RuntimeInternals {
   readonly earthRotationPlayback: EarthRotationPlayback;
   readonly floatingOriginManager: FloatingOriginManager;
   readonly lodManager: LodManager;
+  readonly debugRuntime: UniverseDebugRuntime;
+  readonly frameSimulation: {
+    update(deltaSeconds: number, registry: FakeRegistry): void;
+  };
+  readonly frameNavigation: {
+    update(deltaSeconds: number, services: object): number;
+  };
+  readonly frameContent: {
+    update(deltaSeconds: number, services: object, lodLevel: number): void;
+  };
+  readonly frameRenderer: {
+    render(deltaSeconds: number, services: object, lodLevel: number): void;
+  };
 }
 
 type FakeRenderer = InstanceType<typeof rendererHarness.FakeWebGLRenderer>;
@@ -2399,6 +2908,7 @@ interface FakeUniverseScene {
   readonly setStarClusterTiles: ReturnType<typeof vi.fn>;
   readonly setConstellationsEnabled: ReturnType<typeof vi.fn>;
   readonly setCosmicMapLayers: ReturnType<typeof vi.fn>;
+  readonly setTempelFilamentSpineCatalog: ReturnType<typeof vi.fn>;
   readonly isCatalogObjectVisibleForLabels: ReturnType<typeof vi.fn>;
   readonly hasConstellation: ReturnType<typeof vi.fn>;
   readonly getConstellationDefinition: ReturnType<typeof vi.fn>;
@@ -2406,6 +2916,7 @@ interface FakeUniverseScene {
   readonly getConstellationFocusRadius: ReturnType<typeof vi.fn>;
   readonly selectConstellation: ReturnType<typeof vi.fn>;
   readonly hoverConstellation: ReturnType<typeof vi.fn>;
+  readonly hoverCatalogObject: ReturnType<typeof vi.fn>;
   readonly selectCatalogObject: ReturnType<typeof vi.fn>;
   readonly getCatalogWorldPosition: ReturnType<typeof vi.fn>;
   readonly getCatalogPickables: ReturnType<typeof vi.fn>;
@@ -2413,9 +2924,16 @@ interface FakeUniverseScene {
   readonly updateLod: ReturnType<typeof vi.fn>;
   readonly dispose: ReturnType<typeof vi.fn>;
   visibleCatalogStarCount: number;
+  visibleExoplanetHostCount: number;
+  exoplanetCount: number;
   visibleCosmicGroupCount: number;
   visibleCosmicFilamentCount: number;
   visibleCosmicStructureCount: number;
+  tempelFilamentSpineCount: number;
+  tempelFilamentSpinePointCount: number;
+  tempelFilamentSpineSegmentCount: number;
+  tempelFilamentSpineTileCount: number;
+  visibleTempelFilamentSpineSegmentCount: number;
   visibleStarClusterCount: number;
   activeStarTileCount: number;
   starClusterRepresentationCount: number;
@@ -2434,6 +2952,8 @@ interface FakeCameraController {
   readonly adoptZoomAnchor: ReturnType<typeof vi.fn>;
   readonly adoptZoomPointer: ReturnType<typeof vi.fn>;
   readonly adoptZoomTarget: ReturnType<typeof vi.fn>;
+  readonly trackTarget: ReturnType<typeof vi.fn>;
+  readonly shiftTrackedPosition: ReturnType<typeof vi.fn>;
   readonly rebaseTarget: ReturnType<typeof vi.fn>;
   readonly transitionReferenceFrame: ReturnType<typeof vi.fn>;
   readonly setNavigationConstraints: ReturnType<typeof vi.fn>;
@@ -2445,25 +2965,38 @@ interface FakeCameraController {
   lastZoomDiagnostics: CameraZoomDiagnostics | null;
 }
 
-interface FakeRegistry {
+interface FakeRegistry extends SolarEclipsePresentationRegistry {
   readonly has: ReturnType<typeof vi.fn>;
   readonly getDefinition: ReturnType<typeof vi.fn>;
   readonly getWorldPosition: ReturnType<typeof vi.fn>;
   readonly getLensingForeground: ReturnType<typeof vi.fn>;
   readonly getOrbitRadius: ReturnType<typeof vi.fn>;
+  readonly getAdornmentDiagnostics: ReturnType<typeof vi.fn>;
+  readonly getVisualDiagnostics: ReturnType<typeof vi.fn>;
   readonly setNavigationTarget: ReturnType<typeof vi.fn>;
   readonly select: ReturnType<typeof vi.fn>;
-  readonly setSolarObserverActive: ReturnType<typeof vi.fn>;
-  readonly clearSolarEclipsePath: ReturnType<typeof vi.fn>;
-  readonly showSolarEclipsePath: ReturnType<typeof vi.fn>;
   readonly updatePositions: ReturnType<typeof vi.fn>;
   readonly updateBodyRotations: ReturnType<typeof vi.fn>;
-  readonly synchronizeEarthRotation: ReturnType<typeof vi.fn>;
   readonly setDisplayOptions: ReturnType<typeof vi.fn>;
   readonly updateLod: ReturnType<typeof vi.fn>;
   readonly dispose: ReturnType<typeof vi.fn>;
   visibleObjectCount: number;
   batchedGalaxyCount: number;
+}
+
+interface FakeObjectRuntime {
+  readonly primaryRegistry: FakeRegistry | null;
+  readonly streamedRegistry: FakeRegistry | null;
+  readonly exoplanetSystemRegistry: {
+    has(objectId: string): boolean;
+    getWorldPosition(objectId: string, target?: THREE.Vector3): THREE.Vector3 | null;
+  } | null;
+  replacePrimary(registry: FakeRegistry | null): void;
+  replaceStreamed(registry: FakeRegistry | null): void;
+  replaceExoplanetSystem(registry: FakeRegistry | null): void;
+  getRegistry(objectId: string): FakeRegistry | null;
+  setNavigationTarget(objectId: string | null): void;
+  select(objectId: string | null): void;
 }
 
 interface FakeLabelManager {
@@ -2474,13 +3007,33 @@ interface FakeLabelManager {
   readonly setQuality: ReturnType<typeof vi.fn>;
   readonly setDensity: ReturnType<typeof vi.fn>;
   readonly setTransientObject: ReturnType<typeof vi.fn>;
+  readonly setDetailsPanelVisible: ReturnType<typeof vi.fn>;
   readonly setObjects: ReturnType<typeof vi.fn>;
+  readonly setNameResolver: ReturnType<typeof vi.fn>;
   readonly dispose: ReturnType<typeof vi.fn>;
 }
 
 interface FakeStarCatalogRegistry {
   readonly has: ReturnType<typeof vi.fn>;
   readonly getDefinition: ReturnType<typeof vi.fn>;
+  readonly getLabelObjects: ReturnType<typeof vi.fn>;
+}
+
+interface FakeCatalogRuntime {
+  readonly baseObjects: readonly SpaceObject[];
+  readonly starCatalogRegistry: FakeStarCatalogRegistry | null;
+  readonly exoplanetCatalogRegistry: null;
+  readonly cosmicGroupCatalogRegistry: null;
+  cosmicStructureCatalogRegistry: { readonly has: (objectId: string) => boolean } | null;
+  readonly spaceTileManager: null;
+  readonly starTileManager: null;
+  tempelFilamentSpineSource: { readonly id: string; readonly url: string } | null;
+  readonly has: ReturnType<typeof vi.fn>;
+  readonly isCatalogStar: ReturnType<typeof vi.fn>;
+  readonly isExoplanetHost: ReturnType<typeof vi.fn>;
+  readonly supportsWheelNavigation: ReturnType<typeof vi.fn>;
+  readonly getDefinition: ReturnType<typeof vi.fn>;
+  readonly getSearchEntries: ReturnType<typeof vi.fn>;
   readonly getLabelObjects: ReturnType<typeof vi.fn>;
 }
 
@@ -2498,6 +3051,45 @@ interface FakeBlackHoleLensingPass {
   readonly setSize: ReturnType<typeof vi.fn>;
   readonly render: ReturnType<typeof vi.fn>;
   readonly dispose: ReturnType<typeof vi.fn>;
+}
+
+function objectAdornmentDiagnostics() {
+  return {
+    selectionMarker: { depthTest: true },
+    rotationGuide: {
+      visible: true,
+      objectId: 'earth',
+      direction: 'prograde',
+      style: 'moving-highlight',
+      parentName: 'earth-body',
+      directionScale: 1,
+      vertexCount: 82,
+      hasVertexColors: true,
+    },
+  };
+}
+
+function objectVisualDiagnostics() {
+  return {
+    objectId: 'earth',
+    bodyPresent: true,
+    bodyVisible: true,
+    visualVisible: true,
+    nearVisible: true,
+    nearBlend: 1,
+    visibilityBlend: 1,
+    opacity: 1,
+    transparent: true,
+    depthTest: true,
+    depthWrite: true,
+    surfaceTexture: {
+      requested: true,
+      loaded: true,
+      source: 'textures/earth.jpg',
+      width: 2048,
+      height: 1024,
+    },
+  };
 }
 
 function createRuntime(): Runtime {
@@ -2526,6 +3118,8 @@ function createRuntime(): Runtime {
       definitions.get(id)?.type === 'black-hole' ? blackHoleForeground : null,
     ),
     getOrbitRadius: vi.fn(() => 18),
+    getAdornmentDiagnostics: vi.fn(() => objectAdornmentDiagnostics()),
+    getVisualDiagnostics: vi.fn(() => objectVisualDiagnostics()),
     setNavigationTarget: vi.fn(),
     select: vi.fn(),
     setSolarObserverActive: vi.fn(),
@@ -2533,7 +3127,6 @@ function createRuntime(): Runtime {
     showSolarEclipsePath: vi.fn(),
     updatePositions: vi.fn(() => appearance('partial')),
     updateBodyRotations: vi.fn(),
-    synchronizeEarthRotation: vi.fn(() => true),
     setDisplayOptions: vi.fn(),
     updateLod: vi.fn(),
     dispose: vi.fn(),
@@ -2553,6 +3146,8 @@ function createRuntime(): Runtime {
     adoptZoomAnchor: vi.fn(),
     adoptZoomPointer: vi.fn(),
     adoptZoomTarget: vi.fn(),
+    trackTarget: vi.fn(),
+    shiftTrackedPosition: vi.fn(),
     rebaseTarget: vi.fn(),
     transitionReferenceFrame: vi.fn(),
     setNavigationConstraints: vi.fn(),
@@ -2571,6 +3166,7 @@ function createRuntime(): Runtime {
     setStarClusterTiles: vi.fn(async () => undefined),
     setConstellationsEnabled: vi.fn(),
     setCosmicMapLayers: vi.fn(),
+    setTempelFilamentSpineCatalog: vi.fn(async () => undefined),
     isCatalogObjectVisibleForLabels: vi.fn(() => null),
     hasConstellation: vi.fn(() => false),
     getConstellationDefinition: vi.fn(() => undefined),
@@ -2578,6 +3174,7 @@ function createRuntime(): Runtime {
     getConstellationFocusRadius: vi.fn(() => null),
     selectConstellation: vi.fn(),
     hoverConstellation: vi.fn(),
+    hoverCatalogObject: vi.fn(),
     selectCatalogObject: vi.fn(),
     getCatalogWorldPosition: vi.fn(() => null),
     getCatalogPickables: vi.fn(() => []),
@@ -2585,9 +3182,16 @@ function createRuntime(): Runtime {
     updateLod: vi.fn(),
     dispose: vi.fn(),
     visibleCatalogStarCount: 2,
+    visibleExoplanetHostCount: 4_747,
+    exoplanetCount: 6_333,
     visibleCosmicGroupCount: 37_730,
     visibleCosmicFilamentCount: 42_000,
     visibleCosmicStructureCount: 9_985,
+    tempelFilamentSpineCount: 15_421,
+    tempelFilamentSpinePointCount: 275_599,
+    tempelFilamentSpineSegmentCount: 260_178,
+    tempelFilamentSpineTileCount: 8,
+    visibleTempelFilamentSpineSegmentCount: 18_000,
     visibleStarClusterCount: 0,
     activeStarTileCount: 0,
     starClusterRepresentationCount: 0,
@@ -2600,12 +3204,31 @@ function createRuntime(): Runtime {
     setQuality: vi.fn(),
     setDensity: vi.fn(),
     setTransientObject: vi.fn(),
+    setDetailsPanelVisible: vi.fn(),
     setObjects: vi.fn(),
+    setNameResolver: vi.fn(),
     dispose: vi.fn(),
   };
-  const catalog: FakeStarCatalogRegistry = {
+  const starCatalogRegistry: FakeStarCatalogRegistry = {
     has: vi.fn(() => false),
     getDefinition: vi.fn(() => undefined),
+    getLabelObjects: vi.fn(() => []),
+  };
+  const catalog: FakeCatalogRuntime = {
+    baseObjects: [...definitions.values()],
+    starCatalogRegistry,
+    exoplanetCatalogRegistry: null,
+    cosmicGroupCatalogRegistry: null,
+    cosmicStructureCatalogRegistry: null,
+    spaceTileManager: null,
+    starTileManager: null,
+    tempelFilamentSpineSource: null,
+    has: vi.fn(() => false),
+    isCatalogStar: vi.fn(() => false),
+    isExoplanetHost: vi.fn(() => false),
+    supportsWheelNavigation: vi.fn(() => false),
+    getDefinition: vi.fn(() => undefined),
+    getSearchEntries: vi.fn(() => []),
     getLabelObjects: vi.fn(() => []),
   };
   const selection: FakeSelectionManager = {
@@ -2630,6 +3253,8 @@ function createRuntime(): Runtime {
   const engine = createTestEngine();
   const access = engine as unknown as EngineAccess;
 
+  access.objectRuntime.replacePrimary(registry);
+
   Object.defineProperty(renderer.domElement, 'clientHeight', {
     configurable: true,
     value: 450,
@@ -2640,16 +3265,22 @@ function createRuntime(): Runtime {
     camera,
     universeScene: scene,
     cameraController: controller,
-    objectRegistry: registry,
     labelManager: labels,
-    starCatalogRegistry: catalog,
+    catalogRuntime: catalog,
     selectionManager: selection,
     renderLoop: loop,
     blackHoleLensingPass: lensing,
     container,
-    objects: [...definitions.values()],
-    baseObjects: [...definitions.values()],
   });
+  access.streamingRuntime.install(
+    [...definitions.values()],
+    new SpaceStreamingCoordinator(null, null, {
+      isActive: () => true,
+      onSpaceTilesChanged: vi.fn(),
+      onStarTilesChanged: vi.fn(),
+      onWarning: vi.fn(),
+    }),
+  );
 
   return {
     engine,
@@ -2719,6 +3350,20 @@ function object(
   };
 }
 
+function rotationDefinition(
+  objectId: string,
+  signedPeriodHours: number,
+): NonNullable<SpaceObject['rotation']> {
+  return {
+    siderealPeriodHours: Math.abs(signedPeriodHours),
+    direction: signedPeriodHours < 0 ? 'retrograde' : 'prograde',
+    bodyFixedFrame: objectId === 'earth' ? 'EARTH_GEOGRAPHIC' : `IAU_${objectId.toUpperCase()}`,
+    orientationModel: objectId === 'earth' ? 'earth-geographic' : 'iau-wgccre-2015',
+    scientificConfidence: 'calculated',
+    source: 'https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/pck00011.tpc',
+  };
+}
+
 function nearbyUniverseRoot(): SpaceObject {
   return {
     id: 'nearby-universe',
@@ -2755,32 +3400,6 @@ function nearbyGalaxy(id: string, position: [number, number, number]): SpaceObje
       type: 'static',
       position,
       unit: 'megaparsec',
-    },
-  };
-}
-
-function spaceTileRequest(
-  overrides: Partial<SpaceTileView> = {},
-  retainedObjectIds: readonly string[] = [],
-): SpaceTileSynchronizationRequest {
-  return {
-    retainedObjectIds,
-    view: {
-      lodLevel: 5,
-      quality: 'medium',
-      viewportHeight: 1_000,
-      projectionScaleY: 1,
-      cameraPosition: new THREE.Vector3(0, 0, 100_000),
-      worldOffset: new THREE.Vector3(),
-      frustum: new THREE.Frustum(
-        new THREE.Plane(new THREE.Vector3(1, 0, 0), 100_000),
-        new THREE.Plane(new THREE.Vector3(-1, 0, 0), 100_000),
-        new THREE.Plane(new THREE.Vector3(0, 1, 0), 100_000),
-        new THREE.Plane(new THREE.Vector3(0, -1, 0), 100_000),
-        new THREE.Plane(new THREE.Vector3(0, 0, 1), 100_000),
-        new THREE.Plane(new THREE.Vector3(0, 0, -1), 100_000),
-      ),
-      ...overrides,
     },
   };
 }
@@ -2847,52 +3466,14 @@ function testSpaceTileIndex(): SpaceTileIndex {
   };
 }
 
-function testStarClusterTile(lodLevel: number): StarClusterTile {
-  return {
-    id: `tile-${lodLevel}`,
-    parentId: lodLevel === 3 ? 'root' : undefined,
-    version: '2.0.0',
-    sourceCatalog: 'stars',
-    sourceStarCount: 2,
-    referenceEpochJulianDay: 2_451_545,
-    lodLevel,
-    cellSizeParsec: lodLevel === 3 ? 40 : 160,
-    clusterCount: 1,
-    cellCoordinates: Int32Array.from([0, 0, 0]),
-    positionsParsec: Float32Array.from([1, 2, 3]),
-    starCounts: Uint32Array.from([2]),
-    apparentMagnitudes: Float32Array.from([-1]),
-    colorIndicesBv: Float32Array.from([0.4]),
-  };
-}
-
-function starTileStats(): Pick<
-  NonNullable<EngineAccess['starTileManager']>,
-  | 'activeTileCount'
-  | 'cachedPackCount'
-  | 'cachedTileCount'
-  | 'activeClusterCount'
-  | 'cachedClusterCount'
-> {
-  return {
-    activeTileCount: 0,
-    cachedPackCount: 0,
-    cachedTileCount: 0,
-    activeClusterCount: 0,
-    cachedClusterCount: 0,
-  };
-}
-
-function deferredStarTileResult(): {
-  promise: Promise<{ changed: boolean; tiles: readonly StarClusterTile[] }>;
-  resolve: (result: { changed: boolean; tiles: readonly StarClusterTile[] }) => void;
+function deferredValue<T>(): {
+  promise: Promise<T>;
+  resolve: (value: T) => void;
 } {
-  let resolve!: (result: { changed: boolean; tiles: readonly StarClusterTile[] }) => void;
-  const promise = new Promise<{ changed: boolean; tiles: readonly StarClusterTile[] }>(
-    (resolvePromise) => {
-      resolve = resolvePromise;
-    },
-  );
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
 
   return { promise, resolve };
 }
@@ -2996,6 +3577,152 @@ function starCatalogBuffer(catalogIds: readonly number[] = [3_229]): ArrayBuffer
   return buffer;
 }
 
+function starTileIndexFixture(): object {
+  return {
+    version: '2.0.0',
+    sourceCatalog: 'stars',
+    sourceStarCount: 1,
+    referenceEpochJulianDay: 2_451_545,
+    referenceFrame: 'equatorial-j2000',
+    distanceUnit: 'parsec',
+    scientificConfidence: 'calculated',
+    representation: 'illustrative-aggregation',
+    rootIds: ['root'],
+    nodes: [
+      {
+        id: 'root',
+        childIds: [],
+        lodLevel: 4,
+        boundsParsec: {
+          min: [-20, -20, -20],
+          max: [20, 20, 20],
+        },
+        sourceStarCount: 1,
+        clusterCount: 1,
+        cellSizeParsec: 160,
+        url: '/data/stars/tiles/root.json',
+      },
+    ],
+  };
+}
+
+function starTilePackFixture(): object {
+  return {
+    version: '2.0.0',
+    sourceCatalog: 'stars',
+    referenceEpochJulianDay: 2_451_545,
+    tiles: [
+      {
+        id: 'root',
+        version: '2.0.0',
+        sourceCatalog: 'stars',
+        sourceStarCount: 1,
+        referenceEpochJulianDay: 2_451_545,
+        lodLevel: 4,
+        cellSizeParsec: 160,
+        cellCoordinates: [0, 0, 0],
+        positionsParsec: [0, 0, 0],
+        starCounts: [1],
+        apparentMagnitudes: [-1],
+        colorIndicesBv: [0.4],
+      },
+    ],
+  };
+}
+
+function exoplanetCatalogBuffer(): ArrayBuffer {
+  const encoder = new TextEncoder();
+  const stringBytes: number[] = [0];
+  const addString = (value: string): number => {
+    const offset = stringBytes.length;
+
+    stringBytes.push(...encoder.encode(value), 0);
+
+    return offset;
+  };
+  const hostName = addString('Test Host');
+  const spectralType = addString('G2 V');
+  const planetName = addString('Test Host b');
+  const letter = addString('b');
+  const method = addString('Transit');
+  const facility = addString('Kepler');
+  const massProvenance = addString('Mass');
+  const planetOffset = EXOPLANET_CATALOG_HEADER_BYTES + EXOPLANET_CATALOG_HOST_RECORD_BYTES;
+  const stringsOffset = planetOffset + EXOPLANET_CATALOG_PLANET_RECORD_BYTES;
+  const buffer = new ArrayBuffer(stringsOffset + stringBytes.length);
+  const view = new DataView(buffer);
+
+  for (let index = 0; index < EXOPLANET_CATALOG_MAGIC.length; index += 1) {
+    view.setUint8(index, EXOPLANET_CATALOG_MAGIC.charCodeAt(index));
+  }
+  view.setUint16(4, EXOPLANET_CATALOG_VERSION, true);
+  view.setUint16(6, EXOPLANET_CATALOG_HEADER_BYTES, true);
+  view.setUint16(8, EXOPLANET_CATALOG_HOST_RECORD_BYTES, true);
+  view.setUint16(10, EXOPLANET_CATALOG_PLANET_RECORD_BYTES, true);
+  view.setUint32(12, 1, true);
+  view.setUint32(16, 1, true);
+  view.setUint32(20, planetOffset, true);
+  view.setUint32(24, stringsOffset, true);
+  view.setUint32(28, stringBytes.length, true);
+
+  const hostOffset = EXOPLANET_CATALOG_HEADER_BYTES;
+
+  view.setUint32(hostOffset, hostName, true);
+  view.setUint32(hostOffset + 4, 0, true);
+  view.setUint32(hostOffset + 8, spectralType, true);
+  view.setUint32(hostOffset + 12, 0, true);
+  view.setUint16(hostOffset + 16, 1, true);
+  view.setUint8(hostOffset + 18, 1);
+  view.setUint8(hostOffset + 19, 0);
+  view.setFloat64(hostOffset + 20, 12, true);
+  view.setFloat64(hostOffset + 28, 24, true);
+  view.setFloat64(hostOffset + 36, 10, true);
+  view.setFloat32(hostOffset + 44, 5_700, true);
+  view.setFloat32(hostOffset + 48, 1, true);
+  view.setFloat32(hostOffset + 52, 1, true);
+  view.setFloat32(hostOffset + 56, 8, true);
+  view.setUint32(hostOffset + 60, 0, true);
+
+  view.setUint32(planetOffset, planetName, true);
+  view.setUint32(planetOffset + 4, letter, true);
+  view.setUint32(planetOffset + 8, method, true);
+  view.setUint32(planetOffset + 12, facility, true);
+  view.setUint32(planetOffset + 16, massProvenance, true);
+  view.setUint32(planetOffset + 20, 0, true);
+  view.setFloat64(planetOffset + 24, 20, true);
+  view.setFloat64(planetOffset + 32, 0.2, true);
+  view.setFloat32(planetOffset + 40, 1.2, true);
+  view.setFloat32(planetOffset + 44, 1.5, true);
+  view.setFloat32(planetOffset + 48, 280, true);
+  view.setFloat32(planetOffset + 52, 0.02, true);
+  view.setFloat32(planetOffset + 56, 89, true);
+  view.setFloat32(planetOffset + 60, 1, true);
+  view.setUint16(planetOffset + 64, 2020, true);
+  view.setUint16(planetOffset + 66, 0, true);
+  view.setUint32(planetOffset + 68, 0, true);
+  new Uint8Array(buffer, stringsOffset).set(stringBytes);
+
+  return buffer;
+}
+
+function exoplanetCatalogMetadata(): object {
+  return {
+    version: '1.0.0',
+    format: 'exoplanet-catalog-v1',
+    source: {
+      name: 'NASA Exoplanet Archive',
+      url: 'https://exoplanetarchive.ipac.caltech.edu/',
+      tapUrl: 'https://exoplanetarchive.ipac.caltech.edu/TAP/sync',
+      table: 'PSCompPars',
+      query: 'select test row from pscomppars',
+      snapshotDate: '2026-08-05',
+      sha256: 'a'.repeat(64),
+    },
+    counts: { hosts: 1, planets: 1, positionedHosts: 1, positionedPlanets: 1 },
+    missingDistanceFallbackParsec: 1_000,
+  };
+}
+
 function cosmicGroupCatalogBuffer(pgcId: number): ArrayBuffer {
   const buffer = new ArrayBuffer(
     COSMIC_GROUP_CATALOG_HEADER_BYTES + COSMIC_GROUP_CATALOG_RECORD_BYTES,
@@ -3040,6 +3767,30 @@ function testCosmicStructureMetadata() {
         structureType: 'supercluster',
         method: 'Luminosity density field',
         objectNamePrefix: 'Superamas SDSS',
+        scientificConfidence: 'calculated',
+        recordCount: 1,
+      },
+    ],
+  };
+}
+
+function testTempelCosmicStructureMetadata() {
+  return {
+    version: '1.0.0',
+    recordCount: 1,
+    referenceEpochJulianDay: 2_451_545,
+    referenceFrame: 'equatorial-j2000',
+    distanceUnit: 'megaparsec',
+    scientificConfidence: 'calculated',
+    sources: [
+      {
+        id: 'sdss-dr8-tempel-filaments',
+        name: 'SDSS DR8 Bisous cosmic filaments',
+        citation: 'Tempel et al. (2014), MNRAS 438, 3465',
+        sourceUrl: 'https://example.test/tempel',
+        structureType: 'filament',
+        method: 'Bisous',
+        objectNamePrefix: 'Filament SDSS',
         scientificConfidence: 'calculated',
         recordCount: 1,
       },
@@ -3092,6 +3843,92 @@ function cosmicStructureCatalogBuffer(): ArrayBuffer {
     buffer,
     COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + COSMIC_STRUCTURE_CATALOG_RECORD_BYTES,
   ).set(identifier);
+
+  return buffer;
+}
+
+function tempelCosmicStructureCatalogBuffer(): ArrayBuffer {
+  const identifier = new TextEncoder().encode('F1');
+  const buffer = new ArrayBuffer(
+    COSMIC_STRUCTURE_CATALOG_HEADER_BYTES +
+      COSMIC_STRUCTURE_CATALOG_RECORD_BYTES +
+      identifier.length,
+  );
+  const view = new DataView(buffer);
+  const recordOffset = COSMIC_STRUCTURE_CATALOG_HEADER_BYTES;
+
+  for (let index = 0; index < COSMIC_STRUCTURE_CATALOG_MAGIC.length; index += 1) {
+    view.setUint8(index, COSMIC_STRUCTURE_CATALOG_MAGIC.charCodeAt(index));
+  }
+  view.setUint16(4, COSMIC_STRUCTURE_CATALOG_VERSION, true);
+  view.setUint16(6, COSMIC_STRUCTURE_CATALOG_HEADER_BYTES, true);
+  view.setUint16(8, COSMIC_STRUCTURE_CATALOG_RECORD_BYTES, true);
+  view.setUint32(12, 1, true);
+  view.setUint16(16, 1, true);
+  view.setUint16(18, 1, true);
+  view.setFloat64(20, 2_451_545, true);
+  view.setFloat32(28, 10.5, true);
+  view.setFloat32(32, 10.5, true);
+  view.setUint32(36, identifier.length, true);
+  view.setUint32(40, 0xff, true);
+  view.setFloat32(recordOffset, 10.5, true);
+  view.setFloat32(recordOffset + 4, 0, true);
+  view.setFloat32(recordOffset + 8, 0, true);
+  view.setFloat32(recordOffset + 12, 10.5, true);
+  view.setFloat32(recordOffset + 16, 1, true);
+  view.setFloat32(recordOffset + 20, 1, true);
+  view.setFloat32(recordOffset + 24, Number.NaN, true);
+  view.setFloat32(recordOffset + 28, Number.NaN, true);
+  view.setUint32(recordOffset + 36, 0, true);
+  view.setUint16(recordOffset + 40, identifier.length, true);
+  view.setUint16(recordOffset + 42, 0, true);
+  view.setUint8(recordOffset + 44, 3);
+  view.setUint16(recordOffset + 46, 1, true);
+  new Uint8Array(
+    buffer,
+    COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + COSMIC_STRUCTURE_CATALOG_RECORD_BYTES,
+  ).set(identifier);
+
+  return buffer;
+}
+
+function tempelSpineCatalogBuffer(): ArrayBuffer {
+  const buffer = new ArrayBuffer(
+    TEMPEL_FILAMENT_SPINE_HEADER_BYTES +
+      TEMPEL_FILAMENT_SPINE_INDEX_BYTES +
+      2 * TEMPEL_FILAMENT_SPINE_POINT_BYTES,
+  );
+  const view = new DataView(buffer);
+
+  for (let index = 0; index < TEMPEL_FILAMENT_SPINE_MAGIC.length; index += 1) {
+    view.setUint8(index, TEMPEL_FILAMENT_SPINE_MAGIC.charCodeAt(index));
+  }
+  view.setUint16(4, TEMPEL_FILAMENT_SPINE_VERSION, true);
+  view.setUint16(6, TEMPEL_FILAMENT_SPINE_HEADER_BYTES, true);
+  view.setUint16(8, TEMPEL_FILAMENT_SPINE_POINT_BYTES, true);
+  view.setUint16(10, TEMPEL_FILAMENT_SPINE_INDEX_BYTES, true);
+  view.setUint32(12, 1, true);
+  view.setUint32(16, 2, true);
+  view.setUint32(20, 1, true);
+  view.setUint16(24, 1, true);
+  view.setUint16(26, 1, true);
+  view.setFloat64(28, 2_451_545, true);
+  view.setFloat32(36, 10, true);
+  view.setFloat32(40, 11, true);
+  view.setUint32(44, 0x7, true);
+  view.setUint16(TEMPEL_FILAMENT_SPINE_HEADER_BYTES, 1, true);
+  view.setUint16(TEMPEL_FILAMENT_SPINE_HEADER_BYTES + 2, 2, true);
+  view.setUint32(TEMPEL_FILAMENT_SPINE_HEADER_BYTES + 4, 0, true);
+  const pointsOffset = TEMPEL_FILAMENT_SPINE_HEADER_BYTES + TEMPEL_FILAMENT_SPINE_INDEX_BYTES;
+
+  for (let pointIndex = 0; pointIndex < 2; pointIndex += 1) {
+    const offset = pointsOffset + pointIndex * TEMPEL_FILAMENT_SPINE_POINT_BYTES;
+
+    view.setFloat32(offset, 10 + pointIndex, true);
+    view.setUint8(offset + 12, 128 + pointIndex * 16);
+    view.setUint8(offset + 13, 160 + pointIndex * 16);
+    view.setUint8(offset + 14, 192 + pointIndex * 16);
+  }
 
   return buffer;
 }

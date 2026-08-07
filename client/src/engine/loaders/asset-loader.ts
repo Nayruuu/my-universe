@@ -3,6 +3,7 @@ import {
   SpaceObject,
   SpaceTileIndex,
   StarTileSource,
+  TempelFilamentSpineSource,
 } from '../../data/models/universe.models';
 import {
   assertConstellationCatalogReferences,
@@ -19,6 +20,11 @@ import {
   parseCosmicStructureCatalogMetadata,
 } from './cosmic-structure-catalog';
 import { CosmicWebVolume, parseCosmicWebVolume } from './cosmic-web-volume';
+import {
+  ExoplanetCatalog,
+  parseExoplanetCatalog,
+  parseExoplanetCatalogMetadata,
+} from './exoplanet-catalog';
 
 export interface LoadedUniverseAssets {
   readonly objects: SpaceObject[];
@@ -26,9 +32,11 @@ export interface LoadedUniverseAssets {
   readonly cosmicGroupCatalog: CosmicGroupCatalog | null;
   readonly cosmicStructureCatalog: CosmicStructureCatalog | null;
   readonly cosmicWebVolume: CosmicWebVolume | null;
+  readonly exoplanetCatalog: ExoplanetCatalog | null;
   readonly constellationCatalog: ConstellationCatalog | null;
   readonly spaceTileIndex: SpaceTileIndex | null;
   readonly starTileSource: StarTileSource | null;
+  readonly tempelFilamentSpineSource: TempelFilamentSpineSource | null;
   readonly warnings: readonly string[];
 }
 
@@ -59,12 +67,19 @@ export class AssetLoader {
     const cosmicWebVolumeDataset = manifest.datasets.find(
       (dataset) => dataset.type === 'cosmic-web-volume',
     );
+    const tempelFilamentSpineDataset = manifest.datasets.find(
+      (dataset) => dataset.type === 'tempel-filament-spine-catalog',
+    );
+    const exoplanetDataset = manifest.datasets.find(
+      (dataset) => dataset.type === 'exoplanet-catalog',
+    );
     const [
       loadedDatasets,
       catalogResult,
       cosmicGroupResult,
       cosmicStructureResult,
       cosmicWebVolumeResult,
+      exoplanetResult,
       spaceTileIndex,
       constellationCatalog,
     ] = await Promise.all([
@@ -95,6 +110,13 @@ export class AssetLoader {
       cosmicWebVolumeDataset
         ? loadOptionalCosmicWebVolume(cosmicWebVolumeDataset.id, cosmicWebVolumeDataset.url)
         : Promise.resolve({ volume: null, warnings: [] }),
+      exoplanetDataset
+        ? loadOptionalExoplanetCatalog(
+            exoplanetDataset.id,
+            exoplanetDataset.url,
+            exoplanetDataset.metadataUrl,
+          )
+        : Promise.resolve({ catalog: null, warnings: [] }),
       tileIndexDataset
         ? loadSpaceTileIndex(tileIndexDataset.id, tileIndexDataset.url)
         : Promise.resolve(null),
@@ -118,6 +140,7 @@ export class AssetLoader {
       cosmicGroupCatalog: cosmicGroupResult.catalog,
       cosmicStructureCatalog: cosmicStructureResult.catalog,
       cosmicWebVolume: cosmicWebVolumeResult.volume,
+      exoplanetCatalog: exoplanetResult.catalog,
       constellationCatalog,
       spaceTileIndex,
       starTileSource: starTileDataset
@@ -127,12 +150,53 @@ export class AssetLoader {
             starCatalogId: starTileDataset.starCatalogId,
           }
         : null,
+      tempelFilamentSpineSource: tempelFilamentSpineDataset
+        ? {
+            id: tempelFilamentSpineDataset.id,
+            url: tempelFilamentSpineDataset.url,
+          }
+        : null,
       warnings: [
         ...catalogResult.warnings,
         ...cosmicGroupResult.warnings,
         ...cosmicStructureResult.warnings,
         ...cosmicWebVolumeResult.warnings,
+        ...exoplanetResult.warnings,
       ],
+    };
+  }
+}
+
+async function loadOptionalExoplanetCatalog(
+  datasetId: string,
+  url: string,
+  metadataUrl: string,
+): Promise<{ catalog: ExoplanetCatalog | null; warnings: readonly string[] }> {
+  try {
+    const metadataResponse = await fetch(metadataUrl);
+
+    if (!metadataResponse.ok) {
+      throw new Error(
+        `Impossible de charger les métadonnées ${datasetId} (${metadataResponse.status}).`,
+      );
+    }
+    const metadata = parseExoplanetCatalogMetadata(await metadataResponse.json(), datasetId);
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`Impossible de charger ${datasetId} (${response.status}).`);
+    }
+
+    return {
+      catalog: parseExoplanetCatalog(await response.arrayBuffer(), metadata),
+      warnings: [],
+    };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : 'erreur inconnue';
+
+    return {
+      catalog: null,
+      warnings: [`Catalogue d’exoplanètes indisponible : ${reason}`],
     };
   }
 }

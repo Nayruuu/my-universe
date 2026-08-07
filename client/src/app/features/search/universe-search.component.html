@@ -1,3 +1,4 @@
+@let t = i18n.content();
 <div class="search-shell" [class.search-shell--active]="active()">
   <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true">
     <circle cx="11" cy="11" r="6.5"></circle>
@@ -7,22 +8,34 @@
     type="search"
     autocomplete="off"
     spellcheck="false"
-    placeholder="Rechercher une planète, une étoile, une constellation…"
-    aria-label="Rechercher un objet astronomique"
+    [placeholder]="t.search.placeholder"
+    [attr.aria-label]="t.search.aria"
     [value]="query()"
     (input)="updateQuery($event)"
     (focus)="active.set(true)"
     (blur)="active.set(false)"
   />
   @if (query()) {
-    <button class="clear-button" type="button" aria-label="Effacer la recherche" (click)="clear()">
+    <button class="clear-button" type="button" [attr.aria-label]="t.search.clear" (click)="clear()">
       ×
+    </button>
+  } @else if (exoplanetCount() > 0) {
+    <button
+      class="catalog-button"
+      type="button"
+      [attr.aria-label]="t.search.exploreCatalog"
+      [attr.aria-expanded]="explorerOpen()"
+      (pointerdown)="$event.preventDefault()"
+      (click)="toggleExplorer()"
+    >
+      <span class="catalog-button__orbit" aria-hidden="true"></span>
+      <span>{{ formatCount(exoplanetCount()) }}</span>
     </button>
   }
 </div>
 
 @if (active() && query()) {
-  <div class="results" role="listbox" aria-label="Résultats de recherche">
+  <div class="results" role="listbox" [attr.aria-label]="t.search.results">
     @for (result of results(); track result.id) {
       <button
         type="button"
@@ -33,18 +46,103 @@
       >
         <span class="result__marker" [attr.data-type]="result.type"></span>
         <span class="result__text">
-          <strong>{{ result.name }}</strong>
+          <strong>{{ displayName(result) }}</strong>
           <small>
-            {{ typeLabel(result.type, result.keywords) }} · {{ result.parentName ?? 'Univers' }}
+            {{ typeLabel(result.type, result.keywords) }} ·
+            {{ parentName(result) }}
           </small>
         </span>
         <span class="result__arrow" aria-hidden="true">↗</span>
       </button>
     } @empty {
       <div class="empty-result">
-        <strong>Aucun objet trouvé</strong>
-        <span>Essayez un alias, par exemple « Earth », « étoile polaire » ou « Orion ».</span>
+        <strong>{{ t.search.noObject }}</strong>
+        <span>{{ t.search.aliasHint }}</span>
       </div>
     }
   </div>
+}
+
+@if (explorerOpen() && !query()) {
+  <section class="results discovery-panel" [attr.aria-label]="t.search.explorerAria">
+    <header class="discovery-header">
+      <div>
+        <span class="discovery-header__eyebrow">NASA Exoplanet Archive</span>
+        <strong>{{ formatCount(exoplanetCount()) }} {{ t.search.confirmedWorlds }}</strong>
+      </div>
+      <button
+        type="button"
+        [attr.aria-label]="t.search.closeExplorer"
+        (click)="explorerOpen.set(false)"
+      >
+        ×
+      </button>
+    </header>
+
+    <div class="discovery-filters" [attr.aria-label]="t.search.filtersAria">
+      <label>
+        <span>{{ t.search.distance }}</span>
+        <select [value]="distanceFilter() ?? 'all'" (change)="updateDistanceFilter($event)">
+          <option value="all">{{ t.search.anyDistance }}</option>
+          <option value="100">{{ t.search.within100Pc }}</option>
+          <option value="500">{{ t.search.within500Pc }}</option>
+        </select>
+      </label>
+      <label>
+        <span>{{ t.search.size }}</span>
+        <select [value]="sizeFilter()" (change)="updateSizeFilter($event)">
+          <option value="all">{{ t.search.allSizes }}</option>
+          <option value="earth-sized">{{ t.search.earthSized }}</option>
+          <option value="super-earth">{{ t.search.superEarth }}</option>
+          <option value="neptune-sized">{{ t.search.neptuneSized }}</option>
+          <option value="giant">{{ t.search.giants }}</option>
+        </select>
+      </label>
+      <label>
+        <span>{{ t.search.detection }}</span>
+        <select [value]="methodFilter()" (change)="updateMethodFilter($event)">
+          <option value="all">{{ t.search.allMethods }}</option>
+          <option value="Transit">{{ t.search.transit }}</option>
+          <option value="Radial Velocity">{{ t.search.radialVelocity }}</option>
+          <option value="Imaging">{{ t.search.imaging }}</option>
+          <option value="Microlensing">{{ t.search.microlensing }}</option>
+        </select>
+      </label>
+      <button
+        type="button"
+        class="temperate-filter"
+        [class.temperate-filter--active]="temperateOnly()"
+        [attr.aria-pressed]="temperateOnly()"
+        [title]="t.search.temperateTitle"
+        (click)="toggleTemperateOnly()"
+      >
+        ◌ {{ t.search.temperate }} <small>{{ t.search.indicative }}</small>
+      </button>
+    </div>
+
+    <div class="discovery-list" role="listbox">
+      @for (result of discoveryResults(); track result.id) {
+        <button type="button" role="option" class="discovery-result" (click)="choose(result)">
+          <span class="discovery-result__planet" aria-hidden="true"></span>
+          <span class="discovery-result__text">
+            <strong>{{ displayName(result) }}</strong>
+            <small>{{ result.parentName ? parentName(result) : t.search.hostStar }}</small>
+          </span>
+          <span class="discovery-result__facts">
+            <small>{{ discoveryDistance(result) }}</small>
+            @if (discoveryRadius(result); as radius) {
+              <small>{{ radius }}</small>
+            }
+          </span>
+        </button>
+      } @empty {
+        <div class="empty-result">
+          <strong>{{ t.search.noWorld }}</strong>
+          <span>{{ t.search.widenFilters }}</span>
+        </div>
+      }
+    </div>
+
+    <footer class="discovery-note">{{ t.search.catalogNote }}</footer>
+  </section>
 }

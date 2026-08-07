@@ -1,7 +1,8 @@
+@let t = i18n.content();
 <section
   class="timeline"
   [class.timeline--eclipse]="facade.timelineSolarEclipse()"
-  aria-label="Contrôle du temps"
+  [attr.aria-label]="t.timeline.aria"
 >
   @if (facade.timelineSolarEclipse(); as eclipse) {
     <div class="eclipse-context" aria-live="polite">
@@ -9,32 +10,33 @@
       <span class="eclipse-context__copy">
         <small>{{ facade.eclipseContextLabel() }}</small>
         <strong>
-          Éclipse solaire {{ eclipseKindLabel(eclipse.kind) }}
+          {{ i18n.interpolate(t.timeline.solarEclipse, { kind: eclipseKindLabel(eclipse.kind) }) }}
           @if (eclipse.scope === 'local' && eclipse.observerName) {
-            à {{ eclipse.observerName }}
+            {{ i18n.interpolate(t.timeline.atLocation, { location: eclipse.observerName }) }}
           }
         </strong>
         @if (facade.solarObserverActive()) {
-          <span>{{ facade.solarObserverLocation() }} · reconstruction calculée</span>
+          <span
+            >{{ facade.solarObserverLocation() }} · {{ t.timeline.calculatedReconstruction }}</span
+          >
         } @else if (facade.localEclipseSummary(); as summary) {
           <span>{{ summary }}</span>
         } @else {
-          <span
-            class="eclipse-context__legend"
-            aria-label="Légende de la couche colorée de l’éclipse"
-          >
+          <span class="eclipse-context__legend" [attr.aria-label]="t.timeline.eclipseLegend">
             <span class="eclipse-legend__item">
               <i class="eclipse-legend__dot eclipse-legend__dot--penumbra"></i>
-              Pénombre
+              {{ t.timeline.penumbra }}
             </span>
             <span class="eclipse-legend__item">
               <i
                 class="eclipse-legend__dot eclipse-legend__dot--central"
                 [class.eclipse-legend__dot--annular]="eclipse.kind === 'annular'"
               ></i>
-              {{ eclipse.kind === 'annular' ? 'Annularité' : 'Totalité' }}
+              {{ eclipse.kind === 'annular' ? t.timeline.annularity : t.timeline.totality }}
             </span>
-            <span class="eclipse-legend__note">Couche colorée adaptée</span>
+            <span class="eclipse-legend__note">
+              {{ facade.solarPathVisible() ? t.timeline.eventMapLayer : t.timeline.adaptedLayer }}
+            </span>
           </span>
         }
       </span>
@@ -46,7 +48,7 @@
             class="eclipse-action eclipse-action--primary"
             (click)="facade.showSolarShadow()"
           >
-            ↗ Retour en orbite
+            ↗ {{ t.timeline.returnOrbit }}
           </button>
         } @else {
           <button
@@ -54,7 +56,7 @@
             class="eclipse-action eclipse-action--primary"
             (click)="centerSolarShadow(eclipse)"
           >
-            Centrer l’ombre
+            {{ t.timeline.centerShadow }}
           </button>
           <button
             type="button"
@@ -63,11 +65,11 @@
             [attr.aria-pressed]="facade.solarPathVisible()"
             (click)="facade.toggleSolarPath(eclipse)"
           >
-            Trajectoire
+            {{ t.timeline.trajectory }}
           </button>
           @if (eclipse.latitude !== null && eclipse.longitude !== null) {
             <button type="button" class="eclipse-action" (click)="observeSolarEclipse(eclipse)">
-              ◎ Vue au sol
+              ◎ {{ t.timeline.groundView }}
             </button>
           }
         }
@@ -79,8 +81,8 @@
     <button
       type="button"
       class="play-button"
-      [attr.aria-label]="facade.playing() ? 'Mettre le temps en pause' : 'Faire avancer le temps'"
-      [title]="facade.playing() ? 'Pause (Espace)' : 'Lecture (Espace)'"
+      [attr.aria-label]="facade.playing() ? t.timeline.pauseAria : t.timeline.playAria"
+      [title]="facade.playing() ? t.timeline.pauseTitle : t.timeline.playTitle"
       (click)="facade.togglePlaying()"
     >
       @if (facade.playing()) {
@@ -93,7 +95,7 @@
     <div class="date-heading">
       <strong>{{ epochLabel() }} UTC</strong>
       <span [title]="'JD ' + facade.currentTime().julianDay.toFixed(2)">
-        Heure locale · {{ facade.currentLocalClock() }}
+        {{ t.timeline.localTime }} · {{ facade.currentLocalClock() }}
       </span>
     </div>
 
@@ -103,7 +105,7 @@
       min="-3652.5"
       max="3652.5"
       step="1"
-      aria-label="Parcourir dix années avant ou après le présent"
+      [attr.aria-label]="t.timeline.rangeAria"
       [value]="timelineOffset()"
       (input)="changeTimeline($event)"
     />
@@ -111,10 +113,10 @@
     <button
       type="button"
       class="present-button"
-      title="Revenir à aujourd’hui"
+      [title]="t.timeline.todayTitle"
       (click)="facade.returnToPresent()"
     >
-      Aujourd’hui
+      {{ t.timeline.today }}
     </button>
   </div>
 
@@ -124,51 +126,49 @@
       class="events-button"
       [class.active]="facade.eclipseBrowserOpen()"
       [attr.aria-expanded]="facade.eclipseBrowserOpen()"
-      aria-label="Ouvrir les événements astronomiques"
+      [attr.aria-label]="t.timeline.eventsAria"
       (click)="facade.toggleEclipseBrowser()"
     >
       <span class="events-button__icon" aria-hidden="true"><i></i></span>
-      <span>Événements</span>
+      <span>{{ t.timeline.events }}</span>
     </button>
 
     <label class="select-control">
       <span>
-        {{ facade.earthRotationStabilized() ? 'Vitesse · Terre stabilisée' : 'Vitesse' }}
+        {{ facade.earthRotationStabilized() ? t.timeline.stabilizedSpeed : t.timeline.speed }}
       </span>
       <select
-        aria-label="Vitesse temporelle"
+        [attr.aria-label]="t.timeline.speedAria"
         [title]="
-          facade.earthRotationStabilized()
-            ? 'Rotation terrestre ralentie visuellement ; orientation exacte restaurée à la pause'
-            : 'Vitesse temporelle'
+          facade.earthRotationStabilized() ? t.timeline.stabilizedTitle : t.timeline.speedAria
         "
         [value]="facade.speed()"
         (change)="changeSpeed($event)"
       >
         @for (speed of speeds; track speed.id) {
-          <option [value]="speed.daysPerSecond">{{ speed.label }}</option>
+          <option [value]="speed.daysPerSecond">{{ speedLabel(speed.id) }}</option>
         }
       </select>
     </label>
 
     <label class="select-control mode-control">
-      <span>Mode</span>
+      <span>{{ t.timeline.mode }}</span>
       <select
-        aria-label="Mode temporel"
+        [attr.aria-label]="t.timeline.modeAria"
         [value]="facade.displayOptions().temporalMode"
         (change)="changeMode($event)"
       >
-        <option value="state">État à la date choisie</option>
-        <option value="observable">Vue observable · aperçu</option>
+        <option value="state">{{ t.timeline.stateMode }}</option>
+        <option value="observable">{{ t.timeline.observableMode }}</option>
       </select>
     </label>
 
     <label class="date-control">
-      <span>Date et heure · UTC</span>
+      <span>{{ t.timeline.dateTime }}</span>
       <input
         type="datetime-local"
         step="60"
-        aria-label="Date et heure UTC de simulation"
+        [attr.aria-label]="t.timeline.dateTimeAria"
         [value]="facade.currentIsoDateTime()"
         (change)="changeDateTime($event)"
       />

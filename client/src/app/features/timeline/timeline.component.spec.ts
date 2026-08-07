@@ -153,6 +153,7 @@ describe('TimelineComponent', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Annularité');
     expect(fixture.nativeElement.textContent).toContain('Biarritz');
+    expect(fixture.nativeElement.textContent).toContain('Carte de tout l’événement');
 
     localEclipseSummary.set('80 % occulté');
     fixture.detectChanges();

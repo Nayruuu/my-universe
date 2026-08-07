@@ -23,6 +23,7 @@ describe('CosmicStructureCatalogBatch', () => {
     expect(geometry.getAttribute('pointAlpha').count).toBe(4);
     expect(geometry.getAttribute('structureKind').count).toBe(4);
     expect(geometry.getAttribute('revealThreshold').count).toBe(4);
+    expect(geometry.getAttribute('shapeSeed').count).toBe(4);
     expect(batch.points.material.blending).toBe(THREE.NormalBlending);
     expect(new Set(Array.from(geometry.getAttribute('structureKind').array))).toEqual(
       new Set([0, 1, 3, 4]),
@@ -31,6 +32,8 @@ describe('CosmicStructureCatalogBatch', () => {
       catalogCount: 4,
       sourceCount: 4,
       scientificConfidence: 'calculated',
+      voidRepresentation: 'adaptive-catalog-underdensity-volume',
+      voidBoundaryStyle: 'diffuse-fill-without-ring',
       structureCounts: { supercluster: 1, void: 1, filament: 1, cluster: 1 },
     });
     expect(new Set(batch.points.userData['objectIds'] as readonly string[])).toEqual(
@@ -46,6 +49,18 @@ describe('CosmicStructureCatalogBatch', () => {
     pickingLayers.set(PICKING_LAYER);
     expect(batch.points.layers.test(pickingLayers)).toBe(true);
     expect(batch.selectionPoint.layers.test(pickingLayers)).toBe(true);
+    expect(batch.points.material.fragmentShader).toContain('vec3 underdensityInterior');
+    expect(batch.points.material.fragmentShader).toContain('float diffuseBoundary');
+    expect(batch.points.material.fragmentShader).toContain('float warpedRadius');
+    expect(batch.points.material.fragmentShader).toContain('float mottledInterior');
+    expect(batch.points.material.fragmentShader).toContain('float edgeFade');
+    expect(batch.points.material.fragmentShader).not.toContain('smoothstep(0.22, 0.7');
+    expect(batch.points.material.fragmentShader).not.toContain('float ring =');
+    const objectIds = batch.points.userData['objectIds'] as readonly string[];
+    const voidIndex = objectIds.indexOf('lss-boss-voids-cmass-north-60');
+
+    expect(geometry.getAttribute('pointSize').getX(voidIndex)).toBeGreaterThan(45);
+    expect(geometry.getAttribute('pointAlpha').getX(voidIndex)).toBeGreaterThan(0.9);
     batch.dispose();
   });
 
@@ -84,7 +99,7 @@ describe('CosmicStructureCatalogBatch', () => {
     expect(batch.points.visible).toBe(true);
     expect(batch.points.geometry.drawRange.count).toBeGreaterThan(0);
     expect(batch.isObjectVisible('lss-sdss-main50-239-027-0091')).toBe(true);
-    expect(batch.isObjectVisible('lss-boss-voids-cmass-north-60')).toBe(false);
+    expect(batch.isObjectVisible('lss-boss-voids-cmass-north-60')).toBe(true);
     batch.updateDistance(40_000, 10);
     expect(batch.points.userData['visibleIndices']).toEqual(new Uint8Array([0, 0, 0, 0]));
     batch.dispose();
@@ -94,11 +109,15 @@ describe('CosmicStructureCatalogBatch', () => {
     const batch = createBatch();
 
     batch.updateDistance(170_000, 10);
-    expect(batch.visibleCount).toBe(2);
+    expect(batch.visibleCount).toBe(4);
     expect(batch.isObjectVisible('lss-sdss-main50-239-027-0091')).toBe(true);
     expect(batch.isObjectVisible('lss-planck-clusters-psz2-g000-04-45-13')).toBe(true);
+    expect(batch.isObjectVisible('lss-boss-voids-cmass-north-60')).toBe(true);
+    expect(batch.isObjectVisible('lss-tempel-filaments-f42')).toBe(true);
+
+    batch.setLayers({ ...DEFAULT_COSMIC_MAP_LAYERS, voids: false });
+    expect(batch.visibleCount).toBe(3);
     expect(batch.isObjectVisible('lss-boss-voids-cmass-north-60')).toBe(false);
-    expect(batch.isObjectVisible('lss-tempel-filaments-f42')).toBe(false);
 
     batch.setLayers(ALL_COSMIC_MAP_LAYERS);
     expect(batch.visibleCount).toBe(4);
@@ -106,7 +125,13 @@ describe('CosmicStructureCatalogBatch', () => {
     expect(batch.isObjectVisible('lss-tempel-filaments-f42')).toBe(true);
     expect(batch.points.userData['layerState']).toEqual(ALL_COSMIC_MAP_LAYERS);
 
-    batch.setLayers({ ...DEFAULT_COSMIC_MAP_LAYERS, clusters: false, superclusters: false });
+    batch.setLayers({
+      ...DEFAULT_COSMIC_MAP_LAYERS,
+      clusters: false,
+      superclusters: false,
+      filaments: false,
+      voids: false,
+    });
     expect(batch.visibleCount).toBe(0);
     expect(batch.points.visible).toBe(false);
     expect(batch.isObjectVisible('missing')).toBeNull();

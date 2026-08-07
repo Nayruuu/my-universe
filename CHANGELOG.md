@@ -6,6 +6,139 @@ All notable changes to Universe Map are documented in this file.
 
 ### Changed
 
+- Updated the Angular 21 toolchain and framework packages to their patched 21.2 releases, and pinned
+  vulnerable transitive build dependencies to compatible fixed versions. `npm audit` now reports
+  zero known vulnerabilities without requiring an Angular 22 migration. Weekly grouped Dependabot
+  updates now cover both the client npm tree and GitHub Actions while leaving Angular major-version
+  migrations explicit.
+- Added deterministic visual-regression coverage for the production Earth view, the Sun, the Solar
+  System, the 12 August 2026 eclipse, the Milky Way, Sagittarius A*, and the cosmic web. The Earth
+  check now proves that its local 2048×1024 Blue Marble texture is loaded, opaque, depth-tested,
+  depth-writing, in the expected LOD, and materially contributes to the rendered framebuffer.
+  Typed target-surface diagnostics are also exposed in `?debug=true`, while the dedicated visual
+  matrix runs on Chromium, Firefox, and WebKit to catch engine-specific WebGL regressions.
+- Split solar-eclipse cartography into two scientifically distinct layers. The default globe now
+  shows the shadow at the selected instant, while the optional event map adds a body-fixed blue
+  envelope for every sampled partial-eclipse footprint and a bounded coral or amber corridor for
+  totality or annularity, including its northern limit, southern limit, and central line. The 12
+  August 2026 maximum and the 18:00 UTC center, limits, and width are checked against NASA GSFC
+  Besselian elements and path tables. The cumulative envelope is rasterized once when requested, so
+  it remains continuous without adding per-sample Three.js objects or recurring frame work.
+- Replaced the remaining generic axial spinners with date-dependent IAU body-fixed orientations.
+  The Sun, eight planets, Moon, Galilean moons, Titan, Pluto, Ceres, and Vesta now resolve through
+  explicitly sourced rotation definitions; the additional satellite and minor-body coefficients
+  are transcribed from JPL NAIF `pck00011.tpc` and covered by independent reference fixtures. Earth
+  still receives a readability cap at extreme playback speeds, but now snaps to the exact selected
+  orientation as soon as playback pauses. East-positive Earth, Moon, Mars, and Venus maps are also
+  aligned with the renderer's body-fixed longitude direction, while Jupiter's dated cloud map is
+  explicitly identified as an illustrative source-epoch alignment.
+- Disabled native page magnification on iOS and iPadOS while preserving the canvas-owned pinch
+  gesture used to navigate the 3D Universe. Other browsers retain their native viewport behavior.
+- Rebuilt the mobile shell around measured 320 px, 360 px, short-screen, and landscape layouts.
+  Timeline controls now use fluid grids without clipping, essential touch targets are at least 44
+  px, detail and catalogue panels scroll inside the free scene area, and compact landscape keeps a
+  single-row timeline while hiding controls obscured by an open object card. Safe-area insets and
+  visual-viewport resizing protect notches, home indicators, and the on-screen keyboard. Automated
+  browser coverage now verifies portrait, landscape, short screens, touch gestures, panel spacing,
+  and all eight interface languages.
+- Rebuilt both sides of the Milky Way transition. Planetary, Solar System, and stellar views now
+  share one lazily loaded 8192×1024 WebP interior sky band derived from ESO/S. Brunier's observed
+  6000×3000 full-sky panorama. Its central 60-degree source crop is presented across 32 degrees of
+  latitude and pitched into a stable diagonal cinematic composition, while direct direction lookup,
+  mipmap-free upload, and one existing sphere draw keep the Galaxy sharp and inexpensive. The
+  source credit, crop, display grade, orientation, and illustrative confidence remain available as
+  renderer metadata. Solar System paths and primary labels now reuse one stable body-specific map
+  palette, making the orbital hierarchy readable without adding geometry or draw calls. The layer
+  fades continuously into the external galaxy both while zooming out and while the observer leaves
+  the heliocentric neighborhood, preventing the local panorama from following a remote target. The
+  outside view now
+  uses an asymmetric two-major/two-minor
+  barred-spiral atlas with domain warping and discontinuous dust rifts; its procedural point model
+  is retained only as a load-failure fallback so it cannot duplicate the atlas as concentric rings.
+- HYG stars and NASA exoplanet hosts now fade before a camera leaving the heliocentric catalogue
+  volume can reveal its artificial selection boundary as a dense spherical clump. Selected objects
+  remain navigable through their reusable marker while the photographic sky supplies continuous
+  context. Bulk exoplanet-host rings are suppressed at planetary scale and return progressively in
+  the stellar neighborhood, preventing thousands of catalogue symbols from forming a false sphere.
+- Restored native pointer interaction for all three exoplanet catalogue filters by removing the
+  panel-wide pointer cancellation. Every timeline control now shares the same visual vertical
+  center, while its compact label floats above without shifting the interactive field. The desktop
+  frame reserves six additional pixels of balanced vertical breathing room around both layers.
+- Added a compact astronomical breadcrumb and a camera-derived scale bar to keep the current parent
+  hierarchy and adapted map distance visible while zooming. Every ancestor remains directly
+  navigable without opening search.
+- Reworked the eclipse browser as a bounded, independently scrollable catalogue with eight-event
+  pages, explicit earlier/later navigation, and a one-click return to the simulated date.
+- Planet cards now distinguish close axial-rotation framing from full-orbit framing. Stellar
+  photospheres now write the same logarithmic depth representation as the multi-scale renderer;
+  selection markers and selected labels also respect depth occlusion, so bodies, paths, guides, and
+  names behind the Sun no longer render through its visible disk. Stellar emissive intensity is now
+  applied directly to the photosphere, preserving the Sun's radiance without drawing its glow over
+  foreground objects.
+- Raised Solar System map hierarchy without changing scientific spacing. Planet, dwarf-planet, and
+  major-moon labels now enter the collision pass before stellar names, use a stronger interactive
+  cartouche, and search nearby safe slots instead of disappearing when two bodies overlap on
+  screen. A shared warm accent now identifies Solar System labels and orbital paths independently
+  from the stellar catalogue, while the selected path remains stronger. The persistent Sun landmark
+  respects the open detail panel's safe area instead of being rendered underneath it.
+- Pointer-anchored target tracking now follows only the target's actual displacement and rebases that
+  tracking state with the floating origin, preventing static galaxies from snapping to screen center
+  after zoom.
+- Replaced the Local Group's screen-filling galaxy sprites with a continuous two-stage visual LOD.
+  Compact shared impostors now hand off to an inclined procedural disk with explicit core, arms,
+  dust attenuation, irregular structure, and a quality-bounded 360/900/2,200-point stellar volume.
+  The disk fades when the camera enters its adapted radius instead of becoming a flat full-screen
+  wash. All particles remain inside one `THREE.Points` object per resolved galaxy, while the
+  720-object Local Volume overview retains one draw call with smaller, sharper, normal-blended
+  silhouettes. Positions remain catalogue-backed; internal morphology, orientation, particle
+  placement, and visual dimensions remain explicitly illustrative.
+- Upgraded the existing one-draw-call HYG star shader with a Moffat-like point-spread profile,
+  temperature-colored halo, near-white core, restrained Airy ring, magnitude-gated diffraction,
+  and a procedural photosphere for every catalogue entry. Surface detail appears progressively as a
+  star grows on screen, so the 10,000-star layer retains one GPU draw call and no per-star scene
+  objects. Spectral and luminosity classes, with B−V as a documented fallback, select one of eight
+  bounded visual families: blue-white, white dwarf, yellow dwarf, orange dwarf, red dwarf, red
+  giant, red supergiant, and brown dwarf. The selected-star impostor and close-focus 3D sphere share
+  stable seeded granulation, dark cells, faculae, restrained illustrative tint, and a turbulent
+  corona. Low quality reduces surface detail and disables Airy and diffraction terms; medium and
+  high progressively restore them.
+- Reworked Solar System and stellar-neighborhood atmosphere without adding per-star scene objects.
+  One quality-bounded GPU point batch now combines an isotropic unresolved sky with a denser,
+  temperature-colored galactic-plane population, while the full constellation network recedes
+  behind its interactive highlight. Every observed HYG point now receives a magnitude-aware
+  emissive footprint with a chromatic halo, near-white core, and restrained bright-star diffraction
+  inside the existing single draw call. The one reusable constellation highlight now distinguishes
+  hover from selection and gives the selected figure a near-opaque cyan-white additive core. Three
+  explicitly illustrative local layers add integrated Milky Way light and dust, ecliptic zodiacal
+  scattering, and a distance-aware procedural solar corona. Every layer uses damped distance fades,
+  disappears before galactic scale, and the local environment is capped at three additional draw
+  calls.
+- Reworked the Nearby Universe as a catalogue-backed deep field instead of a sparse point cloud.
+  The 720 observed Local Volume galaxies now use varied GPU impostors with elliptical and spiral
+  profiles, inclination, dust attenuation, warm/cool stellar populations, and bounded luminous
+  cores. A quality-capped sample of calculated Cosmicflows-4 groups supplies subdued unresolved
+  background light during the transition. Positions remain catalogue-derived while shapes,
+  orientations, and luminosities are explicitly labelled illustrative; both layers remain one draw
+  call each and discard pixels outside their silhouettes. The observed layer now starts fading in
+  before the Milky Way overview and reaches full opacity at the Local Group boundary. A dedicated
+  lightweight backdrop adds a quality-bounded sample of the same calculated Cosmicflows-4 positions
+  as unresolved light. It preserves catalogue directions while compressing radial depth into a
+  documented LOD shell, removing the previously sparse interval without decorative directions or
+  interactive targets. Quality budgets now expose approximately 3,800/9,100/16,600 groups with a
+  brighter bounded halo, while the scale-aware foundation uses a near-black palette so catalogue
+  stars and galaxies provide the scene's color and light.
+- Made the published Tempel network readable at overview scale with a broader deterministic sample,
+  exact one-pixel scientific axes, and a separately tagged screen-space halo. The halo uses bounded
+  quality profiles, strengthens whole-spine hover and selection, and caps its own instance detail so
+  close cosmic-web views can still expose every source segment without widening all 260,178 lines.
+- Made the published Tempel spine network discoverable without search: its progressively sampled
+  lines are now enabled by default at the cosmic-web scale, remain directly hoverable and clickable,
+  and still defer the 4.53 MB binary request until that scale is reached. Replaced the BOSS voids'
+  hard blue rings with larger, softly filled underdensity volumes whose organic cool extents remain
+  an adaptive visual encoding. The 1,228 robust detections are enabled by default, receive an earlier
+  progressive reveal, and keep cosmic-structure focus inside the correct semantic scale. Browser
+  coverage now selects a visible filament segment directly and checks active void records by
+  scientific type.
 - Restored luminous large-scale landmarks without bringing back a decorative star wallpaper. The
   single Cosmicflows-4 point batch now reveals a broader quality-bounded sample, uses larger
   white-core halos, and maps relative catalogue depth from warm nearby groups to cool violet remote
@@ -16,8 +149,9 @@ All notable changes to Universe Map are documented in this file.
   groups and documented structures without spatial popping, labels use a smaller collision-aware
   budget, and normal alpha blending prevents the central survey footprint from becoming an
   overexposed blob. An interactive layer panel keeps calculated groups, illustrative links,
-  clusters, superclusters, filament centers, and voids distinguishable; the default synthesis hides
-  the two densest specialist overlays while every record remains searchable and directly focusable.
+  clusters, superclusters, filament centers, and voids distinguishable; the default synthesis keeps
+  exact filaments and the progressively sampled BOSS void overlay visible. Every record remains
+  searchable and directly focusable.
 - Reduced the full-screen cosmic-volume cost with 16/26/40-step quality budgets, shader-side empty
   space leaping, 1×/1.25×/1.5× renderer pixel-ratio caps, and an immediate fallback to 1× after a
   severely slow frame-rate sample. A Retina browser regression test now bounds the combined
@@ -25,6 +159,45 @@ All notable changes to Universe Map are documented in this file.
 
 ### Added
 
+- Added a localized creator profile to the in-app help and an About page in all eight guide
+  languages. The presentation credits Nayruuu, links to the independent developer portfolio at
+  `super-dev.app`, and offers an optional Buy Me a Coffee link without loading third-party widgets
+  or tracking scripts. WebSite and WebApplication structured data now reference a dedicated Person
+  entity connected to the portfolio, GitHub profile, and support page.
+- Replaced the Angular placeholder favicon with a dedicated dark orbital Universe Map mark. SVG,
+  48 px ICO, 180 px Apple touch, and 192/512 px install variants now cover browser tabs, bookmarks,
+  home screens, and maskable PWA launchers across every localized manifest and the guide.
+- Added a curated static layer for SN 1006, the Crab Nebula, Tycho's Supernova, Kepler's Supernova,
+  Cassiopeia A, and SN 1987A. All six remain locally searchable and focusable, preserve documented
+  J2000 coordinates, distance, type, host context, date, and source links where available, and use
+  distinct label colors for explosions and remnants. Dated cards can jump directly to the historic
+  event. One temporal model drives a quality-aware flash and a three-layer remnant through
+  pre-event, rise, peak, fade, and remnant phases. The displaced outer envelope, braided cyan/green/
+  warm filaments, and sparse emission knots replace the former regular dotted sphere; low quality
+  omits the knot layer. Positions and historic epochs retain their catalogue confidence; light
+  curves, composite colors, morphology, shell expansion, and apparent scale are explicitly
+  illustrative and covered by the 100% scientific-calculation coverage gate.
+- Added the complete 2026-08-05 NASA Exoplanet Archive `PSCompPars` snapshot: 6,333 confirmed
+  planets around 4,747 host systems in a validated 1.05 MiB `UMEX` v1 binary. Every object is
+  searchable locally, while a discovery panel filters distance, radius class, detection method,
+  and an indicative temperate subset. One quality-bounded GPU point batch renders host systems and
+  one reusable marker handles selection; only the focused host and its planets are materialized as
+  detailed Three.js objects. ICRS J2000 directions are rotated into the Galactic map, all missing
+  data remain explicit, and the 27 hosts without a NASA distance use a disclosed 1,000 pc
+  illustrative depth. Published orbital dimensions retain their source, a missing counterpart may
+  be calculated with Kepler's third law, and all phase, orientation, orbit scale, surface, and
+  lighting choices remain labelled illustrative. Import, metadata, parsing, validation, search,
+  filtering, rendering, lazy lifecycle, object cards, URL focus, and browser navigation are covered
+  by the project's 100% coverage gate and end-to-end regression suite.
+- Added the complete published Tempel et al. SDSS DR8 filament spines as a lazily loaded `UMFS` v1
+  binary: 15,421 indexed filaments, 275,599 source points, and 260,178 consecutive line segments.
+  The import preserves J2000 Cartesian positions plus visit-map, weighted-density, and orientation
+  metrics, converts Mpc/h with the documented `h = 0.7`, and performs no curve smoothing. Four
+  non-empty spatial GPU tiles share one shader material, use quality- and distance-aware progressive
+  disclosure, support direct picking, and reuse whole-spine hover and selection lines. The deferred
+  request remains non-blocking so it cannot place the startup overlay over an ongoing wheel gesture.
+  Static data, runtime parsing, rendering, lazy lifecycle, error handling, and browser navigation
+  are covered by regression tests and new debug counters.
 - Added an optional Illustris-inspired cosmic-density envelope generated offline from the 37,730
   Cosmicflows-4 groups, a spatial sample of 10,987 of their 49,939 derived proximity links, and a
   deterministic 6³ cellular continuity field. Radial selection compensation prevents the nearby

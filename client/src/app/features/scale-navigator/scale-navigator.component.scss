@@ -4,12 +4,65 @@
   top: 68px;
   left: 50%;
   display: block;
-  pointer-events: auto;
+  pointer-events: none;
   transform: translateX(-50%);
 }
 
 .scale-switcher {
   position: relative;
+}
+
+.scale-navigation {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+}
+
+.astronomical-breadcrumb {
+  display: flex;
+  max-width: min(680px, calc(100vw - 360px));
+  align-items: center;
+  overflow-x: auto;
+  border-radius: 8px;
+  color: rgb(174 203 229 / 38%);
+  background: rgb(3 8 17 / 30%);
+  scrollbar-width: none;
+  backdrop-filter: blur(10px);
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  button {
+    pointer-events: auto;
+    flex: 0 0 auto;
+    padding: 4px 6px;
+    border: 0;
+    border-radius: 6px;
+    color: rgb(181 207 229 / 48%);
+    background: transparent;
+    font: inherit;
+    font-size: 0.54rem;
+    cursor: pointer;
+
+    &:hover:not(:disabled),
+    &:focus-visible {
+      outline: none;
+      color: #dff2ff;
+      background: rgb(87 158 207 / 10%);
+    }
+
+    &.current {
+      color: rgb(216 235 249 / 76%);
+      cursor: default;
+    }
+  }
+}
+
+.astronomical-breadcrumb__separator {
+  flex: 0 0 auto;
+  color: rgb(133 181 216 / 30%);
+  font-size: 0.64rem;
 }
 
 .scale-indicator {
@@ -28,6 +81,7 @@
   font-weight: 650;
   letter-spacing: 0.12em;
   cursor: pointer;
+  pointer-events: auto;
   text-transform: uppercase;
   backdrop-filter: blur(12px);
   transition:
@@ -92,6 +146,7 @@
     font: inherit;
     text-align: left;
     cursor: pointer;
+    pointer-events: auto;
 
     &:not(:last-child)::after {
       position: absolute;
@@ -157,10 +212,18 @@
 
 @media (width <= 720px) {
   :host {
-    top: 108px;
+    top: calc(114px + var(--mobile-top-safe, 0px));
+  }
+
+  .scale-indicator {
+    min-height: 40px;
   }
 
   .scale-menu {
     width: min(238px, calc(100vw - 24px));
+  }
+
+  .astronomical-breadcrumb {
+    max-width: calc(100vw - 24px);
   }
 }

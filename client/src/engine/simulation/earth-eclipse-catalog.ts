@@ -9,6 +9,31 @@ import { UniverseTime } from '../../data/models/universe.models';
 import { EarthEclipseEvent, EarthEclipseFamily, mapAstronomyEclipseKind } from './earth-eclipse';
 import { JULIAN_DAY_J2000 } from './time-utils';
 
+export type EarthEclipsePageDirection = 'past' | 'future';
+
+export function findEarthEclipsePage(
+  startTime: UniverseTime,
+  count: number,
+  direction: EarthEclipsePageDirection,
+): EarthEclipseEvent[] {
+  if (count <= 0) {
+    return [];
+  }
+  if (direction === 'future') {
+    return findUpcomingEarthEclipses(startTime, count);
+  }
+
+  // Every calendar year contains at least four solar/lunar eclipses. Searching one year per
+  // requested event leaves a wide deterministic margin while keeping the browser calculation small.
+  const searchStart = {
+    julianDay: startTime.julianDay - Math.max(366, count * 366),
+  };
+
+  return findUpcomingEarthEclipses(searchStart, count * 5)
+    .filter((event) => event.peak.julianDay < startTime.julianDay)
+    .slice(-count);
+}
+
 export function findUpcomingEarthEclipses(
   startTime: UniverseTime,
   count: number,

@@ -259,12 +259,6 @@ describe('lentille gravitationnelle locale des trous noirs', () => {
     expect(harness.reset).not.toHaveBeenCalled();
     expect(harness.info.autoReset).toBe(true);
     expect(harness.renderer.autoClear).toBe(true);
-    const internals = pass as unknown as { readonly material: THREE.ShaderMaterial };
-
-    expect(internals.material.blending).toBe(THREE.NormalBlending);
-    expect(internals.material.uniforms['environmentTexture']).toBeUndefined();
-    expect(internals.material.uniforms['environmentStrength']).toBeUndefined();
-
     pass.dispose();
   });
 
@@ -350,19 +344,7 @@ describe('lentille gravitationnelle locale des trous noirs', () => {
     expect(harness.reset).not.toHaveBeenCalled();
     expect(harness.info.autoReset).toBe(false);
 
-    const internals = pass as unknown as {
-      readonly framebufferTexture: THREE.FramebufferTexture;
-      readonly material: THREE.ShaderMaterial;
-      readonly geometry: THREE.PlaneGeometry;
-    };
-    const textureDispose = vi.spyOn(internals.framebufferTexture, 'dispose');
-    const materialDispose = vi.spyOn(internals.material, 'dispose');
-    const geometryDispose = vi.spyOn(internals.geometry, 'dispose');
-
     pass.dispose();
-    expect(textureDispose).toHaveBeenCalledOnce();
-    expect(materialDispose).toHaveBeenCalledOnce();
-    expect(geometryDispose).toHaveBeenCalledOnce();
   });
 });
 

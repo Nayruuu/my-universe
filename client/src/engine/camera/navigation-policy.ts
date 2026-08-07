@@ -24,7 +24,11 @@ export function getMinimumNavigationDistance(object: SpaceObject): number {
       return Math.max(radius * 1.15, 0.55);
     case 'black-hole':
       return Math.max(radius * 1.35, 0.55);
+    case 'supernova':
+    case 'supernova-remnant':
+      return Math.max(radius * 1.2, 0.55);
     case 'planet':
+    case 'exoplanet':
     case 'dwarf-planet':
     case 'moon':
       return Math.max(radius * 1.12, 0.18);
@@ -47,6 +51,14 @@ export function getFocusDistance(object: SpaceObject): number {
   switch (object.type) {
     case 'galaxy-cluster':
       return 220_000;
+    case 'supercluster':
+    case 'cosmic-wall':
+    case 'cosmic-filament':
+    case 'cosmic-void':
+    case 'cosmic-basin':
+    case 'cosmic-attractor':
+    case 'cosmic-repeller':
+      return Math.min(MAX_NAVIGATION_DISTANCE, Math.max(object.visual.visualRadius * 2.2, 280_000));
     case 'galaxy':
       return Math.max(object.visual.visualRadius * 1.55, 2_800);
     case 'star':
@@ -55,7 +67,11 @@ export function getFocusDistance(object: SpaceObject): number {
         : Math.max(object.visual.visualRadius * 10, 16);
     case 'black-hole':
       return Math.max(object.visual.visualRadius * 12, 22);
+    case 'supernova':
+    case 'supernova-remnant':
+      return Math.max(object.visual.visualRadius * 8, 14);
     case 'planet':
+    case 'exoplanet':
     case 'dwarf-planet':
       return Math.max(object.visual.visualRadius * 8, 4.5);
     case 'moon':

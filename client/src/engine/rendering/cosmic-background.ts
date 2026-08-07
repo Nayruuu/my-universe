@@ -19,13 +19,13 @@ interface CosmicBackgroundStop extends CosmicBackgroundSample {
 }
 
 const BACKGROUND_STOPS: readonly CosmicBackgroundStop[] = [
-  createStop(0, 0x01030a, 0x020817, 0x0b2440, 0x142846, 0x020713, 0.025, 0.008, 0.015, 0.18),
-  createStop(1, 0x02050e, 0x06101d, 0x102a45, 0x18375d, 0x030916, 0.042, 0.014, 0.02, 0.2),
-  createStop(2, 0x030714, 0x081323, 0x153354, 0x244c78, 0x040b1a, 0.07, 0.026, 0.03, 0.22),
-  createStop(3, 0x050817, 0x0a1023, 0x24264c, 0x4a376d, 0x060b1a, 0.105, 0.05, 0.055, 0.25),
-  createStop(4, 0x060715, 0x0b0d1d, 0x261d48, 0x58325f, 0x070914, 0.075, 0.06, 0.07, 0.27),
-  createStop(5, 0x050713, 0x0c0b1b, 0x221942, 0x3d2b64, 0x060713, 0.06, 0.05, 0.06, 0.29),
-  createStop(6, 0x070519, 0x10081d, 0x32195b, 0x18506f, 0x060510, 0.08, 0.07, 0.05, 0.29),
+  createStop(0, 0x000107, 0x01030a, 0x0b2440, 0x142846, 0x01030a, 0.018, 0.006, 0.012, 0.22),
+  createStop(1, 0x010208, 0x02050c, 0x102a45, 0x18375d, 0x01030a, 0.026, 0.009, 0.016, 0.24),
+  createStop(2, 0x010209, 0x02060e, 0x153354, 0x244c78, 0x01030b, 0.038, 0.014, 0.022, 0.27),
+  createStop(3, 0x010107, 0x020208, 0x18213d, 0x372448, 0x010107, 0.05, 0.024, 0.032, 0.32),
+  createStop(4, 0x010106, 0x020107, 0x1b1536, 0x44204d, 0x010106, 0.042, 0.03, 0.04, 0.34),
+  createStop(5, 0x010106, 0x020107, 0x17112f, 0x301b48, 0x010106, 0.038, 0.028, 0.038, 0.35),
+  createStop(6, 0x010106, 0x020107, 0x24113e, 0x10405c, 0x010106, 0.05, 0.04, 0.035, 0.35),
 ];
 
 const QUALITY_DETAIL_STRENGTH: Readonly<Record<GraphicQuality, number>> = {

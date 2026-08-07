@@ -1,34 +1,58 @@
-<div class="scale-switcher" (keydown.escape)="menuOpen.set(false)">
-  <button
-    type="button"
-    class="scale-indicator"
-    aria-haspopup="true"
-    aria-label="Changer d’échelle"
-    [attr.aria-expanded]="menuOpen()"
-    (click)="toggleMenu()"
-  >
-    <span class="scale-indicator__dot" aria-hidden="true"></span>
-    <span aria-live="polite">{{ scaleLabel() }}</span>
-    <span class="scale-indicator__chevron" aria-hidden="true"></span>
-  </button>
-
-  @if (menuOpen()) {
-    <nav class="scale-menu" aria-label="Échelles de navigation">
-      @for (scale of navigationScales; track scale.id) {
+@let t = i18n.content();
+<div class="scale-navigation" (keydown.escape)="menuOpen.set(false)">
+  @if (breadcrumbItems().length > 1) {
+    <nav class="astronomical-breadcrumb" [attr.aria-label]="t.scale.hierarchyAria">
+      @for (item of breadcrumbItems(); track item.id; let last = $last) {
+        @if (!$first) {
+          <span class="astronomical-breadcrumb__separator" aria-hidden="true">›</span>
+        }
         <button
           type="button"
-          [class.active]="facade.lodLevel() === scale.lodLevel"
-          [attr.aria-current]="facade.lodLevel() === scale.lodLevel ? 'true' : null"
-          [attr.aria-label]="'Afficher l’échelle ' + scale.label"
-          (click)="viewScale(scale)"
+          [class.current]="last"
+          [disabled]="last"
+          [attr.aria-current]="last ? 'location' : null"
+          [attr.aria-label]="i18n.interpolate(t.scale.navigateTo, { name: item.name })"
+          (click)="navigateToObject(item.id)"
         >
-          <span class="scale-menu__marker" aria-hidden="true"></span>
-          <span>
-            <strong>{{ scale.label }}</strong>
-            <small>{{ scale.description }}</small>
-          </span>
+          {{ item.name }}
         </button>
       }
     </nav>
   }
+
+  <div class="scale-switcher" (keydown.escape)="menuOpen.set(false)">
+    <button
+      type="button"
+      class="scale-indicator"
+      aria-haspopup="true"
+      [attr.aria-label]="t.scale.changeAria"
+      [attr.aria-expanded]="menuOpen()"
+      (click)="toggleMenu()"
+    >
+      <span class="scale-indicator__dot" aria-hidden="true"></span>
+      <span aria-live="polite">{{ scaleLabel() }}</span>
+      <span class="scale-indicator__chevron" aria-hidden="true"></span>
+    </button>
+
+    @if (menuOpen()) {
+      <nav class="scale-menu" [attr.aria-label]="t.scale.menuAria">
+        @for (scale of navigationScales; track scale.id) {
+          @let localizedScale = t.navigationScales[scale.id];
+          <button
+            type="button"
+            [class.active]="facade.lodLevel() === scale.lodLevel"
+            [attr.aria-current]="facade.lodLevel() === scale.lodLevel ? 'true' : null"
+            [attr.aria-label]="i18n.interpolate(t.scale.showScale, { name: localizedScale.label })"
+            (click)="viewScale(scale)"
+          >
+            <span class="scale-menu__marker" aria-hidden="true"></span>
+            <span>
+              <strong>{{ localizedScale.label }}</strong>
+              <small>{{ localizedScale.description }}</small>
+            </span>
+          </button>
+        }
+      </nav>
+    }
+  </div>
 </div>

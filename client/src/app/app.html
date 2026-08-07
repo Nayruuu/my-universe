@@ -1,8 +1,14 @@
-<main class="app-shell">
+@let t = i18n.content();
+<main
+  class="app-shell"
+  [class.app-shell--details]="facade.selectedId()"
+  [class.app-shell--eclipse]="facade.timelineSolarEclipse()"
+>
+  <h1 class="visually-hidden">{{ t.seo.heading }}</h1>
   <app-universe-view />
 
   <header class="topbar">
-    <button type="button" class="brand" title="Centrer sur le Soleil" (click)="focus('sun')">
+    <button type="button" class="brand" [title]="t.shell.focusSun" (click)="focus('sun')">
       <span class="brand__mark" aria-hidden="true">
         <i></i>
       </span>
@@ -13,11 +19,25 @@
     <app-universe-search />
 
     <div class="topbar__actions">
+      <label class="language-selector">
+        <span class="visually-hidden">{{ t.language.selector }}</span>
+        <select
+          [attr.aria-label]="t.language.selector"
+          [value]="i18n.lang()"
+          (change)="changeLanguage($event)"
+        >
+          @for (language of languages; track language) {
+            <option [value]="language" [selected]="language === i18n.lang()">
+              {{ language.toUpperCase() }}
+            </option>
+          }
+        </select>
+      </label>
       <button
         type="button"
-        class="icon-button"
-        title="Revenir à la Terre"
-        aria-label="Revenir à la Terre"
+        class="icon-button home-action"
+        [title]="t.shell.homeEarth"
+        [attr.aria-label]="t.shell.homeEarth"
         (click)="focus('earth')"
       >
         <span class="home-icon" aria-hidden="true"></span>
@@ -26,8 +46,8 @@
         type="button"
         class="icon-button"
         [class.active]="facade.settingsOpen()"
-        title="Paramètres"
-        aria-label="Ouvrir les paramètres"
+        [title]="t.shell.settings"
+        [attr.aria-label]="t.shell.openSettings"
         (click)="facade.toggleSettings()"
       >
         <span class="settings-icon" aria-hidden="true">☼</span>
@@ -36,8 +56,8 @@
         type="button"
         class="icon-button help-button"
         [class.active]="facade.helpOpen()"
-        title="Aide"
-        aria-label="Ouvrir l’aide"
+        [title]="t.shell.help"
+        [attr.aria-label]="t.shell.openHelp"
         (click)="facade.toggleHelp()"
       >
         ?
@@ -47,6 +67,7 @@
 
   @defer (when facade.ready()) {
     <app-scale-navigator />
+    <app-map-scale />
   }
 
   @defer (when facade.selectedId()) {
@@ -66,7 +87,7 @@
     <div class="loading-screen" aria-live="polite">
       <div class="loading-orbit" aria-hidden="true"><span></span></div>
       <strong>Universe Map</strong>
-      <p>Initialisation de la carte céleste…</p>
+      <p>{{ t.shell.loading }}</p>
     </div>
   }
 
@@ -74,7 +95,7 @@
     <div class="error-card" role="alert">
       <span aria-hidden="true">!</span>
       <div>
-        <strong>La carte n’a pas pu démarrer</strong>
+        <strong>{{ t.shell.startupError }}</strong>
         <p>{{ error }}</p>
       </div>
     </div>
@@ -84,7 +105,7 @@
     <button
       type="button"
       class="notice notice--warning"
-      title="Fermer"
+      [title]="t.shell.dismiss"
       (click)="facade.performanceWarning.set(null)"
     >
       <span aria-hidden="true">◇</span>
@@ -103,29 +124,29 @@
     <button
       type="button"
       class="navigation-hint"
-      aria-label="Masquer l’aide à la navigation"
+      [attr.aria-label]="t.shell.hideNavigationHelp"
       (click)="navigationHintVisible.set(false)"
     >
       <span class="mouse-glyph" aria-hidden="true"><i></i></span>
       <span
-        ><strong>Noms interactifs</strong>Survolez un nom, puis cliquez pour le centrer · Molette
-        pour zoomer</span
+        ><strong>{{ t.shell.interactiveNames }}</strong
+        >{{ t.shell.navigationHint }}</span
       >
       <span class="hint-close" aria-hidden="true">×</span>
     </button>
   }
 
   @if (facade.ready() && facade.lodLevel() === 6) {
-    <div class="cosmic-map-key" role="note" aria-label="Légende du réseau cosmique">
+    <div class="cosmic-map-key" role="note" [attr.aria-label]="t.shell.cosmicMapAria">
       <header>
-        <strong>Carte du réseau cosmique</strong>
+        <strong>{{ t.shell.cosmicMapTitle }}</strong>
         <button
           type="button"
           class="cosmic-map-key__reset"
-          aria-label="Réinitialiser les couches cosmiques"
+          [attr.aria-label]="t.shell.cosmicResetAria"
           (click)="facade.resetCosmicMapLayers()"
         >
-          Synthèse
+          {{ t.shell.cosmicReset }}
         </button>
       </header>
       <button
@@ -134,14 +155,12 @@
         [class.active]="facade.cosmicMapLayers().volume"
         [attr.aria-pressed]="facade.cosmicMapLayers().volume"
         [attr.aria-label]="
-          facade.cosmicMapLayers().volume
-            ? 'Masquer la matière cosmique simulée'
-            : 'Afficher la matière cosmique simulée'
+          facade.cosmicMapLayers().volume ? t.shell.cosmicVolumeHide : t.shell.cosmicVolumeShow
         "
         (click)="facade.toggleCosmicMapLayer('volume')"
       >
         <i class="cosmic-map-key__volume" aria-hidden="true"></i>
-        <span>Matière cosmique simulée</span>
+        <span>{{ t.shell.cosmicVolume }}</span>
       </button>
       <button
         type="button"
@@ -149,14 +168,12 @@
         [class.active]="facade.cosmicMapLayers().groups"
         [attr.aria-pressed]="facade.cosmicMapLayers().groups"
         [attr.aria-label]="
-          facade.cosmicMapLayers().groups
-            ? 'Masquer les groupes Cosmicflows-4'
-            : 'Afficher les groupes Cosmicflows-4'
+          facade.cosmicMapLayers().groups ? t.shell.cosmicGroupsHide : t.shell.cosmicGroupsShow
         "
         (click)="facade.toggleCosmicMapLayer('groups')"
       >
         <i class="cosmic-map-key__point" aria-hidden="true"></i>
-        <span>Groupes Cosmicflows-4</span>
+        <span>{{ t.shell.cosmicGroups }}</span>
       </button>
       <button
         type="button"
@@ -164,14 +181,12 @@
         [class.active]="facade.cosmicMapLayers().links"
         [attr.aria-pressed]="facade.cosmicMapLayers().links"
         [attr.aria-label]="
-          facade.cosmicMapLayers().links
-            ? 'Masquer les liens de proximité illustratifs'
-            : 'Afficher les liens de proximité illustratifs'
+          facade.cosmicMapLayers().links ? t.shell.cosmicLinksHide : t.shell.cosmicLinksShow
         "
         (click)="facade.toggleCosmicMapLayer('links')"
       >
         <i class="cosmic-map-key__link" aria-hidden="true"></i>
-        <span>Liens de proximité illustratifs</span>
+        <span>{{ t.shell.cosmicLinks }}</span>
       </button>
       <button
         type="button"
@@ -180,13 +195,13 @@
         [attr.aria-pressed]="facade.cosmicMapLayers().superclusters"
         [attr.aria-label]="
           facade.cosmicMapLayers().superclusters
-            ? 'Masquer les superamas SDSS'
-            : 'Afficher les superamas SDSS'
+            ? t.shell.cosmicSuperclustersHide
+            : t.shell.cosmicSuperclustersShow
         "
         (click)="facade.toggleCosmicMapLayer('superclusters')"
       >
         <i class="cosmic-map-key__supercluster" aria-hidden="true"></i>
-        <span>8 757 superamas SDSS</span>
+        <span>{{ t.shell.cosmicSuperclusters }}</span>
       </button>
       <button
         type="button"
@@ -194,12 +209,14 @@
         [class.active]="facade.cosmicMapLayers().clusters"
         [attr.aria-pressed]="facade.cosmicMapLayers().clusters"
         [attr.aria-label]="
-          facade.cosmicMapLayers().clusters ? 'Masquer les amas Planck' : 'Afficher les amas Planck'
+          facade.cosmicMapLayers().clusters
+            ? t.shell.cosmicClustersHide
+            : t.shell.cosmicClustersShow
         "
         (click)="facade.toggleCosmicMapLayer('clusters')"
       >
         <i class="cosmic-map-key__cluster" aria-hidden="true"></i>
-        <span>1 094 amas Planck</span>
+        <span>{{ t.shell.cosmicClusters }}</span>
       </button>
       <button
         type="button"
@@ -207,12 +224,12 @@
         [class.active]="facade.cosmicMapLayers().voids"
         [attr.aria-pressed]="facade.cosmicMapLayers().voids"
         [attr.aria-label]="
-          facade.cosmicMapLayers().voids ? 'Masquer les vides BOSS' : 'Afficher les vides BOSS'
+          facade.cosmicMapLayers().voids ? t.shell.cosmicVoidsHide : t.shell.cosmicVoidsShow
         "
         (click)="facade.toggleCosmicMapLayer('voids')"
       >
         <i class="cosmic-map-key__void" aria-hidden="true"></i>
-        <span>1 228 vides BOSS</span>
+        <span>{{ t.shell.cosmicVoids }}</span>
       </button>
       <button
         type="button"
@@ -221,26 +238,35 @@
         [attr.aria-pressed]="facade.cosmicMapLayers().filaments"
         [attr.aria-label]="
           facade.cosmicMapLayers().filaments
-            ? 'Masquer les centres de filaments SDSS'
-            : 'Afficher les centres de filaments SDSS'
+            ? t.shell.cosmicFilamentsHide
+            : t.shell.cosmicFilamentsShow
         "
         (click)="facade.toggleCosmicMapLayer('filaments')"
       >
         <i class="cosmic-map-key__filament" aria-hidden="true"></i>
-        <span>15 421 filaments SDSS · centres</span>
+        <span>{{ t.shell.cosmicFilaments }}</span>
       </button>
-      <small>26 500 détections · 7 catalogues · les détections peuvent se recouvrir</small>
-      <small>Couleur des groupes · chaud = proche · violet = lointain</small>
-      <small>Affichage progressif · zoomez pour révéler les détections individuelles</small>
-      <small>Enveloppe simulée depuis Cosmicflows-4 · continuité illustrative</small>
-      <small class="cosmic-map-key__warning">Zone non relevée ≠ vide cosmique</small>
+      <small>{{ t.shell.cosmicDetectionNote }}</small>
+      <small>{{ t.shell.cosmicColorNote }}</small>
+      <small>{{ t.shell.cosmicProgressiveNote }}</small>
+      <small>{{ t.shell.cosmicClickNote }}</small>
+      <small>{{ t.shell.cosmicSpineNote }}</small>
+      <small>{{ t.shell.cosmicVoidNote }}</small>
+      <small>{{ t.shell.cosmicEnvelopeNote }}</small>
+      <small class="cosmic-map-key__warning">{{ t.shell.cosmicWarning }}</small>
     </div>
   }
 
   @if (!facade.ready() || facade.lodLevel() !== 6) {
     <div class="science-caption">
       <span class="science-caption__dot"></span>
-      Distances et tailles visuelles adaptées · données statiques locales
+      @if (facade.ready() && facade.lodLevel() === 5) {
+        {{ t.shell.scienceNearby }}
+      } @else if (facade.ready() && facade.lodLevel() === 4) {
+        {{ t.shell.scienceLocalGroup }}
+      } @else {
+        {{ t.shell.scienceDefault }}
+      }
     </div>
   }
 </main>

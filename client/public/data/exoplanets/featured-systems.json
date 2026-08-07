@@ -1,0 +1,659 @@
+{
+  "version": "1.0.0",
+  "objects": [
+    {
+      "id": "kepler-186",
+      "name": "Kepler-186",
+      "aliases": ["KIC 8120608"],
+      "type": "star",
+      "parentId": "milky-way",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "observed",
+      "description": "Naine rouge connue pour héberger Kepler-186 f, première exoplanète de taille terrestre validée dans la zone habitable de son étoile.",
+      "referenceEpoch": 2451545,
+      "physical": {
+        "radiusKm": 363851.1,
+        "massKg": 1.08172768e30,
+        "temperatureK": 3755,
+        "spectralType": "M1"
+      },
+      "visual": {
+        "color": "#ffae86",
+        "emissiveColor": "#ff7654",
+        "emissiveIntensity": 1.2,
+        "visualRadius": 1.15,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-34.987319548, 25.239779704, 172.274402712],
+        "unit": "parsec"
+      },
+      "metadata": {
+        "source": "NASA Exoplanet Archive · PSCompPars",
+        "sourceUrl": "https://exoplanetarchive.ipac.caltech.edu/overview/Kepler-186",
+        "sourceTable": "PSCompPars",
+        "catalogSnapshotDate": "2026-08-05",
+        "exoplanetHost": true,
+        "rightAscensionDegrees": 298.652736,
+        "declinationDegrees": 43.9549884,
+        "distancePc": 177.594,
+        "distanceLy": 579.234157413,
+        "sourceReferenceFrame": "ICRS J2000",
+        "renderReferenceFrame": "Galactique héliocentrique, pôle Nord galactique sur +Y",
+        "visualAdaptation": "Distance comprimée et taille stellaire exagérée"
+      }
+    },
+    {
+      "id": "kepler-22",
+      "name": "Kepler-22",
+      "aliases": ["KIC 10593626"],
+      "type": "star",
+      "parentId": "milky-way",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "observed",
+      "description": "Étoile de type solaire autour de laquelle Kepler a découvert sa première planète confirmée dans une zone habitable.",
+      "referenceEpoch": 2451545,
+      "physical": {
+        "radiusKm": 604563.3,
+        "massKg": 1.70411879e30,
+        "temperatureK": 5596,
+        "spectralType": "G5 V"
+      },
+      "visual": {
+        "color": "#ffe9bb",
+        "emissiveColor": "#ffc76f",
+        "emissiveIntensity": 1.25,
+        "visualRadius": 1.3,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-35.443894302, 52.972064147, 183.910845094],
+        "unit": "parsec"
+      },
+      "metadata": {
+        "source": "NASA Exoplanet Archive · PSCompPars",
+        "sourceUrl": "https://exoplanetarchive.ipac.caltech.edu/overview/Kepler-22",
+        "sourceTable": "PSCompPars",
+        "catalogSnapshotDate": "2026-08-05",
+        "exoplanetHost": true,
+        "rightAscensionDegrees": 289.2172051,
+        "declinationDegrees": 47.8841427,
+        "distancePc": 194.642,
+        "distanceLy": 634.837296683,
+        "sourceReferenceFrame": "ICRS J2000",
+        "renderReferenceFrame": "Galactique héliocentrique, pôle Nord galactique sur +Y",
+        "visualAdaptation": "Distance comprimée et taille stellaire exagérée"
+      }
+    },
+    {
+      "id": "kepler-452",
+      "name": "Kepler-452",
+      "aliases": ["KIC 8311864"],
+      "type": "star",
+      "parentId": "milky-way",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "observed",
+      "description": "Étoile de type G2 comparable au Soleil, hôte de la super-Terre Kepler-452 b.",
+      "referenceEpoch": 2451545,
+      "physical": {
+        "radiusKm": 772227,
+        "massKg": 2.06204339e30,
+        "temperatureK": 5757,
+        "spectralType": "G2"
+      },
+      "visual": {
+        "color": "#fff2cf",
+        "emissiveColor": "#ffc86b",
+        "emissiveIntensity": 1.3,
+        "visualRadius": 1.4,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-114.227452241, 95.689533348, 531.223385135],
+        "unit": "parsec"
+      },
+      "metadata": {
+        "source": "NASA Exoplanet Archive · PSCompPars",
+        "sourceUrl": "https://exoplanetarchive.ipac.caltech.edu/overview/Kepler-452",
+        "sourceTable": "PSCompPars",
+        "catalogSnapshotDate": "2026-08-05",
+        "exoplanetHost": true,
+        "rightAscensionDegrees": 296.003752,
+        "declinationDegrees": 44.2775861,
+        "distancePc": 551.727,
+        "distanceLy": 1799.492797993,
+        "sourceReferenceFrame": "ICRS J2000",
+        "renderReferenceFrame": "Galactique héliocentrique, pôle Nord galactique sur +Y",
+        "visualAdaptation": "Distance comprimée et taille stellaire exagérée"
+      }
+    },
+    {
+      "id": "trappist-1",
+      "name": "TRAPPIST-1",
+      "aliases": ["2MASS J23062928-0502285"],
+      "type": "star",
+      "parentId": "milky-way",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "observed",
+      "description": "Naine rouge ultrafroide proche du Soleil, entourée de sept planètes rocheuses de taille comparable à la Terre.",
+      "referenceEpoch": 2451545,
+      "physical": {
+        "radiusKm": 82927.44,
+        "massKg": 1.78564606e29,
+        "temperatureK": 2566,
+        "spectralType": "M8.0 V"
+      },
+      "visual": {
+        "color": "#ff765b",
+        "emissiveColor": "#ff4d32",
+        "emissiveIntensity": 1.35,
+        "visualRadius": 1.05,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "static",
+        "position": [-2.369105321, -10.38290375, 6.409741455],
+        "unit": "parsec"
+      },
+      "metadata": {
+        "source": "NASA Exoplanet Archive · PSCompPars",
+        "sourceUrl": "https://exoplanetarchive.ipac.caltech.edu/overview/TRAPPIST-1",
+        "sourceTable": "PSCompPars",
+        "catalogSnapshotDate": "2026-08-05",
+        "exoplanetHost": true,
+        "rightAscensionDegrees": 346.6263919,
+        "declinationDegrees": -5.0434618,
+        "distancePc": 12.42988881,
+        "distanceLy": 40.540875095,
+        "sourceReferenceFrame": "ICRS J2000",
+        "renderReferenceFrame": "Galactique héliocentrique, pôle Nord galactique sur +Y",
+        "visualAdaptation": "Distance comprimée et taille stellaire exagérée"
+      }
+    },
+    {
+      "id": "kepler-186-f",
+      "name": "Kepler-186 f",
+      "aliases": ["KOI-571.05"],
+      "type": "exoplanet",
+      "parentId": "kepler-186",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "observed",
+      "description": "Première exoplanète de taille terrestre validée dans la zone habitable d’une autre étoile. Sa masse reste estimée par une relation masse–rayon.",
+      "physical": {
+        "radiusKm": 7454.07,
+        "massKg": 1.0212462e25
+      },
+      "visual": {
+        "color": "#6fb6a2",
+        "secondaryColor": "#315d62",
+        "visualRadius": 0.52,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "illustrative-orbit",
+        "semiMajorAxis": 0.432,
+        "orbitalPeriodDays": 129.9441,
+        "epochJulianDay": 2451545,
+        "visualPhaseAtEpochDegrees": 173,
+        "visualInclinationDegrees": 4,
+        "unit": "astronomical-unit",
+        "distanceScale": 7600
+      },
+      "metadata": {
+        "source": "NASA Exoplanet Archive · PSCompPars",
+        "sourceUrl": "https://exoplanetarchive.ipac.caltech.edu/overview/Kepler-186",
+        "sourceTable": "PSCompPars",
+        "catalogSnapshotDate": "2026-08-05",
+        "confirmationStatus": "Confirmed Planet",
+        "detectionMethod": "Transit",
+        "discoveryFacility": "Kepler",
+        "discoveryYear": 2014,
+        "distanceLy": 579.234157413,
+        "semiMajorAxisAu": 0.432,
+        "orbitalPeriodDays": 129.9441,
+        "equilibriumTemperatureK": 177,
+        "orbitalInclinationDegrees": 89.96,
+        "eccentricity": 0.04,
+        "radiusEarth": 1.17,
+        "massEarth": 1.71,
+        "massProvenance": "M-R relationship",
+        "orbitRepresentationConfidence": "illustrative",
+        "visualSource": "Apparence procédurale illustrative ; aucune surface observée"
+      }
+    },
+    {
+      "id": "kepler-22-b",
+      "name": "Kepler-22 b",
+      "aliases": ["KOI-87.01"],
+      "type": "exoplanet",
+      "parentId": "kepler-22",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "observed",
+      "description": "Première planète confirmée par la mission Kepler dans la zone habitable d’une étoile de type solaire.",
+      "physical": {
+        "radiusKm": 13379.1,
+        "massKg": 5.434702e25
+      },
+      "visual": {
+        "color": "#62a7c5",
+        "secondaryColor": "#294d78",
+        "visualRadius": 0.68,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "illustrative-orbit",
+        "semiMajorAxis": 0.812,
+        "orbitalPeriodDays": 289.863876,
+        "epochJulianDay": 2451545,
+        "visualPhaseAtEpochDegrees": 291,
+        "visualInclinationDegrees": -3,
+        "unit": "astronomical-unit",
+        "distanceScale": 4800
+      },
+      "metadata": {
+        "source": "NASA Exoplanet Archive · PSCompPars",
+        "sourceUrl": "https://exoplanetarchive.ipac.caltech.edu/overview/Kepler-22",
+        "sourceTable": "PSCompPars",
+        "catalogSnapshotDate": "2026-08-05",
+        "confirmationStatus": "Confirmed Planet",
+        "detectionMethod": "Transit",
+        "discoveryFacility": "Kepler",
+        "discoveryYear": 2011,
+        "distanceLy": 634.837296683,
+        "semiMajorAxisAu": 0.812,
+        "orbitalPeriodDays": 289.863876,
+        "equilibriumTemperatureK": 279,
+        "orbitalInclinationDegrees": 89.764,
+        "eccentricity": 0.72,
+        "radiusEarth": 2.1,
+        "massEarth": 9.1,
+        "massProvenance": "Mass",
+        "orbitRepresentationConfidence": "illustrative",
+        "visualSource": "Apparence procédurale illustrative ; aucune surface observée"
+      }
+    },
+    {
+      "id": "kepler-452-b",
+      "name": "Kepler-452 b",
+      "aliases": ["KOI-7016.01", "Cousine de la Terre"],
+      "type": "exoplanet",
+      "parentId": "kepler-452",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "observed",
+      "description": "Super-Terre confirmée dans la zone habitable d’une étoile proche du type solaire. Sa masse est estimée, et son apparence demeure inconnue.",
+      "physical": {
+        "radiusKm": 10384.73,
+        "massKg": 1.9648538e25
+      },
+      "visual": {
+        "color": "#73b7a5",
+        "secondaryColor": "#436c72",
+        "visualRadius": 0.6,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "illustrative-orbit",
+        "semiMajorAxis": 1.046,
+        "orbitalPeriodDays": 384.843,
+        "epochJulianDay": 2451545,
+        "visualPhaseAtEpochDegrees": 42,
+        "visualInclinationDegrees": 5,
+        "unit": "astronomical-unit",
+        "distanceScale": 3800
+      },
+      "metadata": {
+        "source": "NASA Exoplanet Archive · PSCompPars",
+        "sourceUrl": "https://exoplanetarchive.ipac.caltech.edu/overview/Kepler-452",
+        "sourceTable": "PSCompPars",
+        "catalogSnapshotDate": "2026-08-05",
+        "confirmationStatus": "Confirmed Planet",
+        "detectionMethod": "Transit",
+        "discoveryFacility": "Kepler",
+        "discoveryYear": 2015,
+        "distanceLy": 1799.492797993,
+        "semiMajorAxisAu": 1.046,
+        "orbitalPeriodDays": 384.843,
+        "equilibriumTemperatureK": 265,
+        "orbitalInclinationDegrees": 89.806,
+        "eccentricity": 0,
+        "radiusEarth": 1.63,
+        "massEarth": 3.29,
+        "massProvenance": "M-R relationship",
+        "orbitRepresentationConfidence": "illustrative",
+        "visualSource": "Apparence procédurale illustrative ; aucune surface observée"
+      }
+    },
+    {
+      "id": "trappist-1-b",
+      "name": "TRAPPIST-1 b",
+      "type": "exoplanet",
+      "parentId": "trappist-1",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "observed",
+      "description": "Planète rocheuse interne du système TRAPPIST-1, chauffée par sa grande proximité avec la naine rouge.",
+      "physical": { "radiusKm": 7110.036, "massKg": 8.2058028e24 },
+      "visual": {
+        "color": "#c97755",
+        "secondaryColor": "#6b342e",
+        "visualRadius": 0.5,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "illustrative-orbit",
+        "semiMajorAxis": 0.01154,
+        "orbitalPeriodDays": 1.510826,
+        "epochJulianDay": 2451545,
+        "visualPhaseAtEpochDegrees": 20,
+        "visualInclinationDegrees": 1,
+        "unit": "astronomical-unit",
+        "distanceScale": 45000
+      },
+      "metadata": {
+        "source": "NASA Exoplanet Archive · PSCompPars",
+        "sourceUrl": "https://exoplanetarchive.ipac.caltech.edu/overview/TRAPPIST-1",
+        "sourceTable": "PSCompPars",
+        "catalogSnapshotDate": "2026-08-05",
+        "confirmationStatus": "Confirmed Planet",
+        "detectionMethod": "Transit",
+        "discoveryFacility": "La Silla Observatory",
+        "discoveryYear": 2016,
+        "distanceLy": 40.540875095,
+        "semiMajorAxisAu": 0.01154,
+        "orbitalPeriodDays": 1.510826,
+        "equilibriumTemperatureK": 397.6,
+        "orbitalInclinationDegrees": 89.728,
+        "eccentricity": 0.00622,
+        "radiusEarth": 1.116,
+        "massEarth": 1.374,
+        "massProvenance": "Mass",
+        "orbitRepresentationConfidence": "illustrative",
+        "visualSource": "Apparence procédurale illustrative ; aucune surface observée"
+      }
+    },
+    {
+      "id": "trappist-1-c",
+      "name": "TRAPPIST-1 c",
+      "type": "exoplanet",
+      "parentId": "trappist-1",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "observed",
+      "description": "Deuxième planète connue du système compact TRAPPIST-1.",
+      "physical": { "radiusKm": 6988.987, "massKg": 7.8116376e24 },
+      "visual": {
+        "color": "#bd815e",
+        "secondaryColor": "#684336",
+        "visualRadius": 0.49,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "illustrative-orbit",
+        "semiMajorAxis": 0.0158,
+        "orbitalPeriodDays": 2.421937,
+        "epochJulianDay": 2451545,
+        "visualPhaseAtEpochDegrees": 72,
+        "visualInclinationDegrees": -1,
+        "unit": "astronomical-unit",
+        "distanceScale": 45000
+      },
+      "metadata": {
+        "source": "NASA Exoplanet Archive · PSCompPars",
+        "sourceUrl": "https://exoplanetarchive.ipac.caltech.edu/overview/TRAPPIST-1",
+        "sourceTable": "PSCompPars",
+        "catalogSnapshotDate": "2026-08-05",
+        "confirmationStatus": "Confirmed Planet",
+        "detectionMethod": "Transit",
+        "discoveryFacility": "La Silla Observatory",
+        "discoveryYear": 2016,
+        "distanceLy": 40.540875095,
+        "semiMajorAxisAu": 0.0158,
+        "orbitalPeriodDays": 2.421937,
+        "equilibriumTemperatureK": 339.7,
+        "orbitalInclinationDegrees": 89.778,
+        "eccentricity": 0.00654,
+        "radiusEarth": 1.097,
+        "massEarth": 1.308,
+        "massProvenance": "Mass",
+        "orbitRepresentationConfidence": "illustrative",
+        "visualSource": "Apparence procédurale illustrative ; aucune surface observée"
+      }
+    },
+    {
+      "id": "trappist-1-d",
+      "name": "TRAPPIST-1 d",
+      "type": "exoplanet",
+      "parentId": "trappist-1",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "observed",
+      "description": "Petite planète rocheuse du système TRAPPIST-1, proche de la limite interne de sa zone tempérée.",
+      "physical": { "radiusKm": 5020.348, "massKg": 2.3172136e24 },
+      "visual": {
+        "color": "#b99a72",
+        "secondaryColor": "#5c5746",
+        "visualRadius": 0.4,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "illustrative-orbit",
+        "semiMajorAxis": 0.02227,
+        "orbitalPeriodDays": 4.049219,
+        "epochJulianDay": 2451545,
+        "visualPhaseAtEpochDegrees": 135,
+        "visualInclinationDegrees": 2,
+        "unit": "astronomical-unit",
+        "distanceScale": 45000
+      },
+      "metadata": {
+        "source": "NASA Exoplanet Archive · PSCompPars",
+        "sourceUrl": "https://exoplanetarchive.ipac.caltech.edu/overview/TRAPPIST-1",
+        "sourceTable": "PSCompPars",
+        "catalogSnapshotDate": "2026-08-05",
+        "confirmationStatus": "Confirmed Planet",
+        "detectionMethod": "Transit",
+        "discoveryFacility": "La Silla Observatory",
+        "discoveryYear": 2016,
+        "distanceLy": 40.540875095,
+        "semiMajorAxisAu": 0.02227,
+        "orbitalPeriodDays": 4.049219,
+        "equilibriumTemperatureK": 286.2,
+        "orbitalInclinationDegrees": 89.896,
+        "eccentricity": 0.00837,
+        "radiusEarth": 0.788,
+        "massEarth": 0.388,
+        "massProvenance": "Mass",
+        "orbitRepresentationConfidence": "illustrative",
+        "visualSource": "Apparence procédurale illustrative ; aucune surface observée"
+      }
+    },
+    {
+      "id": "trappist-1-e",
+      "name": "TRAPPIST-1 e",
+      "type": "exoplanet",
+      "parentId": "trappist-1",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "observed",
+      "description": "Planète rocheuse de taille terrestre située dans la zone habitable du système TRAPPIST-1.",
+      "physical": { "radiusKm": 5861.32, "massKg": 4.1327624e24 },
+      "visual": {
+        "color": "#65aa91",
+        "secondaryColor": "#315968",
+        "visualRadius": 0.46,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "illustrative-orbit",
+        "semiMajorAxis": 0.02925,
+        "orbitalPeriodDays": 6.101013,
+        "epochJulianDay": 2451545,
+        "visualPhaseAtEpochDegrees": 205,
+        "visualInclinationDegrees": -2,
+        "unit": "astronomical-unit",
+        "distanceScale": 45000
+      },
+      "metadata": {
+        "source": "NASA Exoplanet Archive · PSCompPars",
+        "sourceUrl": "https://exoplanetarchive.ipac.caltech.edu/overview/TRAPPIST-1",
+        "sourceTable": "PSCompPars",
+        "catalogSnapshotDate": "2026-08-05",
+        "confirmationStatus": "Confirmed Planet",
+        "detectionMethod": "Transit",
+        "discoveryFacility": "Multiple Observatories",
+        "discoveryYear": 2017,
+        "distanceLy": 40.540875095,
+        "semiMajorAxisAu": 0.02925,
+        "orbitalPeriodDays": 6.101013,
+        "equilibriumTemperatureK": 249.7,
+        "orbitalInclinationDegrees": 89.793,
+        "eccentricity": 0.0051,
+        "radiusEarth": 0.92,
+        "massEarth": 0.692,
+        "massProvenance": "Mass",
+        "orbitRepresentationConfidence": "illustrative",
+        "visualSource": "Apparence procédurale illustrative ; aucune surface observée"
+      }
+    },
+    {
+      "id": "trappist-1-f",
+      "name": "TRAPPIST-1 f",
+      "type": "exoplanet",
+      "parentId": "trappist-1",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "observed",
+      "description": "Planète rocheuse tempérée, l’une des trois mondes de TRAPPIST-1 situés dans la zone habitable.",
+      "physical": { "radiusKm": 6657.695, "massKg": 6.2051158e24 },
+      "visual": {
+        "color": "#729f9f",
+        "secondaryColor": "#384e68",
+        "visualRadius": 0.48,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "illustrative-orbit",
+        "semiMajorAxis": 0.03849,
+        "orbitalPeriodDays": 9.20754,
+        "epochJulianDay": 2451545,
+        "visualPhaseAtEpochDegrees": 260,
+        "visualInclinationDegrees": 1.5,
+        "unit": "astronomical-unit",
+        "distanceScale": 45000
+      },
+      "metadata": {
+        "source": "NASA Exoplanet Archive · PSCompPars",
+        "sourceUrl": "https://exoplanetarchive.ipac.caltech.edu/overview/TRAPPIST-1",
+        "sourceTable": "PSCompPars",
+        "catalogSnapshotDate": "2026-08-05",
+        "confirmationStatus": "Confirmed Planet",
+        "detectionMethod": "Transit",
+        "discoveryFacility": "Multiple Observatories",
+        "discoveryYear": 2017,
+        "distanceLy": 40.540875095,
+        "semiMajorAxisAu": 0.03849,
+        "orbitalPeriodDays": 9.20754,
+        "equilibriumTemperatureK": 217.7,
+        "orbitalInclinationDegrees": 89.74,
+        "eccentricity": 0.01007,
+        "radiusEarth": 1.045,
+        "massEarth": 1.039,
+        "massProvenance": "Mass",
+        "orbitRepresentationConfidence": "illustrative",
+        "visualSource": "Apparence procédurale illustrative ; aucune surface observée"
+      }
+    },
+    {
+      "id": "trappist-1-g",
+      "name": "TRAPPIST-1 g",
+      "type": "exoplanet",
+      "parentId": "trappist-1",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "observed",
+      "description": "Planète rocheuse tempérée et plus massive que la Terre, dans la zone habitable de TRAPPIST-1.",
+      "physical": { "radiusKm": 7192.859, "massKg": 7.8892762e24 },
+      "visual": {
+        "color": "#7995a7",
+        "secondaryColor": "#394660",
+        "visualRadius": 0.51,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "illustrative-orbit",
+        "semiMajorAxis": 0.04683,
+        "orbitalPeriodDays": 12.352446,
+        "epochJulianDay": 2451545,
+        "visualPhaseAtEpochDegrees": 310,
+        "visualInclinationDegrees": -1.5,
+        "unit": "astronomical-unit",
+        "distanceScale": 45000
+      },
+      "metadata": {
+        "source": "NASA Exoplanet Archive · PSCompPars",
+        "sourceUrl": "https://exoplanetarchive.ipac.caltech.edu/overview/TRAPPIST-1",
+        "sourceTable": "PSCompPars",
+        "catalogSnapshotDate": "2026-08-05",
+        "confirmationStatus": "Confirmed Planet",
+        "detectionMethod": "Transit",
+        "discoveryFacility": "Multiple Observatories",
+        "discoveryYear": 2017,
+        "distanceLy": 40.540875095,
+        "semiMajorAxisAu": 0.04683,
+        "orbitalPeriodDays": 12.352446,
+        "equilibriumTemperatureK": 197.3,
+        "orbitalInclinationDegrees": 89.742,
+        "eccentricity": 0.00208,
+        "radiusEarth": 1.129,
+        "massEarth": 1.321,
+        "massProvenance": "Mass",
+        "orbitRepresentationConfidence": "illustrative",
+        "visualSource": "Apparence procédurale illustrative ; aucune surface observée"
+      }
+    },
+    {
+      "id": "trappist-1-h",
+      "name": "TRAPPIST-1 h",
+      "type": "exoplanet",
+      "parentId": "trappist-1",
+      "referenceFrame": "stellar",
+      "scientificConfidence": "observed",
+      "description": "Petite planète externe et froide du système compact TRAPPIST-1.",
+      "physical": { "radiusKm": 4810.105, "massKg": 1.9469372e24 },
+      "visual": {
+        "color": "#8c91aa",
+        "secondaryColor": "#41465f",
+        "visualRadius": 0.39,
+        "scaleMode": "adaptive"
+      },
+      "positionProvider": {
+        "type": "illustrative-orbit",
+        "semiMajorAxis": 0.06189,
+        "orbitalPeriodDays": 18.772866,
+        "epochJulianDay": 2451545,
+        "visualPhaseAtEpochDegrees": 350,
+        "visualInclinationDegrees": 0.5,
+        "unit": "astronomical-unit",
+        "distanceScale": 45000
+      },
+      "metadata": {
+        "source": "NASA Exoplanet Archive · PSCompPars",
+        "sourceUrl": "https://exoplanetarchive.ipac.caltech.edu/overview/TRAPPIST-1",
+        "sourceTable": "PSCompPars",
+        "catalogSnapshotDate": "2026-08-05",
+        "confirmationStatus": "Confirmed Planet",
+        "detectionMethod": "Transit",
+        "discoveryFacility": "Multiple Observatories",
+        "discoveryYear": 2017,
+        "distanceLy": 40.540875095,
+        "semiMajorAxisAu": 0.06189,
+        "orbitalPeriodDays": 18.772866,
+        "equilibriumTemperatureK": 171.7,
+        "orbitalInclinationDegrees": 89.805,
+        "eccentricity": 0.00567,
+        "radiusEarth": 0.755,
+        "massEarth": 0.326,
+        "massProvenance": "Mass",
+        "orbitRepresentationConfidence": "illustrative",
+        "visualSource": "Apparence procédurale illustrative ; aucune surface observée"
+      }
+    }
+  ]
+}
