@@ -244,6 +244,17 @@ describe('CameraController', () => {
     expect(settled).toHaveBeenCalledWith(controller.distanceToTarget, 'transition');
   });
 
+  it('garde le cadrage de sécurité planétaire assez bas pour révéler le plan galactique', () => {
+    camera.position.set(20, 0, 0);
+    controller.focusOn(new THREE.Vector3(10, 0, 0), earth, 4.8);
+    controller.update(3);
+
+    const viewDirection = controller.controls.target.clone().sub(camera.position).normalize();
+    const galacticLatitude = THREE.MathUtils.radToDeg(Math.asin(viewDirection.y));
+
+    expect(Math.abs(galacticLatitude)).toBeLessThan(15);
+  });
+
   it('peut finaliser le cadrage initial avant la première frame', () => {
     const target = new THREE.Vector3(120, -30, 8);
 
@@ -383,11 +394,54 @@ describe('CameraController', () => {
     expect(controller.isTransitioning).toBe(true);
     controller.cancelFocus();
 
-    const stableTarget = controller.controls.target.clone();
+    const trackedTarget = new THREE.Vector3(14, 3, 0);
+    const navigationOffset = controller.controls.target.clone().sub(trackedTarget);
+    const movement = new THREE.Vector3(1, 2, 3);
 
-    controller.follow(stableTarget);
-    controller.follow(stableTarget.clone().add(new THREE.Vector3(1, 2, 3)));
-    expect(controller.controls.target).toEqual(stableTarget.add(new THREE.Vector3(1, 2, 3)));
+    controller.follow(trackedTarget);
+    controller.follow(trackedTarget.clone().add(movement));
+    expect(controller.controls.target).toEqual(trackedTarget.add(movement).add(navigationOffset));
+  });
+
+  it('rejoint directement une cible suivie sans ancrage préservé', () => {
+    const target = new THREE.Vector3(8, 1, -2);
+    const cameraOffset = camera.position.clone().sub(controller.controls.target);
+
+    controller.follow(target);
+
+    expect(controller.controls.target).toEqual(target);
+    expect(camera.position).toEqual(target.clone().add(cameraOffset));
+  });
+
+  it('préserve le cadrage décentré pendant le suivi et un changement d’origine', () => {
+    const anchor = new THREE.Vector3(10, 2, -1);
+
+    controller.adoptZoomTarget(anchor, earth);
+    controller.zoomSemantically(-120);
+    const cameraAfterZoom = camera.position.clone();
+    const targetAfterZoom = controller.controls.target.clone();
+
+    controller.follow(anchor);
+    expect(camera.position).toEqual(cameraAfterZoom);
+    expect(controller.controls.target).toEqual(targetAfterZoom);
+
+    const movement = new THREE.Vector3(1, -0.5, 2);
+
+    controller.follow(anchor.clone().add(movement));
+    expect(camera.position).toEqual(cameraAfterZoom.clone().add(movement));
+    expect(controller.controls.target).toEqual(targetAfterZoom.clone().add(movement));
+
+    const originShift = new THREE.Vector3(6, 1, -3);
+
+    camera.position.sub(originShift);
+    controller.controls.target.sub(originShift);
+    controller.shiftTrackedPosition(originShift);
+    const cameraAfterShift = camera.position.clone();
+    const targetAfterShift = controller.controls.target.clone();
+
+    controller.follow(anchor.clone().add(movement).sub(originShift));
+    expect(camera.position).toEqual(cameraAfterShift);
+    expect(controller.controls.target).toEqual(targetAfterShift);
   });
 
   it('rejoint progressivement une ancre de zoom puis publie sa stabilisation', () => {

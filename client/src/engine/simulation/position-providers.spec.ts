@@ -1,6 +1,7 @@
 import { PositionProviderDefinition } from '../../data/models/universe.models';
 import { CoordinateSystem } from '../coordinates/coordinate-system';
 import {
+  IllustrativeOrbitProvider,
   KeplerianOrbitProvider,
   LinearProperMotionProvider,
   PositionProviderFactory,
@@ -12,6 +13,43 @@ import { dateToJulianDay, JULIAN_DAY_J2000 } from './time-utils';
 
 describe('fournisseurs de position', () => {
   const coordinates = new CoordinateSystem();
+
+  it('anime une orbite exoplanétaire illustrative sans inventer une phase observée', () => {
+    const definition: Extract<PositionProviderDefinition, { type: 'illustrative-orbit' }> = {
+      type: 'illustrative-orbit',
+      semiMajorAxis: 1,
+      orbitalPeriodDays: 100,
+      epochJulianDay: JULIAN_DAY_J2000,
+      visualPhaseAtEpochDegrees: 30,
+      visualInclinationDegrees: 60,
+      unit: 'astronomical-unit',
+      distanceScale: 2,
+    };
+    const provider = new IllustrativeOrbitProvider(definition, coordinates, 'solar-system');
+    const atEpoch = provider.getPositionAt({ julianDay: JULIAN_DAY_J2000 });
+    const afterOnePeriod = provider.getPositionAt({ julianDay: JULIAN_DAY_J2000 + 100 });
+
+    expect(atEpoch.x).toBeCloseTo(15 * Math.sqrt(3), 8);
+    expect(atEpoch.y).toBeCloseTo((15 * Math.sqrt(3)) / 2, 8);
+    expect(atEpoch.z).toBeCloseTo(7.5, 8);
+    expect(afterOnePeriod).toEqual(
+      expect.objectContaining({
+        x: expect.closeTo(atEpoch.x, 8),
+        y: expect.closeTo(atEpoch.y, 8),
+        z: expect.closeTo(atEpoch.z, 8),
+      }),
+    );
+    const withoutVisualScale = new IllustrativeOrbitProvider(
+      { ...definition, distanceScale: undefined },
+      coordinates,
+      'solar-system',
+    );
+
+    expect(withoutVisualScale.getPositionAt({ julianDay: JULIAN_DAY_J2000 }).x).toBeCloseTo(
+      atEpoch.x / 2,
+      8,
+    );
+  });
 
   it('place une orbite circulaire sur son demi-grand axe à l’époque', () => {
     const definition: Extract<PositionProviderDefinition, { type: 'keplerian' }> = {

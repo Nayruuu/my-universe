@@ -55,10 +55,19 @@ describe('DebugPanelComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Tuiles galactiques actives / index');
     expect(fixture.nativeElement.textContent).toContain('5 / 5');
     expect(fixture.nativeElement.textContent).toContain('Galaxies groupées');
+    expect(fixture.nativeElement.textContent).toContain('Hôtes exoplanétaires visibles');
+    expect(fixture.nativeElement.textContent).toContain('4747');
+    expect(fixture.nativeElement.textContent).toContain('Exoplanètes NASA indexées');
+    expect(fixture.nativeElement.textContent).toContain('6333');
     expect(fixture.nativeElement.textContent).toContain('Groupes Cosmicflows-4');
     expect(fixture.nativeElement.textContent).toContain('37730');
     expect(fixture.nativeElement.textContent).toContain('Filaments dérivés');
     expect(fixture.nativeElement.textContent).toContain('42000');
+    expect(fixture.nativeElement.textContent).toContain('Épines Tempel chargées');
+    expect(fixture.nativeElement.textContent).toContain('15421');
+    expect(fixture.nativeElement.textContent).toContain('Segments Tempel visibles / publiés');
+    expect(fixture.nativeElement.textContent).toContain('18000 / 260178');
+    expect(fixture.nativeElement.textContent).toContain('Tuiles Tempel GPU');
     expect(fixture.nativeElement.textContent).toContain('7');
     expect(fixture.nativeElement.textContent).toContain('limite maximale');
     expect(fixture.nativeElement.textContent).toContain('Référentiel actif');
@@ -68,6 +77,12 @@ describe('DebugPanelComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Cible caméra');
     expect(fixture.nativeElement.textContent).toContain('Résolution rendu');
     expect(fixture.nativeElement.textContent).toContain('1.25×');
+    expect(
+      fixture.nativeElement.querySelector('[data-debug-stat="draw-calls"]')?.textContent,
+    ).toContain('12');
+    expect(
+      fixture.nativeElement.querySelector('[data-debug-stat="render-resolution"]')?.textContent,
+    ).toContain('1.25×');
 
     const targetZoomStats = stats('earth');
 
@@ -96,9 +111,15 @@ function stats(targetId: string | null): EngineDebugStats {
     textures: 3,
     visibleObjects: 42,
     catalogStars: 2_000,
+    exoplanetHosts: 4_747,
+    exoplanets: 6_333,
     cosmicGroups: 37_730,
     cosmicFilaments: 42_000,
     cosmicStructures: 9_985,
+    tempelFilamentSpines: 15_421,
+    tempelSpineSegments: 260_178,
+    visibleTempelSpineSegments: 18_000,
+    tempelSpineTiles: 8,
     batchedGalaxies: 7,
     loadedTiles: 5,
     indexedGalaxyTiles: 5,

@@ -27,6 +27,8 @@ interface FocusTransition {
 export type CameraZoomDiagnostics = Omit<ZoomDebugStats, 'anchorType' | 'anchorObjectId'>;
 export type CameraSettledSource = 'interaction' | 'pinch' | 'transition' | 'zoom';
 
+const PLANETARY_SAFE_FRAMING_ELEVATION = 0.2;
+
 export class CameraController {
   public readonly controls: OrbitControls;
   private transition: FocusTransition | null = null;
@@ -34,10 +36,13 @@ export class CameraController {
   private readonly zoomRayDirection = new THREE.Vector3();
   private readonly zoomCameraDirection = new THREE.Vector3();
   private readonly transitionDirection = new THREE.Vector3();
+  private readonly followedPosition = new THREE.Vector3();
+  private readonly followDelta = new THREE.Vector3();
   private readonly semanticZoomJourney = new SemanticZoomJourney();
   private zoomDiagnostics: CameraZoomDiagnostics | null = null;
   private zoomAnchorActive = false;
   private pinchInteractionActive = false;
+  private preserveFollowOffset = false;
 
   constructor(
     public readonly camera: THREE.PerspectiveCamera,
@@ -100,7 +105,7 @@ export class CameraController {
       if (Math.abs(currentDirection.dot(radialDirection)) > 0.64) {
         currentDirection = new THREE.Vector3(
           -radialDirection.z,
-          0.52,
+          PLANETARY_SAFE_FRAMING_ELEVATION,
           radialDirection.x,
         ).normalize();
       }
@@ -154,6 +159,8 @@ export class CameraController {
   public observeFrom(position: THREE.Vector3, target: THREE.Vector3): void {
     this.semanticZoomJourney.reset();
     this.zoomAnchorActive = false;
+    this.preserveFollowOffset = false;
+    this.followedPosition.copy(target);
     const travelDistance =
       this.camera.position.distanceTo(position) + this.controls.target.distanceTo(target);
 
@@ -173,23 +180,28 @@ export class CameraController {
 
       this.transition.endTarget.copy(position);
       this.transition.endCamera.copy(position).add(offset);
+      this.followedPosition.copy(position);
 
       return;
     }
 
     if (this.zoomAnchorActive) {
       this.zoomAnchor.copy(position);
+      this.followedPosition.copy(position);
 
       return;
     }
 
-    const delta = position.clone().sub(this.controls.target);
+    this.followDelta
+      .copy(position)
+      .sub(this.preserveFollowOffset ? this.followedPosition : this.controls.target);
+    this.followedPosition.copy(position);
 
-    if (delta.lengthSq() === 0) {
+    if (this.followDelta.lengthSq() === 0) {
       return;
     }
-    this.controls.target.add(delta);
-    this.camera.position.add(delta);
+    this.controls.target.add(this.followDelta);
+    this.camera.position.add(this.followDelta);
   }
 
   public update(deltaSeconds: number): void {
@@ -312,9 +324,21 @@ export class CameraController {
     this.setTargetInteractionActive(true);
   }
 
+  public trackTarget(position: THREE.Vector3, object: SpaceObject): void {
+    this.setNavigationConstraints(object);
+    this.followedPosition.copy(position);
+    this.preserveFollowOffset = true;
+  }
+
+  public shiftTrackedPosition(originShift: THREE.Vector3): void {
+    this.followedPosition.sub(originShift);
+  }
+
   public rebaseTarget(position: THREE.Vector3, object: SpaceObject): void {
     this.transition = null;
     this.zoomAnchorActive = false;
+    this.preserveFollowOffset = false;
+    this.followedPosition.copy(position);
     this.setNavigationConstraints(object);
     this.moveTargetPreservingOffset(position);
     this.controls.update();
@@ -334,6 +358,8 @@ export class CameraController {
 
     offset.setLength(distance);
     this.zoomAnchorActive = false;
+    this.preserveFollowOffset = false;
+    this.followedPosition.copy(position);
     this.setNavigationConstraints(object);
     this.transition = this.createTransition(
       position.clone().add(offset),
@@ -347,7 +373,7 @@ export class CameraController {
   public adoptZoomTarget(position: THREE.Vector3, object: SpaceObject): void {
     this.semanticZoomJourney.reset();
     this.transition = null;
-    this.setNavigationConstraints(object);
+    this.trackTarget(position, object);
     this.adoptZoomAnchor(position);
   }
 
@@ -360,6 +386,7 @@ export class CameraController {
 
   public releaseTarget(): void {
     this.cancelFocus();
+    this.preserveFollowOffset = false;
     this.controls.minDistance = FREE_NAVIGATION_MIN_DISTANCE;
     this.setTargetInteractionActive(false);
   }
@@ -379,6 +406,8 @@ export class CameraController {
   ): void {
     this.semanticZoomJourney.reset();
     this.zoomAnchorActive = false;
+    this.preserveFollowOffset = false;
+    this.followedPosition.copy(position);
     this.setTargetInteractionActive(true);
     const endCamera = position.clone().add(direction.multiplyScalar(distance));
     const travelDistance = this.controls.target.distanceTo(position);

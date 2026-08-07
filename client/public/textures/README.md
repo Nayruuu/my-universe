@@ -90,21 +90,39 @@ observational map.
 
 ## Milky Way
 
-`milky-way-emissive-1024.jpg` is an original illustrative asset generated for Universe Map on
-2026-08-03 with OpenAI's built-in image-generation workflow. A user-supplied galaxy illustration was
-used only as a mood and material reference, not copied as the atlas composition. The generated
-1254×1254 PNG was resampled locally to a quality-88 1024×1024 JPEG for deferred browser loading.
+`milky-way-emissive-1254-v2.jpg` is an original illustrative asset generated for Universe Map with
+OpenAI's built-in image-generation workflow. The first project-owned atlas was used as an edit
+target on 2026-08-06; its material and centered face-on composition were retained while its many
+regular lanes were rebuilt as two dominant open arms and two shorter fragmented arm families. The
+1254×1254 result is stored as a quality-90 JPEG for deferred browser loading.
 
 The production prompt requested one complete, centered, exactly face-on barred spiral galaxy on a
-uniform black background, with a warm textured bulge, four restrained blue-white logarithmic arm
-families, stellar knots, pale hydrogen-region hints, charcoal dust lanes, soft outer falloff, and no
-surrounding objects, text, watermark, lens flare, planets, or perspective tilt.
+uniform black background, with a warm textured bar, an underlying old-star disk, irregular
+blue-white arms, stellar knots, pale hydrogen-region hints, offset charcoal dust lanes, soft outer
+falloff, and no surrounding objects, text, watermark, lens flare, planets, or perspective tilt. It
+explicitly prohibited concentric rings and evenly spaced circular lanes.
 
 This texture contains no observational Milky Way pixels and carries `illustrative` confidence. Its
 purpose is to provide emission and dust detail for the layered 3D renderer; it must not be interpreted
 as a photograph of the Galaxy from outside.
 
 The runtime shader treats the atlas as source material rather than a flat photograph. Three shallow
-view-dependent samples reveal parallax at oblique angles, luminance contrast drives illustrative
-dust absorption, and quality-aware cool-arm/warm-core grading plus compressed analytical glow
-preserve detail without an additional post-processing pass.
+view-dependent samples reveal parallax at oblique angles, a bounded angular domain warp breaks
+remaining regularity, luminance and an offset spiral field drive illustrative dust absorption, and
+quality-aware cool-arm/warm-core grading plus compressed analytical glow preserve detail without an
+additional post-processing pass. The older procedural particle disk is visible only while the atlas
+is unavailable.
+
+`milky-way-eso-band-8k-v3.webp` is an 8192×1024 runtime crop derived from ESO/S. Brunier's
+[full-sky Milky Way panorama](https://www.eso.org/public/images/eso0932a/) (`eso0932a`, 6000×3000).
+Credit: ESO/S. Brunier.
+
+The runtime asset retains the central 60 degrees of source latitude, applies a restrained cinematic
+grade, and resamples it with a high-quality Lanczos filter before quality-95 WebP encoding. The
+sphere shader presents those pixels across a 32-degree angular band, feathers its edges, and keeps
+the Galactic Center fixed to local scene direction `[-1, 0, 0]`. The sphere is pitched and rolled so
+the band crosses the default Solar System map diagonally; that orientation is a disclosed
+illustrative composition, not an astrometric sky projection. Mipmaps are disabled because the sky is
+direction sampled at a stable apparent distance, avoiding additional GPU memory and upload work.
+The source pixels are observational, while the crop, grade, opacity, angular scale, and presentation
+remain `illustrative`.

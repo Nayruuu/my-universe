@@ -14,8 +14,11 @@ export type SpaceObjectType =
   | 'galaxy'
   | 'black-hole'
   | 'nebula'
+  | 'supernova'
+  | 'supernova-remnant'
   | 'star'
   | 'planet'
+  | 'exoplanet'
   | 'dwarf-planet'
   | 'moon'
   | 'asteroid'
@@ -139,6 +142,16 @@ export type PositionProviderDefinition =
       distanceScale?: number;
     }
   | {
+      type: 'illustrative-orbit';
+      semiMajorAxis: number;
+      orbitalPeriodDays: number;
+      epochJulianDay: number;
+      visualPhaseAtEpochDegrees: number;
+      visualInclinationDegrees: number;
+      unit: DistanceUnit;
+      distanceScale?: number;
+    }
+  | {
       type: 'linear-motion';
       positionAtEpoch: [number, number, number];
       velocityPerDay: [number, number, number];
@@ -186,6 +199,7 @@ export interface SearchEntry {
   type: SpaceObjectType;
   parentName?: string;
   keywords?: readonly string[];
+  metadata?: Readonly<Record<string, string | number | boolean>>;
 }
 
 export interface UniverseDataset {
@@ -285,6 +299,11 @@ export interface StarTileSource {
   starCatalogId: string;
 }
 
+export interface TempelFilamentSpineSource {
+  id: string;
+  url: string;
+}
+
 export type ConstellationSegment = readonly [number, number];
 
 export interface ConstellationFigure {
@@ -356,6 +375,19 @@ export type DatasetManifestEntry =
       url: string;
       type: 'cosmic-web-volume';
       format: 'cosmic-web-volume-v1';
+    }
+  | {
+      id: string;
+      url: string;
+      type: 'tempel-filament-spine-catalog';
+      format: 'tempel-filament-spines-v1';
+    }
+  | {
+      id: string;
+      url: string;
+      metadataUrl: string;
+      type: 'exoplanet-catalog';
+      format: 'exoplanet-catalog-v1';
     };
 
 export interface DatasetManifest {
@@ -394,9 +426,15 @@ export interface EngineDebugStats {
   textures: number;
   visibleObjects: number;
   catalogStars: number;
+  exoplanetHosts: number;
+  exoplanets: number;
   cosmicGroups: number;
   cosmicFilaments: number;
   cosmicStructures: number;
+  tempelFilamentSpines: number;
+  tempelSpineSegments: number;
+  visibleTempelSpineSegments: number;
+  tempelSpineTiles: number;
   batchedGalaxies: number;
   loadedTiles: number;
   indexedGalaxyTiles: number;
@@ -460,10 +498,4 @@ export interface NavigationState {
   showOrbits: boolean;
   showConstellations: boolean;
   showLabels: boolean;
-}
-
-export interface TimeSpeedOption {
-  id: string;
-  label: string;
-  daysPerSecond: number;
 }

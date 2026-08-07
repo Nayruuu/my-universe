@@ -34,6 +34,21 @@ import {
   STAR_CATALOG_RECORD_BYTES,
   STAR_CATALOG_VERSION,
 } from '../loaders/star-catalog';
+import {
+  EXOPLANET_CATALOG_HEADER_BYTES,
+  EXOPLANET_CATALOG_HOST_RECORD_BYTES,
+  EXOPLANET_CATALOG_MAGIC,
+  EXOPLANET_CATALOG_PLANET_RECORD_BYTES,
+  EXOPLANET_CATALOG_VERSION,
+} from '../loaders/exoplanet-catalog';
+import { createNasaCatalogObjectId } from '../objects/exoplanet-catalog-registry';
+import {
+  TEMPEL_FILAMENT_SPINE_HEADER_BYTES,
+  TEMPEL_FILAMENT_SPINE_INDEX_BYTES,
+  TEMPEL_FILAMENT_SPINE_MAGIC,
+  TEMPEL_FILAMENT_SPINE_POINT_BYTES,
+  TEMPEL_FILAMENT_SPINE_VERSION,
+} from '../loaders/tempel-filament-spine-catalog';
 import { EarthRotationPlayback } from '../simulation/earth-rotation-playback';
 import { EarthEclipseEvent, SolarEclipseAppearance } from '../simulation/earth-eclipse';
 import { TimeController } from '../simulation/time-controller';
@@ -104,6 +119,10 @@ describe('UniverseEngine', () => {
     const events: UniverseEngineEvent[] = [];
     const unsubscribe = engine.subscribe((event) => events.push(event));
 
+    engine.setLabelNameResolver((objectId, fallback) =>
+      objectId === 'earth' ? 'Earth' : fallback,
+    );
+
     await engine.initialize(container, {
       quality: 'low',
       showLabels: false,
@@ -134,6 +153,20 @@ describe('UniverseEngine', () => {
     });
     expect(events.at(-1)).toEqual({ type: 'loading-state', loading: false });
     expect(rendererHarness.instances).toHaveLength(1);
+
+    const access = engine as unknown as EngineAccess;
+    const setNameResolver = vi.spyOn(access.labelManager!, 'setNameResolver');
+
+    engine.setLabelNameResolver((objectId, fallback) => (objectId === 'earth' ? 'Erde' : fallback));
+    expect(setNameResolver).toHaveBeenCalledOnce();
+    const initialViewDirection = access
+      .cameraController!.controls.target.clone()
+      .sub(access.camera!.position)
+      .normalize();
+    const initialGalacticLatitude = THREE.MathUtils.radToDeg(Math.asin(initialViewDirection.y));
+
+    expect(Math.abs(initialGalacticLatitude)).toBeLessThan(15);
+    expect(initialViewDirection.x).toBeLessThan(-0.7);
 
     unsubscribe();
     engine.dispose();
@@ -619,6 +652,143 @@ describe('UniverseEngine', () => {
     engine.dispose();
   });
 
+  it('branche le catalogue NASA, puis matérialise un seul système exoplanétaire à la demande', async () => {
+    installAssets([], {
+      exoplanetBuffer: exoplanetCatalogBuffer(),
+      exoplanetMetadata: exoplanetCatalogMetadata(),
+    });
+    const engine = createTestEngine();
+    const access = engine as unknown as EngineAccess;
+    const events: UniverseEngineEvent[] = [];
+    const hostId = createNasaCatalogObjectId('host', 'Test Host');
+    const planetId = createNasaCatalogObjectId('planet', 'Test Host b');
+
+    engine.subscribe((event) => events.push(event));
+    await engine.initialize(sizedContainer(960, 540), { quality: 'low' });
+
+    expect(engine.hasObject(hostId)).toBe(true);
+    expect(engine.hasObject(planetId)).toBe(true);
+    expect(access.activeExoplanetSystemRegistry).toBeNull();
+    expect(events.find((event) => event.type === 'data-ready')).toMatchObject({
+      catalogEntries: [
+        expect.objectContaining({ id: hostId, name: 'Test Host' }),
+        expect.objectContaining({
+          id: planetId,
+          name: 'Test Host b',
+          metadata: expect.objectContaining({ discoveryMethod: 'Transit' }),
+        }),
+      ],
+    });
+    expect(
+      access.universeScene?.spaceRoot.getObjectByName('observed-nasa-exoplanet-hosts'),
+    ).toBeInstanceOf(THREE.Points);
+
+    await engine.setTarget(planetId);
+    expect(access.activeExoplanetSystemRegistry?.has(hostId)).toBe(true);
+    expect(access.activeExoplanetSystemRegistry?.has(planetId)).toBe(true);
+    expect(access.activeExoplanetSystemObjects).toHaveLength(2);
+    expect(engine.allObjects.map(({ id }) => id)).toEqual([hostId, planetId]);
+    expect(events).toContainEqual({
+      type: 'object-selected',
+      objectId: planetId,
+      object: expect.objectContaining({ type: 'exoplanet', parentId: hostId }),
+    });
+    expect(() => engine.viewOrbit(planetId)).not.toThrow();
+    const positionBefore = access.activeExoplanetSystemRegistry
+      ?.getWorldPosition(planetId)
+      ?.clone();
+
+    engine.setTime({ julianDay: 2_451_565 });
+    const positionAfter = access.activeExoplanetSystemRegistry?.getWorldPosition(planetId);
+
+    expect(positionBefore?.distanceTo(positionAfter!)).toBeGreaterThan(0.1);
+
+    await engine.setTarget(hostId);
+    access.rebuildObjectRegistry();
+    expect(access.activeExoplanetSystemRegistry?.has(hostId)).toBe(true);
+    access.setNavigationTargetOnRegistries('missing');
+    access.selectOnRegistries('missing');
+
+    const container = access.container;
+    const canvas = access.renderer!.domElement;
+
+    Object.defineProperties(canvas, {
+      clientWidth: { configurable: true, value: 960 },
+      clientHeight: { configurable: true, value: 540 },
+    });
+    access.container = null;
+    expect(() => access.renderFrame(0.016)).not.toThrow();
+    access.container = container;
+    engine.dispose();
+  });
+
+  it('conserve la sélection détaillée lorsqu’une exoplanète locale est aussi liée au catalogue NASA', async () => {
+    const host = {
+      ...object('test-host', 'Test Host', 'star'),
+      referenceFrame: 'stellar' as const,
+      scientificConfidence: 'observed' as const,
+      metadata: {
+        sourceTable: 'PSCompPars',
+        exoplanetHost: true,
+      },
+      positionProvider: {
+        type: 'static' as const,
+        position: [10, 0, 0] as const,
+        unit: 'parsec' as const,
+      },
+    } satisfies SpaceObject;
+    const planet = {
+      ...object('test-host-b', 'Test Host b', 'exoplanet', host.id),
+      referenceFrame: 'stellar' as const,
+      scientificConfidence: 'observed' as const,
+      metadata: { sourceTable: 'PSCompPars' },
+      positionProvider: {
+        type: 'illustrative-orbit' as const,
+        semiMajorAxis: 0.2,
+        orbitalPeriodDays: 20,
+        epochJulianDay: 2_451_545,
+        visualPhaseAtEpochDegrees: 0,
+        visualInclinationDegrees: 0,
+        unit: 'astronomical-unit' as const,
+      },
+    } satisfies SpaceObject;
+
+    installAssets([host, planet], {
+      exoplanetBuffer: exoplanetCatalogBuffer(),
+      exoplanetMetadata: exoplanetCatalogMetadata(),
+    });
+    const engine = createTestEngine();
+    const access = engine as unknown as EngineAccess;
+
+    await engine.initialize(sizedContainer(960, 540), { quality: 'high' });
+    expect(access.activeExoplanetSystemRegistry).toBeNull();
+
+    const baseRegistry = access.objectRegistry as unknown as {
+      selectedId: string | null;
+      updateLod(
+        camera: THREE.PerspectiveCamera,
+        viewportHeight: number,
+        lodLevel: number,
+        deltaSeconds: number,
+      ): void;
+      orbitVisuals: Map<string, { line: { userData: Record<string, unknown> } }>;
+    };
+
+    baseRegistry.updateLod(access.camera!, 540, 0, 0);
+    engine.viewOrbit(planet.id);
+
+    expect(baseRegistry.selectedId).toBe(planet.id);
+    expect(baseRegistry.orbitVisuals.get(planet.id)?.line.userData['active']).toBe(true);
+    const catalogBatch = access.universeScene?.spaceRoot.getObjectByName(
+      'observed-nasa-exoplanet-hosts',
+    ) as THREE.Points | undefined;
+
+    expect(catalogBatch).toBeInstanceOf(THREE.Points);
+    expect(catalogBatch?.userData['catalogCount']).toBe(1);
+    expect(catalogBatch?.userData['renderedHostCount']).toBe(0);
+    engine.dispose();
+  });
+
   it('installe le volume simulé du réseau cosmique depuis les données statiques', async () => {
     installAssets([], { cosmicWebVolumeBuffer: cosmicWebVolumeBuffer() });
     const engine = createTestEngine();
@@ -686,6 +856,236 @@ describe('UniverseEngine', () => {
     (access.cameraController as unknown as { update(deltaSeconds: number): void }).update(10);
     expect(access.cameraController?.distanceToTarget).toBeGreaterThan(1_000);
     engine.dispose();
+  });
+
+  it('charge les épines Tempel à la demande puis conserve une seule requête', async () => {
+    const cosmicWeb = {
+      ...object('cosmic-web', 'Réseau cosmique', 'universe'),
+      referenceFrame: 'cosmic-web' as const,
+    };
+
+    installAssets([cosmicWeb], {
+      cosmicStructureBuffer: tempelCosmicStructureCatalogBuffer(),
+      cosmicStructureMetadata: testTempelCosmicStructureMetadata(),
+      tempelSpineBuffer: tempelSpineCatalogBuffer(),
+    });
+    const fetchMock = vi.mocked(fetch);
+    const engine = createTestEngine();
+    const access = engine as unknown as EngineAccess;
+    const events: UniverseEngineEvent[] = [];
+
+    engine.subscribe((event) => events.push(event));
+    await engine.initialize(sizedContainer(960, 540), { quality: 'high' });
+    events.length = 0;
+    expect(fetchMock).not.toHaveBeenCalledWith('/data/tempel-spines.bin');
+    expect(access.universeScene?.tempelFilamentSpineCount).toBe(0);
+
+    engine.setCosmicMapLayers({
+      volume: true,
+      groups: true,
+      links: true,
+      clusters: true,
+      superclusters: true,
+      filaments: true,
+      voids: false,
+    });
+    await Promise.resolve();
+    expect(fetchMock).not.toHaveBeenCalledWith('/data/tempel-spines.bin');
+    expect(access.universeScene?.tempelFilamentSpineCount).toBe(0);
+
+    access.camera?.position.set(420_000, 0, 0);
+    access.cameraController?.controls.target.set(0, 0, 0);
+    access.renderFrame(0.05);
+    await vi.waitFor(() => {
+      expect(access.universeScene?.tempelFilamentSpineCount).toBe(1);
+    });
+    expect(access.universeScene?.tempelFilamentSpinePointCount).toBe(2);
+    expect(access.universeScene?.tempelFilamentSpineSegmentCount).toBe(1);
+    expect(fetchMock.mock.calls.filter(([url]) => url === '/data/tempel-spines.bin')).toHaveLength(
+      1,
+    );
+
+    engine.setCosmicMapLayers({
+      volume: true,
+      groups: true,
+      links: true,
+      clusters: true,
+      superclusters: true,
+      filaments: true,
+      voids: false,
+    });
+    await (access.tempelFilamentSpineLoadPromise ?? Promise.resolve());
+    expect(fetchMock.mock.calls.filter(([url]) => url === '/data/tempel-spines.bin')).toHaveLength(
+      1,
+    );
+    expect(events.filter((event) => event.type === 'loading-state')).toEqual([]);
+
+    engine.selectObject('lss-sdss-dr8-tempel-filaments-f1');
+    expect(
+      access.universeScene?.spaceRoot.getObjectByName('selected-tempel-filament-spine')?.userData[
+        'objectId'
+      ],
+    ).toBe('lss-sdss-dr8-tempel-filaments-f1');
+    await engine.setTarget('lss-sdss-dr8-tempel-filaments-f1');
+    engine.dispose();
+  });
+
+  it('signale une épine Tempel indisponible une seule fois sans casser la carte', async () => {
+    installAssets([], {
+      cosmicStructureBuffer: tempelCosmicStructureCatalogBuffer(),
+      cosmicStructureMetadata: testTempelCosmicStructureMetadata(),
+      tempelSpineStatus: 503,
+    });
+    const engine = createTestEngine();
+    const access = engine as unknown as EngineAccess;
+    const events: UniverseEngineEvent[] = [];
+
+    engine.subscribe((event) => events.push(event));
+    await engine.initialize(sizedContainer(960, 540));
+    engine.setCosmicMapLayers({
+      volume: true,
+      groups: true,
+      links: true,
+      clusters: true,
+      superclusters: true,
+      filaments: true,
+      voids: false,
+    });
+    access.camera?.position.set(420_000, 0, 0);
+    access.cameraController?.controls.target.set(0, 0, 0);
+    access.renderFrame(0.05);
+    await (access.tempelFilamentSpineLoadPromise ?? Promise.resolve());
+    engine.setCosmicMapLayers({
+      volume: true,
+      groups: true,
+      links: true,
+      clusters: true,
+      superclusters: true,
+      filaments: true,
+      voids: false,
+    });
+    await (access.tempelFilamentSpineLoadPromise ?? Promise.resolve());
+
+    expect(
+      events.filter(
+        (event) => event.type === 'performance-warning' && event.message.includes('Épines Tempel'),
+      ),
+    ).toEqual([
+      {
+        type: 'performance-warning',
+        message:
+          'Épines Tempel indisponibles : Impossible de charger tempel-filament-spines (503).',
+      },
+    ]);
+    engine.dispose();
+  });
+
+  it('ignore un catalogue Tempel qui termine après la destruction du moteur', async () => {
+    const runtime = createRuntime();
+    const pendingBuffer = deferredValue<ArrayBuffer>();
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      arrayBuffer: () => pendingBuffer.promise,
+    }));
+
+    vi.stubGlobal('fetch', fetchMock);
+    runtime.access.tempelFilamentSpineSource = {
+      id: 'tempel-spines',
+      url: '/tempel-spines.bin',
+    };
+    runtime.access.cosmicStructureCatalogRegistry = { has: () => true };
+    const loading = runtime.access.ensureTempelFilamentSpines();
+
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
+    runtime.engine.dispose();
+    pendingBuffer.resolve(tempelSpineCatalogBuffer());
+    await loading;
+
+    expect(runtime.scene.setTempelFilamentSpineCatalog).not.toHaveBeenCalled();
+  });
+
+  it('ignore le chargement Tempel tant que sa source statique est absente', async () => {
+    const fetchMock = vi.fn();
+
+    vi.stubGlobal('fetch', fetchMock);
+    const runtime = createRuntime();
+
+    runtime.access.tempelFilamentSpineSource = null;
+    await runtime.access.ensureTempelFilamentSpines();
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(runtime.scene.setTempelFilamentSpineCatalog).not.toHaveBeenCalled();
+  });
+
+  it('nettoie une scène détruite pendant l’installation différée des épines', async () => {
+    const runtime = createRuntime();
+    const installation = deferredValue<void>();
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => successfulBinaryResponse(tempelSpineCatalogBuffer())),
+    );
+    runtime.access.tempelFilamentSpineSource = {
+      id: 'tempel-spines',
+      url: '/tempel-spines.bin',
+    };
+    runtime.access.cosmicStructureCatalogRegistry = { has: () => true };
+    runtime.scene.setTempelFilamentSpineCatalog.mockImplementation(() => installation.promise);
+    const loading = runtime.access.ensureTempelFilamentSpines();
+
+    await vi.waitFor(() =>
+      expect(runtime.scene.setTempelFilamentSpineCatalog).toHaveBeenCalledOnce(),
+    );
+    runtime.access.initialized = false;
+    runtime.access.universeScene = null;
+    installation.resolve();
+    await loading;
+
+    expect(runtime.scene.dispose).toHaveBeenCalledOnce();
+    runtime.engine.dispose();
+  });
+
+  it('normalise une erreur Tempel non standard et peut supprimer un avertissement déjà publié', async () => {
+    const first = createRuntime();
+    const firstEvents: UniverseEngineEvent[] = [];
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        arrayBuffer: async () => Promise.reject('échec brut'),
+      })),
+    );
+    first.access.tempelFilamentSpineSource = { id: 'tempel-spines', url: '/spines.bin' };
+    first.access.cosmicStructureCatalogRegistry = { has: () => true };
+    first.engine.subscribe((event) => firstEvents.push(event));
+    await first.access.ensureTempelFilamentSpines();
+    expect(firstEvents).toContainEqual({
+      type: 'performance-warning',
+      message: 'Épines Tempel indisponibles : erreur inconnue',
+    });
+    first.engine.dispose();
+
+    const second = createRuntime();
+    const secondEvents: UniverseEngineEvent[] = [];
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        arrayBuffer: async () => Promise.reject(new Error('échec documenté')),
+      })),
+    );
+    second.access.tempelFilamentSpineSource = { id: 'tempel-spines', url: '/spines.bin' };
+    second.access.cosmicStructureCatalogRegistry = { has: () => true };
+    second.access.tempelFilamentSpineWarningEmitted = true;
+    second.engine.subscribe((event) => secondEvents.push(event));
+    await second.access.ensureTempelFilamentSpines();
+    expect(secondEvents.some((event) => event.type === 'performance-warning')).toBe(false);
+    second.engine.dispose();
   });
 
   it('branche le catalogue illustratif des constellations sur le batch stellaire', async () => {
@@ -867,6 +1267,29 @@ describe('UniverseEngine', () => {
 
     runtime.engine.completeTargetTransition();
     expect(runtime.controller.completeFocusTransition).toHaveBeenCalledOnce();
+  });
+
+  it('cadre suffisamment près un corps en rotation', async () => {
+    const runtime = createRuntime();
+    const earth = runtime.definitions.get('earth')!;
+
+    earth.visual.rotationPeriodHours = 23.934;
+    await runtime.engine.viewRotation('earth');
+
+    expect(runtime.controller.focusOn).toHaveBeenCalledWith(
+      expect.any(THREE.Vector3),
+      earth,
+      expect.any(Number),
+    );
+    expect(runtime.controller.focusOn.mock.calls.at(-1)?.[2]).toBeLessThan(10);
+    expect(runtime.registry.select).toHaveBeenCalledWith('earth');
+  });
+
+  it('refuse la vue de rotation pour un objet sans période axiale', async () => {
+    const runtime = createRuntime();
+
+    await expect(runtime.engine.viewRotation('earth')).rejects.toThrow('Rotation indisponible');
+    await expect(runtime.engine.viewRotation('unknown')).rejects.toThrow('Rotation indisponible');
   });
 
   it('centre un objet de catalogue avec sa distance dédiée', async () => {
@@ -1180,6 +1603,7 @@ describe('UniverseEngine', () => {
     runtime.engine.selectObject('earth');
     expect(runtime.registry.select).toHaveBeenLastCalledWith('earth');
     expect(runtime.scene.selectCatalogObject).toHaveBeenLastCalledWith(null);
+    expect(runtime.labels.setDetailsPanelVisible).toHaveBeenLastCalledWith(true);
 
     runtime.catalog.has.mockImplementation((id: string) => id === 'hyg-1');
     runtime.catalog.getDefinition.mockImplementation((id: string) =>
@@ -1191,6 +1615,7 @@ describe('UniverseEngine', () => {
     expect(runtime.labels.setTransientObject).toHaveBeenLastCalledWith(catalogObject);
 
     runtime.engine.selectObject(null);
+    expect(runtime.labels.setDetailsPanelVisible).toHaveBeenLastCalledWith(false);
     expect(events.at(-1)).toMatchObject({
       type: 'object-selected',
       objectId: null,
@@ -1276,6 +1701,10 @@ describe('UniverseEngine', () => {
 
   it('transmet la sélection des couches du réseau cosmique à la scène', () => {
     const runtime = createRuntime();
+    const ensureSpines = vi
+      .spyOn(runtime.access, 'ensureTempelFilamentSpines')
+      .mockResolvedValue(undefined);
+    const lodLevel = vi.spyOn(runtimeInternals(runtime).lodManager, 'level', 'get');
     const layers = {
       volume: true,
       groups: true,
@@ -1286,12 +1715,24 @@ describe('UniverseEngine', () => {
       voids: true,
     } as const;
 
+    lodLevel.mockReturnValue(5);
     runtime.engine.setCosmicMapLayers(layers);
     expect(runtime.scene.setCosmicMapLayers).toHaveBeenCalledWith(layers);
+    expect(ensureSpines).not.toHaveBeenCalled();
+
+    lodLevel.mockReturnValue(6);
+    runtime.engine.setCosmicMapLayers(layers);
+    expect(ensureSpines).toHaveBeenCalledOnce();
+
+    runtime.engine.setCosmicMapLayers({ ...layers, filaments: false });
+    expect(runtime.scene.setCosmicMapLayers).toHaveBeenLastCalledWith({
+      ...layers,
+      filaments: false,
+    });
 
     runtime.access.universeScene = null;
-    runtime.engine.setCosmicMapLayers(layers);
-    expect(runtime.scene.setCosmicMapLayers).toHaveBeenCalledOnce();
+    runtime.engine.setCosmicMapLayers({ ...layers, filaments: false });
+    expect(runtime.scene.setCosmicMapLayers).toHaveBeenCalledTimes(3);
   });
 
   it('reconfigure le rendu et reconstruit le registre lors d’un changement de qualité', () => {
@@ -1433,7 +1874,7 @@ describe('UniverseEngine', () => {
     expect(originUpdate).toHaveBeenCalled();
     expect(runtime.registry.updateLod).toHaveBeenCalledWith(runtime.camera, 450, 2, 0.25);
     expect(runtime.scene.ensureMilkyWayAtlas).toHaveBeenCalledOnce();
-    expect(runtime.scene.updateLod).toHaveBeenCalledWith(2, 0.25, 24);
+    expect(runtime.scene.updateLod).toHaveBeenCalledWith(2, 0.25, 24, runtime.camera.position);
     expect(runtime.renderer.toneMappingExposure).toBeGreaterThan(1);
     expect(runtime.renderer.toneMappingExposure).toBeLessThan(
       getPhotographicProfile(2, 'medium').exposure,
@@ -1448,6 +1889,18 @@ describe('UniverseEngine', () => {
     expect(events).toContainEqual({ type: 'lod-changed', level: 2 });
     expect(events).toContainEqual({ type: 'time-changed', time: currentTime });
     expect(events.some((event) => event.type === 'debug-stats')).toBe(true);
+  });
+
+  it('précharge les épines Tempel en entrant dans le LOD du réseau cosmique', () => {
+    const runtime = createRuntime();
+    const ensureSpines = vi
+      .spyOn(runtime.access, 'ensureTempelFilamentSpines')
+      .mockResolvedValue(undefined);
+
+    runtime.controller.distanceToTarget = 420_000;
+    runtime.access.renderFrame(0.05);
+
+    expect(ensureSpines).toHaveBeenCalledOnce();
   });
 
   it('active la distorsion écran lorsque la cible ou la sélection est un trou noir visible', () => {
@@ -1501,6 +1954,7 @@ describe('UniverseEngine', () => {
     runtime.access.renderFrame(0.05);
 
     expect(spaceTileRegistry.updateLod).toHaveBeenCalledWith(runtime.camera, 450, 0, 0.05);
+    expect(runtime.scene.ensureMilkyWayAtlas).toHaveBeenCalledOnce();
   });
 
   it('applique la résolution adaptative au renderer et à la scène', () => {
@@ -1636,6 +2090,10 @@ describe('UniverseEngine', () => {
         cosmicGroups: 37_730,
         cosmicFilaments: 42_000,
         cosmicStructures: 9_985,
+        tempelFilamentSpines: 15_421,
+        tempelSpineSegments: 260_178,
+        visibleTempelSpineSegments: 18_000,
+        tempelSpineTiles: 8,
         activeStarTiles: 8,
         cachedStarPacks: 5,
         cachedStarTiles: 19,
@@ -1764,7 +2222,8 @@ describe('UniverseEngine', () => {
     expect(runtime.access.targetId).toBe('mars');
     expect(runtime.registry.setNavigationTarget).toHaveBeenLastCalledWith(null);
     expect(runtime.controller.adoptZoomTarget).not.toHaveBeenCalled();
-    expect(runtime.controller.setNavigationConstraints).toHaveBeenCalledWith(
+    expect(runtime.controller.trackTarget).toHaveBeenCalledWith(
+      runtime.positions.get('mars'),
       runtime.definitions.get('mars'),
     );
     expect(runtime.controller.adoptZoomAnchor).toHaveBeenLastCalledWith(
@@ -1792,6 +2251,19 @@ describe('UniverseEngine', () => {
 
     runtime.access.cameraController = null;
     runtime.access.handleSemanticZoomIntent('earth', 480);
+  });
+
+  it('ignore une ancre transitoire pendant un changement de référentiel', () => {
+    const runtime = createRuntime();
+
+    runtime.access.targetId = 'earth';
+    runtime.controller.isTransitioning = true;
+    runtime.access.handleSemanticZoomIntent('mars', -480, { x: 0.4, y: -0.2 });
+
+    expect(runtime.access.targetId).toBe('earth');
+    expect(runtime.controller.trackTarget).not.toHaveBeenCalled();
+    expect(runtime.controller.adoptZoomPointer).toHaveBeenCalledWith(0.4, -0.2);
+    expect(runtime.controller.zoomSemantically).toHaveBeenCalledWith(-480);
   });
 
   it('change de référentiel avec les échelles pendant un aller-retour à la molette', () => {
@@ -1933,6 +2405,19 @@ describe('UniverseEngine', () => {
     );
   });
 
+  it('répercute un recentrage d’origine sur la position suivie par la caméra', () => {
+    const runtime = createRuntime();
+    const internals = runtimeInternals(runtime);
+    const originShift = new THREE.Vector3(2_000, 3, -4);
+
+    runtime.controller.controls.target.copy(originShift);
+    vi.spyOn(internals.floatingOriginManager, 'update').mockReturnValue(true);
+
+    runtime.access.renderFrame(0.01);
+
+    expect(runtime.controller.shiftTrackedPosition).toHaveBeenCalledWith(originShift);
+  });
+
   it('conserve le référentiel courant si la cible d’échelle est indisponible', () => {
     const runtime = createRuntime();
 
@@ -2067,6 +2552,10 @@ interface AssetOptions {
   readonly cosmicStructureBuffer?: ArrayBuffer;
   readonly cosmicStructureMetadata?: unknown;
   readonly cosmicWebVolumeBuffer?: ArrayBuffer;
+  readonly tempelSpineBuffer?: ArrayBuffer;
+  readonly tempelSpineStatus?: number;
+  readonly exoplanetBuffer?: ArrayBuffer;
+  readonly exoplanetMetadata?: unknown;
 }
 
 function installAssets(objects: readonly SpaceObject[], options: AssetOptions = {}): void {
@@ -2135,6 +2624,29 @@ function installAssets(objects: readonly SpaceObject[], options: AssetOptions = 
     responses['/data/cosmic-web-density.bin'] = successfulBinaryResponse(
       options.cosmicWebVolumeBuffer,
     );
+  }
+  if (options.tempelSpineBuffer !== undefined || options.tempelSpineStatus !== undefined) {
+    datasets.push({
+      id: 'tempel-filament-spines',
+      url: '/data/tempel-spines.bin',
+      type: 'tempel-filament-spine-catalog',
+      format: 'tempel-filament-spines-v1',
+    });
+    responses['/data/tempel-spines.bin'] =
+      options.tempelSpineBuffer !== undefined
+        ? successfulBinaryResponse(options.tempelSpineBuffer)
+        : failedResponse(options.tempelSpineStatus!);
+  }
+  if (options.exoplanetBuffer !== undefined && options.exoplanetMetadata) {
+    datasets.push({
+      id: 'nasa-confirmed-exoplanets',
+      url: '/data/exoplanets.bin',
+      metadataUrl: '/data/exoplanets.meta.json',
+      type: 'exoplanet-catalog',
+      format: 'exoplanet-catalog-v1',
+    });
+    responses['/data/exoplanets.meta.json'] = jsonResponse(options.exoplanetMetadata);
+    responses['/data/exoplanets.bin'] = successfulBinaryResponse(options.exoplanetBuffer);
   }
   if (options.constellationCatalog) {
     datasets.push({
@@ -2280,8 +2792,16 @@ interface EngineAccess {
   cameraController: FakeCameraController | null;
   objectRegistry: FakeRegistry | null;
   spaceTileObjectRegistry: FakeRegistry | null;
+  activeExoplanetSystemRegistry: {
+    has(objectId: string): boolean;
+    getWorldPosition(objectId: string, target?: THREE.Vector3): THREE.Vector3 | null;
+  } | null;
+  activeExoplanetSystemObjects: SpaceObject[];
   labelManager: FakeLabelManager | null;
   starCatalogRegistry: FakeStarCatalogRegistry | null;
+  cosmicStructureCatalogRegistry: { readonly has: (objectId: string) => boolean } | null;
+  tempelFilamentSpineSource: { readonly id: string; readonly url: string } | null;
+  tempelFilamentSpineWarningEmitted: boolean;
   selectionManager: FakeSelectionManager | null;
   renderLoop: FakeRenderLoop | null;
   blackHoleLensingPass: FakeBlackHoleLensingPass;
@@ -2310,6 +2830,7 @@ interface EngineAccess {
   starTileSynchronizationAccumulator: number;
   lastStarTileLod: number;
   lastStarTileWarning: string | null;
+  tempelFilamentSpineLoadPromise: Promise<void> | null;
   targetId: string | null;
   selectedId: string | null;
   activeSolarEclipse: EarthEclipseEvent | null;
@@ -2354,6 +2875,7 @@ interface EngineAccess {
   setNavigationTargetOnRegistries(objectId: string | null): void;
   selectOnRegistries(objectId: string | null): void;
   emitSolarEclipseState(appearance: SolarEclipseAppearance, force: boolean): void;
+  ensureTempelFilamentSpines(): Promise<void>;
 }
 
 interface SpaceTileSynchronizationRequest {
@@ -2399,6 +2921,7 @@ interface FakeUniverseScene {
   readonly setStarClusterTiles: ReturnType<typeof vi.fn>;
   readonly setConstellationsEnabled: ReturnType<typeof vi.fn>;
   readonly setCosmicMapLayers: ReturnType<typeof vi.fn>;
+  readonly setTempelFilamentSpineCatalog: ReturnType<typeof vi.fn>;
   readonly isCatalogObjectVisibleForLabels: ReturnType<typeof vi.fn>;
   readonly hasConstellation: ReturnType<typeof vi.fn>;
   readonly getConstellationDefinition: ReturnType<typeof vi.fn>;
@@ -2406,6 +2929,7 @@ interface FakeUniverseScene {
   readonly getConstellationFocusRadius: ReturnType<typeof vi.fn>;
   readonly selectConstellation: ReturnType<typeof vi.fn>;
   readonly hoverConstellation: ReturnType<typeof vi.fn>;
+  readonly hoverCatalogObject: ReturnType<typeof vi.fn>;
   readonly selectCatalogObject: ReturnType<typeof vi.fn>;
   readonly getCatalogWorldPosition: ReturnType<typeof vi.fn>;
   readonly getCatalogPickables: ReturnType<typeof vi.fn>;
@@ -2413,9 +2937,16 @@ interface FakeUniverseScene {
   readonly updateLod: ReturnType<typeof vi.fn>;
   readonly dispose: ReturnType<typeof vi.fn>;
   visibleCatalogStarCount: number;
+  visibleExoplanetHostCount: number;
+  exoplanetCount: number;
   visibleCosmicGroupCount: number;
   visibleCosmicFilamentCount: number;
   visibleCosmicStructureCount: number;
+  tempelFilamentSpineCount: number;
+  tempelFilamentSpinePointCount: number;
+  tempelFilamentSpineSegmentCount: number;
+  tempelFilamentSpineTileCount: number;
+  visibleTempelFilamentSpineSegmentCount: number;
   visibleStarClusterCount: number;
   activeStarTileCount: number;
   starClusterRepresentationCount: number;
@@ -2434,6 +2965,8 @@ interface FakeCameraController {
   readonly adoptZoomAnchor: ReturnType<typeof vi.fn>;
   readonly adoptZoomPointer: ReturnType<typeof vi.fn>;
   readonly adoptZoomTarget: ReturnType<typeof vi.fn>;
+  readonly trackTarget: ReturnType<typeof vi.fn>;
+  readonly shiftTrackedPosition: ReturnType<typeof vi.fn>;
   readonly rebaseTarget: ReturnType<typeof vi.fn>;
   readonly transitionReferenceFrame: ReturnType<typeof vi.fn>;
   readonly setNavigationConstraints: ReturnType<typeof vi.fn>;
@@ -2474,7 +3007,9 @@ interface FakeLabelManager {
   readonly setQuality: ReturnType<typeof vi.fn>;
   readonly setDensity: ReturnType<typeof vi.fn>;
   readonly setTransientObject: ReturnType<typeof vi.fn>;
+  readonly setDetailsPanelVisible: ReturnType<typeof vi.fn>;
   readonly setObjects: ReturnType<typeof vi.fn>;
+  readonly setNameResolver: ReturnType<typeof vi.fn>;
   readonly dispose: ReturnType<typeof vi.fn>;
 }
 
@@ -2553,6 +3088,8 @@ function createRuntime(): Runtime {
     adoptZoomAnchor: vi.fn(),
     adoptZoomPointer: vi.fn(),
     adoptZoomTarget: vi.fn(),
+    trackTarget: vi.fn(),
+    shiftTrackedPosition: vi.fn(),
     rebaseTarget: vi.fn(),
     transitionReferenceFrame: vi.fn(),
     setNavigationConstraints: vi.fn(),
@@ -2571,6 +3108,7 @@ function createRuntime(): Runtime {
     setStarClusterTiles: vi.fn(async () => undefined),
     setConstellationsEnabled: vi.fn(),
     setCosmicMapLayers: vi.fn(),
+    setTempelFilamentSpineCatalog: vi.fn(async () => undefined),
     isCatalogObjectVisibleForLabels: vi.fn(() => null),
     hasConstellation: vi.fn(() => false),
     getConstellationDefinition: vi.fn(() => undefined),
@@ -2578,6 +3116,7 @@ function createRuntime(): Runtime {
     getConstellationFocusRadius: vi.fn(() => null),
     selectConstellation: vi.fn(),
     hoverConstellation: vi.fn(),
+    hoverCatalogObject: vi.fn(),
     selectCatalogObject: vi.fn(),
     getCatalogWorldPosition: vi.fn(() => null),
     getCatalogPickables: vi.fn(() => []),
@@ -2585,9 +3124,16 @@ function createRuntime(): Runtime {
     updateLod: vi.fn(),
     dispose: vi.fn(),
     visibleCatalogStarCount: 2,
+    visibleExoplanetHostCount: 4_747,
+    exoplanetCount: 6_333,
     visibleCosmicGroupCount: 37_730,
     visibleCosmicFilamentCount: 42_000,
     visibleCosmicStructureCount: 9_985,
+    tempelFilamentSpineCount: 15_421,
+    tempelFilamentSpinePointCount: 275_599,
+    tempelFilamentSpineSegmentCount: 260_178,
+    tempelFilamentSpineTileCount: 8,
+    visibleTempelFilamentSpineSegmentCount: 18_000,
     visibleStarClusterCount: 0,
     activeStarTileCount: 0,
     starClusterRepresentationCount: 0,
@@ -2600,7 +3146,9 @@ function createRuntime(): Runtime {
     setQuality: vi.fn(),
     setDensity: vi.fn(),
     setTransientObject: vi.fn(),
+    setDetailsPanelVisible: vi.fn(),
     setObjects: vi.fn(),
+    setNameResolver: vi.fn(),
     dispose: vi.fn(),
   };
   const catalog: FakeStarCatalogRegistry = {
@@ -2897,6 +3445,18 @@ function deferredStarTileResult(): {
   return { promise, resolve };
 }
 
+function deferredValue<T>(): {
+  promise: Promise<T>;
+  resolve: (value: T) => void;
+} {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+
+  return { promise, resolve };
+}
+
 function testConstellationCatalog(): ConstellationCatalog {
   return {
     version: '1.0.0',
@@ -2996,6 +3556,99 @@ function starCatalogBuffer(catalogIds: readonly number[] = [3_229]): ArrayBuffer
   return buffer;
 }
 
+function exoplanetCatalogBuffer(): ArrayBuffer {
+  const encoder = new TextEncoder();
+  const stringBytes: number[] = [0];
+  const addString = (value: string): number => {
+    const offset = stringBytes.length;
+
+    stringBytes.push(...encoder.encode(value), 0);
+
+    return offset;
+  };
+  const hostName = addString('Test Host');
+  const spectralType = addString('G2 V');
+  const planetName = addString('Test Host b');
+  const letter = addString('b');
+  const method = addString('Transit');
+  const facility = addString('Kepler');
+  const massProvenance = addString('Mass');
+  const planetOffset = EXOPLANET_CATALOG_HEADER_BYTES + EXOPLANET_CATALOG_HOST_RECORD_BYTES;
+  const stringsOffset = planetOffset + EXOPLANET_CATALOG_PLANET_RECORD_BYTES;
+  const buffer = new ArrayBuffer(stringsOffset + stringBytes.length);
+  const view = new DataView(buffer);
+
+  for (let index = 0; index < EXOPLANET_CATALOG_MAGIC.length; index += 1) {
+    view.setUint8(index, EXOPLANET_CATALOG_MAGIC.charCodeAt(index));
+  }
+  view.setUint16(4, EXOPLANET_CATALOG_VERSION, true);
+  view.setUint16(6, EXOPLANET_CATALOG_HEADER_BYTES, true);
+  view.setUint16(8, EXOPLANET_CATALOG_HOST_RECORD_BYTES, true);
+  view.setUint16(10, EXOPLANET_CATALOG_PLANET_RECORD_BYTES, true);
+  view.setUint32(12, 1, true);
+  view.setUint32(16, 1, true);
+  view.setUint32(20, planetOffset, true);
+  view.setUint32(24, stringsOffset, true);
+  view.setUint32(28, stringBytes.length, true);
+
+  const hostOffset = EXOPLANET_CATALOG_HEADER_BYTES;
+
+  view.setUint32(hostOffset, hostName, true);
+  view.setUint32(hostOffset + 4, 0, true);
+  view.setUint32(hostOffset + 8, spectralType, true);
+  view.setUint32(hostOffset + 12, 0, true);
+  view.setUint16(hostOffset + 16, 1, true);
+  view.setUint8(hostOffset + 18, 1);
+  view.setUint8(hostOffset + 19, 0);
+  view.setFloat64(hostOffset + 20, 12, true);
+  view.setFloat64(hostOffset + 28, 24, true);
+  view.setFloat64(hostOffset + 36, 10, true);
+  view.setFloat32(hostOffset + 44, 5_700, true);
+  view.setFloat32(hostOffset + 48, 1, true);
+  view.setFloat32(hostOffset + 52, 1, true);
+  view.setFloat32(hostOffset + 56, 8, true);
+  view.setUint32(hostOffset + 60, 0, true);
+
+  view.setUint32(planetOffset, planetName, true);
+  view.setUint32(planetOffset + 4, letter, true);
+  view.setUint32(planetOffset + 8, method, true);
+  view.setUint32(planetOffset + 12, facility, true);
+  view.setUint32(planetOffset + 16, massProvenance, true);
+  view.setUint32(planetOffset + 20, 0, true);
+  view.setFloat64(planetOffset + 24, 20, true);
+  view.setFloat64(planetOffset + 32, 0.2, true);
+  view.setFloat32(planetOffset + 40, 1.2, true);
+  view.setFloat32(planetOffset + 44, 1.5, true);
+  view.setFloat32(planetOffset + 48, 280, true);
+  view.setFloat32(planetOffset + 52, 0.02, true);
+  view.setFloat32(planetOffset + 56, 89, true);
+  view.setFloat32(planetOffset + 60, 1, true);
+  view.setUint16(planetOffset + 64, 2020, true);
+  view.setUint16(planetOffset + 66, 0, true);
+  view.setUint32(planetOffset + 68, 0, true);
+  new Uint8Array(buffer, stringsOffset).set(stringBytes);
+
+  return buffer;
+}
+
+function exoplanetCatalogMetadata(): object {
+  return {
+    version: '1.0.0',
+    format: 'exoplanet-catalog-v1',
+    source: {
+      name: 'NASA Exoplanet Archive',
+      url: 'https://exoplanetarchive.ipac.caltech.edu/',
+      tapUrl: 'https://exoplanetarchive.ipac.caltech.edu/TAP/sync',
+      table: 'PSCompPars',
+      query: 'select test row from pscomppars',
+      snapshotDate: '2026-08-05',
+      sha256: 'a'.repeat(64),
+    },
+    counts: { hosts: 1, planets: 1, positionedHosts: 1, positionedPlanets: 1 },
+    missingDistanceFallbackParsec: 1_000,
+  };
+}
+
 function cosmicGroupCatalogBuffer(pgcId: number): ArrayBuffer {
   const buffer = new ArrayBuffer(
     COSMIC_GROUP_CATALOG_HEADER_BYTES + COSMIC_GROUP_CATALOG_RECORD_BYTES,
@@ -3040,6 +3693,30 @@ function testCosmicStructureMetadata() {
         structureType: 'supercluster',
         method: 'Luminosity density field',
         objectNamePrefix: 'Superamas SDSS',
+        scientificConfidence: 'calculated',
+        recordCount: 1,
+      },
+    ],
+  };
+}
+
+function testTempelCosmicStructureMetadata() {
+  return {
+    version: '1.0.0',
+    recordCount: 1,
+    referenceEpochJulianDay: 2_451_545,
+    referenceFrame: 'equatorial-j2000',
+    distanceUnit: 'megaparsec',
+    scientificConfidence: 'calculated',
+    sources: [
+      {
+        id: 'sdss-dr8-tempel-filaments',
+        name: 'SDSS DR8 Bisous cosmic filaments',
+        citation: 'Tempel et al. (2014), MNRAS 438, 3465',
+        sourceUrl: 'https://example.test/tempel',
+        structureType: 'filament',
+        method: 'Bisous',
+        objectNamePrefix: 'Filament SDSS',
         scientificConfidence: 'calculated',
         recordCount: 1,
       },
@@ -3092,6 +3769,92 @@ function cosmicStructureCatalogBuffer(): ArrayBuffer {
     buffer,
     COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + COSMIC_STRUCTURE_CATALOG_RECORD_BYTES,
   ).set(identifier);
+
+  return buffer;
+}
+
+function tempelCosmicStructureCatalogBuffer(): ArrayBuffer {
+  const identifier = new TextEncoder().encode('F1');
+  const buffer = new ArrayBuffer(
+    COSMIC_STRUCTURE_CATALOG_HEADER_BYTES +
+      COSMIC_STRUCTURE_CATALOG_RECORD_BYTES +
+      identifier.length,
+  );
+  const view = new DataView(buffer);
+  const recordOffset = COSMIC_STRUCTURE_CATALOG_HEADER_BYTES;
+
+  for (let index = 0; index < COSMIC_STRUCTURE_CATALOG_MAGIC.length; index += 1) {
+    view.setUint8(index, COSMIC_STRUCTURE_CATALOG_MAGIC.charCodeAt(index));
+  }
+  view.setUint16(4, COSMIC_STRUCTURE_CATALOG_VERSION, true);
+  view.setUint16(6, COSMIC_STRUCTURE_CATALOG_HEADER_BYTES, true);
+  view.setUint16(8, COSMIC_STRUCTURE_CATALOG_RECORD_BYTES, true);
+  view.setUint32(12, 1, true);
+  view.setUint16(16, 1, true);
+  view.setUint16(18, 1, true);
+  view.setFloat64(20, 2_451_545, true);
+  view.setFloat32(28, 10.5, true);
+  view.setFloat32(32, 10.5, true);
+  view.setUint32(36, identifier.length, true);
+  view.setUint32(40, 0xff, true);
+  view.setFloat32(recordOffset, 10.5, true);
+  view.setFloat32(recordOffset + 4, 0, true);
+  view.setFloat32(recordOffset + 8, 0, true);
+  view.setFloat32(recordOffset + 12, 10.5, true);
+  view.setFloat32(recordOffset + 16, 1, true);
+  view.setFloat32(recordOffset + 20, 1, true);
+  view.setFloat32(recordOffset + 24, Number.NaN, true);
+  view.setFloat32(recordOffset + 28, Number.NaN, true);
+  view.setUint32(recordOffset + 36, 0, true);
+  view.setUint16(recordOffset + 40, identifier.length, true);
+  view.setUint16(recordOffset + 42, 0, true);
+  view.setUint8(recordOffset + 44, 3);
+  view.setUint16(recordOffset + 46, 1, true);
+  new Uint8Array(
+    buffer,
+    COSMIC_STRUCTURE_CATALOG_HEADER_BYTES + COSMIC_STRUCTURE_CATALOG_RECORD_BYTES,
+  ).set(identifier);
+
+  return buffer;
+}
+
+function tempelSpineCatalogBuffer(): ArrayBuffer {
+  const buffer = new ArrayBuffer(
+    TEMPEL_FILAMENT_SPINE_HEADER_BYTES +
+      TEMPEL_FILAMENT_SPINE_INDEX_BYTES +
+      2 * TEMPEL_FILAMENT_SPINE_POINT_BYTES,
+  );
+  const view = new DataView(buffer);
+
+  for (let index = 0; index < TEMPEL_FILAMENT_SPINE_MAGIC.length; index += 1) {
+    view.setUint8(index, TEMPEL_FILAMENT_SPINE_MAGIC.charCodeAt(index));
+  }
+  view.setUint16(4, TEMPEL_FILAMENT_SPINE_VERSION, true);
+  view.setUint16(6, TEMPEL_FILAMENT_SPINE_HEADER_BYTES, true);
+  view.setUint16(8, TEMPEL_FILAMENT_SPINE_POINT_BYTES, true);
+  view.setUint16(10, TEMPEL_FILAMENT_SPINE_INDEX_BYTES, true);
+  view.setUint32(12, 1, true);
+  view.setUint32(16, 2, true);
+  view.setUint32(20, 1, true);
+  view.setUint16(24, 1, true);
+  view.setUint16(26, 1, true);
+  view.setFloat64(28, 2_451_545, true);
+  view.setFloat32(36, 10, true);
+  view.setFloat32(40, 11, true);
+  view.setUint32(44, 0x7, true);
+  view.setUint16(TEMPEL_FILAMENT_SPINE_HEADER_BYTES, 1, true);
+  view.setUint16(TEMPEL_FILAMENT_SPINE_HEADER_BYTES + 2, 2, true);
+  view.setUint32(TEMPEL_FILAMENT_SPINE_HEADER_BYTES + 4, 0, true);
+  const pointsOffset = TEMPEL_FILAMENT_SPINE_HEADER_BYTES + TEMPEL_FILAMENT_SPINE_INDEX_BYTES;
+
+  for (let pointIndex = 0; pointIndex < 2; pointIndex += 1) {
+    const offset = pointsOffset + pointIndex * TEMPEL_FILAMENT_SPINE_POINT_BYTES;
+
+    view.setFloat32(offset, 10 + pointIndex, true);
+    view.setUint8(offset + 12, 128 + pointIndex * 16);
+    view.setUint8(offset + 13, 160 + pointIndex * 16);
+    view.setUint8(offset + 14, 192 + pointIndex * 16);
+  }
 
   return buffer;
 }

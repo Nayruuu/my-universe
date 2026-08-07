@@ -53,6 +53,7 @@ export class LocalSearchIndex {
         object.referenceFrame,
         ...(object.metadata?.['keywords'] ? String(object.metadata['keywords']).split(/\s+/) : []),
       ],
+      metadata: object.metadata,
     }));
 
     this.entries = [...objectEntries, ...additionalEntries].map(indexEntry);

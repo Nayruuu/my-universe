@@ -80,6 +80,19 @@ describe('validation des données statiques', () => {
             type: 'cosmic-web-volume',
             format: 'cosmic-web-volume-v1',
           },
+          {
+            id: 'tempel-filament-spines',
+            url: '/structures/tempel-filament-spines.bin',
+            type: 'tempel-filament-spine-catalog',
+            format: 'tempel-filament-spines-v1',
+          },
+          {
+            id: 'nasa-exoplanets',
+            url: '/exoplanets/catalog.bin',
+            metadataUrl: '/exoplanets/catalog.json',
+            type: 'exoplanet-catalog',
+            format: 'exoplanet-catalog-v1',
+          },
         ],
       }).datasets,
     ).toEqual([
@@ -128,6 +141,19 @@ describe('validation des données statiques', () => {
         type: 'cosmic-web-volume',
         format: 'cosmic-web-volume-v1',
       },
+      {
+        id: 'tempel-filament-spines',
+        url: '/structures/tempel-filament-spines.bin',
+        type: 'tempel-filament-spine-catalog',
+        format: 'tempel-filament-spines-v1',
+      },
+      {
+        id: 'nasa-exoplanets',
+        url: '/exoplanets/catalog.bin',
+        metadataUrl: '/exoplanets/catalog.json',
+        type: 'exoplanet-catalog',
+        format: 'exoplanet-catalog-v1',
+      },
     ]);
   });
 
@@ -156,6 +182,36 @@ describe('validation des données statiques', () => {
         datasets: [{ id: 'x', url: '/x', type: 'binary', format: 'v1' }],
       }),
     ).toThrow('Format binaire invalide');
+  });
+
+  it('rejette un catalogue d’exoplanètes sans format ou métadonnées valides', () => {
+    expect(() =>
+      parseManifest({
+        version: '1',
+        datasets: [
+          {
+            id: 'x',
+            url: '/x',
+            metadataUrl: '/x.json',
+            type: 'exoplanet-catalog',
+            format: 'exoplanet-catalog-v0',
+          },
+        ],
+      }),
+    ).toThrow('Format de catalogue d’exoplanètes invalide');
+    expect(() =>
+      parseManifest({
+        version: '1',
+        datasets: [
+          {
+            id: 'x',
+            url: '/x',
+            type: 'exoplanet-catalog',
+            format: 'exoplanet-catalog-v1',
+          },
+        ],
+      }),
+    ).toThrow('Métadonnées d’exoplanètes manquantes');
   });
 
   it('rejette un format de tuiles inconnu', () => {
@@ -275,6 +331,22 @@ describe('validation des données statiques', () => {
     ).toThrow('Format de volume cosmique invalide');
   });
 
+  it('rejette un format d’épines Tempel inconnu', () => {
+    expect(() =>
+      parseManifest({
+        version: '1',
+        datasets: [
+          {
+            id: 'tempel-filament-spines',
+            url: '/spines.bin',
+            type: 'tempel-filament-spine-catalog',
+            format: 'tempel-filament-spines-v2',
+          },
+        ],
+      }),
+    ).toThrow('Format d’épines Tempel invalide');
+  });
+
   it('rejette une unité ou une échelle visuelle inconnue', () => {
     expect(() =>
       parseUniverseDataset(
@@ -333,6 +405,79 @@ describe('validation des données statiques', () => {
     );
 
     expect(dataset.objects[0]?.positionProvider.type).toBe('ephemeris');
+  });
+
+  it('valide une exoplanète confirmée avec une orbite visuelle explicitement illustrative', () => {
+    const dataset = parseUniverseDataset(
+      {
+        version: '1.0.0',
+        objects: [
+          {
+            id: 'kepler-452-b',
+            name: 'Kepler-452 b',
+            type: 'exoplanet',
+            parentId: 'kepler-452',
+            referenceFrame: 'stellar',
+            scientificConfidence: 'observed',
+            visual: {
+              visualRadius: 0.55,
+              scaleMode: 'adaptive',
+            },
+            positionProvider: {
+              type: 'illustrative-orbit',
+              semiMajorAxis: 1.046,
+              orbitalPeriodDays: 384.843,
+              epochJulianDay: 2_451_545,
+              visualPhaseAtEpochDegrees: 42,
+              visualInclinationDegrees: 4,
+              unit: 'astronomical-unit',
+              distanceScale: 3_800,
+            },
+          },
+        ],
+      },
+      'test',
+    );
+
+    expect(dataset.objects[0]).toMatchObject({
+      type: 'exoplanet',
+      positionProvider: { type: 'illustrative-orbit', semiMajorAxis: 1.046 },
+    });
+  });
+
+  it.each([
+    { semiMajorAxis: 0 },
+    { orbitalPeriodDays: 0 },
+    { epochJulianDay: Number.NaN },
+    { visualPhaseAtEpochDegrees: Number.NaN },
+    { visualInclinationDegrees: Number.POSITIVE_INFINITY },
+    { distanceScale: 0 },
+  ])('rejette une orbite exoplanétaire illustrative invalide', (override) => {
+    expect(() =>
+      parseUniverseDataset(
+        {
+          version: '1.0.0',
+          objects: [
+            {
+              ...baseObject(),
+              id: 'invalid-exoplanet',
+              type: 'exoplanet',
+              positionProvider: {
+                type: 'illustrative-orbit',
+                semiMajorAxis: 1,
+                orbitalPeriodDays: 365,
+                epochJulianDay: 2_451_545,
+                visualPhaseAtEpochDegrees: 0,
+                visualInclinationDegrees: 0,
+                unit: 'astronomical-unit',
+                ...override,
+              },
+            },
+          ],
+        },
+        'test',
+      ),
+    ).toThrow('Fournisseur de position invalide');
   });
 
   it('valide une galaxie du référentiel du Groupe local et sa silhouette', () => {

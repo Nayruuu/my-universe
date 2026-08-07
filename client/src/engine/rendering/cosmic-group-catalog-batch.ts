@@ -8,13 +8,19 @@ import {
   DEFAULT_COSMIC_MAP_LAYERS,
   getCosmicGroupDetail,
   getCosmicGroupRevealThreshold,
+  stableMapPriority,
 } from './cosmic-map-policy';
 
-const COSMIC_FADE_START_DISTANCE = 110_000;
+const COSMIC_FADE_START_DISTANCE = 30_000;
 const COSMIC_FULL_OPACITY_DISTANCE = 300_000;
 const COSMIC_MAX_OPACITY = 0.58;
 const COSMIC_OPACITY_DAMPING = 4;
 const COSMIC_DETAIL_DAMPING = 5;
+const IMPOSTOR_FADE_IN_START_DISTANCE = 55_000;
+const IMPOSTOR_FADE_IN_END_DISTANCE = 95_000;
+const IMPOSTOR_FADE_OUT_START_DISTANCE = 170_000;
+const IMPOSTOR_FADE_OUT_END_DISTANCE = 300_000;
+const IMPOSTOR_DAMPING = 4;
 const FILAMENT_FADE_START_DISTANCE = 140_000;
 const FILAMENT_FULL_OPACITY_DISTANCE = 320_000;
 const FILAMENT_MAX_OPACITY = 0.22;
@@ -29,6 +35,18 @@ const FILAMENT_QUALITY_BUDGET = {
   high: 1,
 } as const satisfies Record<GraphicQuality, number>;
 
+const IMPOSTOR_QUALITY_SCALE = {
+  low: 0.76,
+  medium: 0.9,
+  high: 1,
+} as const satisfies Record<GraphicQuality, number>;
+
+const IMPOSTOR_DETAIL_LIMIT = {
+  low: 0.15,
+  medium: 0.22,
+  high: 0.3,
+} as const satisfies Record<GraphicQuality, number>;
+
 export function getCosmicCatalogTargetOpacity(cameraDistance: number): number {
   const progress = THREE.MathUtils.clamp(
     (cameraDistance - COSMIC_FADE_START_DISTANCE) /
@@ -39,6 +57,33 @@ export function getCosmicCatalogTargetOpacity(cameraDistance: number): number {
   const easedProgress = progress * progress * (3 - 2 * progress);
 
   return COSMIC_MAX_OPACITY * easedProgress;
+}
+
+export function getCosmicGroupImpostorBlend(cameraDistance: number): number {
+  const fadeIn = smoothstep(
+    IMPOSTOR_FADE_IN_START_DISTANCE,
+    IMPOSTOR_FADE_IN_END_DISTANCE,
+    cameraDistance,
+  );
+  const fadeOut =
+    1 -
+    smoothstep(IMPOSTOR_FADE_OUT_START_DISTANCE, IMPOSTOR_FADE_OUT_END_DISTANCE, cameraDistance);
+
+  return fadeIn * fadeOut;
+}
+
+export function getCosmicGroupRenderDetail(
+  cameraDistance: number,
+  quality: GraphicQuality,
+): number {
+  const mapDetail = getCosmicGroupDetail(cameraDistance, quality);
+  const impostorDetail = Math.min(mapDetail, IMPOSTOR_DETAIL_LIMIT[quality]);
+
+  return THREE.MathUtils.lerp(
+    mapDetail,
+    impostorDetail,
+    getCosmicGroupImpostorBlend(cameraDistance),
+  );
 }
 
 export function getCosmicFilamentTargetOpacity(cameraDistance: number): number {
@@ -79,6 +124,7 @@ export class CosmicGroupCatalogBatch {
   private quality: GraphicQuality;
   private cameraDistance = Number.POSITIVE_INFINITY;
   private opacity = 0;
+  private impostorBlend = 0;
   private detail = 0;
   private activePointCount = 0;
   private filamentOpacity = 0;
@@ -120,6 +166,8 @@ export class CosmicGroupCatalogBatch {
     this.selectionPoint.layers.enable(PICKING_LAYER);
     this.points.userData['catalogCount'] = registry.catalog.count;
     this.points.userData['scientificConfidence'] = 'calculated';
+    this.points.userData['appearanceConfidence'] = 'illustrative';
+    this.points.userData['visualStyle'] = 'adaptive-unresolved-group-impostors';
     this.points.userData['source'] = 'Cosmicflows-4 · Tully et al. (2023)';
     this.points.userData['visualColorEncoding'] =
       'illustrative-distance-gradient-near-warm-far-cool';
@@ -139,8 +187,9 @@ export class CosmicGroupCatalogBatch {
 
     this.quality = quality;
     this.filamentQualityLimit = Math.ceil(edgeCount * FILAMENT_QUALITY_BUDGET[quality]);
-    this.detail = getCosmicGroupDetail(this.cameraDistance, quality);
+    this.detail = getCosmicGroupRenderDetail(this.cameraDistance, quality);
     this.points.material.uniforms['detailLevel']!.value = this.detail;
+    this.points.material.uniforms['qualityScale']!.value = IMPOSTOR_QUALITY_SCALE[quality];
     this.refreshPointVisibility();
     this.refreshFilamentVisibility();
   }
@@ -173,12 +222,19 @@ export class CosmicGroupCatalogBatch {
     this.opacity = dampValue(this.opacity, targetOpacity, COSMIC_OPACITY_DAMPING, deltaSeconds);
     this.detail = dampValue(
       this.detail,
-      getCosmicGroupDetail(cameraDistance, this.quality),
+      getCosmicGroupRenderDetail(cameraDistance, this.quality),
       COSMIC_DETAIL_DAMPING,
       deltaSeconds,
     );
     this.points.material.uniforms['catalogOpacity']!.value = this.opacity;
     this.points.material.uniforms['detailLevel']!.value = this.detail;
+    this.impostorBlend = dampValue(
+      this.impostorBlend,
+      getCosmicGroupImpostorBlend(cameraDistance),
+      IMPOSTOR_DAMPING,
+      deltaSeconds,
+    );
+    this.points.material.uniforms['impostorBlend']!.value = this.impostorBlend;
     const targetFilamentOpacity = getCosmicFilamentTargetOpacity(cameraDistance);
 
     this.filamentOpacity = dampValue(
@@ -446,6 +502,11 @@ function createGeometry(registry: CosmicGroupCatalogRegistry): {
   const alphas = new Float32Array(catalog.count);
   const colors = new Float32Array(catalog.count * 3);
   const revealThresholds = new Float32Array(catalog.count);
+  const galaxyAngles = new Float32Array(catalog.count);
+  const galaxyAxisRatios = new Float32Array(catalog.count);
+  const galaxyProfiles = new Float32Array(catalog.count);
+  const galaxyProminences = new Float32Array(catalog.count);
+  const galaxySeeds = new Float32Array(catalog.count);
   const objectIds = new Array<string>(catalog.count);
   const nearColor = new THREE.Color(0xffc876);
   const middleColor = new THREE.Color(0xb9e5ff);
@@ -459,15 +520,17 @@ function createGeometry(registry: CosmicGroupCatalogRegistry): {
     const renderOffset = renderIndex * 3;
     const reliability =
       1 - THREE.MathUtils.clamp(catalog.distanceModulusErrors[catalogIndex]! / 1.2, 0, 1);
-
-    positions.set(registry.renderPositions.subarray(sourceOffset, sourceOffset + 3), renderOffset);
-    sizes[renderIndex] = 2.2 + reliability * 3.3;
-    alphas[renderIndex] = 0.28 + reliability * 0.56;
+    const objectId = record.objectId;
     const depth = normalizedLogarithmicDepth(
       catalog.distancesMpc[catalogIndex]!,
       catalog.minimumDistanceMpc,
       catalog.maximumDistanceMpc,
     );
+    const prominence = Math.pow(1 - stableMapPriority(`${objectId}:prominence`), 6);
+
+    positions.set(registry.renderPositions.subarray(sourceOffset, sourceOffset + 3), renderOffset);
+    sizes[renderIndex] = 2.4 + reliability * 5.5 + (1 - depth) * 3 + prominence * 2.4;
+    alphas[renderIndex] = 0.3 + reliability * 0.5 + prominence * 0.08;
 
     if (depth < 0.5) {
       pointColor.lerpColors(nearColor, middleColor, depth * 2);
@@ -478,7 +541,12 @@ function createGeometry(registry: CosmicGroupCatalogRegistry): {
     colors[renderOffset + 1] = pointColor.g;
     colors[renderOffset + 2] = pointColor.b;
     revealThresholds[renderIndex] = record.revealThreshold;
-    objectIds[renderIndex] = record.objectId;
+    galaxyAngles[renderIndex] = stableMapPriority(`${objectId}:angle`) * Math.PI * 2;
+    galaxyAxisRatios[renderIndex] = 0.28 + stableMapPriority(`${objectId}:axis-ratio`) * 0.68;
+    galaxyProfiles[renderIndex] = stableMapPriority(`${objectId}:profile`);
+    galaxyProminences[renderIndex] = prominence;
+    galaxySeeds[renderIndex] = stableMapPriority(`${objectId}:structure`);
+    objectIds[renderIndex] = objectId;
   }
   const geometry = new THREE.BufferGeometry();
 
@@ -487,6 +555,11 @@ function createGeometry(registry: CosmicGroupCatalogRegistry): {
   geometry.setAttribute('pointAlpha', new THREE.BufferAttribute(alphas, 1));
   geometry.setAttribute('pointColor', new THREE.BufferAttribute(colors, 3));
   geometry.setAttribute('revealThreshold', new THREE.BufferAttribute(revealThresholds, 1));
+  geometry.setAttribute('galaxyAngle', new THREE.BufferAttribute(galaxyAngles, 1));
+  geometry.setAttribute('galaxyAxisRatio', new THREE.BufferAttribute(galaxyAxisRatios, 1));
+  geometry.setAttribute('galaxyProfile', new THREE.BufferAttribute(galaxyProfiles, 1));
+  geometry.setAttribute('galaxyProminence', new THREE.BufferAttribute(galaxyProminences, 1));
+  geometry.setAttribute('galaxySeed', new THREE.BufferAttribute(galaxySeeds, 1));
   geometry.setDrawRange(0, 0);
   geometry.computeBoundingSphere();
 
@@ -520,16 +593,31 @@ function createMaterial(): THREE.ShaderMaterial {
       catalogOpacity: { value: 0 },
       radiance: { value: 1 },
       detailLevel: { value: 0 },
+      impostorBlend: { value: 0 },
+      qualityScale: { value: 1 },
     },
     vertexShader: `
       attribute float pointSize;
       attribute float pointAlpha;
       attribute vec3 pointColor;
       attribute float revealThreshold;
+      attribute float galaxyAngle;
+      attribute float galaxyAxisRatio;
+      attribute float galaxyProfile;
+      attribute float galaxyProminence;
+      attribute float galaxySeed;
       uniform float pixelRatio;
       uniform float detailLevel;
+      uniform float impostorBlend;
+      uniform float qualityScale;
       varying float vAlpha;
       varying vec3 vColor;
+      varying vec2 vGalaxyOrientation;
+      varying float vGalaxyAxisRatio;
+      varying float vGalaxyProfile;
+      varying float vGalaxyProminence;
+      varying float vGalaxySeed;
+      varying float vImpostorBlend;
 
       void main() {
         float reveal = smoothstep(
@@ -539,8 +627,16 @@ function createMaterial(): THREE.ShaderMaterial {
         );
         vAlpha = pointAlpha * reveal;
         vColor = pointColor;
+        vGalaxyOrientation = vec2(cos(galaxyAngle), sin(galaxyAngle));
+        vGalaxyAxisRatio = galaxyAxisRatio;
+        vGalaxyProfile = galaxyProfile;
+        vGalaxyProminence = galaxyProminence;
+        vGalaxySeed = galaxySeed;
+        vImpostorBlend = impostorBlend;
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        gl_PointSize = max(1.0, pointSize * pixelRatio);
+        float prominenceScale = 1.0 + galaxyProminence * 1.5;
+        float visualScale = mix(1.0, 2.05 * prominenceScale, impostorBlend) * qualityScale;
+        gl_PointSize = max(1.0, pointSize * visualScale * pixelRatio);
       }
     `,
     fragmentShader: `
@@ -548,18 +644,66 @@ function createMaterial(): THREE.ShaderMaterial {
       uniform float radiance;
       varying float vAlpha;
       varying vec3 vColor;
+      varying vec2 vGalaxyOrientation;
+      varying float vGalaxyAxisRatio;
+      varying float vGalaxyProfile;
+      varying float vGalaxyProminence;
+      varying float vGalaxySeed;
+      varying float vImpostorBlend;
 
       void main() {
-        float radius = length(gl_PointCoord - vec2(0.5)) * 2.0;
-        if (radius > 1.0) {
+        vec2 point = (gl_PointCoord - vec2(0.5)) * 2.0;
+        float circularRadius = length(point);
+        if (circularRadius > 1.0) {
           discard;
         }
-        float halo = pow(1.0 - radius, 1.35);
-        float luminousCore = 1.0 - smoothstep(0.0, 0.24, radius);
-        float glow = halo * 0.62 + luminousCore;
-        vec3 color = mix(vColor, vec3(1.0, 0.97, 0.9), luminousCore * 0.88);
+
+        vec2 orientedPoint = mat2(
+          vGalaxyOrientation.x,
+          -vGalaxyOrientation.y,
+          vGalaxyOrientation.y,
+          vGalaxyOrientation.x
+        ) * point;
+        float axisRatio = mix(1.0, vGalaxyAxisRatio, vImpostorBlend);
+        float galaxyRadius = length(vec2(orientedPoint.x, orientedPoint.y / axisRatio));
+        if (vImpostorBlend > 0.99 && galaxyRadius > 1.0) {
+          discard;
+        }
+
+        float pointHalo = pow(1.0 - circularRadius, 1.35);
+        float pointCore = 1.0 - smoothstep(0.0, 0.24, circularRadius);
+        float pointGlow = pointHalo * 0.62 + pointCore;
+
+        float softEdge = 1.0 - smoothstep(0.72, 1.0, galaxyRadius);
+        float diffuseLight = exp(-3.35 * galaxyRadius);
+        float ellipticalLight = exp(-2.45 * pow(max(galaxyRadius, 0.0001), 0.72));
+        float profileMix = smoothstep(0.34, 0.72, vGalaxyProfile);
+        float unresolvedGroupLight = mix(ellipticalLight, diffuseLight, profileMix);
+        float luminousCore = exp(-16.0 * galaxyRadius) *
+          (1.0 + vGalaxyProminence * 0.8);
+        vec2 groupLobeOffset = vec2(mix(0.2, 0.38, vGalaxySeed), -0.12);
+        float groupLobe = exp(-18.0 * length(
+          vec2(orientedPoint.x - groupLobeOffset.x, orientedPoint.y - groupLobeOffset.y)
+        ));
+        float galaxyGlow = softEdge *
+          (unresolvedGroupLight * 0.78 + luminousCore * 1.55 + groupLobe * 0.2) *
+          (1.12 + vGalaxyProminence * 0.38);
+        float glow = mix(pointGlow, galaxyGlow, vImpostorBlend);
+
+        vec3 coolStarlight = vec3(0.52, 0.7, 1.0);
+        vec3 warmStarlight = vec3(1.0, 0.56, 0.3);
+        vec3 galaxyColor = mix(coolStarlight, warmStarlight, vGalaxySeed);
+        galaxyColor = mix(vColor, galaxyColor, 0.72);
+        galaxyColor = mix(galaxyColor, vec3(1.0, 0.92, 0.78), luminousCore * 0.58);
+        vec3 pointColor = mix(vColor, vec3(1.0, 0.97, 0.9), pointCore * 0.88);
+        vec3 color = mix(pointColor, galaxyColor, vImpostorBlend);
+        float brightness = mix(
+          0.72 + pointCore * 0.58,
+          0.82 + luminousCore * 0.72 + vGalaxyProminence * 0.16,
+          vImpostorBlend
+        );
         gl_FragColor = vec4(
-          color * radiance * (0.72 + luminousCore * 0.58),
+          color * radiance * brightness,
           vAlpha * catalogOpacity * glow
         );
       }
@@ -629,4 +773,10 @@ function findThresholdCount(thresholds: Float32Array, detail: number): number {
   }
 
   return lower;
+}
+
+function smoothstep(minimum: number, maximum: number, value: number): number {
+  const progress = THREE.MathUtils.clamp((value - minimum) / (maximum - minimum), 0, 1);
+
+  return progress * progress * (3 - 2 * progress);
 }

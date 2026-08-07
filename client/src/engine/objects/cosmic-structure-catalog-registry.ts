@@ -191,7 +191,7 @@ export class CosmicStructureCatalogRegistry {
         ...(sample ? { sample } : {}),
         visualAdaptation:
           structureType === 'filament'
-            ? 'Centre de l’enveloppe et symbole GPU adaptés ; la spine continue n’est pas représentée par ce symbole.'
+            ? 'Centre et symbole GPU adaptés ; l’épine 3D relie les points publiés sans lisser ni prétendre représenter la largeur physique.'
             : 'Symbole GPU et rayon de cadrage adaptés ; la détection source reste distincte des autres catalogues.',
       },
     };
@@ -250,7 +250,7 @@ function structureDescription(structureType: CosmicStructureType): string {
     return 'Région sous-dense identifiée dans un relevé de galaxies par une méthode statistique documentée. Son centre et son rayon dépendent du relevé, du modèle cosmologique et de l’algorithme employés.';
   }
   if (structureType === 'filament') {
-    return 'Filament extrait de la distribution tridimensionnelle des galaxies par une méthode statistique publiée. Le symbole indique le centre de son enveloppe cataloguée, pas la largeur physique du filament.';
+    return 'Filament extrait de la distribution tridimensionnelle des galaxies par une méthode statistique publiée. Son symbole marque le centre catalogué et son épine publiée peut être affichée point par point ; sa largeur visuelle n’est pas physique.';
   }
 
   return 'Structure de galaxies identifiée dans un champ de densité publié. Cette fiche représente une détection de catalogue, qui peut recouvrir des détections issues d’autres méthodes.';

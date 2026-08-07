@@ -25,6 +25,7 @@ import {
 } from '../materials/celestial-visual-factory';
 import { LunarEclipseVisual } from '../materials/lunar-eclipse-visual';
 import { SolarEclipseVisual } from '../materials/solar-eclipse-visual';
+import { SupernovaVisual } from '../materials/supernova-visual';
 import { calculateAxialRotation } from '../simulation/body-rotation';
 import {
   calculateBodyOrientation,
@@ -45,6 +46,7 @@ import {
   calculateSolarEclipsePath,
 } from '../simulation/solar-eclipse-calculator';
 import { isGalaxyMapRankVisible } from './galaxy-map-policy';
+import { getSolarSystemMapAccent } from './solar-system-map-palette';
 
 interface RegistryEntry {
   definition: SpaceObject;
@@ -54,6 +56,7 @@ interface RegistryEntry {
   rotatingBody: THREE.Object3D | null;
   lunarEclipse: LunarEclipseVisual | null;
   solarEclipse: SolarEclipseVisual | null;
+  supernova: SupernovaVisual | null;
   observerCorona: THREE.Sprite | null;
   lod: CelestialLodRepresentation;
   farBatchIndex: number | null;
@@ -67,7 +70,17 @@ interface OrbitVisual {
   radius: number;
   baseColor: number;
   baseOpacity: number;
+  mapColor: string;
+  activeMapColor: string;
 }
+
+const SOLAR_SYSTEM_ORBIT_TYPES = new Set<SpaceObject['type']>([
+  'planet',
+  'dwarf-planet',
+  'moon',
+  'asteroid',
+  'comet',
+]);
 
 export class ObjectRegistry {
   private readonly entries = new Map<string, RegistryEntry>();
@@ -136,6 +149,7 @@ export class ObjectRegistry {
         rotatingBody: visual.rotatingBody,
         lunarEclipse: visual.lunarEclipse,
         solarEclipse: visual.solarEclipse,
+        supernova: visual.supernova,
         observerCorona: visual.observerCorona,
         lod: visual.lod,
         farBatchIndex: farIndexById.get(definition.id) ?? null,
@@ -146,9 +160,13 @@ export class ObjectRegistry {
     }
 
     for (const entry of this.entries.values()) {
-      const parent = entry.definition.parentId
+      const semanticParent = entry.definition.parentId
         ? this.entries.get(entry.definition.parentId)?.node
         : undefined;
+      const parent =
+        entry.definition.referenceFrame === 'stellar' && entry.definition.parentId === 'milky-way'
+          ? (this.entries.get('sun')?.node ?? semanticParent)
+          : semanticParent;
 
       (parent ?? this.registryRoot).add(entry.node);
     }
@@ -159,6 +177,7 @@ export class ObjectRegistry {
       const position = entry.provider.getPositionAt(time);
 
       entry.node.position.set(position.x, position.y, position.z);
+      entry.supernova?.updateAppearance(time);
     }
     const solarEclipseAppearance = calculateSolarEclipseAppearance(time);
 
@@ -212,10 +231,12 @@ export class ObjectRegistry {
       const selected = entry.definition.id === this.selectedId;
       const navigationTarget = entry.definition.id === this.navigationTargetId;
       const contextualGalaxy = this.isGalaxyInActiveContext(entry.definition, lodLevel);
+      const contextualParent = this.isAncestorOfActiveObject(entry.definition.id);
       const milkyWayImpostorAllowed =
         entry.definition.id !== 'milky-way' || (lodLevel >= 3 && lodLevel <= 5);
       const keepVisible =
-        (selected || navigationTarget || contextualGalaxy) && milkyWayImpostorAllowed;
+        (selected || navigationTarget || contextualGalaxy || contextualParent) &&
+        milkyWayImpostorAllowed;
       const allowedInSolarObserver =
         !this.solarObserverActive ||
         entry.definition.id === 'sun' ||
@@ -271,9 +292,14 @@ export class ObjectRegistry {
         const glowRadiance = managed.material.userData['photographicGlow']
           ? photographicProfile.starRadiance
           : 1;
+        const appearanceOpacity = getAppearanceOpacity(managed.material.userData);
 
-        managed.material.opacity = Math.min(1, managed.baseOpacity * nearOpacity * glowRadiance);
+        managed.material.opacity = Math.min(
+          1,
+          managed.baseOpacity * nearOpacity * glowRadiance * appearanceOpacity,
+        );
         managed.material.depthWrite = managed.baseDepthWrite && nearOpacity > 0.985;
+        synchronizeLayerOpacityUniform(managed.material);
       }
 
       const transitionOpacity =
@@ -286,13 +312,15 @@ export class ObjectRegistry {
           : entry.definition.type === 'star'
             ? photographicProfile.starRadiance
             : 1;
+      const farAppearanceOpacity = getAppearanceOpacity(lod.farSprite?.userData);
       const farOpacity = Math.min(
         1,
         lod.farBaseOpacity *
           (1 - lod.nearBlend) *
           lod.visibilityBlend *
           transitionOpacity *
-          photographicRadiance,
+          photographicRadiance *
+          farAppearanceOpacity,
       );
 
       lod.farAlpha = farOpacity;
@@ -570,7 +598,11 @@ export class ObjectRegistry {
   private createOrbitLine(entry: RegistryEntry): void {
     const definition = entry.definition.positionProvider;
 
-    if (definition.type !== 'keplerian' && definition.type !== 'ephemeris') {
+    if (
+      definition.type !== 'keplerian' &&
+      definition.type !== 'ephemeris' &&
+      definition.type !== 'illustrative-orbit'
+    ) {
       return;
     }
 
@@ -590,7 +622,7 @@ export class ObjectRegistry {
 
     for (let index = 0; index < segments; index += 1) {
       const julianDay =
-        (definition.type === 'keplerian'
+        (definition.type === 'keplerian' || definition.type === 'illustrative-orbit'
           ? definition.epochJulianDay
           : definition.orbitEpochJulianDay) +
         (index / segments) * definition.orbitalPeriodDays;
@@ -623,6 +655,8 @@ export class ObjectRegistry {
       radius: points.reduce((maximum, point) => Math.max(maximum, point.length()), 0),
       baseColor,
       baseOpacity,
+      mapColor: getSolarSystemMapAccent(entry.definition.id, false),
+      activeMapColor: getSolarSystemMapAccent(entry.definition.id, true),
     });
   }
 
@@ -643,6 +677,22 @@ export class ObjectRegistry {
       object.id === hostId ||
       (object.parentId === hostId && isGalaxyMapRankVisible(object, this.quality))
     );
+  }
+
+  private isAncestorOfActiveObject(candidateId: string): boolean {
+    const activeId = this.navigationTargetId ?? this.selectedId;
+    let parentId = activeId ? this.entries.get(activeId)?.definition.parentId : undefined;
+    const visited = new Set<string>();
+
+    while (parentId && !visited.has(parentId)) {
+      if (parentId === candidateId) {
+        return true;
+      }
+      visited.add(parentId);
+      parentId = this.entries.get(parentId)?.definition.parentId;
+    }
+
+    return false;
   }
 
   private updateBodyRotation(entry: RegistryEntry, time: UniverseTime): void {
@@ -682,15 +732,28 @@ export class ObjectRegistry {
 
     for (const [objectId, orbit] of this.orbitVisuals) {
       const active = objectId === activeOrbitId;
+      const overviewEmphasis = this.currentLodLevel === 1;
+      const solarSystemOrbit =
+        this.currentLodLevel <= 2 && SOLAR_SYSTEM_ORBIT_TYPES.has(orbit.entry.definition.type);
 
       orbit.line.visible =
         orbitsAllowed && (this.currentLodLevel <= 1 || (active && this.currentLodLevel <= 2));
       orbit.line.material.color.set(
-        active ? (orbit.entry.definition.visual.color ?? 0x8acff4) : orbit.baseColor,
+        solarSystemOrbit
+          ? active
+            ? orbit.activeMapColor
+            : orbit.mapColor
+          : active || overviewEmphasis
+            ? (orbit.entry.definition.visual.color ?? 0x8acff4)
+            : orbit.baseColor,
       );
-      orbit.line.material.opacity = active ? 0.9 : orbit.baseOpacity;
-      orbit.line.renderOrder = active ? 3 : 0;
+      orbit.line.material.opacity = active ? 0.92 : overviewEmphasis ? 0.62 : orbit.baseOpacity;
+      orbit.line.material.linewidth = active ? 1.6 : overviewEmphasis ? 1.35 : 1;
+      orbit.line.renderOrder = active ? 3 : overviewEmphasis ? 1 : 0;
       orbit.line.userData['active'] = active;
+      orbit.line.userData['overviewEmphasis'] = overviewEmphasis;
+      orbit.line.userData['semanticGroup'] = solarSystemOrbit ? 'solar-system' : null;
+      orbit.line.userData['mapAccent'] = solarSystemOrbit ? orbit.mapColor : null;
     }
   }
 
@@ -753,7 +816,9 @@ export class ObjectRegistry {
 
 function hasOrbitalPath(object: SpaceObject): boolean {
   return (
-    object.positionProvider.type === 'keplerian' || object.positionProvider.type === 'ephemeris'
+    object.positionProvider.type === 'keplerian' ||
+    object.positionProvider.type === 'ephemeris' ||
+    object.positionProvider.type === 'illustrative-orbit'
   );
 }
 
@@ -841,6 +906,23 @@ function getSelectionMarkerScale(object: SpaceObject): number {
     : object.type === 'black-hole'
       ? radius * 5.2
       : radius * 3.3;
+}
+
+function getAppearanceOpacity(userData: THREE.Object3D['userData'] | undefined): number {
+  const opacity = userData?.['appearanceOpacity'];
+
+  return typeof opacity === 'number' ? THREE.MathUtils.clamp(opacity, 0, 1) : 1;
+}
+
+function synchronizeLayerOpacityUniform(material: THREE.Material): void {
+  if (!(material instanceof THREE.ShaderMaterial)) {
+    return;
+  }
+  const layerOpacity = material.uniforms['layerOpacity'];
+
+  if (layerOpacity) {
+    layerOpacity.value = material.opacity;
+  }
 }
 
 function disposeObjectTree(root: THREE.Object3D): void {

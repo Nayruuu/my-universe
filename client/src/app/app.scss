@@ -16,7 +16,7 @@
 
 .topbar {
   position: absolute;
-  z-index: 12;
+  z-index: 16;
   top: 16px;
   right: 18px;
   left: 18px;
@@ -109,8 +109,48 @@
 
 .topbar__actions {
   display: flex;
+  align-items: center;
   justify-self: end;
   gap: 7px;
+}
+
+.language-selector {
+  position: relative;
+
+  &::after {
+    position: absolute;
+    top: 50%;
+    right: 9px;
+    width: 5px;
+    height: 5px;
+    border-right: 1px solid currentcolor;
+    border-bottom: 1px solid currentcolor;
+    color: rgb(215 231 246 / 55%);
+    content: '';
+    pointer-events: none;
+    transform: translateY(-70%) rotate(45deg);
+  }
+
+  select {
+    height: 38px;
+    padding: 0 23px 0 10px;
+    border: 1px solid rgb(174 203 233 / 12%);
+    border-radius: 12px;
+    color: rgb(215 231 246 / 72%);
+    background: rgb(6 11 22 / 58%);
+    font: 650 0.62rem/1 inherit;
+    letter-spacing: 0.08em;
+    appearance: none;
+    cursor: pointer;
+    backdrop-filter: blur(16px);
+
+    &:hover,
+    &:focus-visible {
+      border-color: rgb(125 196 239 / 25%);
+      color: #e7f6ff;
+      outline: 0;
+    }
+  }
 }
 
 .icon-button {
@@ -511,11 +551,17 @@
 }
 
 .cosmic-map-key__void {
-  width: 8px;
-  height: 8px;
-  border: 1px solid #6da4ff;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  box-shadow: 0 0 6px rgb(88 145 255 / 45%);
+  background: radial-gradient(
+    circle at 45% 42%,
+    rgb(55 112 222 / 82%) 0%,
+    rgb(37 81 178 / 64%) 46%,
+    rgb(18 49 119 / 34%) 78%,
+    transparent 100%
+  );
+  box-shadow: 0 0 9px rgb(76 132 224 / 38%);
 }
 
 .cosmic-map-key__filament {
@@ -557,54 +603,5 @@
   from {
     opacity: 0;
     transform: translate(-50%, 6px);
-  }
-}
-
-@media (width <= 720px) {
-  .topbar {
-    top: 10px;
-    right: 10px;
-    left: 10px;
-    grid-template-columns: 1fr auto;
-    gap: 7px;
-  }
-
-  .brand {
-    padding-left: 1px;
-  }
-
-  .brand__mark {
-    width: 31px;
-    height: 31px;
-  }
-
-  .brand__edition,
-  .topbar__actions .icon-button:first-child {
-    display: none;
-  }
-
-  .topbar__actions {
-    grid-column: 2;
-    grid-row: 1;
-  }
-
-  app-universe-search {
-    grid-column: 1 / -1;
-  }
-
-  .navigation-hint {
-    display: none;
-  }
-
-  .science-caption {
-    display: none;
-  }
-
-  .cosmic-map-key {
-    display: none;
-  }
-
-  .notice {
-    top: 116px;
   }
 }

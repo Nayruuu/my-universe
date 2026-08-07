@@ -5,13 +5,18 @@ import {
   GraphicQuality,
   SolarEclipseState,
   SpaceObject,
+  type TempelFilamentSpineSource,
   UniverseEngineEvent,
   UniverseTime,
   type ZoomDebugStats,
 } from '../../data/models/universe.models';
 import { CameraController, type CameraSettledSource } from '../camera/camera-controller';
 import { NavigationContextJourney } from '../camera/navigation-context';
-import { CAMERA_FAR_DISTANCE, getOrbitOverviewDistance } from '../camera/navigation-policy';
+import {
+  CAMERA_FAR_DISTANCE,
+  getMinimumNavigationDistance,
+  getOrbitOverviewDistance,
+} from '../camera/navigation-policy';
 import type { NavigationScaleDefinition } from '../camera/navigation-scales';
 import { CoordinateSystem } from '../coordinates/coordinate-system';
 import { FloatingOriginManager } from '../coordinates/floating-origin-manager';
@@ -20,12 +25,14 @@ import {
   getMaximumCatalogLabelPoolRank,
   getMaximumCosmicLabelRank,
   LabelManager,
+  type LabelNameResolver,
   type LabelObject,
 } from '../objects/label-manager';
 import { ObjectRegistry } from '../objects/object-registry';
 import type { CosmicGroupCatalogRegistry } from '../objects/cosmic-group-catalog-registry';
 import type { CosmicStructureCatalogRegistry } from '../objects/cosmic-structure-catalog-registry';
 import type { StarCatalogRegistry } from '../objects/star-catalog-registry';
+import type { ExoplanetCatalogRegistry } from '../objects/exoplanet-catalog-registry';
 import { PerformanceManager } from '../performance/performance-manager';
 import {
   BlackHoleLensingPass,
@@ -63,6 +70,7 @@ export type WebGlRendererConstructor = new (
 const EARTH_RADIUS_TO_MEAN_LUNAR_DISTANCE = 6_378.137 / 384_400;
 const SIMULATION_UPDATE_INTERVAL_SECONDS = 1 / 24;
 const CATALOG_STAR_FOCUS_DISTANCE = 800;
+const EXOPLANET_SYSTEM_FOCUS_DISTANCE = 72;
 const SPACE_TILE_SYNCHRONIZATION_INTERVAL_SECONDS = 0.25;
 const STAR_TILE_SYNCHRONIZATION_INTERVAL_SECONDS = 0.25;
 
@@ -80,6 +88,7 @@ export class UniverseEngine {
   private readonly floatingOriginManager = new FloatingOriginManager();
   private readonly earthRotationPlayback = new EarthRotationPlayback();
   private readonly blackHoleLensingPosition = new THREE.Vector3();
+  private readonly floatingOriginShift = new THREE.Vector3();
   private readonly navigationContextJourney = new NavigationContextJourney((objectId) =>
     this.getDefinition(objectId),
   );
@@ -99,10 +108,16 @@ export class UniverseEngine {
   private cameraController: CameraController | null = null;
   private objectRegistry: ObjectRegistry | null = null;
   private spaceTileObjectRegistry: ObjectRegistry | null = null;
+  private activeExoplanetSystemRegistry: ObjectRegistry | null = null;
+  private activeExoplanetSystemObjects: SpaceObject[] = [];
   private labelManager: LabelManager | null = null;
   private starCatalogRegistry: StarCatalogRegistry | null = null;
+  private exoplanetCatalogRegistry: ExoplanetCatalogRegistry | null = null;
   private cosmicGroupCatalogRegistry: CosmicGroupCatalogRegistry | null = null;
   private cosmicStructureCatalogRegistry: CosmicStructureCatalogRegistry | null = null;
+  private tempelFilamentSpineSource: TempelFilamentSpineSource | null = null;
+  private tempelFilamentSpineLoadPromise: Promise<void> | null = null;
+  private tempelFilamentSpineWarningEmitted = false;
   private selectionManager: SelectionManager | null = null;
   private renderLoop: RenderLoop | null = null;
   private blackHoleLensingPass: BlackHoleLensingPass | null = null;
@@ -161,6 +176,7 @@ export class UniverseEngine {
 
       this.baseObjects = [...assets.objects];
       this.objects = [...this.baseObjects];
+      this.tempelFilamentSpineSource = assets.tempelFilamentSpineSource;
       if (assets.spaceTileIndex) {
         const { SpaceTileManager } = await import('../tiles/space-tile-manager');
 
@@ -193,7 +209,7 @@ export class UniverseEngine {
 
       const camera = new THREE.PerspectiveCamera(48, 1, 0.025, CAMERA_FAR_DISTANCE);
 
-      camera.position.set(28, 17, 30);
+      camera.position.set(39, 8, 20);
       this.camera = camera;
 
       const universeScene = new UniverseScene(this.performanceManager);
@@ -228,6 +244,17 @@ export class UniverseEngine {
       }
       if (!assets.starCatalog || !assets.starTileSource) {
         this.starTileManager = null;
+      }
+      if (assets.exoplanetCatalog) {
+        const { ExoplanetCatalogRegistry } = await import('../objects/exoplanet-catalog-registry');
+        const exoplanetCatalogRegistry = new ExoplanetCatalogRegistry(
+          assets.exoplanetCatalog,
+          this.coordinateSystem,
+          this.baseObjects,
+        );
+
+        this.exoplanetCatalogRegistry = exoplanetCatalogRegistry;
+        await universeScene.setExoplanetCatalog(exoplanetCatalogRegistry);
       }
       if (assets.cosmicGroupCatalog) {
         const { CosmicGroupCatalogRegistry } =
@@ -301,6 +328,7 @@ export class UniverseEngine {
 
           return cosmicMapVisible && (registry === null || registry.isVisibleForLabels(objectId));
         },
+        this.labelNameResolver,
       );
 
       labelManager.setEnabled(this.displayOptions.showLabels);
@@ -312,6 +340,7 @@ export class UniverseEngine {
         () => [
           ...(this.objectRegistry?.getPickables() ?? []),
           ...(this.spaceTileObjectRegistry?.getPickables() ?? []),
+          ...(this.activeExoplanetSystemRegistry?.getPickables() ?? []),
           ...(this.universeScene?.getCatalogPickables() ?? []),
         ],
         (clientX, clientY) => this.labelManager?.hitTest(clientX, clientY) ?? null,
@@ -320,6 +349,7 @@ export class UniverseEngine {
         () => this.cameraController?.distanceToTarget ?? 1,
         (objectId) =>
           this.starCatalogRegistry?.has(objectId) === true ||
+          this.exoplanetCatalogRegistry?.has(objectId) === true ||
           this.cosmicGroupCatalogRegistry?.has(objectId) === true ||
           this.cosmicStructureCatalogRegistry?.has(objectId) === true ||
           this.universeScene?.hasConstellation(objectId) === true ||
@@ -327,10 +357,12 @@ export class UniverseEngine {
         (objectId) => {
           this.labelManager?.setHoveredObject(objectId);
           this.universeScene?.hoverConstellation(objectId);
+          this.universeScene?.hoverCatalogObject(objectId);
         },
         this.handleSemanticZoomIntent,
         (objectId) =>
           this.getObjectRegistry(objectId) !== null ||
+          this.exoplanetCatalogRegistry?.has(objectId) === true ||
           this.cosmicGroupCatalogRegistry?.has(objectId) === true ||
           this.cosmicStructureCatalogRegistry?.has(objectId) === true,
       );
@@ -384,6 +416,7 @@ export class UniverseEngine {
     this.labelManager?.dispose();
     this.objectRegistry?.dispose();
     this.spaceTileObjectRegistry?.dispose();
+    this.activeExoplanetSystemRegistry?.dispose();
     this.universeScene?.dispose();
     this.blackHoleLensingPass?.dispose();
     this.renderer?.renderLists.dispose();
@@ -394,10 +427,16 @@ export class UniverseEngine {
     this.cameraController = null;
     this.labelManager = null;
     this.starCatalogRegistry = null;
+    this.exoplanetCatalogRegistry = null;
     this.cosmicGroupCatalogRegistry = null;
     this.cosmicStructureCatalogRegistry = null;
+    this.tempelFilamentSpineSource = null;
+    this.tempelFilamentSpineLoadPromise = null;
+    this.tempelFilamentSpineWarningEmitted = false;
     this.objectRegistry = null;
     this.spaceTileObjectRegistry = null;
+    this.activeExoplanetSystemRegistry = null;
+    this.activeExoplanetSystemObjects = [];
     this.universeScene = null;
     this.renderer = null;
     this.camera = null;
@@ -435,6 +474,8 @@ export class UniverseEngine {
     const solarEclipseAppearance = this.objectRegistry?.updatePositions(time);
 
     this.objectRegistry?.updateBodyRotations(time);
+    this.activeExoplanetSystemRegistry?.updatePositions(time);
+    this.activeExoplanetSystemRegistry?.updateBodyRotations(time);
     if (solarEclipseAppearance) {
       this.emitSolarEclipseState(solarEclipseAppearance, true);
     }
@@ -457,11 +498,15 @@ export class UniverseEngine {
       throw new Error(`Objet astronomique introuvable : ${objectId}.`);
     }
     await this.ensureSpaceTileObject(objectId);
+    this.ensureActiveExoplanetSystem(objectId);
     const position = this.getWorldPosition(objectId);
     const object = this.getDefinition(objectId);
 
     if (!this.objectRegistry || !position || !object) {
       throw new Error(`Position indisponible pour ${objectId}.`);
+    }
+    if (object.type === 'cosmic-filament') {
+      await this.ensureTempelFilamentSpines();
     }
 
     this.clearSolarEclipsePresentation();
@@ -485,7 +530,12 @@ export class UniverseEngine {
       controller.focusOn(
         position,
         object,
-        zoom ?? (this.starCatalogRegistry?.has(objectId) ? CATALOG_STAR_FOCUS_DISTANCE : undefined),
+        zoom ??
+          (this.exoplanetCatalogRegistry?.isHost(objectId)
+            ? EXOPLANET_SYSTEM_FOCUS_DISTANCE
+            : this.starCatalogRegistry?.has(objectId)
+              ? CATALOG_STAR_FOCUS_DISTANCE
+              : undefined),
       );
     }
     this.emit({ type: 'target-changed', objectId });
@@ -495,8 +545,23 @@ export class UniverseEngine {
     this.cameraController?.completeFocusTransition();
   }
 
+  public async viewRotation(objectId: string): Promise<void> {
+    const object = this.getDefinition(objectId);
+
+    if (!object?.visual.rotationPeriodHours) {
+      throw new Error(`Rotation indisponible pour ${object?.name ?? objectId}.`);
+    }
+    const distance = Math.max(
+      object.visual.visualRadius * 4.4,
+      getMinimumNavigationDistance(object) * 1.35,
+    );
+
+    await this.setTarget(objectId, distance);
+  }
+
   public viewOrbit(objectId: string): void {
-    const registry = this.objectRegistry;
+    this.ensureActiveExoplanetSystem(objectId);
+    const registry = this.getObjectRegistry(objectId);
     const controller = this.cameraController;
     const camera = this.camera;
     const object = registry?.getDefinition(objectId);
@@ -685,15 +750,27 @@ export class UniverseEngine {
   }
 
   public selectObject(objectId: string | null): void {
+    if (objectId) {
+      this.ensureActiveExoplanetSystem(objectId);
+    }
     const object = objectId ? (this.getDefinition(objectId) ?? null) : null;
 
     if (objectId && !object) {
       return;
     }
     this.selectedId = objectId;
+    const detailedObjectId =
+      objectId &&
+      (this.objectRegistry?.has(objectId) ||
+        this.spaceTileObjectRegistry?.has(objectId) ||
+        this.activeExoplanetSystemRegistry?.has(objectId))
+        ? objectId
+        : null;
     const catalogObjectId =
       objectId &&
+      !detailedObjectId &&
       (this.starCatalogRegistry?.has(objectId) ||
+        this.exoplanetCatalogRegistry?.has(objectId) ||
         this.cosmicGroupCatalogRegistry?.has(objectId) ||
         this.cosmicStructureCatalogRegistry?.has(objectId))
         ? objectId
@@ -701,12 +778,14 @@ export class UniverseEngine {
     const constellationObjectId =
       objectId && this.universeScene?.hasConstellation(objectId) ? objectId : null;
 
-    const registryObjectId = catalogObjectId || constellationObjectId ? null : objectId;
-
-    this.selectOnRegistries(registryObjectId);
+    this.selectOnRegistries(detailedObjectId);
     this.universeScene?.selectCatalogObject(catalogObjectId);
     this.universeScene?.selectConstellation(constellationObjectId);
     this.labelManager?.setTransientObject(catalogObjectId ? object : null);
+    this.labelManager?.setDetailsPanelVisible(objectId !== null);
+    if (object?.type === 'cosmic-filament') {
+      void this.ensureTempelFilamentSpines();
+    }
     this.emit({ type: 'object-selected', objectId, object });
   }
 
@@ -751,10 +830,19 @@ export class UniverseEngine {
     }
     this.objectRegistry?.setDisplayOptions(this.displayOptions);
     this.spaceTileObjectRegistry?.setDisplayOptions(this.displayOptions);
+    this.activeExoplanetSystemRegistry?.setDisplayOptions(this.displayOptions);
+  }
+
+  public setLabelNameResolver(resolver: LabelNameResolver): void {
+    this.labelNameResolver = resolver;
+    this.labelManager?.setNameResolver(resolver);
   }
 
   public setCosmicMapLayers(layers: CosmicMapLayers): void {
     this.universeScene?.setCosmicMapLayers(layers);
+    if (layers.filaments && this.lodManager.level >= 6) {
+      void this.ensureTempelFilamentSpines();
+    }
   }
 
   public zoomBy(factor: number): void {
@@ -804,6 +892,7 @@ export class UniverseEngine {
       this.objectRegistry?.has(objectId) === true ||
       this.spaceTileObjectRegistry?.has(objectId) === true ||
       this.starCatalogRegistry?.has(objectId) === true ||
+      this.exoplanetCatalogRegistry?.has(objectId) === true ||
       this.cosmicGroupCatalogRegistry?.has(objectId) === true ||
       this.cosmicStructureCatalogRegistry?.has(objectId) === true ||
       this.universeScene?.hasConstellation(objectId) === true ||
@@ -814,6 +903,8 @@ export class UniverseEngine {
   public get recommendedQuality(): GraphicQuality {
     return this.performanceManager.recommendQuality();
   }
+
+  private labelNameResolver: LabelNameResolver = (_objectId, fallback) => fallback;
 
   private readonly handleSemanticZoomIntent = (
     objectId: string | null,
@@ -826,8 +917,10 @@ export class UniverseEngine {
       return;
     }
     const previousLodLevel = this.lodManager.selectLevel(controller.distanceToTarget);
-    const anchorPosition = objectId ? this.getWorldPosition(objectId) : null;
-    const anchorObject = objectId ? this.getDefinition(objectId) : undefined;
+    const zoomObjectId =
+      deltaY < 0 && controller.isTransitioning && objectId !== this.targetId ? null : objectId;
+    const anchorPosition = zoomObjectId ? this.getWorldPosition(zoomObjectId) : null;
+    const anchorObject = zoomObjectId ? this.getDefinition(zoomObjectId) : undefined;
 
     if (!(deltaY < 0)) {
       controller.adoptZoomAnchor(controller.controls.target);
@@ -839,7 +932,7 @@ export class UniverseEngine {
       controller.adoptZoomAnchor(anchorPosition);
       this.lastZoomAnchor = {
         anchorType: 'object',
-        anchorObjectId: objectId,
+        anchorObjectId: zoomObjectId,
       };
     } else {
       controller.adoptZoomPointer(pointer.x, pointer.y);
@@ -848,8 +941,8 @@ export class UniverseEngine {
         anchorObjectId: null,
       };
     }
-    if (objectId && anchorPosition && anchorObject && deltaY < 0) {
-      this.adoptSemanticZoomTarget(objectId, anchorObject, controller);
+    if (zoomObjectId && anchorPosition && anchorObject && deltaY < 0) {
+      this.adoptSemanticZoomTarget(zoomObjectId, anchorPosition, anchorObject, controller);
     }
     controller.zoomSemantically(deltaY);
     const nextLodLevel = this.lodManager.selectLevel(controller.distanceToTarget);
@@ -861,6 +954,7 @@ export class UniverseEngine {
 
   private adoptSemanticZoomTarget(
     objectId: string,
+    position: THREE.Vector3,
     object: SpaceObject,
     controller: CameraController,
   ): void {
@@ -871,7 +965,7 @@ export class UniverseEngine {
     this.targetId = objectId;
     this.navigationContextJourney.adoptTarget(objectId);
     this.setNavigationTargetOnRegistries(objectId);
-    controller.setNavigationConstraints(object);
+    controller.trackTarget(position, object);
     this.emit({ type: 'target-changed', objectId });
   }
 
@@ -951,10 +1045,13 @@ export class UniverseEngine {
       }
     } else if (timeAdvanced) {
       registry.updateBodyRotations(currentTime, earthRotation.time);
+      this.activeExoplanetSystemRegistry?.updateBodyRotations(currentTime);
     }
 
     if (timeAdvanced && this.simulationAccumulator >= SIMULATION_UPDATE_INTERVAL_SECONDS) {
       const solarEclipseAppearance = registry.updatePositions(currentTime);
+
+      this.activeExoplanetSystemRegistry?.updatePositions(currentTime);
 
       this.emitSolarEclipseState(solarEclipseAppearance, false);
       this.followCurrentTarget();
@@ -967,12 +1064,17 @@ export class UniverseEngine {
     }
 
     controller.update(deltaSeconds);
-    this.floatingOriginManager.update(
+    this.floatingOriginShift.copy(controller.controls.target);
+    const originShifted = this.floatingOriginManager.update(
       universeScene.spaceRoot,
       camera,
       controller.controls.target,
       controller.isTransitioning,
     );
+
+    if (originShifted) {
+      controller.shiftTrackedPosition(this.floatingOriginShift);
+    }
 
     const lodLevel = this.lodManager.selectLevel(controller.distanceToTarget);
     const photographicProfile = getPhotographicProfile(lodLevel, this.displayOptions.quality);
@@ -989,8 +1091,11 @@ export class UniverseEngine {
     }
     this.requestSpaceTileSynchronization(lodLevel, deltaSeconds);
     this.requestStarTileSynchronization(lodLevel, deltaSeconds);
-    if (lodLevel >= 2 && lodLevel <= 4) {
+    if (lodLevel >= 0 && lodLevel <= 4) {
       void universeScene.ensureMilkyWayAtlas();
+    }
+    if (lodLevel >= 6) {
+      void this.ensureTempelFilamentSpines();
     }
     registry.updateLod(
       camera,
@@ -1004,7 +1109,13 @@ export class UniverseEngine {
       lodLevel,
       deltaSeconds,
     );
-    universeScene.updateLod(lodLevel, deltaSeconds, controller.distanceToTarget);
+    this.activeExoplanetSystemRegistry?.updateLod(
+      camera,
+      this.container?.clientHeight ?? renderer.domElement.clientHeight,
+      lodLevel,
+      deltaSeconds,
+    );
+    universeScene.updateLod(lodLevel, deltaSeconds, controller.distanceToTarget, camera.position);
     const viewportWidth = this.container?.clientWidth ?? renderer.domElement.clientWidth;
     const viewportHeight = this.container?.clientHeight ?? renderer.domElement.clientHeight;
     const lensingObjectId = this.targetId ?? this.selectedId;
@@ -1085,11 +1196,19 @@ export class UniverseEngine {
       geometries: renderer.info.memory.geometries,
       textures: renderer.info.memory.textures,
       visibleObjects:
-        registry.visibleObjectCount + (this.spaceTileObjectRegistry?.visibleObjectCount ?? 0),
+        registry.visibleObjectCount +
+        (this.spaceTileObjectRegistry?.visibleObjectCount ?? 0) +
+        (this.activeExoplanetSystemRegistry?.visibleObjectCount ?? 0),
       catalogStars: universeScene.visibleCatalogStarCount,
+      exoplanetHosts: universeScene.visibleExoplanetHostCount,
+      exoplanets: universeScene.exoplanetCount,
       cosmicGroups: universeScene.visibleCosmicGroupCount,
       cosmicFilaments: universeScene.visibleCosmicFilamentCount,
       cosmicStructures: universeScene.visibleCosmicStructureCount,
+      tempelFilamentSpines: universeScene.tempelFilamentSpineCount,
+      tempelSpineSegments: universeScene.tempelFilamentSpineSegmentCount,
+      visibleTempelSpineSegments: universeScene.visibleTempelFilamentSpineSegmentCount,
+      tempelSpineTiles: universeScene.tempelFilamentSpineTileCount,
       batchedGalaxies:
         registry.batchedGalaxyCount + (this.spaceTileObjectRegistry?.batchedGalaxyCount ?? 0),
       loadedTiles: this.spaceTileManager?.loadedTileCount ?? 0,
@@ -1156,6 +1275,7 @@ export class UniverseEngine {
 
       return;
     }
+    this.ensureActiveExoplanetSystem(objectId);
     const position = this.getWorldPosition(objectId);
     const object = this.getDefinition(objectId);
 
@@ -1211,9 +1331,13 @@ export class UniverseEngine {
     registry.setNavigationTarget(
       this.targetId && registry.has(this.targetId) ? this.targetId : null,
     );
+    const selectedRegistryId =
+      this.selectedId && registry.has(this.selectedId) ? this.selectedId : null;
     const selectedCatalogId =
       this.selectedId &&
+      !selectedRegistryId &&
       (this.starCatalogRegistry?.has(this.selectedId) ||
+        this.exoplanetCatalogRegistry?.has(this.selectedId) ||
         this.cosmicGroupCatalogRegistry?.has(this.selectedId) ||
         this.cosmicStructureCatalogRegistry?.has(this.selectedId))
         ? this.selectedId
@@ -1221,7 +1345,7 @@ export class UniverseEngine {
     const selectedConstellationId =
       this.selectedId && universeScene.hasConstellation(this.selectedId) ? this.selectedId : null;
 
-    registry.select(selectedCatalogId || selectedConstellationId ? null : this.selectedId);
+    registry.select(selectedRegistryId);
     universeScene.selectCatalogObject(selectedCatalogId);
     universeScene.selectConstellation(selectedConstellationId);
     registry.setSolarObserverActive(this.solarObserverActive, this.solarObserverMoonScale);
@@ -1230,7 +1354,53 @@ export class UniverseEngine {
     }
     this.objectRegistry = registry;
     this.rebuildSpaceTileObjectRegistry();
+    this.rebuildActiveExoplanetSystemRegistry();
     this.followCurrentTarget();
+  }
+
+  private ensureActiveExoplanetSystem(objectId: string): void {
+    const catalogRegistry = this.exoplanetCatalogRegistry;
+
+    if (!catalogRegistry?.has(objectId) || this.objectRegistry?.has(objectId)) {
+      return;
+    }
+    const hostId = catalogRegistry.getHostIdForObject(objectId);
+
+    if (!hostId || this.activeExoplanetSystemRegistry?.has(hostId)) {
+      return;
+    }
+    this.activeExoplanetSystemObjects = [...catalogRegistry.createSystemObjects(objectId)];
+    this.rebuildActiveExoplanetSystemRegistry();
+    this.labelManager?.setObjects(this.getLabelObjects());
+    if (this.initialized) {
+      this.emit({ type: 'objects-changed', objects: this.getPublicObjects() });
+    }
+  }
+
+  private rebuildActiveExoplanetSystemRegistry(): void {
+    const universeScene = this.universeScene;
+
+    this.activeExoplanetSystemRegistry?.dispose();
+    this.activeExoplanetSystemRegistry = null;
+    if (!universeScene || this.activeExoplanetSystemObjects.length === 0) {
+      return;
+    }
+    const registry = new ObjectRegistry(
+      universeScene.spaceRoot,
+      this.coordinateSystem,
+      this.activeExoplanetSystemObjects,
+      this.displayOptions.quality,
+    );
+    const currentTime = this.timeController.currentTime;
+
+    registry.updatePositions(currentTime);
+    registry.updateBodyRotations(currentTime);
+    registry.setDisplayOptions(this.displayOptions);
+    registry.setNavigationTarget(
+      this.targetId && registry.has(this.targetId) ? this.targetId : null,
+    );
+    registry.select(this.selectedId && registry.has(this.selectedId) ? this.selectedId : null);
+    this.activeExoplanetSystemRegistry = registry;
   }
 
   private rebuildSpaceTileObjectRegistry(): void {
@@ -1276,6 +1446,54 @@ export class UniverseEngine {
     } finally {
       this.emit({ type: 'loading-state', loading: false });
     }
+  }
+
+  private ensureTempelFilamentSpines(): Promise<void> {
+    if (this.tempelFilamentSpineLoadPromise) {
+      return this.tempelFilamentSpineLoadPromise;
+    }
+    const source = this.tempelFilamentSpineSource;
+    const scene = this.universeScene;
+    const registry = this.cosmicStructureCatalogRegistry;
+
+    if (!source || !scene || !registry || !this.initialized) {
+      return Promise.resolve();
+    }
+
+    this.tempelFilamentSpineLoadPromise = (async () => {
+      try {
+        const { loadTempelFilamentSpineCatalog } =
+          await import('../loaders/tempel-filament-spine-catalog');
+        const catalog = await loadTempelFilamentSpineCatalog(source);
+
+        if (
+          this.initialized &&
+          this.tempelFilamentSpineSource === source &&
+          this.universeScene === scene &&
+          this.cosmicStructureCatalogRegistry === registry
+        ) {
+          await scene.setTempelFilamentSpineCatalog(catalog, registry, this.coordinateSystem);
+          if (!this.initialized || this.universeScene !== scene) {
+            scene.dispose();
+
+            return;
+          }
+          scene.selectCatalogObject(this.selectedId);
+        }
+      } catch (error) {
+        if (!this.tempelFilamentSpineWarningEmitted && this.initialized) {
+          const reason = error instanceof Error ? error.message : 'erreur inconnue';
+
+          this.tempelFilamentSpineWarningEmitted = true;
+          this.emit({
+            type: 'performance-warning',
+            message: `Épines Tempel indisponibles : ${reason}`,
+          });
+        }
+      }
+    })();
+
+    return this.tempelFilamentSpineLoadPromise;
   }
 
   private requestSpaceTileSynchronization(lodLevel: number, deltaSeconds: number): void {
@@ -1452,6 +1670,7 @@ export class UniverseEngine {
     return [
       ...publicObjects,
       ...(this.starCatalogRegistry?.getLabelObjects(publicObjects, maximumCatalogRank) ?? []),
+      ...(this.exoplanetCatalogRegistry?.getLabelObjects(maximumCatalogRank) ?? []),
       ...(this.cosmicGroupCatalogRegistry?.getLabelObjects(
         getMaximumCosmicLabelRank(this.displayOptions.quality, 6, this.displayOptions.labelDensity),
       ) ?? []),
@@ -1472,6 +1691,7 @@ export class UniverseEngine {
       objects: publicObjects,
       catalogEntries: [
         ...(this.starCatalogRegistry?.getSearchEntries() ?? []),
+        ...(this.exoplanetCatalogRegistry?.getSearchEntries() ?? []),
         ...(this.cosmicGroupCatalogRegistry?.getSearchEntries() ?? []),
         ...(this.cosmicStructureCatalogRegistry?.getSearchEntries() ?? []),
         ...tileSearchEntries,
@@ -1486,6 +1706,9 @@ export class UniverseEngine {
     if (this.spaceTileObjectRegistry?.has(objectId)) {
       return this.spaceTileObjectRegistry;
     }
+    if (this.activeExoplanetSystemRegistry?.has(objectId)) {
+      return this.activeExoplanetSystemRegistry;
+    }
 
     return null;
   }
@@ -1497,6 +1720,9 @@ export class UniverseEngine {
     this.spaceTileObjectRegistry?.setNavigationTarget(
       objectId && this.spaceTileObjectRegistry.has(objectId) ? objectId : null,
     );
+    this.activeExoplanetSystemRegistry?.setNavigationTarget(
+      objectId && this.activeExoplanetSystemRegistry.has(objectId) ? objectId : null,
+    );
   }
 
   private selectOnRegistries(objectId: string | null): void {
@@ -1504,13 +1730,18 @@ export class UniverseEngine {
     this.spaceTileObjectRegistry?.select(
       objectId && this.spaceTileObjectRegistry.has(objectId) ? objectId : null,
     );
+    this.activeExoplanetSystemRegistry?.select(
+      objectId && this.activeExoplanetSystemRegistry.has(objectId) ? objectId : null,
+    );
   }
 
   private getDefinition(objectId: string): SpaceObject | undefined {
     return (
       this.objectRegistry?.getDefinition(objectId) ??
       this.spaceTileObjectRegistry?.getDefinition(objectId) ??
+      this.activeExoplanetSystemRegistry?.getDefinition(objectId) ??
       this.starCatalogRegistry?.getDefinition(objectId) ??
+      this.exoplanetCatalogRegistry?.getDefinition(objectId) ??
       this.cosmicGroupCatalogRegistry?.getDefinition(objectId) ??
       this.cosmicStructureCatalogRegistry?.getDefinition(objectId) ??
       this.universeScene?.getConstellationDefinition(objectId)
@@ -1521,6 +1752,7 @@ export class UniverseEngine {
     return (
       this.objectRegistry?.getWorldPosition(objectId, target) ??
       this.spaceTileObjectRegistry?.getWorldPosition(objectId, target) ??
+      this.activeExoplanetSystemRegistry?.getWorldPosition(objectId, target) ??
       this.universeScene?.getCatalogWorldPosition(objectId, target) ??
       this.universeScene?.getConstellationWorldPosition(objectId, target) ??
       null
@@ -1528,7 +1760,11 @@ export class UniverseEngine {
   }
 
   private getPublicObjects(): SpaceObject[] {
-    return [...this.objects, ...(this.universeScene?.constellationDefinitions ?? [])];
+    return [
+      ...this.objects,
+      ...this.activeExoplanetSystemObjects,
+      ...(this.universeScene?.constellationDefinitions ?? []),
+    ];
   }
 
   private emit(event: UniverseEngineEvent): void {

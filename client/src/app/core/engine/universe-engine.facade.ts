@@ -29,6 +29,7 @@ import {
   universeTimeToIsoDateTime,
 } from '../../../engine/simulation/time-utils';
 import { SearchService } from '../search/search.service';
+import { I18nService } from '../i18n/i18n.service';
 import { findSpeedIndex, TIME_SPEED_OPTIONS } from '../settings/time-speeds';
 import { NavigationUrlService } from '../url/navigation-url.service';
 
@@ -77,6 +78,7 @@ export class UniverseEngineFacade {
   public readonly eclipseEventsLoading = signal(false);
   public readonly localEclipseLoading = signal(false);
   public readonly upcomingEclipses = signal<readonly EarthEclipseEvent[]>([]);
+  public readonly eclipseCatalogAtPresent = signal(true);
   public readonly activeSolarEclipse = signal<EarthEclipseEvent | null>(null);
   public readonly solarEclipseState = signal<SolarEclipseState>({
     phase: 'none',
@@ -112,7 +114,7 @@ export class UniverseEngineFacade {
     universeTimeToIsoDateTime(this.currentTime()),
   );
   public readonly currentLocalClock = computed(() =>
-    formatUniverseClock(this.currentTime(), this.browserTimeZone),
+    formatUniverseClock(this.currentTime(), this.browserTimeZone, this.i18n.locale()),
   );
   public readonly currentSolarEclipse = computed<EarthEclipseEvent | null>(() => {
     const state = this.solarEclipseState();
@@ -151,23 +153,33 @@ export class UniverseEngineFacade {
   });
   public readonly solarObserverLocation = computed(() => {
     const event = this.timelineSolarEclipse();
+    const content = this.i18n.content();
     const coordinates = event
-      ? formatCoordinates(event.latitude, event.longitude)
-      : 'Point central';
+      ? formatCoordinates(
+          event.latitude,
+          event.longitude,
+          content.facade.centralPointCalculated,
+          content.common.west,
+        )
+      : content.facade.centralPoint;
 
     return event?.observerName ? `${event.observerName} · ${coordinates}` : coordinates;
   });
   public readonly eclipseContextLabel = computed(() => {
+    const facade = this.i18n.content().facade;
+
     if (this.solarObserverActive()) {
-      return 'Observation locale';
+      return facade.localObservation;
     }
     const event = this.timelineSolarEclipse();
 
     if (event?.scope === 'local') {
-      return `Maximum local · ${event.observerName ?? 'lieu choisi'}`;
+      return this.i18n.interpolate(facade.localMaximum, {
+        location: event.observerName ?? facade.chosenLocation,
+      });
     }
 
-    return event?.scope === 'global' ? 'Maximum mondial' : 'Phénomène en cours';
+    return event?.scope === 'global' ? facade.globalMaximum : facade.phenomenonCurrent;
   });
   public readonly localEclipseSummary = computed(() => {
     const event = this.timelineSolarEclipse();
@@ -175,24 +187,30 @@ export class UniverseEngineFacade {
     if (event?.scope !== 'local') {
       return null;
     }
+    const facade = this.i18n.content().facade;
     const obscuration =
       event.obscuration === null
-        ? 'occultation indisponible'
-        : `${new Intl.NumberFormat('fr-FR', {
-            maximumFractionDigits: 1,
-          }).format(event.obscuration * 100)} % occulté`;
-    const clock = formatUniverseClock(event.peak, event.observerTimeZone ?? this.browserTimeZone);
+        ? facade.obscurationUnavailable
+        : this.i18n.interpolate(facade.obscured, {
+            value: this.i18n.formatNumber(event.obscuration * 100, 1),
+          });
+    const clock = formatUniverseClock(
+      event.peak,
+      event.observerTimeZone ?? this.browserTimeZone,
+      this.i18n.locale(),
+    );
     const altitude =
       event.sunAltitudeDegrees === null
         ? ''
-        : ` · Soleil à ${new Intl.NumberFormat('fr-FR', {
-            maximumFractionDigits: 1,
-          }).format(event.sunAltitudeDegrees)}°`;
+        : ` · ${this.i18n.interpolate(facade.sunAltitude, {
+            value: this.i18n.formatNumber(event.sunAltitudeDegrees, 1),
+          })}`;
 
     return `${obscuration} · ${clock}${altitude}`;
   });
 
   private readonly engine = inject(UNIVERSE_ENGINE);
+  private readonly i18n = inject(I18nService);
   private readonly eclipseCatalogLoader = inject(EARTH_ECLIPSE_CATALOG_LOADER);
   private readonly localSolarEclipseCalculatorLoader = inject(
     LOCAL_SOLAR_ECLIPSE_CALCULATOR_LOADER,
@@ -203,6 +221,12 @@ export class UniverseEngineFacade {
   private unsubscribeEngine: (() => void) | null = null;
   private initialization: Promise<void> | null = null;
   private initialNavigation: Partial<NavigationState> = {};
+
+  constructor() {
+    this.engine.setLabelNameResolver((objectId, fallback) =>
+      this.i18n.objectName(objectId, fallback),
+    );
+  }
 
   public initialize(container: HTMLElement): Promise<void> {
     if (this.initialization) {
@@ -227,7 +251,9 @@ export class UniverseEngineFacade {
       this.resetSolarEclipsePresentation();
       await this.engine.setTarget(objectId);
     } catch (error) {
-      this.error.set(error instanceof Error ? error.message : 'Cible inaccessible.');
+      this.error.set(
+        error instanceof Error ? error.message : this.i18n.content().facade.targetUnavailable,
+      );
     }
   }
 
@@ -239,6 +265,17 @@ export class UniverseEngineFacade {
     }
   }
 
+  public async viewRotation(objectId: string): Promise<void> {
+    this.resetSolarEclipsePresentation();
+    try {
+      await this.engine.viewRotation(objectId);
+    } catch (error) {
+      this.error.set(
+        error instanceof Error ? error.message : this.i18n.content().facade.rotationUnavailable,
+      );
+    }
+  }
+
   public viewOrbit(objectId: string): void {
     this.resetSolarEclipsePresentation();
     if (!this.displayOptions().showOrbits) {
@@ -247,7 +284,9 @@ export class UniverseEngineFacade {
     try {
       this.engine.viewOrbit(objectId);
     } catch (error) {
-      this.error.set(error instanceof Error ? error.message : 'Orbite inaccessible.');
+      this.error.set(
+        error instanceof Error ? error.message : this.i18n.content().facade.orbitUnavailable,
+      );
     }
   }
 
@@ -256,7 +295,7 @@ export class UniverseEngineFacade {
     try {
       this.engine.viewScale(scale);
     } catch {
-      this.error.set('Échelle inaccessible.');
+      this.error.set(this.i18n.content().facade.scaleUnavailable);
     }
   }
 
@@ -348,9 +387,7 @@ export class UniverseEngineFacade {
   public setTemporalMode(temporalMode: TemporalMode): void {
     this.updateDisplayOptions({ temporalMode });
     if (temporalMode === 'observable') {
-      this.performanceWarning.set(
-        'La Vue observable est préparée dans l’architecture ; ce prototype affiche encore un état simultané.',
-      );
+      this.performanceWarning.set(this.i18n.content().facade.observableWarning);
     }
   }
 
@@ -388,8 +425,31 @@ export class UniverseEngineFacade {
     this.settingsOpen.set(false);
     this.helpOpen.set(false);
     if (open) {
-      void this.loadUpcomingEclipses();
+      this.returnToCurrentEclipses();
     }
+  }
+
+  public browseEarlierEclipses(): void {
+    const firstEvent = this.upcomingEclipses()[0];
+    const reference = {
+      julianDay: (firstEvent?.peak.julianDay ?? this.currentTime().julianDay) - 1 / 86_400,
+    };
+
+    void this.loadEclipsePage(reference, 'past', false);
+  }
+
+  public browseLaterEclipses(): void {
+    const events = this.upcomingEclipses();
+    const lastEvent = events.at(-1);
+    const reference = {
+      julianDay: (lastEvent?.peak.julianDay ?? this.currentTime().julianDay) + 1 / 86_400,
+    };
+
+    void this.loadEclipsePage(reference, 'future', false);
+  }
+
+  public returnToCurrentEclipses(): void {
+    void this.loadEclipsePage(this.currentTime(), 'future', true);
   }
 
   public async viewEarthEclipse(event: EarthEclipseEvent): Promise<void> {
@@ -412,7 +472,7 @@ export class UniverseEngineFacade {
       this.engine.viewSolarEclipse(event);
     } catch (error) {
       this.error.set(
-        error instanceof Error ? error.message : 'Visualisation de l’éclipse impossible.',
+        error instanceof Error ? error.message : this.i18n.content().facade.eclipseViewUnavailable,
       );
     }
   }
@@ -432,7 +492,9 @@ export class UniverseEngineFacade {
       this.engine.observeSolarEclipse(event);
     } catch (error) {
       this.solarObserverActive.set(false);
-      this.error.set(error instanceof Error ? error.message : 'Point d’observation inaccessible.');
+      this.error.set(
+        error instanceof Error ? error.message : this.i18n.content().facade.observerUnavailable,
+      );
     }
   }
 
@@ -450,7 +512,9 @@ export class UniverseEngineFacade {
       this.performanceWarning.set(
         error instanceof Error
           ? error.message
-          : `Le maximum local est indisponible pour ${location.name}.`,
+          : this.i18n.interpolate(this.i18n.content().facade.localMaximumUnavailable, {
+              location: location.name,
+            }),
       );
     } finally {
       this.localEclipseLoading.set(false);
@@ -481,9 +545,9 @@ export class UniverseEngineFacade {
 
     try {
       await navigator.clipboard.writeText(url);
-      this.shareNotice.set('Lien copié');
+      this.shareNotice.set(this.i18n.content().facade.shareCopied);
     } catch {
-      this.shareNotice.set('Copie impossible — utilisez l’URL du navigateur');
+      this.shareNotice.set(this.i18n.content().facade.shareFailed);
     }
     window.setTimeout(() => this.shareNotice.set(null), 2_400);
   }
@@ -534,19 +598,28 @@ export class UniverseEngineFacade {
       this.ready.set(true);
       this.scheduleUrlUpdate();
     } catch (error) {
-      this.error.set(error instanceof Error ? error.message : 'Initialisation impossible.');
+      this.error.set(
+        error instanceof Error
+          ? error.message
+          : this.i18n.content().facade.initializationUnavailable,
+      );
       this.loading.set(false);
     }
   }
 
-  private async loadUpcomingEclipses(): Promise<void> {
+  private async loadEclipsePage(
+    reference: UniverseTime,
+    direction: 'past' | 'future',
+    atPresent: boolean,
+  ): Promise<void> {
     this.eclipseEventsLoading.set(true);
     try {
-      const { findUpcomingEarthEclipses } = await this.eclipseCatalogLoader();
+      const { findEarthEclipsePage } = await this.eclipseCatalogLoader();
 
-      this.upcomingEclipses.set(findUpcomingEarthEclipses(this.currentTime(), 6));
+      this.upcomingEclipses.set(findEarthEclipsePage(reference, 8, direction));
+      this.eclipseCatalogAtPresent.set(atPresent);
     } catch {
-      this.performanceWarning.set('Le catalogue des éclipses n’a pas pu être calculé.');
+      this.performanceWarning.set(this.i18n.content().facade.eclipseCatalogUnavailable);
     } finally {
       this.eclipseEventsLoading.set(false);
     }
@@ -645,13 +718,18 @@ export class UniverseEngineFacade {
   }
 }
 
-function formatCoordinates(latitude: number | null, longitude: number | null): string {
+function formatCoordinates(
+  latitude: number | null,
+  longitude: number | null,
+  centralPoint: string,
+  west: string,
+): string {
   if (latitude === null || longitude === null) {
-    return 'Point central calculé';
+    return centralPoint;
   }
 
   const latitudeSuffix = latitude >= 0 ? 'N' : 'S';
-  const longitudeSuffix = longitude >= 0 ? 'E' : 'O';
+  const longitudeSuffix = longitude >= 0 ? 'E' : west;
 
   return `${Math.abs(latitude).toFixed(1)}° ${latitudeSuffix} · ${Math.abs(longitude).toFixed(1)}° ${longitudeSuffix}`;
 }

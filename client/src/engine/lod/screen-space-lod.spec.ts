@@ -12,11 +12,23 @@ const planet = {
   id: 'earth',
   type: 'planet',
 } as SpaceObject;
+const exoplanet = {
+  ...planet,
+  id: 'kepler-452-b',
+  type: 'exoplanet',
+  referenceFrame: 'stellar',
+} as SpaceObject;
 const blackHole = {
   ...planet,
   id: 'sagittarius-a-star',
   type: 'black-hole',
   referenceFrame: 'galactic',
+} as SpaceObject;
+const supernova = {
+  ...planet,
+  id: 'sn-1987a',
+  type: 'supernova',
+  referenceFrame: 'stellar',
 } as SpaceObject;
 
 const nearbyStar = {
@@ -67,6 +79,9 @@ describe('LOD en espace écran', () => {
     expect(shouldDisplayObjectAtLevel(planet, 0, false)).toBe(true);
     expect(shouldDisplayObjectAtLevel(planet, 2, false)).toBe(false);
     expect(shouldDisplayObjectAtLevel(planet, 2, true)).toBe(true);
+    expect(shouldDisplayObjectAtLevel(exoplanet, 0, false)).toBe(true);
+    expect(shouldDisplayObjectAtLevel(exoplanet, 1, false)).toBe(true);
+    expect(shouldDisplayObjectAtLevel(exoplanet, 2, false)).toBe(false);
     expect(shouldDisplayObjectAtLevel(nearbyStar, 0, false)).toBe(false);
     expect(shouldDisplayObjectAtLevel(nearbyStar, 1, false)).toBe(true);
     expect(shouldDisplayObjectAtLevel(nearbyStar, 3, false)).toBe(true);
@@ -84,6 +99,13 @@ describe('LOD en espace écran', () => {
     expect(shouldDisplayObjectAtLevel(blackHole, 3, false)).toBe(true);
     expect(shouldDisplayObjectAtLevel(blackHole, 4, false)).toBe(false);
     expect(shouldDisplayObjectAtLevel(blackHole, 4, true)).toBe(true);
+    expect(shouldDisplayObjectAtLevel(supernova, 0, false)).toBe(false);
+    expect(shouldDisplayObjectAtLevel(supernova, 1, false)).toBe(true);
+    expect(shouldDisplayObjectAtLevel(supernova, 3, false)).toBe(true);
+    expect(shouldDisplayObjectAtLevel(supernova, 4, false)).toBe(false);
+    expect(shouldDisplayObjectAtLevel({ ...supernova, type: 'supernova-remnant' }, 2, false)).toBe(
+      true,
+    );
     expect(dampValue(0, 1, 8, 0.2)).toBeGreaterThan(0);
   });
 

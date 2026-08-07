@@ -18,6 +18,13 @@ import {
   COSMIC_WEB_VOLUME_VERSION,
 } from './cosmic-web-volume';
 import {
+  EXOPLANET_CATALOG_HEADER_BYTES,
+  EXOPLANET_CATALOG_HOST_RECORD_BYTES,
+  EXOPLANET_CATALOG_MAGIC,
+  EXOPLANET_CATALOG_PLANET_RECORD_BYTES,
+  EXOPLANET_CATALOG_VERSION,
+} from './exoplanet-catalog';
+import {
   STAR_CATALOG_HEADER_BYTES,
   STAR_CATALOG_MAGIC,
   STAR_CATALOG_RECORD_BYTES,
@@ -80,6 +87,99 @@ describe('AssetLoader', () => {
     expect(assets.cosmicGroupCatalog?.filamentPairs).toEqual(new Uint32Array());
     expect(assets.warnings).toEqual([]);
     expect(fetchMock).toHaveBeenCalledWith('/data/cosmic-groups.bin');
+  });
+
+  it('charge le catalogue NASA compact et ses métadonnées de provenance', async () => {
+    const fetchMock = installFetch({
+      '/data/manifest.json': successfulResponse({
+        version: '1.0.0',
+        datasets: [
+          {
+            id: 'nasa-exoplanets',
+            url: '/data/exoplanets.bin',
+            metadataUrl: '/data/exoplanets.json',
+            type: 'exoplanet-catalog',
+            format: 'exoplanet-catalog-v1',
+          },
+        ],
+      }),
+      '/data/exoplanets.json': successfulResponse(exoplanetMetadata()),
+      '/data/exoplanets.bin': successfulBinaryResponse(exoplanetCatalogBuffer()),
+    });
+
+    const assets = await new AssetLoader().loadAssets();
+
+    expect(assets.exoplanetCatalog?.hostCount).toBe(1);
+    expect(assets.exoplanetCatalog?.planetCount).toBe(1);
+    expect(assets.exoplanetCatalog?.hostNames).toEqual(['Test Host']);
+    expect(assets.exoplanetCatalog?.planetNames).toEqual(['Test Host b']);
+    expect(assets.warnings).toEqual([]);
+    expect(fetchMock).toHaveBeenCalledWith('/data/exoplanets.json');
+    expect(fetchMock).toHaveBeenCalledWith('/data/exoplanets.bin');
+  });
+
+  it('conserve les autres données si le catalogue NASA est indisponible', async () => {
+    installFetch({
+      '/data/manifest.json': successfulResponse({
+        version: '1.0.0',
+        datasets: [
+          {
+            id: 'nasa-exoplanets',
+            url: '/data/exoplanets.bin',
+            metadataUrl: '/data/exoplanets.json',
+            type: 'exoplanet-catalog',
+            format: 'exoplanet-catalog-v1',
+          },
+        ],
+      }),
+      '/data/exoplanets.json': failedResponse(503),
+    });
+
+    const assets = await new AssetLoader().loadAssets();
+
+    expect(assets.exoplanetCatalog).toBeNull();
+    expect(assets.warnings).toEqual([
+      'Catalogue d’exoplanètes indisponible : Impossible de charger les métadonnées nasa-exoplanets (503).',
+    ]);
+  });
+
+  it('signale séparément un binaire NASA indisponible ou illisible', async () => {
+    const manifest = {
+      version: '1.0.0',
+      datasets: [
+        {
+          id: 'nasa-exoplanets',
+          url: '/data/exoplanets.bin',
+          metadataUrl: '/data/exoplanets.json',
+          type: 'exoplanet-catalog',
+          format: 'exoplanet-catalog-v1',
+        },
+      ],
+    };
+
+    installFetch({
+      '/data/manifest.json': successfulResponse(manifest),
+      '/data/exoplanets.json': successfulResponse(exoplanetMetadata()),
+      '/data/exoplanets.bin': failedResponse(502),
+    });
+    const unavailable = await new AssetLoader().loadAssets();
+
+    expect(unavailable.exoplanetCatalog).toBeNull();
+    expect(unavailable.warnings[0]).toContain('Impossible de charger nasa-exoplanets (502)');
+
+    installFetch({
+      '/data/manifest.json': successfulResponse(manifest),
+      '/data/exoplanets.json': successfulResponse(exoplanetMetadata()),
+      '/data/exoplanets.bin': {
+        ok: true,
+        status: 200,
+        arrayBuffer: async () => Promise.reject('échec brut'),
+      } as Response,
+    });
+    const unreadable = await new AssetLoader().loadAssets();
+
+    expect(unreadable.exoplanetCatalog).toBeNull();
+    expect(unreadable.warnings).toEqual(['Catalogue d’exoplanètes indisponible : erreur inconnue']);
   });
 
   it('conserve les autres données si le catalogue cosmique est indisponible', async () => {
@@ -482,6 +582,31 @@ describe('AssetLoader', () => {
     expect(fetchMock).not.toHaveBeenCalledWith('/data/stars/tiles/index.json');
   });
 
+  it('expose les épines Tempel sans télécharger leur binaire au démarrage', async () => {
+    const fetchMock = installFetch({
+      '/data/manifest.json': successfulResponse({
+        version: '1.0.0',
+        datasets: [
+          {
+            id: 'tempel-filament-spines',
+            url: '/data/structures/tempel-filament-spines.bin',
+            type: 'tempel-filament-spine-catalog',
+            format: 'tempel-filament-spines-v1',
+          },
+        ],
+      }),
+    });
+
+    const assets = await new AssetLoader().loadAssets();
+
+    expect(assets.tempelFilamentSpineSource).toEqual({
+      id: 'tempel-filament-spines',
+      url: '/data/structures/tempel-filament-spines.bin',
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock).not.toHaveBeenCalledWith('/data/structures/tempel-filament-spines.bin');
+  });
+
   it('produit une erreur explicite lorsque l’index spatial est indisponible', async () => {
     installFetch({
       '/data/manifest.json': successfulResponse({
@@ -767,6 +892,89 @@ function starCatalogBuffer(catalogIds: readonly number[] = [3_229]): ArrayBuffer
   strings.set(name, nameOffset);
   strings.set(aliases, aliasesOffset);
   strings.set(spectralType, spectralTypeOffset);
+
+  return buffer;
+}
+
+function exoplanetMetadata() {
+  return {
+    version: '1.0.0',
+    format: 'exoplanet-catalog-v1',
+    source: {
+      name: 'NASA Exoplanet Archive',
+      url: 'https://exoplanetarchive.ipac.caltech.edu/',
+      tapUrl: 'https://exoplanetarchive.ipac.caltech.edu/TAP/sync',
+      table: 'PSCompPars',
+      query: 'select ... from pscomppars',
+      snapshotDate: '2026-08-05',
+      sha256: 'a'.repeat(64),
+    },
+    counts: {
+      hosts: 1,
+      planets: 1,
+      positionedHosts: 1,
+      positionedPlanets: 1,
+    },
+    missingDistanceFallbackParsec: 1_000,
+  };
+}
+
+function exoplanetCatalogBuffer(): ArrayBuffer {
+  const encoder = new TextEncoder();
+  const values = ['Test Host', 'HD 1', 'G2 V', 'Test Host b', 'b', 'Transit', 'Kepler', 'Mass'];
+  const bytes = [0];
+  const offsets = new Map<string, number>();
+
+  for (const value of values) {
+    offsets.set(value, bytes.length);
+    bytes.push(...encoder.encode(value), 0);
+  }
+  const planetOffset = EXOPLANET_CATALOG_HEADER_BYTES + EXOPLANET_CATALOG_HOST_RECORD_BYTES;
+  const stringOffset = planetOffset + EXOPLANET_CATALOG_PLANET_RECORD_BYTES;
+  const buffer = new ArrayBuffer(stringOffset + bytes.length);
+  const view = new DataView(buffer);
+
+  for (let index = 0; index < EXOPLANET_CATALOG_MAGIC.length; index += 1) {
+    view.setUint8(index, EXOPLANET_CATALOG_MAGIC.charCodeAt(index));
+  }
+  view.setUint16(4, EXOPLANET_CATALOG_VERSION, true);
+  view.setUint16(6, EXOPLANET_CATALOG_HEADER_BYTES, true);
+  view.setUint16(8, EXOPLANET_CATALOG_HOST_RECORD_BYTES, true);
+  view.setUint16(10, EXOPLANET_CATALOG_PLANET_RECORD_BYTES, true);
+  view.setUint32(12, 1, true);
+  view.setUint32(16, 1, true);
+  view.setUint32(20, planetOffset, true);
+  view.setUint32(24, stringOffset, true);
+  view.setUint32(28, bytes.length, true);
+  view.setUint32(EXOPLANET_CATALOG_HEADER_BYTES, offsets.get('Test Host')!, true);
+  view.setUint32(EXOPLANET_CATALOG_HEADER_BYTES + 4, offsets.get('HD 1')!, true);
+  view.setUint32(EXOPLANET_CATALOG_HEADER_BYTES + 8, offsets.get('G2 V')!, true);
+  view.setUint32(EXOPLANET_CATALOG_HEADER_BYTES + 12, 0, true);
+  view.setUint16(EXOPLANET_CATALOG_HEADER_BYTES + 16, 1, true);
+  view.setUint8(EXOPLANET_CATALOG_HEADER_BYTES + 18, 1);
+  view.setFloat64(EXOPLANET_CATALOG_HEADER_BYTES + 20, 120, true);
+  view.setFloat64(EXOPLANET_CATALOG_HEADER_BYTES + 28, 30, true);
+  view.setFloat64(EXOPLANET_CATALOG_HEADER_BYTES + 36, 50, true);
+  view.setFloat32(EXOPLANET_CATALOG_HEADER_BYTES + 44, 5_500, true);
+  view.setFloat32(EXOPLANET_CATALOG_HEADER_BYTES + 48, 1, true);
+  view.setFloat32(EXOPLANET_CATALOG_HEADER_BYTES + 52, 1, true);
+  view.setFloat32(EXOPLANET_CATALOG_HEADER_BYTES + 56, 10, true);
+  view.setUint32(planetOffset, offsets.get('Test Host b')!, true);
+  view.setUint32(planetOffset + 4, offsets.get('b')!, true);
+  view.setUint32(planetOffset + 8, offsets.get('Transit')!, true);
+  view.setUint32(planetOffset + 12, offsets.get('Kepler')!, true);
+  view.setUint32(planetOffset + 16, offsets.get('Mass')!, true);
+  view.setUint32(planetOffset + 20, 0, true);
+  view.setFloat64(planetOffset + 24, 10, true);
+  view.setFloat64(planetOffset + 32, 0.1, true);
+  view.setFloat32(planetOffset + 40, 1.2, true);
+  view.setFloat32(planetOffset + 44, 2.3, true);
+  view.setFloat32(planetOffset + 48, 280, true);
+  view.setFloat32(planetOffset + 52, 0.02, true);
+  view.setFloat32(planetOffset + 56, 89, true);
+  view.setFloat32(planetOffset + 60, 1.1, true);
+  view.setUint16(planetOffset + 64, 2020, true);
+  new Uint8Array(buffer, stringOffset).set(bytes);
 
   return buffer;
 }

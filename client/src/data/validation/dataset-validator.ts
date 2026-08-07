@@ -25,8 +25,11 @@ const SPACE_OBJECT_TYPES: readonly SpaceObjectType[] = [
   'galaxy',
   'black-hole',
   'nebula',
+  'supernova',
+  'supernova-remnant',
   'star',
   'planet',
+  'exoplanet',
   'dwarf-planet',
   'moon',
   'asteroid',
@@ -107,7 +110,9 @@ export function parseManifest(value: unknown): DatasetManifest {
         datasetType !== 'star-tile-index' &&
         datasetType !== 'cosmic-group-catalog' &&
         datasetType !== 'cosmic-structure-catalog' &&
-        datasetType !== 'cosmic-web-volume')
+        datasetType !== 'cosmic-web-volume' &&
+        datasetType !== 'tempel-filament-spine-catalog' &&
+        datasetType !== 'exoplanet-catalog')
     ) {
       throw new Error(`Entrée de manifest invalide à l’index ${index}.`);
     }
@@ -207,6 +212,36 @@ export function parseManifest(value: unknown): DatasetManifest {
         id: entry['id'],
         url: entry['url'],
         type: 'cosmic-web-volume',
+        format: entry['format'],
+      };
+    }
+
+    if (datasetType === 'tempel-filament-spine-catalog') {
+      if (entry['format'] !== 'tempel-filament-spines-v1') {
+        throw new Error(`Format d’épines Tempel invalide à l’index ${index}.`);
+      }
+
+      return {
+        id: entry['id'],
+        url: entry['url'],
+        type: 'tempel-filament-spine-catalog',
+        format: entry['format'],
+      };
+    }
+
+    if (datasetType === 'exoplanet-catalog') {
+      if (entry['format'] !== 'exoplanet-catalog-v1') {
+        throw new Error(`Format de catalogue d’exoplanètes invalide à l’index ${index}.`);
+      }
+      if (typeof entry['metadataUrl'] !== 'string') {
+        throw new Error(`Métadonnées d’exoplanètes manquantes à l’index ${index}.`);
+      }
+
+      return {
+        id: entry['id'],
+        url: entry['url'],
+        metadataUrl: entry['metadataUrl'],
+        type: 'exoplanet-catalog',
         format: entry['format'],
       };
     }
@@ -356,6 +391,19 @@ function parsePositionProvider(value: unknown, objectId: string): PositionProvid
         isPositiveFiniteNumber(value['orbitalPeriodDays']) &&
         typeof value['orbitEpochJulianDay'] === 'number' &&
         Number.isFinite(value['orbitEpochJulianDay']) &&
+        (value['distanceScale'] === undefined || isPositiveFiniteNumber(value['distanceScale']))
+      ) {
+        return value as unknown as PositionProviderDefinition;
+      }
+      break;
+    case 'illustrative-orbit':
+      if (
+        isPositiveFiniteNumber(value['semiMajorAxis']) &&
+        isPositiveFiniteNumber(value['orbitalPeriodDays']) &&
+        isFiniteNumber(value['epochJulianDay']) &&
+        isFiniteNumber(value['visualPhaseAtEpochDegrees']) &&
+        isFiniteNumber(value['visualInclinationDegrees']) &&
+        isEnumValue(value['unit'], DISTANCE_UNITS) &&
         (value['distanceScale'] === undefined || isPositiveFiniteNumber(value['distanceScale']))
       ) {
         return value as unknown as PositionProviderDefinition;

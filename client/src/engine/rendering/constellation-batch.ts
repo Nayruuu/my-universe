@@ -8,8 +8,12 @@ import { dampValue } from '../lod/screen-space-lod';
 import { type StarCatalogRegistry } from '../objects/star-catalog-registry';
 import { PICKING_LAYER } from '../selection/selection-layers';
 
-const LOD_OPACITIES = [0.18, 0.3, 0.46, 0, 0, 0] as const;
+const LOD_OPACITIES = [0.08, 0.14, 0.23, 0, 0, 0] as const;
 const CONSTELLATION_ID_PREFIX = 'constellation-';
+const HOVER_HIGHLIGHT_OPACITY = 0.74;
+const SELECTED_HIGHLIGHT_OPACITY = 0.98;
+const HOVER_HIGHLIGHT_COLOR = 0xaee5ff;
+const SELECTED_HIGHLIGHT_COLOR = 0xe5fbff;
 
 interface FigureGeometry {
   readonly objectId: string;
@@ -50,9 +54,10 @@ export class ConstellationBatch {
     });
     const highlightGeometry = createHighlightGeometry(figures);
     const highlightMaterial = new THREE.LineBasicMaterial({
-      color: 0xaee5ff,
+      color: SELECTED_HIGHLIGHT_COLOR,
       transparent: true,
       opacity: 0,
+      blending: THREE.AdditiveBlending,
       depthWrite: false,
       toneMapped: false,
     });
@@ -85,6 +90,7 @@ export class ConstellationBatch {
     this.highlightLines.renderOrder = 2;
     this.highlightLines.userData['objectId'] = null;
     this.highlightLines.userData['scientificConfidence'] = catalog.scientificConfidence;
+    this.highlightLines.userData['visualStyle'] = 'additive-target-highlight';
     this.root.add(this.lines, this.highlightLines);
   }
 
@@ -134,8 +140,14 @@ export class ConstellationBatch {
     const lodOpacity = LOD_OPACITIES[lodLevel] ?? 0;
     const targetOpacity = this.enabled ? lodOpacity : 0;
     const activeFigure = this.highlightLines.geometry.drawRange.count > 0;
+    const selectedFigure =
+      activeFigure && this.highlightLines.userData['objectId'] === this.selectedId;
     const targetHighlightOpacity =
-      this.enabled && activeFigure ? Math.min(0.92, lodOpacity * 2.2 + 0.08) : 0;
+      this.enabled && activeFigure && lodOpacity > 0
+        ? selectedFigure
+          ? SELECTED_HIGHLIGHT_OPACITY
+          : HOVER_HIGHLIGHT_OPACITY
+        : 0;
 
     this.opacity = dampValue(this.opacity, targetOpacity, 7, deltaSeconds);
     this.highlightOpacity = dampValue(
@@ -146,6 +158,9 @@ export class ConstellationBatch {
     );
     this.lines.material.opacity = this.opacity;
     this.highlightLines.material.opacity = this.highlightOpacity;
+    this.highlightLines.material.color.setHex(
+      selectedFigure ? SELECTED_HIGHLIGHT_COLOR : HOVER_HIGHLIGHT_COLOR,
+    );
     this.updateVisibility();
   }
 

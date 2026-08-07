@@ -6,7 +6,7 @@ import {
   MILKY_WAY_TRANSITION_START,
 } from '../lod/milky-way-transition';
 
-export const MILKY_WAY_ATLAS_URL = '/textures/milky-way-emissive-1024.jpg';
+export const MILKY_WAY_ATLAS_URL = '/textures/milky-way-emissive-1254-v2.jpg';
 
 export interface MilkyWayVolumeSample {
   opacity: number;
@@ -26,6 +26,7 @@ export type MilkyWayAtlasLoader = (url: string) => Promise<THREE.Texture>;
 const VOLUME_FADE_START = 2_200;
 const VOLUME_FADE_END = 6_500;
 const MAXIMUM_VOLUME_OPACITY = 0.92;
+const TRANSITION_AURA_OPACITY_FACTOR = 0.38;
 const DISC_DIAMETER = 12_400;
 const DISC_LAYER_OFFSETS = [0, 82, -82] as const;
 const DISC_LAYER_ROTATIONS = [0, 0.014, -0.012] as const;
@@ -76,8 +77,12 @@ export function sampleMilkyWayVolume(
   const distance = normalizeDistance(cameraDistance);
   const entryOpacity = smoothstep(VOLUME_FADE_START, VOLUME_FADE_END, distance);
   const transition = calculateMilkyWayTransition(distance);
+  const transitionOpacity = Math.max(
+    transition.detailOpacity,
+    transition.auraOpacity * TRANSITION_AURA_OPACITY_FACTOR,
+  );
 
-  target.opacity = MAXIMUM_VOLUME_OPACITY * entryOpacity * transition.detailOpacity;
+  target.opacity = MAXIMUM_VOLUME_OPACITY * entryOpacity * transitionOpacity;
   target.scale = distance < MILKY_WAY_TRANSITION_START ? 1 : transition.detailScale;
 
   return target;
@@ -109,11 +114,11 @@ export class MilkyWayVolume {
     this.root.name = 'illustrative-milky-way-volume';
     this.root.visible = false;
     this.root.userData['scientificConfidence'] = 'illustrative';
-    this.root.userData['visualStructure'] =
-      'cinematic-volume-with-view-parallax-and-dust-absorption';
+    this.root.userData['visualStructure'] = 'asymmetric-continuous-four-arm-galactic-disc';
     this.root.userData['structureOrigin'] = 'galactic-center';
     this.root.userData['atlasUrl'] = MILKY_WAY_ATLAS_URL;
-    this.root.userData['depthTechnique'] = 'view-dependent-atlas-parallax-and-three-offset-discs';
+    this.root.userData['depthTechnique'] = 'domain-warped-atlas-parallax-with-dust-rifts';
+    this.root.userData['morphologyModel'] = 'barred-spiral-with-two-major-and-two-minor-arms';
 
     this.bulge.name = 'milky-way-volume-bulge';
     this.bulge.scale.set(1_520, 335, 870);
@@ -308,12 +313,31 @@ function createDiscMaterial(strength: number, additive: boolean): THREE.ShaderMa
       varying vec2 vUv;
       varying vec2 viewParallax;
 
+      float structureNoise(vec2 coordinate) {
+        float broad = sin(coordinate.x) * sin(coordinate.y);
+        float middle = sin(coordinate.x * 2.17 + coordinate.y * 1.43);
+        float fine = sin(coordinate.x * 4.31 - coordinate.y * 3.73);
+
+        return 0.5 + 0.5 * (broad * 0.5 + middle * 0.31 + fine * 0.19);
+      }
+
       void main() {
-        float radius = length(vUv - 0.5) * 2.0;
+        vec2 centered = (vUv - 0.5) * 2.0;
+        float sourceRadius = length(centered);
+        float sourceAngle = atan(centered.y, centered.x);
+        float domainNoise = structureNoise(vec2(sourceAngle * 2.4, sourceRadius * 7.3));
+        vec2 domainWarp = vec2(
+          sin(sourceAngle * 3.0 + sourceRadius * 9.0),
+          cos(sourceAngle * 2.0 - sourceRadius * 7.0)
+        ) * (0.008 + domainNoise * 0.018) * smoothstep(0.08, 0.7, sourceRadius);
+        vec2 warpedUv = clamp(vUv + domainWarp, vec2(0.001), vec2(0.999));
+        vec2 warpedCenter = (warpedUv - 0.5) * 2.0;
+        float radius = length(warpedCenter);
+        float angle = atan(warpedCenter.y, warpedCenter.x);
         vec2 parallaxOffset = viewParallax * parallaxStrength * mix(0.42, 1.0, radius);
-        vec2 frontUv = clamp(vUv + parallaxOffset, vec2(0.001), vec2(0.999));
-        vec2 rearUv = clamp(vUv - parallaxOffset * 0.72, vec2(0.001), vec2(0.999));
-        vec3 atlasColor = texture2D(atlas, vUv).rgb;
+        vec2 frontUv = clamp(warpedUv + parallaxOffset, vec2(0.001), vec2(0.999));
+        vec2 rearUv = clamp(warpedUv - parallaxOffset * 0.72, vec2(0.001), vec2(0.999));
+        vec3 atlasColor = texture2D(atlas, warpedUv).rgb;
         vec3 frontColor = texture2D(atlas, frontUv).rgb;
         vec3 rearColor = texture2D(atlas, rearUv).rgb;
         vec3 volumeColor = atlasColor * 0.72 + frontColor * 0.18 + rearColor * 0.10;
@@ -323,8 +347,18 @@ function createDiscMaterial(strength: number, additive: boolean): THREE.ShaderMa
         float structureLuminance = max(centerLuminance, max(frontLuminance, rearLuminance));
         float radialMask = 1.0 - smoothstep(0.78, 1.0, radius);
         float stellarMask = smoothstep(0.005, 0.13, structureLuminance);
+        float spiralPhase = angle - log(radius + 0.12) * 2.72 + (domainNoise - 0.5) * 0.34;
+        float majorArms = pow(0.5 + 0.5 * cos(spiralPhase * 2.0), 3.4);
+        float minorArms = pow(0.5 + 0.5 * cos(spiralPhase * 4.0 + 1.18), 7.0) * 0.46;
+        float armIrregularity = 0.58 + structureNoise(vec2(angle * 5.2, radius * 13.0)) * 0.42;
+        float armDensity = max(majorArms, minorArms) * armIrregularity;
+        float continuousEmission = radialMask
+          * (0.016 + armDensity * (0.075 + (1.0 - radius) * 0.045));
         float dustLane = smoothstep(0.028, 0.17, max(frontLuminance, rearLuminance))
           * (1.0 - smoothstep(0.018, 0.115, centerLuminance));
+        float dustRift = pow(0.5 + 0.5 * cos(spiralPhase * 2.0 + 0.72), 5.0)
+          * smoothstep(0.12, 0.86, radius)
+          * (0.45 + domainNoise * 0.55);
         float coreMask = exp(-pow(radius * 2.7, 2.0));
         vec3 coolGrade = vec3(0.73, 0.88, 1.18);
         vec3 warmGrade = vec3(1.18, 0.86, 0.68);
@@ -337,12 +371,15 @@ function createDiscMaterial(strength: number, additive: boolean): THREE.ShaderMa
           gradedColor,
           1.0 + colorGradeStrength * 0.16
         );
-        gradedColor *= 1.0 - dustLane * dustAbsorption * 0.76;
+        gradedColor *= 1.0 - max(dustLane * 0.76, dustRift * 0.64) * dustAbsorption;
         gradedColor += grade * pow(max(structureLuminance, 0.0), 0.56)
           * glowStrength * mix(1.0, 0.58, coreMask);
+        gradedColor += mix(vec3(0.34, 0.58, 0.96), vec3(1.0, 0.57, 0.3), coreMask)
+          * continuousEmission * (0.72 + colorGradeStrength * 0.58);
         gradedColor /= vec3(1.0) + gradedColor * mix(0.12, 0.32, coreMask);
 
-        float volumeMask = max(stellarMask, dustLane * 0.46);
+        float volumeMask = max(stellarMask, continuousEmission * 4.2);
+        volumeMask = max(volumeMask, dustLane * 0.22);
         float alpha = opacity * layerStrength * galaxyRadiance * radialMask * volumeMask;
 
         gl_FragColor = vec4(max(gradedColor, vec3(0.0)), alpha);

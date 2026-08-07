@@ -4,7 +4,7 @@
 SHELL := /bin/bash
 APP := client
 
-.PHONY: help install dev build typecheck test test-coverage e2e lint lint-fix format format-check verify
+.PHONY: help install dev build docs docs-preview typecheck test test-coverage e2e lint lint-fix format format-check verify
 
 help: ## List the available commands
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
@@ -17,6 +17,12 @@ dev: ## Start the Angular development server
 
 build: ## Build the production application
 	cd $(APP) && npm run build
+
+docs: ## Start the public documentation on http://localhost:4204/guide/
+	cd $(APP) && npm run docs:dev
+
+docs-preview: ## Preview the generated public documentation
+	cd $(APP) && npm run docs:preview
 
 typecheck: ## Run strict application and end-to-end type checks
 	cd $(APP) && npm run typecheck

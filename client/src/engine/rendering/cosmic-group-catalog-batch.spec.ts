@@ -3,12 +3,14 @@ import { CoordinateSystem } from '../coordinates/coordinate-system';
 import { CosmicGroupCatalog } from '../loaders/cosmic-group-catalog';
 import { CosmicGroupCatalogRegistry } from '../objects/cosmic-group-catalog-registry';
 import { PICKING_LAYER } from '../selection/selection-layers';
-import { DEFAULT_COSMIC_MAP_LAYERS } from './cosmic-map-policy';
+import { DEFAULT_COSMIC_MAP_LAYERS, getCosmicGroupDetail } from './cosmic-map-policy';
 import {
   CosmicGroupCatalogBatch,
   getCosmicCatalogTargetOpacity,
   getCosmicFilamentDetail,
   getCosmicFilamentTargetOpacity,
+  getCosmicGroupImpostorBlend,
+  getCosmicGroupRenderDetail,
 } from './cosmic-group-catalog-batch';
 
 describe('CosmicGroupCatalogBatch', () => {
@@ -22,11 +24,22 @@ describe('CosmicGroupCatalogBatch', () => {
     expect(geometry.getAttribute('pointAlpha').count).toBe(2);
     expect(geometry.getAttribute('pointColor').count).toBe(2);
     expect(geometry.getAttribute('revealThreshold').count).toBe(2);
+    expect(geometry.getAttribute('galaxyAngle').count).toBe(2);
+    expect(geometry.getAttribute('galaxyAxisRatio').count).toBe(2);
+    expect(geometry.getAttribute('galaxyProfile').count).toBe(2);
+    expect(geometry.getAttribute('galaxyProminence').count).toBe(2);
+    expect(geometry.getAttribute('galaxySeed').count).toBe(2);
     expect(batch.points.material.blending).toBe(THREE.AdditiveBlending);
     expect(batch.points.material.vertexShader).toContain('attribute vec3 pointColor');
-    expect(batch.points.material.fragmentShader).toContain('float luminousCore');
+    expect(batch.points.material.vertexShader).toContain('uniform float impostorBlend');
+    expect(batch.points.material.vertexShader).toContain('float prominenceScale');
+    expect(batch.points.material.fragmentShader).toContain('float unresolvedGroupLight');
+    expect(batch.points.material.fragmentShader).toContain('float groupLobe');
+    expect(batch.points.material.fragmentShader).toContain('galaxyRadius > 1.0');
     expect(batch.points.userData['catalogCount']).toBe(2);
     expect(batch.points.userData['scientificConfidence']).toBe('calculated');
+    expect(batch.points.userData['appearanceConfidence']).toBe('illustrative');
+    expect(batch.points.userData['visualStyle']).toBe('adaptive-unresolved-group-impostors');
     expect(batch.points.userData['visualColorEncoding']).toBe(
       'illustrative-distance-gradient-near-warm-far-cool',
     );
@@ -84,11 +97,25 @@ describe('CosmicGroupCatalogBatch', () => {
   });
 
   it('fait varier continûment son opacité avec la distance de caméra', () => {
-    expect(getCosmicCatalogTargetOpacity(110_000)).toBe(0);
-    expect(getCosmicCatalogTargetOpacity(120_000)).toBeGreaterThan(0);
-    expect(getCosmicCatalogTargetOpacity(120_000)).toBeLessThan(0.01);
+    expect(getCosmicCatalogTargetOpacity(30_000)).toBe(0);
+    expect(getCosmicCatalogTargetOpacity(120_000)).toBeGreaterThan(0.15);
+    expect(getCosmicCatalogTargetOpacity(120_000)).toBeLessThan(0.151);
     expect(getCosmicCatalogTargetOpacity(300_000)).toBeCloseTo(0.58, 5);
     expect(getCosmicCatalogTargetOpacity(420_000)).toBeCloseTo(0.58, 5);
+    expect(getCosmicGroupImpostorBlend(55_000)).toBe(0);
+    expect(getCosmicGroupImpostorBlend(95_000)).toBe(1);
+    expect(getCosmicGroupImpostorBlend(120_000)).toBe(1);
+    expect(getCosmicGroupImpostorBlend(235_000)).toBeGreaterThan(0);
+    expect(getCosmicGroupImpostorBlend(235_000)).toBeLessThan(1);
+    expect(getCosmicGroupImpostorBlend(300_000)).toBe(0);
+    expect(getCosmicGroupImpostorBlend(420_000)).toBe(0);
+    expect(getCosmicGroupRenderDetail(120_000, 'low')).toBeCloseTo(0.15, 5);
+    expect(getCosmicGroupRenderDetail(120_000, 'medium')).toBeCloseTo(0.22, 5);
+    expect(getCosmicGroupRenderDetail(120_000, 'high')).toBeCloseTo(0.3, 5);
+    expect(getCosmicGroupRenderDetail(420_000, 'high')).toBeCloseTo(
+      getCosmicGroupDetail(420_000, 'high'),
+      5,
+    );
     expect(getCosmicFilamentTargetOpacity(140_000)).toBe(0);
     expect(getCosmicFilamentTargetOpacity(180_000)).toBeGreaterThan(0);
     expect(getCosmicFilamentTargetOpacity(320_000)).toBeCloseTo(0.22, 5);
@@ -130,6 +157,7 @@ describe('CosmicGroupCatalogBatch', () => {
       getCosmicCatalogTargetOpacity(120_000),
       5,
     );
+    expect(batch.points.material.uniforms['impostorBlend']!.value).toBeCloseTo(1, 5);
 
     batch.updateDistance(40_000, 10);
     expect(batch.visibleCount).toBe(0);
@@ -208,6 +236,25 @@ describe('CosmicGroupCatalogBatch', () => {
     expect(alphas.getX(0)).toBeGreaterThan(alphas.getX(1));
     expect(colors.getX(0)).toBeGreaterThan(colors.getX(1));
     expect(colors.getZ(0)).toBeLessThan(colors.getZ(1));
+    const angles = batch.points.geometry.getAttribute('galaxyAngle') as THREE.BufferAttribute;
+    const axisRatios = batch.points.geometry.getAttribute(
+      'galaxyAxisRatio',
+    ) as THREE.BufferAttribute;
+    const profiles = batch.points.geometry.getAttribute('galaxyProfile') as THREE.BufferAttribute;
+    const prominences = batch.points.geometry.getAttribute(
+      'galaxyProminence',
+    ) as THREE.BufferAttribute;
+
+    for (let index = 0; index < 2; index += 1) {
+      expect(angles.getX(index)).toBeGreaterThanOrEqual(0);
+      expect(angles.getX(index)).toBeLessThan(Math.PI * 2);
+      expect(axisRatios.getX(index)).toBeGreaterThanOrEqual(0.28);
+      expect(axisRatios.getX(index)).toBeLessThanOrEqual(0.96);
+      expect(profiles.getX(index)).toBeGreaterThanOrEqual(0);
+      expect(profiles.getX(index)).toBeLessThan(1);
+      expect(prominences.getX(index)).toBeGreaterThanOrEqual(0);
+      expect(prominences.getX(index)).toBeLessThanOrEqual(1);
+    }
     batch.dispose();
   });
 

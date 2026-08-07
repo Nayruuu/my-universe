@@ -9,6 +9,7 @@ import {
   getCosmicMapDetail,
   getCosmicStructureRevealThreshold,
   isCosmicMapLayerEnabled,
+  stableMapPriority,
 } from './cosmic-map-policy';
 
 const FADE_START_DISTANCE = 140_000;
@@ -82,6 +83,8 @@ export class CosmicStructureCatalogBatch {
     this.points.userData['sourceCount'] = registry.catalog.metadata.sources.length;
     this.points.userData['scientificConfidence'] = 'calculated';
     this.points.userData['representation'] = 'typed-map-symbols';
+    this.points.userData['voidRepresentation'] = 'adaptive-catalog-underdensity-volume';
+    this.points.userData['voidBoundaryStyle'] = 'diffuse-fill-without-ring';
     this.points.userData['structureCounts'] = countStructures(registry.catalog.structureTypes);
     this.points.userData['objectIds'] = pointGeometry.objectIds;
     this.points.userData['visibleIndices'] = this.visibleIndices;
@@ -259,6 +262,7 @@ function createGeometry(registry: CosmicStructureCatalogRegistry): {
   const alphas = new Float32Array(catalog.count);
   const kinds = new Float32Array(catalog.count);
   const revealThresholds = new Float32Array(catalog.count);
+  const shapeSeeds = new Float32Array(catalog.count);
   const objectIds = new Array<string>(catalog.count);
   const structureTypes = new Array<CosmicStructureType>(catalog.count);
 
@@ -268,19 +272,31 @@ function createGeometry(registry: CosmicStructureCatalogRegistry): {
     const sourceOffset = catalogIndex * 3;
     const renderOffset = renderIndex * 3;
     const structureType = record.structureType;
-    const radiusScale = Math.log1p(catalog.radiiMpc[catalogIndex]!) * 0.8;
+    const catalogRadius = catalog.radiiMpc[catalogIndex]!;
+    const boundaryDistance = catalog.boundaryDistancesMpc[catalogIndex]!;
+    const physicalExtent =
+      structureType === 'void' && Number.isFinite(boundaryDistance)
+        ? Math.max(catalogRadius, boundaryDistance)
+        : catalogRadius;
+    const radiusScale = Math.log1p(physicalExtent) * (structureType === 'void' ? 1.6 : 0.8);
     const populationScale = Math.log1p(catalog.galaxyCounts[catalogIndex]!) * 0.16;
-    const typeScale = structureType === 'void' ? 1.18 : structureType === 'supercluster' ? 1.08 : 1;
+    const typeScale = structureType === 'void' ? 5.2 : structureType === 'supercluster' ? 1.08 : 1;
+    const minimumSize = structureType === 'void' ? 30 : 3.2;
+    const maximumSize = structureType === 'void' ? 86 : 9;
 
     positions.set(registry.renderPositions.subarray(sourceOffset, sourceOffset + 3), renderOffset);
     sizes[renderIndex] = THREE.MathUtils.clamp(
       (2.6 + radiusScale + populationScale) * typeScale,
-      3.2,
-      9,
+      minimumSize,
+      maximumSize,
     );
-    alphas[renderIndex] = 0.28 + catalog.confidences[catalogIndex]! * 0.42;
+    alphas[renderIndex] =
+      structureType === 'void'
+        ? 0.78 + catalog.confidences[catalogIndex]! * 0.18
+        : 0.28 + catalog.confidences[catalogIndex]! * 0.42;
     kinds[renderIndex] = STRUCTURE_KIND_CODES[structureType];
     revealThresholds[renderIndex] = record.revealThreshold;
+    shapeSeeds[renderIndex] = stableMapPriority(`${record.objectId}:shape`);
     objectIds[renderIndex] = record.objectId;
     structureTypes[renderIndex] = structureType;
   }
@@ -291,6 +307,7 @@ function createGeometry(registry: CosmicStructureCatalogRegistry): {
   geometry.setAttribute('pointAlpha', new THREE.BufferAttribute(alphas, 1));
   geometry.setAttribute('structureKind', new THREE.BufferAttribute(kinds, 1));
   geometry.setAttribute('revealThreshold', new THREE.BufferAttribute(revealThresholds, 1));
+  geometry.setAttribute('shapeSeed', new THREE.BufferAttribute(shapeSeeds, 1));
   geometry.setDrawRange(0, 0);
   geometry.computeBoundingSphere();
 
@@ -312,19 +329,21 @@ function createMaterial(): THREE.ShaderMaterial {
       radiance: { value: 1 },
       detailScale: { value: 1 },
       detailLevel: { value: 0 },
-      layerMask: { value: new THREE.Vector4(1, 1, 0, 0) },
+      layerMask: { value: new THREE.Vector4(1, 1, 1, 1) },
     },
     vertexShader: `
       attribute float pointSize;
       attribute float pointAlpha;
       attribute float structureKind;
       attribute float revealThreshold;
+      attribute float shapeSeed;
       uniform float pixelRatio;
       uniform float detailScale;
       uniform float detailLevel;
       uniform vec4 layerMask;
       varying float vAlpha;
       varying float vStructureKind;
+      varying float vShapeSeed;
 
       void main() {
         float layerVisibility = structureKind < 0.5
@@ -343,6 +362,7 @@ function createMaterial(): THREE.ShaderMaterial {
         );
         vAlpha = pointAlpha * reveal * layerVisibility;
         vStructureKind = structureKind;
+        vShapeSeed = shapeSeed;
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         gl_PointSize = max(2.0, pointSize * pixelRatio * detailScale);
       }
@@ -352,6 +372,7 @@ function createMaterial(): THREE.ShaderMaterial {
       uniform float radiance;
       varying float vAlpha;
       varying float vStructureKind;
+      varying float vShapeSeed;
 
       vec3 structureColor(float kind) {
         if (kind < 0.5) return vec3(0.71, 0.68, 1.0);
@@ -365,17 +386,32 @@ function createMaterial(): THREE.ShaderMaterial {
       }
 
       void main() {
-        float radius = length(gl_PointCoord - vec2(0.5)) * 2.0;
-        if (radius > 1.0) {
+        vec2 point = (gl_PointCoord - vec2(0.5)) * 2.0;
+        float radius = length(point);
+        float angle = atan(point.y, point.x);
+        float boundaryVariation = sin(angle * 5.0 + vShapeSeed * 6.28318) * 0.055
+          + sin(angle * 9.0 - vShapeSeed * 11.0) * 0.028;
+        float warpedRadius = radius * (1.0 + boundaryVariation);
+        bool isVoid = vStructureKind > 3.5 && vStructureKind < 4.5;
+        float silhouetteRadius = isVoid ? warpedRadius : radius;
+
+        if (silhouetteRadius > 1.0) {
           discard;
         }
         vec3 color = structureColor(vStructureKind);
         float alpha;
 
-        if (vStructureKind > 3.5 && vStructureKind < 4.5) {
-          float ring = smoothstep(0.58, 0.72, radius) * (1.0 - smoothstep(0.86, 1.0, radius));
-          float interior = (1.0 - smoothstep(0.0, 0.74, radius)) * 0.06;
-          alpha = max(ring, interior);
+        if (isVoid) {
+          float softInterior = pow(max(0.0, 1.0 - warpedRadius), 1.18);
+          float edgeFade = 1.0 - smoothstep(0.48, 1.0, warpedRadius);
+          float diffuseBoundary = pow(edgeFade, 1.45);
+          float boundaryMix = smoothstep(0.06, 0.94, warpedRadius);
+          float mottledInterior = 0.88 + 0.12
+            * sin(angle * 4.0 + warpedRadius * 12.0 + vShapeSeed * 17.0);
+          vec3 underdensityInterior = vec3(0.075, 0.18, 0.42);
+          vec3 diffuseCoolExtent = color * 0.78;
+          color = mix(underdensityInterior, diffuseCoolExtent, boundaryMix * 0.82);
+          alpha = (softInterior * 0.46 + diffuseBoundary * 0.18) * mottledInterior;
         } else {
           float halo = pow(1.0 - radius, 0.68);
           float core = 1.0 - smoothstep(0.0, 0.26, radius);

@@ -28,6 +28,107 @@ non-gravitational acceleration terms are omitted. These objects are therefore ma
 `extrapolated`, while their source epoch and orbit-solution identifier remain in static metadata.
 Pluto uses Astronomy Engine's local heliocentric ephemeris and is marked `calculated`.
 
+## Confirmed exoplanet catalogue
+
+`public/data/exoplanets/nasa-pscomppars.bin` and its JSON sidecar are a static 2026-08-05 snapshot
+of the [NASA Exoplanet Archive](https://exoplanetarchive.ipac.caltech.edu/) composite planetary
+systems table, `PSCompPars`, retrieved through the Archive's
+[TAP service](https://exoplanetarchive.ipac.caltech.edu/docs/TAP/usingTAP.html). The snapshot
+contains 6,333 confirmed planets around 4,747 host systems. Regenerate an intentionally newer
+snapshot with:
+
+```bash
+npm run data:exoplanets
+```
+
+The sidecar preserves the exact TAP query, retrieval date, raw-response SHA-256, format version,
+record counts, and missing-distance policy. The checked 1,096,458-byte `UMEX` v1 binary contains a
+32-byte header, one fixed 64-byte record per host, one fixed 72-byte record per planet, and a shared
+null-terminated UTF-8 string table. The runtime rejects incompatible dimensions, offsets, strings,
+duplicate names, nonphysical values, invalid host ranges, and metadata/count mismatches before
+exposing the catalogue.
+
+All 6,333 planets and 4,747 hosts are locally searchable. A discovery panel filters planets by
+published distance, radius class, discovery method, and an explicitly indicative temperature/radius
+criterion. Host ICRS J2000 directions are independently rotated into Universe Map's heliocentric
+Galactic frame. NASA publishes a distance for 4,720 hosts and 6,306 planets. For the remaining 27
+systems, the observed sky direction is retained but a clearly labelled 1,000 pc illustrative radial
+depth is used solely to place the target on the 3D map; no missing distance is presented as measured.
+
+The renderer keeps the full layer compact: one typed-array `THREE.Points` batch draws unlinked host
+systems, low/medium/high quality expose stable 45%/72%/100% prefixes, and one reusable marker handles
+selection. No permanent Three.js object is allocated per catalogue row. Selecting a host or planet
+materializes only that host and its planets in a temporary object registry, so orbit framing,
+timeline updates, labels, cards, and URL sharing work without keeping thousands of detailed systems
+active. Selecting another catalogue system replaces and disposes the previous detailed registry;
+engine disposal releases the remaining resources.
+
+Published period and semi-major axis values remain catalogue facts. If exactly one is absent and a
+stellar mass is available, the missing value is calculated with Kepler's third law and labelled
+`calculated`. If the required inputs are absent, bounded spacing or timing is explicitly labelled
+illustrative. Phase, local display-plane inclination, orbit scale, planet surface, lighting, and
+color are always visual adaptations rather than reconstructed exoplanet ephemerides.
+
+### Featured exoplanet systems
+
+`public/data/exoplanets/featured-systems.json` is a compact 2026-08-05 snapshot of the
+[NASA Exoplanet Archive](https://exoplanetarchive.ipac.caltech.edu/) composite planetary systems
+table, `PSCompPars`, retrieved through the Archive's
+[TAP service](https://exoplanetarchive.ipac.caltech.edu/docs/TAP/usingTAP.html). It contains four
+host stars and ten confirmed planets: Kepler-186 f, Kepler-22 b, Kepler-452 b, and TRAPPIST-1 b
+through h. The browser loads this static file from the same origin as the application; it does not
+query NASA at runtime.
+
+Host right ascension, declination, and distance are preserved in metadata in ICRS J2000. The stored
+Cartesian vectors independently rotate those catalogue coordinates into the same heliocentric
+Galactic convention as the HYG layer: Galactic north on scene +Y, longitude 90 degrees on +Z, and
+the Galactic center toward -X. Static-data tests reconstruct every vector from the preserved source
+coordinates with the IAU J2000 rotation matrix.
+
+Confirmation status, discovery metadata, orbital period, semi-major axis, radius, mass, equilibrium
+temperature, inclination, and eccentricity are catalogue facts where available. The `massProvenance`
+field distinguishes an Archive mass value from a mass inferred by a mass-radius relationship.
+
+The Archive does not provide a complete visual ephemeris or an observed surface for these planets.
+`illustrative-orbit` therefore uses the catalogue period and semi-major axis while declaring its
+phase, local display-plane orientation, and distance multiplier as visual adaptations. Planet
+colors, textures, sizes, host lighting, and shadow fill are also illustrative. The object card
+exposes this distinction instead of presenting the animation as an observed position at the chosen
+date.
+
+## Historical supernovas and remnants
+
+`public/data/supernovas/catalog.json` is a deliberately compact editorial catalogue of six
+well-documented events and remnants: SN 1006, the Crab Nebula/SN 1054, Tycho's Supernova/SN 1572,
+Kepler's Supernova/SN 1604, Cassiopeia A, and SN 1987A. It is not a completeness claim. The static
+records preserve J2000 right ascension and declination, published or rounded distance estimates,
+event type and date where documented, alternate names, host context, and a direct source URL.
+
+Positions and distances are based on the following mission pages:
+
+- [NASA and Chandra — SN 1006](https://chandra.harvard.edu/photo/2005/sn1006/);
+- [NASA and Chandra — Crab Nebula](https://www.chandra.harvard.edu/photo/2017/crab/);
+- [NASA and Chandra — Tycho's Supernova](https://chandra.harvard.edu/photo/2005/tycho/);
+- [NASA and Chandra — Kepler's Supernova](https://www.chandra.harvard.edu/photo/2026/kepler/);
+- [NASA and Chandra — Cassiopeia A](https://chandra.harvard.edu/photo/2002/0237/);
+- [NASA and Chandra — SN 1987A](https://www.chandra.harvard.edu/photo/2017/sn1987a/).
+
+Five Galactic records store heliocentric J2000 Galactic Cartesian positions in parsecs. SN 1987A
+is associated with the Large Magellanic Cloud and inherits that object's Local Group frame instead
+of pretending that its parsec-scale vector belongs to the Solar neighborhood. Static-data tests
+reconstruct each Galactic vector from the preserved equatorial source coordinates.
+
+The historical date is not a physical explosion timestamp at the source: it identifies the first
+recorded or observed light at Earth. The optional `visualPeakJulianDay` lets the information card
+replay that epoch. `supernova-appearance.ts` then produces an educational transition through
+pre-event, rising, peak, fading, and remnant phases. The near representation uses a displaced broken
+envelope, a smaller braided-filament layer, and sparse inner emission knots. Low quality keeps the
+first two layers; medium and high add the knots. Rise and decay duration, shell formation,
+expansion, composite color, brightness, morphology, and apparent size are all marked
+`illustrative`; they are not an observed light curve, hydrodynamic simulation, or reconstructed
+multiwavelength image. Cassiopeia A has no replay action because its exact first-light epoch is not
+securely documented in this compact dataset.
+
 ## Illustrative Milky Way density field
 
 The close galactic representation is not an observed external image of the Milky Way. It is a
@@ -385,14 +486,55 @@ arrays.
 BOSS and Planck redshifts use a documented flat ΛCDM display conversion with `H0 = 70 km/s/Mpc`,
 `Ωm = 0.3`, and `ΩΛ = 0.7`; source values in Mpc/h are converted with `h = 0.7`. This choice is
 stored in the sidecar and is not presented as a precision cosmological fit. Tempel filament symbols
-use the center of each published Cartesian envelope and its catalogued spine length. They do not
-claim to render the continuous 275,599-point spine geometry, which belongs in a later tiled line
-layer.
+use the center of each published Cartesian envelope and its catalogued spine length. These point
+symbols remain useful as progressively disclosed map landmarks; a separate line asset renders the
+published spine geometry described below.
 
 At runtime, all 26,500 records share one typed-array `THREE.Points` batch and one reusable selection
 marker. A stable, source-aware reveal order lets the draw range grow with zoom and graphics quality;
 this changes only presentation, not search availability. Search entries and object cards preserve
 source identity, and definitions are created only when requested. Type-aware symbols distinguish
-clusters, superclusters, filament centers, and voids. The default synthesis displays clusters and
-superclusters, while filament centers and voids are opt-in layers in the cosmic-map panel. The label
-pool stays bounded by quality and collision policy.
+clusters, superclusters, filament centers, and voids. The default synthesis displays clusters,
+superclusters, and progressively sampled Tempel filaments so users can identify them directly on the
+map; voids remain an opt-in layer. Void symbols use soft, dark underdensity centers with diffuse cool
+boundaries rather than hard rings. The label pool stays bounded by quality and collision policy.
+
+### Tempel filament spines
+
+The `UMFS` v1 source layer comes from table 2 of the
+[Tempel et al. SDSS DR8 Bisous catalogue](https://cdsarc.cds.unistra.fr/viz-bin/ReadMe/J/MNRAS/438/3465?format=html&tex=true).
+It retains all 15,421 filaments, 275,599 published spine points, and the 260,178 consecutive
+point-to-point segments implied by those source rows. Reproduce the versioned browser asset with:
+
+```bash
+curl -fL \
+  https://cdsarc.cds.unistra.fr/ftp/J/MNRAS/438/3465/table2.dat.gz \
+  -o data-sources/sdss-dr8-filaments-table2.dat.gz
+npm run data:cosmic-structures
+```
+
+The checked compressed snapshot has SHA-256
+`65808180bc2fd42bd46af92a484db7cde4a343892701699d8e6cb99b687d9e76` and is ignored by Git. The
+generated `public/data/structures/tempel-filament-spines.bin` is 4,533,016 bytes; its versioned JSON
+sidecar preserves the source URL and hash, J2000 frame, J2000 epoch, Mpc/h source unit, `h = 0.7`
+conversion, approximately 0.5 Mpc/h point spacing, catalogue dimensions, and metric names.
+
+The 64-byte binary header is followed by one 8-byte index entry per filament and one 16-byte record
+per point. Index entries preserve the numeric filament ID, point count, and contiguous point offset.
+Point records preserve three `float32` Cartesian coordinates in megaparsecs and quantized visit-map,
+weighted-density, and orientation-strength values. The importer maps the catalogue axes
+`[x, y, z]` to Universe Map's `[x, z, y]` basis so declination remains vertical, but does not smooth,
+interpolate, or replace any source point.
+
+The manifest marks the binary for deferred loading: planetary, stellar, galactic, Local Group, and
+nearby-Universe startup does not fetch it. Entering the cosmic-web LOD, enabling the filament layer,
+or selecting a Tempel object triggers one request and one validated decode. Runtime checks reject
+wrong dimensions, frames, units, offsets, ordering, point coverage, nonphysical coordinates,
+dishonest distance bounds, and malformed metrics. Consecutive segments are grouped by midpoint into
+at most eight spatial octants; the current SDSS footprint produces four non-empty GPU tiles. Stable
+quality and distance thresholds reveal subsets without changing search results. Whole-spine hover
+and selection use reusable line objects. Color and opacity incorporate the three published metrics.
+The exact one-pixel axes receive a separate, softly additive screen-space halo whose density and
+width are quality-bounded; that halo is tagged `illustrative`, capped independently from scientific
+axis detail, and never presented as a physical filament diameter or an observed continuous
+matter-density field.

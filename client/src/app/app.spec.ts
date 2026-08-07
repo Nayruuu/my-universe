@@ -16,14 +16,15 @@ describe('App', () => {
   const performanceWarning = signal<string | null>(null);
   const shareNotice = signal<string | null>(null);
   const currentSolarEclipse = signal<object | null>(null);
+  const timelineSolarEclipse = signal<object | null>(null);
   const cosmicMapLayers = signal({
     volume: true,
     groups: true,
     links: true,
     clusters: true,
     superclusters: true,
-    filaments: false,
-    voids: false,
+    filaments: true,
+    voids: true,
   });
   const facade = {
     settingsOpen,
@@ -37,6 +38,7 @@ describe('App', () => {
     performanceWarning,
     shareNotice,
     currentSolarEclipse,
+    timelineSolarEclipse,
     cosmicMapLayers,
     focus: vi.fn(() => Promise.resolve()),
     toggleSettings: vi.fn(),
@@ -54,6 +56,7 @@ describe('App', () => {
 
   beforeEach(async () => {
     vi.useFakeTimers();
+    window.history.replaceState(null, '', '/fr/');
     settingsOpen.set(false);
     helpOpen.set(false);
     ready.set(false);
@@ -65,14 +68,15 @@ describe('App', () => {
     performanceWarning.set(null);
     shareNotice.set(null);
     currentSolarEclipse.set(null);
+    timelineSolarEclipse.set(null);
     cosmicMapLayers.set({
       volume: true,
       groups: true,
       links: true,
       clusters: true,
       superclusters: true,
-      filaments: false,
-      voids: false,
+      filaments: true,
+      voids: true,
     });
     vi.clearAllMocks();
     vi.stubGlobal(
@@ -122,13 +126,66 @@ describe('App', () => {
     expect(shortcuts.stop).toHaveBeenCalledOnce();
   });
 
+  it('change toute l’interface et l’URL depuis le sélecteur de langue', async () => {
+    const fixture = TestBed.createComponent(App);
+
+    fixture.detectChanges();
+    const selector = fixture.nativeElement.querySelector(
+      '.language-selector select',
+    ) as HTMLSelectElement;
+    const view = fixture.componentInstance as unknown as AppAccess;
+    const languageEvent = new Event('change');
+
+    expect(Array.from(selector.options, (option) => option.value)).toEqual([
+      'fr',
+      'en',
+      'es',
+      'de',
+      'it',
+      'ko',
+      'ja',
+      'zh',
+    ]);
+    selector.value = 'en';
+    Object.defineProperty(languageEvent, 'target', { value: selector });
+    await view.changeLanguage(languageEvent);
+    fixture.detectChanges();
+
+    expect(window.location.pathname).toBe('/en/');
+    expect(document.documentElement.lang).toBe('en');
+    expect(document.title).toContain('Interactive 3D Universe Map');
+    expect(fixture.nativeElement.querySelector('h1')?.textContent).toContain(
+      'interactive 3D map of the Universe',
+    );
+    expect(fixture.nativeElement.querySelector('.home-action')?.getAttribute('aria-label')).toBe(
+      'Return to Earth',
+    );
+
+    const unsupported = document.createElement('select');
+    const option = document.createElement('option');
+
+    option.value = 'pt';
+    unsupported.append(option);
+    unsupported.value = 'pt';
+    const unsupportedEvent = new Event('change');
+
+    Object.defineProperty(unsupportedEvent, 'target', { value: unsupported });
+    await view.changeLanguage(unsupportedEvent);
+    expect(window.location.pathname).toBe('/en/');
+  });
+
   it('rend tous les états transitoires du shell', () => {
     const fixture = TestBed.createComponent(App);
     const view = fixture.componentInstance as unknown as AppAccess;
 
     fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('h1')?.textContent).toContain(
+      'carte 3D interactive de l’Univers',
+    );
     expect(fixture.nativeElement.querySelector('.loading-screen')).toBeNull();
     expect(fixture.nativeElement.querySelector('.navigation-hint')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.app-shell--details')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.app-shell--eclipse')).toBeNull();
 
     settingsOpen.set(true);
     helpOpen.set(true);
@@ -146,6 +203,30 @@ describe('App', () => {
     expect(fixture.nativeElement.querySelector('.navigation-hint')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('.cosmic-map-key')).toBeNull();
     expect(fixture.nativeElement.querySelector('.science-caption')).not.toBeNull();
+
+    lodLevel.set(4);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.science-caption')?.textContent).toContain(
+      '31 galaxies documentées du Groupe local',
+    );
+    expect(fixture.nativeElement.querySelector('.science-caption')?.textContent).toContain(
+      'directions Cosmicflows-4 calculées',
+    );
+    expect(fixture.nativeElement.querySelector('.science-caption')?.textContent).toContain(
+      'profondeurs et luminosités adaptées',
+    );
+
+    lodLevel.set(5);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.science-caption')?.textContent).toContain(
+      '720 galaxies observées',
+    );
+    expect(fixture.nativeElement.querySelector('.science-caption')?.textContent).toContain(
+      'groupes Cosmicflows-4 calculés',
+    );
+    expect(fixture.nativeElement.querySelector('.science-caption')?.textContent).toContain(
+      'formes et luminosités illustratives',
+    );
 
     lodLevel.set(6);
     fixture.detectChanges();
@@ -165,7 +246,13 @@ describe('App', () => {
       '1 228 vides',
     );
     expect(fixture.nativeElement.querySelector('.cosmic-map-key')?.textContent).toContain(
-      '15 421 filaments',
+      '15 421 filaments Tempel · épines 3D',
+    );
+    expect(fixture.nativeElement.querySelector('.cosmic-map-key')?.textContent).toContain(
+      'Cliquez une épine pour l’identifier · recherche facultative',
+    );
+    expect(fixture.nativeElement.querySelector('.cosmic-map-key')?.textContent).toContain(
+      'largeur du halo illustrative',
     );
     expect(fixture.nativeElement.querySelector('.cosmic-map-key')?.textContent).toContain(
       '1 094 amas',
@@ -180,7 +267,7 @@ describe('App', () => {
       'Zone non relevée ≠ vide cosmique',
     );
     const filamentLayer = fixture.nativeElement.querySelector(
-      '[aria-label="Afficher les centres de filaments SDSS"]',
+      '[aria-label="Masquer les épines 3D des filaments Tempel"]',
     ) as HTMLButtonElement;
     const groupLayer = fixture.nativeElement.querySelector(
       '[aria-label="Masquer les groupes Cosmicflows-4"]',
@@ -189,7 +276,7 @@ describe('App', () => {
       '[aria-label="Masquer la matière cosmique simulée"]',
     ) as HTMLButtonElement;
 
-    expect(filamentLayer.getAttribute('aria-pressed')).toBe('false');
+    expect(filamentLayer.getAttribute('aria-pressed')).toBe('true');
     expect(groupLayer.getAttribute('aria-pressed')).toBe('true');
     expect(volumeLayer.getAttribute('aria-pressed')).toBe('true');
     filamentLayer.click();
@@ -213,6 +300,8 @@ describe('App', () => {
 
     view.navigationHintVisible.set(true);
     currentSolarEclipse.set({});
+    timelineSolarEclipse.set({});
+    selectedId.set('earth');
     loading.set(false);
     error.set(null);
     shareNotice.set(null);
@@ -220,12 +309,15 @@ describe('App', () => {
 
     expect(fixture.nativeElement.querySelector('.navigation-hint')).toBeNull();
     expect(fixture.nativeElement.querySelector('.loading-screen')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.app-shell--details')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.app-shell--eclipse')).not.toBeNull();
   });
 });
 
 interface AppAccess {
   readonly navigationHintVisible: WritableSignal<boolean>;
   focus(objectId: string): void;
+  changeLanguage(event: Event): Promise<void>;
 }
 
 function createApp(): App {

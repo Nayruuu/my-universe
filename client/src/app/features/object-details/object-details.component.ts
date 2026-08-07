@@ -5,6 +5,7 @@ import {
   SpaceObjectType,
 } from '../../../data/models/universe.models';
 import { UniverseEngineFacade } from '../../core/engine/universe-engine.facade';
+import { I18nService } from '../../core/i18n/i18n.service';
 
 @Component({
   selector: 'app-object-details',
@@ -14,34 +15,55 @@ import { UniverseEngineFacade } from '../../core/engine/universe-engine.facade';
 })
 export class ObjectDetailsComponent {
   protected readonly facade = inject(UniverseEngineFacade);
+  protected readonly i18n = inject(I18nService);
   protected readonly object = this.facade.selectedObject;
 
   protected focus(object: SpaceObject): void {
     void this.facade.focus(object.id);
   }
 
+  protected viewRotation(object: SpaceObject): void {
+    void this.facade.viewRotation(object.id);
+  }
+
   protected viewOrbit(object: SpaceObject): void {
     this.facade.viewOrbit(object.id);
+  }
+
+  protected viewSupernovaEvent(object: SpaceObject): void {
+    const julianDay = object.metadata?.['visualPeakJulianDay'];
+
+    if (typeof julianDay !== 'number') {
+      return;
+    }
+    this.facade.setTime({ julianDay });
+    void this.facade.focus(object.id);
   }
 
   protected hasOrbit(object: SpaceObject): boolean {
     return (
       Boolean(object.parentId) &&
-      (object.positionProvider.type === 'keplerian' || object.positionProvider.type === 'ephemeris')
+      (object.positionProvider.type === 'keplerian' ||
+        object.positionProvider.type === 'ephemeris' ||
+        object.positionProvider.type === 'illustrative-orbit')
     );
   }
 
   protected orbitPeriodLabel(object: SpaceObject): string | null {
     const provider = object.positionProvider;
 
-    if (provider.type !== 'keplerian' && provider.type !== 'ephemeris') {
+    if (
+      provider.type !== 'keplerian' &&
+      provider.type !== 'ephemeris' &&
+      provider.type !== 'illustrative-orbit'
+    ) {
       return null;
     }
     if (provider.orbitalPeriodDays >= 730) {
-      return `${this.formatNumber(provider.orbitalPeriodDays / 365.25, 2)} ans`;
+      return `${this.formatNumber(provider.orbitalPeriodDays / 365.25, 2)} ${this.i18n.content().common.years}`;
     }
 
-    return `${this.formatNumber(provider.orbitalPeriodDays, 2)} jours`;
+    return `${this.formatNumber(provider.orbitalPeriodDays, 2)} ${this.i18n.content().common.days}`;
   }
 
   protected rotationPeriodLabel(object: SpaceObject): string | null {
@@ -58,73 +80,121 @@ export class ObjectDetailsComponent {
     const hours = Math.floor(absoluteHours);
     const minutes = Math.round((absoluteHours - hours) * 60);
 
-    return `${hours} h ${minutes.toString().padStart(2, '0')} min`;
+    const common = this.i18n.content().common;
+
+    return `${hours} ${common.hoursShort} ${minutes.toString().padStart(2, '0')} ${common.minutesShort}`;
   }
 
   protected rotationDirectionLabel(object: SpaceObject): string {
-    return (object.visual.rotationPeriodHours ?? 1) < 0 ? 'Rétrograde' : 'Prograde';
+    const details = this.i18n.content().details;
+
+    return (object.visual.rotationPeriodHours ?? 1) < 0 ? details.retrograde : details.prograde;
   }
 
   protected orbitActionLabel(object: SpaceObject): string {
-    return `Orbite · ${this.parentName(object) ?? 'corps parent'}`;
+    const details = this.i18n.content().details;
+
+    return this.i18n.interpolate(details.orbitAction, {
+      parent: this.parentName(object) ?? details.parentBody,
+    });
   }
 
   protected typeLabel(type: SpaceObjectType, metadata?: SpaceObject['metadata']): string {
-    if (type === 'region' && typeof metadata?.['constellationId'] === 'string') {
-      return 'Constellation';
-    }
-    const labels: Partial<Record<SpaceObjectType, string>> = {
-      star: 'Étoile',
-      planet: 'Planète',
-      moon: 'Satellite naturel',
-      galaxy: 'Galaxie',
-      'black-hole': 'Trou noir',
-      'galaxy-cluster': 'Groupe ou amas de galaxies',
-      supercluster: 'Superamas de galaxies',
-      'cosmic-wall': 'Mur cosmique',
-      'cosmic-filament': 'Filament cosmique',
-      'cosmic-void': 'Vide cosmique',
-      'cosmic-basin': 'Bassin d’attraction',
-      'cosmic-attractor': 'Attracteur cosmique',
-      'cosmic-repeller': 'Répulseur cosmique',
-      universe: 'Univers',
-      'dwarf-planet': 'Planète naine',
-      asteroid: 'Astéroïde',
-      comet: 'Comète',
-      nebula: 'Nébuleuse',
-      region: 'Région cosmique',
-    };
+    const content = this.i18n.content();
 
-    return labels[type] ?? 'Objet astronomique';
+    if (type === 'region' && typeof metadata?.['constellationId'] === 'string') {
+      return content.objectTypes.constellation;
+    }
+    if (type === 'exoplanet') {
+      return content.details.confirmedExoplanet;
+    }
+    if (type === 'moon') {
+      return content.details.naturalSatellite;
+    }
+    if (type === 'galaxy-cluster') {
+      return content.details.galaxyCluster;
+    }
+    if (type === 'supercluster') {
+      return content.details.galaxySupercluster;
+    }
+    if (type === 'cosmic-basin') {
+      return content.details.attractionBasin;
+    }
+    if (type === 'cosmic-attractor') {
+      return content.details.cosmicAttractor;
+    }
+    if (type === 'cosmic-repeller') {
+      return content.details.cosmicRepeller;
+    }
+    if (type === 'artificial-object') {
+      return content.details.astronomicalObject;
+    }
+    const labels = content.objectTypes as Readonly<Record<string, string>>;
+
+    return labels[type] ?? content.objectTypes.default;
   }
 
   protected parentName(object: SpaceObject): string | null {
-    return object.parentId
-      ? (this.facade.objects().find((candidate) => candidate.id === object.parentId)?.name ?? null)
-      : null;
+    if (!object.parentId) {
+      return null;
+    }
+    const parent = this.facade.objects().find((candidate) => candidate.id === object.parentId);
+
+    return parent ? this.i18n.objectName(parent.id, parent.name) : null;
+  }
+
+  protected objectName(object: SpaceObject): string {
+    return this.i18n.objectName(object.id, object.name);
+  }
+
+  protected description(object: SpaceObject): string {
+    const content = this.i18n.content();
+
+    if (this.i18n.lang() === 'fr') {
+      return object.description ?? content.details.noDescription;
+    }
+    const source = object.metadata?.['source'];
+
+    return this.i18n.interpolate(content.details.catalogDescription, {
+      source: typeof source === 'string' ? source : content.details.defaultSource,
+    });
+  }
+
+  protected appearanceDescription(object: SpaceObject): string | null {
+    const visualSource = object.metadata?.['visualSource'];
+
+    if (typeof visualSource !== 'string') {
+      return null;
+    }
+
+    return this.i18n.lang() === 'fr'
+      ? visualSource
+      : this.i18n.content().details.illustrativeAppearance;
   }
 
   protected confidenceLabel(confidence: ScientificConfidence): string {
-    const labels: Record<ScientificConfidence, string> = {
-      observed: 'Observé',
-      calculated: 'Calculé',
-      extrapolated: 'Extrapolé',
-      simulated: 'Simulé',
-      procedural: 'Procédural',
-      illustrative: 'Illustratif',
+    const details = this.i18n.content().details;
+    const labels: Readonly<Record<ScientificConfidence, string>> = {
+      observed: details.confidenceObserved,
+      calculated: details.confidenceCalculated,
+      extrapolated: details.confidenceExtrapolated,
+      simulated: details.confidenceSimulated,
+      procedural: details.confidenceProcedural,
+      illustrative: details.confidenceIllustrative,
     };
 
     return labels[confidence];
   }
 
   protected confidenceDescription(confidence: ScientificConfidence): string {
-    const descriptions: Record<ScientificConfidence, string> = {
-      observed: 'Fondé sur des mesures ou un catalogue astronomique.',
-      calculated: 'Position ou distance obtenue par un calcul scientifique documenté.',
-      extrapolated: 'Estimation prolongée à partir d’un mouvement connu.',
-      simulated: 'Résultat d’un modèle scientifique.',
-      procedural: 'Contenu généré pour compléter la scène.',
-      illustrative: 'Représentation visuelle non fidèle à l’échelle réelle.',
+    const details = this.i18n.content().details;
+    const descriptions: Readonly<Record<ScientificConfidence, string>> = {
+      observed: details.confidenceObservedDescription,
+      calculated: details.confidenceCalculatedDescription,
+      extrapolated: details.confidenceExtrapolatedDescription,
+      simulated: details.confidenceSimulatedDescription,
+      procedural: details.confidenceProceduralDescription,
+      illustrative: details.confidenceIllustrativeDescription,
     };
 
     return descriptions[confidence];
@@ -134,11 +204,81 @@ export class ObjectDetailsComponent {
     return !['observed', 'calculated'].includes(confidence);
   }
 
+  protected hasIllustrativeOrbit(object: SpaceObject): boolean {
+    return object.positionProvider.type === 'illustrative-orbit';
+  }
+
+  protected orbitApproximationNote(object: SpaceObject): string {
+    const semiMajorAxisSource = object.metadata?.['semiMajorAxisSource'];
+    const orbitalPeriodSource = object.metadata?.['orbitalPeriodSource'];
+    const details = this.i18n.content().details;
+
+    if (
+      semiMajorAxisSource === 'Illustrative map spacing' &&
+      orbitalPeriodSource === 'Illustrative map timing'
+    ) {
+      return details.orbitIllustrativeNote;
+    }
+    if (
+      semiMajorAxisSource === 'Calculated from Kepler’s third law' ||
+      orbitalPeriodSource === 'Calculated from Kepler’s third law'
+    ) {
+      return details.orbitCalculatedNote;
+    }
+    if (
+      semiMajorAxisSource === 'Illustrative map spacing' ||
+      orbitalPeriodSource === 'Illustrative map timing'
+    ) {
+      return details.orbitOneIllustrativeNote;
+    }
+
+    return details.orbitCatalogNote;
+  }
+
+  protected mapDistanceNotice(object: SpaceObject): string | null {
+    if (object.metadata?.['mapDistanceUnavailable'] !== true) {
+      return null;
+    }
+    const fallback = object.metadata?.['mapDistanceFallbackPc'];
+    const details = this.i18n.content().details;
+    const depth =
+      typeof fallback === 'number' ? this.formatNumber(fallback, 0) : details.unknownDepth;
+
+    return this.i18n.interpolate(details.mapDistanceNote, { depth });
+  }
+
+  protected equilibriumTemperatureLabel(object: SpaceObject): string | null {
+    const temperature = object.metadata?.['equilibriumTemperatureK'];
+
+    return typeof temperature === 'number' ? `${this.formatNumber(temperature, 0)} K` : null;
+  }
+
+  protected discoveryYearLabel(object: SpaceObject): string | null {
+    const year = object.metadata?.['discoveryYear'];
+
+    return typeof year === 'number' ? this.formatNumber(year, 0) : null;
+  }
+
+  protected massProvenanceLabel(object: SpaceObject): string | null {
+    const provenance = object.metadata?.['massProvenance'];
+
+    if (provenance === 'M-R relationship') {
+      return this.i18n.content().details.massEstimated;
+    }
+
+    return provenance === 'Mass' ? this.i18n.content().details.massMeasured : null;
+  }
+
+  protected semiMajorAxisLabel(object: SpaceObject): string | null {
+    const semiMajorAxisAu = object.metadata?.['semiMajorAxisAu'];
+
+    return typeof semiMajorAxisAu === 'number'
+      ? `${this.formatNumber(semiMajorAxisAu, 5)} ${this.i18n.content().common.astronomicalUnit}`
+      : null;
+  }
+
   protected formatNumber(value: number, maximumFractionDigits = 1): string {
-    return new Intl.NumberFormat('fr-FR', {
-      maximumFractionDigits,
-      notation: value >= 1e9 ? 'scientific' : 'standard',
-    }).format(value);
+    return this.i18n.formatNumber(value, maximumFractionDigits);
   }
 
   protected distanceLabel(object: SpaceObject): string | null {
@@ -150,12 +290,12 @@ export class ObjectDetailsComponent {
     const distanceLy = object.metadata?.['distanceLy'];
 
     if (typeof distanceLy === 'number') {
-      return `${this.formatNumber(distanceLy, 3)} a.l.`;
+      return `${this.formatNumber(distanceLy, 3)} ${this.i18n.content().common.lightYear}`;
     }
     const semiMajorAxisAu = object.metadata?.['semiMajorAxisAu'];
 
     if (typeof semiMajorAxisAu === 'number') {
-      return `${this.formatNumber(semiMajorAxisAu, 3)} UA`;
+      return `${this.formatNumber(semiMajorAxisAu, 3)} ${this.i18n.content().common.astronomicalUnit}`;
     }
     const semiMajorAxisKm = object.metadata?.['semiMajorAxisKm'];
 
@@ -163,7 +303,7 @@ export class ObjectDetailsComponent {
       return `${this.formatNumber(semiMajorAxisKm, 0)} km`;
     }
     if (object.id === 'sun') {
-      return '1 UA depuis la Terre';
+      return this.i18n.content().details.distanceFromEarth;
     }
 
     return null;
@@ -246,8 +386,8 @@ export class ObjectDetailsComponent {
 
     return typeof surveyEdge === 'boolean'
       ? surveyEdge
-        ? 'Au contact de la limite'
-        : 'À l’intérieur du relevé'
+        ? this.i18n.content().details.surveyEdge
+        : this.i18n.content().details.surveyInside
       : null;
   }
 
@@ -272,7 +412,9 @@ export class ObjectDetailsComponent {
   protected diameterLabel(object: SpaceObject): string | null {
     const diameterLy = object.metadata?.['diameterLy'];
 
-    return typeof diameterLy === 'number' ? `${this.formatNumber(diameterLy, 3)} a.l.` : null;
+    return typeof diameterLy === 'number'
+      ? `${this.formatNumber(diameterLy, 3)} ${this.i18n.content().common.lightYear}`
+      : null;
   }
 
   protected subgroupLabel(object: SpaceObject): string | null {
@@ -301,7 +443,7 @@ export class ObjectDetailsComponent {
     const massSolar = object.metadata?.['massSolar'];
 
     return typeof massSolar === 'number'
-      ? `${this.formatNumber(massSolar, 2)} masses solaires`
+      ? `${this.formatNumber(massSolar, 2)} ${this.i18n.content().common.solarMasses}`
       : null;
   }
 
@@ -309,14 +451,35 @@ export class ObjectDetailsComponent {
     if (object.type !== 'black-hole') {
       return null;
     }
+    const details = this.i18n.content().details;
     const labels = {
-      dormant: 'Dormant',
-      quiescent: 'Quiescent',
-      active: 'Actif',
+      dormant: details.blackHoleDormant,
+      quiescent: details.blackHoleQuiescent,
+      active: details.blackHoleActive,
     } as const;
     const activity = object.visual.blackHoleActivity;
 
     return activity ? labels[activity] : null;
+  }
+
+  protected supernovaEventLabel(object: SpaceObject): string | null {
+    const label = object.metadata?.['eventDateLabel'];
+
+    return typeof label === 'string' ? label : null;
+  }
+
+  protected supernovaTypeLabel(object: SpaceObject): string | null {
+    const type = object.metadata?.['supernovaType'];
+
+    return typeof type === 'string' ? type : null;
+  }
+
+  protected hasSupernovaEvent(object: SpaceObject): boolean {
+    return typeof object.metadata?.['visualPeakJulianDay'] === 'number';
+  }
+
+  protected hasIllustrativeAppearance(object: SpaceObject): boolean {
+    return object.metadata?.['appearanceConfidence'] === 'illustrative';
   }
 
   protected constellationAbbreviationLabel(object: SpaceObject): string | null {

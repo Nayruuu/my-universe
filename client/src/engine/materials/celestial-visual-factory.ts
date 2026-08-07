@@ -5,6 +5,14 @@ import { LunarEclipseVisual } from './lunar-eclipse-visual';
 import { getPlanetaryVisualProfile, type PlanetaryVisualProfile } from './planetary-visual-profile';
 import { SolarEclipseVisual } from './solar-eclipse-visual';
 import { getBlackHoleVisualProfile } from './black-hole-visual-profile';
+import { createStellarPhotosphereMaterial } from './stellar-photosphere-material';
+import {
+  getStellarVisualProfile,
+  getStellarVisualProfileFromTemperature,
+  type StellarVisualProfile,
+} from './stellar-visual-profile';
+import { SupernovaVisual } from './supernova-visual';
+import { createGalaxyVolumeVisual } from './galaxy-volume-visual';
 
 export interface ManagedLodMaterial {
   material: THREE.Material;
@@ -32,6 +40,7 @@ export interface CelestialVisual {
   rotatingBody: THREE.Object3D | null;
   lunarEclipse: LunarEclipseVisual | null;
   solarEclipse: SolarEclipseVisual | null;
+  supernova: SupernovaVisual | null;
   observerCorona: THREE.Sprite | null;
   pickables: THREE.Object3D[];
   lod: CelestialLodRepresentation;
@@ -48,6 +57,11 @@ export interface CelestialVisualAssets {
 }
 
 const DEFERRED_TEXTURE_SOURCE = 'deferredTextureSource';
+const STELLAR_GRANULATION_BY_QUALITY = {
+  low: 0.08,
+  medium: 0.18,
+  high: 0.28,
+} as const satisfies Record<GraphicQuality, number>;
 
 export function requestCelestialLodTextures(lod: CelestialLodRepresentation): number {
   if (lod.deferredTexturesRequested) {
@@ -104,6 +118,10 @@ export function createCelestialVisual(
     return createBlackHoleVisual(root, object, quality, assets);
   }
 
+  if (object.type === 'supernova' || object.type === 'supernova-remnant') {
+    return createSupernovaCelestialVisual(root, object, quality, assets);
+  }
+
   if (object.type === 'galaxy') {
     const diameter = object.visual.visualRadius * 2;
     const shape = object.visual.galaxyShape ?? 'elliptical';
@@ -123,6 +141,12 @@ export function createCelestialVisual(
     halo.userData['objectId'] = object.id;
     halo.visible = false;
     root.add(halo);
+    const volume = object.id === 'milky-way' ? null : createGalaxyVolumeVisual(object, quality);
+
+    if (volume) {
+      volume.root.visible = false;
+      root.add(volume.root);
+    }
 
     return {
       root,
@@ -130,12 +154,13 @@ export function createCelestialVisual(
       rotatingBody: null,
       lunarEclipse: null,
       solarEclipse: null,
+      supernova: null,
       observerCorona: null,
-      pickables: [halo],
+      pickables: volume ? [halo, ...volume.pickables] : [halo],
       lod: {
-        nearRoot: null,
+        nearRoot: volume?.root ?? null,
         farSprite: halo,
-        nearMaterials: [],
+        nearMaterials: volume?.materials.map((nearMaterial) => manageMaterial(nearMaterial)) ?? [],
         deferredTextures: [],
         deferredTexturesRequested: false,
         nearBlend: 0,
@@ -223,6 +248,15 @@ export function createCelestialVisual(
     nearRoot.add(glow);
     nearMaterials.push(manageMaterial(glowMaterial));
 
+    if (object.metadata?.['exoplanetHost'] === true) {
+      const systemLight = new THREE.PointLight(object.visual.color ?? '#fff0d2', 3.2, 420, 0.55);
+
+      systemLight.name = `${object.id}-system-light`;
+      systemLight.userData['scientificConfidence'] = 'illustrative';
+      systemLight.userData['visualRole'] = 'local-exoplanet-illumination';
+      root.add(systemLight);
+    }
+
     if (object.id === 'sun') {
       root.add(new THREE.PointLight(0xfff2d6, 4.2, 1_500, 0.35));
       observerCorona = new THREE.Sprite(createGlowMaterial('#d8edff', 0.32, assets.glowTexture));
@@ -266,6 +300,7 @@ export function createCelestialVisual(
     rotatingBody: body,
     lunarEclipse,
     solarEclipse,
+    supernova: null,
     observerCorona,
     pickables: [hitTarget],
     lod: {
@@ -438,6 +473,7 @@ function createBlackHoleVisual(
     rotatingBody: null,
     lunarEclipse: null,
     solarEclipse: null,
+    supernova: null,
     observerCorona: null,
     pickables: [hitTarget],
     lod: {
@@ -450,6 +486,48 @@ function createBlackHoleVisual(
       visibilityBlend: 0,
       farAlpha: 0,
       farBaseOpacity: profile.farOpacity,
+      farBaseDiameter: farDiameter,
+      farAspectRatio: 1,
+    },
+  };
+}
+
+function createSupernovaCelestialVisual(
+  root: THREE.Group,
+  object: SpaceObject,
+  quality: GraphicQuality,
+  assets: CelestialVisualAssets,
+): CelestialVisual {
+  const supernova = new SupernovaVisual(object, quality, assets.sphereGeometry, assets.glowTexture);
+  const hitTarget = new THREE.Mesh(assets.selectionGeometry, assets.selectionMaterial);
+  const farDiameter = object.visual.visualRadius * 6;
+
+  hitTarget.name = `${object.id}-selection-target`;
+  hitTarget.scale.setScalar(Math.max(object.visual.visualRadius * 2.2, 1.4));
+  hitTarget.layers.set(PICKING_LAYER);
+  hitTarget.userData['objectId'] = object.id;
+  supernova.farSprite.scale.setScalar(farDiameter);
+  root.add(supernova.nearRoot, supernova.farSprite, hitTarget);
+
+  return {
+    root,
+    lensingForeground: null,
+    rotatingBody: null,
+    lunarEclipse: null,
+    solarEclipse: null,
+    supernova,
+    observerCorona: null,
+    pickables: [hitTarget],
+    lod: {
+      nearRoot: supernova.nearRoot,
+      farSprite: supernova.farSprite,
+      nearMaterials: supernova.materials.map(manageMaterial),
+      deferredTextures: [],
+      deferredTexturesRequested: false,
+      nearBlend: 0,
+      visibilityBlend: 0,
+      farAlpha: 0,
+      farBaseOpacity: 0.95,
       farBaseDiameter: farDiameter,
       farAspectRatio: 1,
     },
@@ -632,6 +710,7 @@ function createInvisibleVisual(root: THREE.Group): CelestialVisual {
     rotatingBody: null,
     lunarEclipse: null,
     solarEclipse: null,
+    supernova: null,
     observerCorona: null,
     pickables: [],
     lod: {
@@ -756,7 +835,7 @@ function createGalaxyTexture(
 }
 
 function drawSpiralGalaxy(context: CanvasRenderingContext2D): void {
-  drawRadialGlow(context, 128, 128, 5, 118, 0.92, [205, 224, 255], [63, 92, 151]);
+  drawRadialGlow(context, 128, 128, 5, 118, 0.38, [205, 224, 255], [63, 92, 151]);
   const random = mulberry32(0xa31d_2026);
 
   context.globalCompositeOperation = 'source-over';
@@ -926,7 +1005,7 @@ export function createSelectionMarker(): THREE.Sprite {
   const material = new THREE.SpriteMaterial({
     map: new THREE.CanvasTexture(canvas),
     transparent: true,
-    depthTest: false,
+    depthTest: true,
     depthWrite: false,
   });
   const sprite = new THREE.Sprite(material);
@@ -941,10 +1020,13 @@ function createBodyMaterial(object: SpaceObject, quality: GraphicQuality): THREE
   const primaryColor = object.visual.color ?? '#b6c3da';
 
   if (object.type === 'star') {
-    return new THREE.MeshBasicMaterial({
+    return createStellarPhotosphereMaterial({
       color: primaryColor,
-      toneMapped: false,
-      transparent: true,
+      profile: getObjectStellarVisualProfile(object),
+      surfaceSeed: hashString(object.id) / 4_294_967_296,
+      opacity: 1,
+      granulationStrength: STELLAR_GRANULATION_BY_QUALITY[quality],
+      radiance: object.visual.emissiveIntensity ?? 1,
     });
   }
 
@@ -960,7 +1042,8 @@ function createBodyMaterial(object: SpaceObject, quality: GraphicQuality): THREE
       : null;
   const illustrativeShadowFill =
     texture !== undefined &&
-    (object.id === 'jupiter' ||
+    (object.type === 'exoplanet' ||
+      object.id === 'jupiter' ||
       object.id === 'saturn' ||
       object.id === 'uranus' ||
       object.id === 'neptune');
@@ -980,7 +1063,9 @@ function createBodyMaterial(object: SpaceObject, quality: GraphicQuality): THREE
     emissiveIntensity: earthNightLights
       ? 0.92
       : illustrativeShadowFill
-        ? 0.18
+        ? object.type === 'exoplanet'
+          ? 0.11
+          : 0.18
         : (object.visual.emissiveIntensity ?? 0),
     transparent: true,
   });
@@ -1322,6 +1407,18 @@ function createAtmosphereMaterial(color: string, intensity: number): THREE.Shade
   return material;
 }
 
+function getObjectStellarVisualProfile(object: SpaceObject): StellarVisualProfile {
+  const spectralType = object.physical?.spectralType ?? null;
+  const colorIndexValue = object.metadata?.['colorIndexBv'];
+  const colorIndex = typeof colorIndexValue === 'number' ? colorIndexValue : Number.NaN;
+
+  if (spectralType || Number.isFinite(colorIndex)) {
+    return getStellarVisualProfile(spectralType, colorIndex);
+  }
+
+  return getStellarVisualProfileFromTemperature(object.physical?.temperatureK ?? Number.NaN);
+}
+
 function createGlowMaterial(
   color: string,
   opacity: number,
@@ -1342,20 +1439,20 @@ function createGlowMaterial(
 }
 
 function createGalaxyMaterial(color: string, texture: THREE.Texture): THREE.SpriteMaterial {
-  const tint = new THREE.Color(color).lerp(new THREE.Color(0xffffff), 0.82);
+  const tint = new THREE.Color(color).lerp(new THREE.Color(0xffffff), 0.64);
   const material = new THREE.SpriteMaterial({
     map: texture,
     color: tint,
     transparent: true,
-    opacity: 0.58,
+    opacity: 0.46,
     blending: THREE.NormalBlending,
     depthWrite: false,
     fog: false,
     toneMapped: false,
   });
 
-  material.userData['visualStyle'] = 'photographic-multilayer-galaxy';
-  material.userData['layers'] = ['stellar-halo', 'dust', 'warm-core'];
+  material.userData['visualStyle'] = 'structured-galaxy-impostor';
+  material.userData['layers'] = ['outer-star-halo', 'dust-lanes', 'stellar-core'];
 
   return material;
 }

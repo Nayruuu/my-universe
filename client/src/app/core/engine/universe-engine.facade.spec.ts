@@ -3,6 +3,7 @@ import {
   EngineDebugStats,
   NavigationState,
   UniverseEngineEvent,
+  UniverseTime,
 } from '../../../data/models/universe.models';
 import { NAVIGATION_SCALES } from '../../../engine/camera/navigation-scales';
 import { EarthEclipseEvent } from '../../../engine/simulation/earth-eclipse';
@@ -25,6 +26,7 @@ class FakeUniverseEngine {
   public readonly setTarget = vi.fn(async () => undefined);
   public readonly completeTargetTransition = vi.fn();
   public readonly clearSolarEclipsePresentation = vi.fn();
+  public readonly viewRotation = vi.fn(async () => undefined);
   public readonly viewOrbit = vi.fn();
   public readonly viewScale = vi.fn();
   public readonly selectObject = vi.fn();
@@ -34,6 +36,7 @@ class FakeUniverseEngine {
   public readonly zoomBy = vi.fn();
   public readonly resize = vi.fn();
   public readonly setDisplayOptions = vi.fn();
+  public readonly setLabelNameResolver = vi.fn();
   public readonly setCosmicMapLayers = vi.fn();
   public readonly viewSolarEclipse = vi.fn();
   public readonly observeSolarEclipse = vi.fn();
@@ -63,6 +66,9 @@ class FakeUniverseEngine {
 
 const eclipseModule = {
   findUpcomingEarthEclipses: vi.fn((): EarthEclipseEvent[] => []),
+  findEarthEclipsePage: vi.fn<
+    (time: UniverseTime, count: number, direction: 'past' | 'future') => EarthEclipseEvent[]
+  >(() => []),
 };
 const localEclipseModule = {
   calculateLocalSolarEclipse: vi.fn(
@@ -95,6 +101,7 @@ describe('UniverseEngineFacade', () => {
     engineInstances.length = 0;
     urlService.read.mockReturnValue({});
     eclipseModule.findUpcomingEarthEclipses.mockReturnValue([]);
+    eclipseModule.findEarthEclipsePage.mockReturnValue([]);
     localEclipseModule.calculateLocalSolarEclipse.mockImplementation((eclipse, location) => ({
       ...eclipse,
       id: `${eclipse.id}-${location.id}`,
@@ -116,6 +123,7 @@ describe('UniverseEngineFacade', () => {
           provide: EARTH_ECLIPSE_CATALOG_LOADER,
           useValue: async () => ({
             findUpcomingEarthEclipses: eclipseModule.findUpcomingEarthEclipses,
+            findEarthEclipsePage: eclipseModule.findEarthEclipsePage,
           }),
         },
         {
@@ -139,6 +147,12 @@ describe('UniverseEngineFacade', () => {
   it('calcule la sélection, les horloges et la stabilisation terrestre', () => {
     const earth = spaceObject('earth', 'Terre');
     const eventObject = spaceObject('event', 'Événement');
+    const labelResolver = engine.setLabelNameResolver.mock.calls[0]?.[0] as (
+      objectId: string,
+      fallback: string,
+    ) => string;
+
+    expect(labelResolver('earth', 'Terre')).toBe('Terre');
 
     facade.objects.set([earth]);
     facade.selectedId.set('earth');
@@ -401,6 +415,20 @@ describe('UniverseEngineFacade', () => {
     expect(engine.setTarget).toHaveBeenCalledWith('mars');
   });
 
+  it('cadre explicitement la rotation et traduit ses erreurs', async () => {
+    await facade.viewRotation('earth');
+    expect(engine.clearSolarEclipsePresentation).toHaveBeenCalledOnce();
+    expect(engine.viewRotation).toHaveBeenCalledWith('earth');
+
+    engine.viewRotation.mockRejectedValueOnce(new Error('Rotation indisponible'));
+    await facade.viewRotation('moon');
+    expect(facade.error()).toBe('Rotation indisponible');
+
+    engine.viewRotation.mockRejectedValueOnce('échec');
+    await facade.viewRotation('moon');
+    expect(facade.error()).toBe('Rotation inaccessible.');
+  });
+
   it('cadre une orbite, l’active si nécessaire et traduit les erreurs', () => {
     facade.displayOptions.set({ ...facade.displayOptions(), showOrbits: false });
     facade.viewOrbit('earth');
@@ -540,14 +568,14 @@ describe('UniverseEngineFacade', () => {
       links: true,
       clusters: true,
       superclusters: true,
-      filaments: false,
-      voids: false,
+      filaments: true,
+      voids: true,
     });
 
     facade.toggleCosmicMapLayer('filaments');
-    expect(facade.cosmicMapLayers().filaments).toBe(true);
+    expect(facade.cosmicMapLayers().filaments).toBe(false);
     expect(engine.setCosmicMapLayers).toHaveBeenLastCalledWith(
-      expect.objectContaining({ filaments: true }),
+      expect.objectContaining({ filaments: false }),
     );
 
     facade.toggleCosmicMapLayer('groups');
@@ -559,8 +587,8 @@ describe('UniverseEngineFacade', () => {
       links: true,
       clusters: true,
       superclusters: true,
-      filaments: false,
-      voids: false,
+      filaments: true,
+      voids: true,
     });
     expect(engine.setCosmicMapLayers).toHaveBeenLastCalledWith(facade.cosmicMapLayers());
   });
@@ -584,7 +612,7 @@ describe('UniverseEngineFacade', () => {
     facade.toggleHelp();
     expect(facade.helpOpen()).toBe(false);
 
-    eclipseModule.findUpcomingEarthEclipses.mockReturnValue([eclipse()]);
+    eclipseModule.findEarthEclipsePage.mockReturnValue([eclipse()]);
     facade.toggleEclipseBrowser();
     await vi.waitFor(() => expect(facade.eclipseEventsLoading()).toBe(false));
     expect(facade.upcomingEclipses()).toHaveLength(1);
@@ -592,8 +620,72 @@ describe('UniverseEngineFacade', () => {
     expect(facade.eclipseBrowserOpen()).toBe(false);
   });
 
+  it('parcourt les pages d’éclipses antérieures et suivantes puis revient à la date courante', async () => {
+    const currentEvents = [eclipse({ id: 'current', peak: { julianDay: 200 } })];
+    const previousEvents = [eclipse({ id: 'previous', peak: { julianDay: 100 } })];
+    const nextEvents = [eclipse({ id: 'next', peak: { julianDay: 300 } })];
+
+    facade.currentTime.set({ julianDay: 150 });
+    eclipseModule.findEarthEclipsePage.mockImplementation((_time, _count, direction) =>
+      direction === 'past' ? previousEvents : currentEvents,
+    );
+    facade.toggleEclipseBrowser();
+    await vi.waitFor(() => expect(facade.eclipseEventsLoading()).toBe(false));
+    expect(facade.upcomingEclipses()).toEqual(currentEvents);
+    expect(facade.eclipseCatalogAtPresent()).toBe(true);
+
+    facade.browseEarlierEclipses();
+    await vi.waitFor(() => expect(facade.upcomingEclipses()).toEqual(previousEvents));
+    expect(facade.eclipseCatalogAtPresent()).toBe(false);
+    expect(eclipseModule.findEarthEclipsePage).toHaveBeenLastCalledWith(
+      { julianDay: 200 - 1 / 86_400 },
+      8,
+      'past',
+    );
+
+    eclipseModule.findEarthEclipsePage.mockReturnValueOnce(nextEvents);
+    facade.browseLaterEclipses();
+    await vi.waitFor(() => expect(facade.upcomingEclipses()).toEqual(nextEvents));
+    expect(eclipseModule.findEarthEclipsePage).toHaveBeenLastCalledWith(
+      { julianDay: 100 + 1 / 86_400 },
+      8,
+      'future',
+    );
+
+    eclipseModule.findEarthEclipsePage.mockReturnValueOnce(currentEvents);
+    facade.returnToCurrentEclipses();
+    await vi.waitFor(() => expect(facade.upcomingEclipses()).toEqual(currentEvents));
+    expect(facade.eclipseCatalogAtPresent()).toBe(true);
+    expect(eclipseModule.findEarthEclipsePage).toHaveBeenLastCalledWith(
+      { julianDay: 150 },
+      8,
+      'future',
+    );
+  });
+
+  it('prend la date simulée comme origine lorsque la page d’événements est vide', async () => {
+    facade.currentTime.set({ julianDay: 150 });
+    facade.upcomingEclipses.set([]);
+
+    facade.browseEarlierEclipses();
+    await vi.waitFor(() => expect(facade.eclipseEventsLoading()).toBe(false));
+    expect(eclipseModule.findEarthEclipsePage).toHaveBeenLastCalledWith(
+      { julianDay: 150 - 1 / 86_400 },
+      8,
+      'past',
+    );
+
+    facade.browseLaterEclipses();
+    await vi.waitFor(() => expect(facade.eclipseEventsLoading()).toBe(false));
+    expect(eclipseModule.findEarthEclipsePage).toHaveBeenLastCalledWith(
+      { julianDay: 150 + 1 / 86_400 },
+      8,
+      'future',
+    );
+  });
+
   it('signale un échec du catalogue des éclipses', async () => {
-    eclipseModule.findUpcomingEarthEclipses.mockImplementationOnce(() => {
+    eclipseModule.findEarthEclipsePage.mockImplementationOnce(() => {
       throw new Error('catalogue indisponible');
     });
 
@@ -798,6 +890,7 @@ describe('dépendances par défaut de la façade', () => {
 
     expect(engine).toBeDefined();
     expect(eclipseCatalog.findUpcomingEarthEclipses).toBeTypeOf('function');
+    expect(eclipseCatalog.findEarthEclipsePage).toBeTypeOf('function');
     expect(localCalculator.calculateLocalSolarEclipse).toBeTypeOf('function');
 
     engine.dispose();
@@ -868,9 +961,15 @@ function debugStats(): EngineDebugStats {
     textures: 2,
     visibleObjects: 5,
     catalogStars: 1_000,
+    exoplanetHosts: 4_747,
+    exoplanets: 6_333,
     cosmicGroups: 0,
     cosmicFilaments: 0,
     cosmicStructures: 0,
+    tempelFilamentSpines: 0,
+    tempelSpineSegments: 0,
+    visibleTempelSpineSegments: 0,
+    tempelSpineTiles: 0,
     batchedGalaxies: 0,
     loadedTiles: 0,
     indexedGalaxyTiles: 0,

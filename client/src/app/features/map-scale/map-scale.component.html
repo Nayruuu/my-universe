@@ -1,0 +1,14 @@
+@let t = i18n.content();
+@if (scale(); as currentScale) {
+  <div
+    class="map-scale"
+    role="status"
+    aria-live="off"
+    [attr.aria-label]="t.mapScale.aria"
+    [title]="t.mapScale.title"
+  >
+    <div class="map-scale__bar" [style.width.px]="currentScale.pixelWidth" aria-hidden="true"></div>
+    <strong>{{ scaleLabel(currentScale) }}</strong>
+    <small>{{ t.mapScale.adapted }}</small>
+  </div>
+}

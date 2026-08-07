@@ -151,6 +151,38 @@ export class SolarSystemEphemerisProvider implements TemporalPositionProvider {
   }
 }
 
+export class IllustrativeOrbitProvider implements TemporalPositionProvider {
+  private readonly semiMajorAxisSceneUnits: number;
+
+  constructor(
+    private readonly definition: Extract<
+      PositionProviderDefinition,
+      { type: 'illustrative-orbit' }
+    >,
+    coordinateSystem: CoordinateSystem,
+    frame: ReferenceFrame,
+  ) {
+    this.semiMajorAxisSceneUnits =
+      coordinateSystem.toSceneDistance(definition.semiMajorAxis, definition.unit, frame) *
+      (definition.distanceScale ?? 1);
+  }
+
+  public getPositionAt(time: UniverseTime): Vector3Like {
+    const elapsedDays = time.julianDay - this.definition.epochJulianDay;
+    const phase =
+      degreesToRadians(this.definition.visualPhaseAtEpochDegrees) +
+      (elapsedDays / this.definition.orbitalPeriodDays) * Math.PI * 2;
+    const inclination = degreesToRadians(this.definition.visualInclinationDegrees);
+    const orbitalPlaneOffset = Math.sin(phase) * this.semiMajorAxisSceneUnits;
+
+    return {
+      x: Math.cos(phase) * this.semiMajorAxisSceneUnits,
+      y: orbitalPlaneOffset * Math.sin(inclination),
+      z: orbitalPlaneOffset * Math.cos(inclination),
+    };
+  }
+}
+
 export class LinearProperMotionProvider implements TemporalPositionProvider {
   private readonly initialPosition: Vector3Like;
   private readonly velocityPerDay: Vector3Like;
@@ -222,6 +254,8 @@ export class PositionProviderFactory {
         return new KeplerianOrbitProvider(definition, this.coordinateSystem, frame);
       case 'ephemeris':
         return new SolarSystemEphemerisProvider(definition, this.coordinateSystem, frame);
+      case 'illustrative-orbit':
+        return new IllustrativeOrbitProvider(definition, this.coordinateSystem, frame);
       case 'linear-motion':
         return new LinearProperMotionProvider(definition, this.coordinateSystem, frame);
       case 'procedural':

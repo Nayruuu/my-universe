@@ -1,6 +1,7 @@
 import {
   ALL_COSMIC_MAP_LAYERS,
   DEFAULT_COSMIC_MAP_LAYERS,
+  getCosmicFilamentSpineRevealThreshold,
   getCosmicGroupDetail,
   getCosmicGroupRevealThreshold,
   getCosmicMapDetail,
@@ -18,8 +19,8 @@ describe('politique cartographique du réseau cosmique', () => {
       links: true,
       clusters: true,
       superclusters: true,
-      filaments: false,
-      voids: false,
+      filaments: true,
+      voids: true,
     });
     expect(Object.values(ALL_COSMIC_MAP_LAYERS).every(Boolean)).toBe(true);
   });
@@ -90,10 +91,25 @@ describe('politique cartographique du réseau cosmique', () => {
     expect(filament).toBeGreaterThan(cluster);
     expect(
       getCosmicStructureRevealThreshold('void-1', 'void', 'boss-dr12-voids'),
-    ).toBeLessThanOrEqual(1);
+    ).toBeLessThanOrEqual(0.18);
     expect(getCosmicStructureRevealThreshold('wall-1', 'wall', 'future-walls')).toBe(
       stableMapPriority('wall-1'),
     );
+  });
+
+  it('révèle les épines Tempel plus tôt que leurs symboles ponctuels', () => {
+    const objectId = 'lss-sdss-dr8-tempel-filaments-f428';
+    const spineThreshold = getCosmicFilamentSpineRevealThreshold(objectId);
+    const symbolThreshold = getCosmicStructureRevealThreshold(
+      objectId,
+      'filament',
+      'sdss-dr8-tempel-filaments',
+    );
+
+    expect(spineThreshold).toBeGreaterThanOrEqual(0);
+    expect(spineThreshold).toBeLessThanOrEqual(0.64);
+    expect(spineThreshold).toBeLessThan(symbolThreshold);
+    expect(getCosmicFilamentSpineRevealThreshold(objectId)).toBe(spineThreshold);
   });
 
   it('associe les types scientifiques à des couches compréhensibles', () => {
@@ -106,6 +122,6 @@ describe('politique cartographique du réseau cosmique', () => {
     expect(getCosmicStructureLayer('filament')).toBe('filaments');
     expect(getCosmicStructureLayer('void')).toBe('voids');
     expect(isCosmicMapLayerEnabled('cluster', DEFAULT_COSMIC_MAP_LAYERS)).toBe(true);
-    expect(isCosmicMapLayerEnabled('filament', DEFAULT_COSMIC_MAP_LAYERS)).toBe(false);
+    expect(isCosmicMapLayerEnabled('filament', DEFAULT_COSMIC_MAP_LAYERS)).toBe(true);
   });
 });

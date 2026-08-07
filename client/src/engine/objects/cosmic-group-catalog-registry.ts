@@ -148,7 +148,8 @@ export class CosmicGroupCatalogRegistry {
         distanceModulusError: catalog.distanceModulusErrors[index]!,
         velocityCmbKmPerSecond: catalog.velocitiesCmbKmPerSecond[index]!,
         cosmicCatalogRank: index,
-        visualAdaptation: 'Groupe représenté par un halo ponctuel à l’échelle cosmique',
+        visualAdaptation:
+          'Position du groupe calculée ; silhouettes, orientations, luminosités et membres non résolus illustratifs',
       },
     };
   }

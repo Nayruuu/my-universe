@@ -13,11 +13,11 @@
   position: relative;
   display: grid;
   width: min(1080px, calc(100vw - 36px));
-  min-height: 76px;
+  min-height: 82px;
   grid-template-columns: minmax(340px, 1fr) auto;
   align-items: center;
   gap: 17px;
-  padding: 10px 12px;
+  padding: 12px;
   border: 1px solid rgb(174 203 233 / 14%);
   border-radius: 18px;
   color: #e9f3fd;
@@ -163,7 +163,6 @@
   &:focus-visible,
   &.active {
     border-color: rgb(124 192 231 / 32%);
-    outline: none;
     color: #edf8ff;
     background: rgb(69 139 181 / 14%);
   }
@@ -243,7 +242,7 @@
 }
 
 .present-button {
-  min-height: 32px;
+  height: 32px;
   padding: 0 10px;
   border: 1px solid rgb(174 203 233 / 12%);
   border-radius: 9px;
@@ -267,7 +266,7 @@
 
 .events-button {
   display: flex;
-  min-height: 34px;
+  height: 34px;
   align-items: center;
   gap: 6px;
   padding: 0 9px 0 7px;
@@ -283,7 +282,6 @@
   &:focus-visible,
   &.active {
     border-color: rgb(126 198 240 / 30%);
-    outline: none;
     color: #e7f6ff;
     background: rgb(68 139 188 / 13%);
   }
@@ -321,26 +319,28 @@
 
 .select-control,
 .date-control {
-  display: grid;
-  gap: 3px;
+  position: relative;
+  display: block;
 
   > span {
-    padding-left: 2px;
+    position: absolute;
+    bottom: 38px;
+    left: 2px;
     color: rgb(176 202 226 / 40%);
     font-size: 0.54rem;
     font-weight: 620;
     letter-spacing: 0.07em;
     text-transform: uppercase;
+    white-space: nowrap;
   }
 
   select,
   input {
+    display: block;
     height: 34px;
     border: 1px solid rgb(174 203 233 / 12%);
     border-radius: 9px;
-    outline: none;
     color: rgb(229 239 249 / 78%);
-    color-scheme: dark;
     background: rgb(2 6 14 / 45%);
     font: inherit;
     font-size: 0.66rem;
@@ -367,23 +367,23 @@
 
 @media (width >= 1180px) {
   .mode-control {
-    display: grid;
+    display: block;
   }
 }
 
 @media (width <= 720px) {
   :host {
-    right: 10px;
-    bottom: 10px;
-    left: 10px;
+    right: max(10px, var(--mobile-right-safe, 0px));
+    bottom: max(10px, var(--mobile-bottom-safe, 0px));
+    left: max(10px, var(--mobile-left-safe, 0px));
   }
 
   .timeline {
     width: 100%;
-    min-height: 86px;
+    min-height: 0;
     grid-template-columns: 1fr;
-    gap: 7px;
-    padding: 9px 10px;
+    gap: 8px;
+    padding: 10px;
     border-radius: 16px;
   }
 
@@ -414,19 +414,30 @@
   }
 
   .eclipse-action {
+    min-height: 44px;
     overflow: hidden;
     padding: 0 5px;
     text-overflow: ellipsis;
   }
 
   .timeline__primary {
-    grid-template-columns: 38px auto 1fr;
+    grid-template-columns: 44px minmax(110px, auto) minmax(54px, 1fr);
     gap: 9px;
   }
 
   .play-button {
-    width: 38px;
-    height: 38px;
+    width: 44px;
+    height: 44px;
+  }
+
+  .date-heading {
+    min-width: 0;
+
+    strong,
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
   }
 
   .timeline-range {
@@ -438,12 +449,15 @@
   }
 
   .timeline__secondary {
-    justify-content: flex-end;
+    display: grid;
+    min-width: 0;
+    grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: 8px;
   }
 
   .events-button {
-    width: 32px;
-    min-height: 30px;
+    width: 44px;
+    height: 44px;
     justify-content: center;
     padding: 0;
 
@@ -460,19 +474,24 @@
   .select-control,
   .date-control {
     display: block;
+    min-width: 0;
 
     > span {
       display: none;
     }
 
     select {
-      width: 150px;
-      height: 30px;
+      width: 100%;
+      min-width: 0;
+      height: 44px;
+      font-size: 0.6rem;
     }
 
     input {
-      width: 166px;
-      height: 30px;
+      width: 100%;
+      min-width: 0;
+      height: 44px;
+      font-size: 0.6rem;
     }
   }
 
@@ -483,7 +502,7 @@
 
 @media (width <= 420px) {
   .date-heading {
-    min-width: 100px;
+    min-width: 0;
 
     strong {
       font-size: 0.72rem;
@@ -491,14 +510,75 @@
   }
 
   .timeline__secondary {
-    justify-content: space-between;
+    grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1.15fr);
+  }
+}
+
+@media (height <= 520px) and (width > 720px) and (width <= 1000px) {
+  :host {
+    right: max(12px, var(--landscape-right-safe, 0px));
+    bottom: max(8px, var(--landscape-bottom-safe, 0px));
+    left: max(12px, var(--landscape-left-safe, 0px));
+  }
+
+  .timeline {
+    width: 100%;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 15px;
+  }
+
+  .timeline__primary {
+    grid-template-columns: 44px minmax(145px, auto) minmax(60px, 1fr);
+    gap: 8px;
+  }
+
+  .play-button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .date-heading {
+    min-width: 0;
+
+    strong,
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  .present-button,
+  .mode-control,
+  .events-button > span:last-child,
+  .select-control > span,
+  .date-control > span {
+    display: none;
+  }
+
+  .timeline__secondary {
+    gap: 8px;
+  }
+
+  .events-button {
+    width: 44px;
+    height: 44px;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .select-control select,
+  .date-control input {
+    height: 44px;
   }
 
   .select-control select {
-    width: 124px;
+    width: 120px;
   }
 
   .date-control input {
-    width: 164px;
+    width: 158px;
   }
 }

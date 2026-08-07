@@ -1,5 +1,5 @@
 import { EclipseKind } from 'astronomy-engine';
-import { findUpcomingEarthEclipses } from './earth-eclipse-catalog';
+import { findEarthEclipsePage, findUpcomingEarthEclipses } from './earth-eclipse-catalog';
 import { mapAstronomyEclipseKind } from './earth-eclipse';
 import {
   calculateEarthObserverDirection,
@@ -44,6 +44,27 @@ describe('éclipses terrestres', () => {
     expect(events[0]?.latitude).not.toBeNull();
     expect(events[1]?.durationMinutes).toBeGreaterThan(190);
     expect(findUpcomingEarthEclipses({ julianDay: 2_461_250 }, 0)).toEqual([]);
+  });
+
+  it('parcourt les éclipses passées et futures sans inverser leur chronologie', () => {
+    const reference = {
+      julianDay: dateToJulianDay(new Date('2026-07-28T00:00:00.000Z')),
+    };
+    const previous = findEarthEclipsePage(reference, 6, 'past');
+    const next = findEarthEclipsePage(reference, 6, 'future');
+
+    expect(previous).toHaveLength(6);
+    expect(next).toHaveLength(6);
+    expect(previous.every((event) => event.peak.julianDay < reference.julianDay)).toBe(true);
+    expect(next.every((event) => event.peak.julianDay >= reference.julianDay)).toBe(true);
+    expect(previous.map((event) => event.peak.julianDay)).toEqual(
+      [...previous].map((event) => event.peak.julianDay).sort((first, second) => first - second),
+    );
+    expect(julianDayToDate(previous.at(-1)!.peak.julianDay).toISOString().slice(0, 10)).toBe(
+      '2026-03-03',
+    );
+    expect(next).toEqual(findUpcomingEarthEclipses(reference, 6));
+    expect(findEarthEclipsePage(reference, 0, 'past')).toEqual([]);
   });
 
   it('conserve une éclipse solaire partielle sans centre et la durée d’une totalité lunaire', () => {
