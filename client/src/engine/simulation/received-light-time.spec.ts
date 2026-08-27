@@ -2,10 +2,12 @@ import type { SpaceObject } from '../../data/models/universe.models';
 import {
   ASTRONOMY_ENGINE_LIGHT_TIME_SOURCE_URL,
   HYG_REFERENCE_POSITION_METADATA_KEYS,
+  IAU_DISTANCE_RESOLUTION_SOURCE_URL,
   JPL_SATELLITE_LIGHT_TIME_SOURCE_URL,
   JPL_SMALL_BODY_LIGHT_TIME_SOURCE_URL,
   NASA_EXOPLANET_DISTANCE_SOURCE_URL,
   calculateExoplanetSystemLightDeparture,
+  calculateCatalogDistanceLightDeparture,
   calculateJovianMoonLightDeparture,
   calculateKeplerianLightDeparture,
   calculateSolarSystemLightDeparture,
@@ -256,6 +258,130 @@ describe('temps de trajet de la lumière reçue', () => {
     expect(
       calculateExoplanetSystemLightDeparture(
         object({ type: 'star', metadata: { ...metadata, distancePc: 'unknown' } }),
+        time,
+      ),
+    ).toBeNull();
+  });
+
+  it('applique le temps géométrique aux distances des galaxies proches', () => {
+    const time = { julianDay: 2_451_545 };
+    const andromeda = object({
+      type: 'galaxy',
+      referenceFrame: 'local-group',
+      metadata: { distanceLy: 2_553_801 },
+    });
+    const nearbyGalaxy = object({
+      type: 'galaxy',
+      referenceFrame: 'nearby-universe',
+      metadata: { distanceMpc: 1 },
+    });
+    const explicitCatalogDistance = object({
+      type: 'galaxy-cluster',
+      referenceFrame: 'cosmic-web',
+      metadata: {
+        receivedLightDistanceModel: 'catalog-distance-geometric',
+        distanceMpc: 1,
+      },
+    });
+    const received = calculateCatalogDistanceLightDeparture(andromeda, time)!;
+
+    expect(received).toMatchObject({
+      confidence: 'calculated',
+      model: 'catalog-distance-light-time',
+      sourceUrl: IAU_DISTANCE_RESOLUTION_SOURCE_URL,
+      status: 'within-model-domain',
+    });
+    expect(received.lightTravelDays).toBe(2_553_801 * 365.25);
+    expect(calculateCatalogDistanceLightDeparture(nearbyGalaxy, time)?.lightTravelDays).toBeCloseTo(
+      3_261_563.777_167_433 * 365.25,
+      1,
+    );
+    expect(
+      calculateCatalogDistanceLightDeparture(explicitCatalogDistance, time)?.lightTravelDays,
+    ).toBeCloseTo(3_261_563.777_167_433 * 365.25, 1);
+    expect(() =>
+      calculateCatalogDistanceLightDeparture(andromeda, { julianDay: Number.NaN }),
+    ).toThrow('non finie');
+  });
+
+  it('applique le regard en arrière ΛCDM aux distances cosmologiques explicitement typées', () => {
+    const time = { julianDay: 2_451_545 };
+    const comoving = object({
+      type: 'supercluster',
+      referenceFrame: 'cosmic-web',
+      metadata: {
+        receivedLightDistanceModel: 'flat-lambda-cdm-comoving-distance',
+        cosmologicalRedshift: 0.5,
+        cosmologicalRedshiftOrigin: 'inferred-from-comoving-distance',
+      },
+    });
+    const luminosity = object({
+      type: 'galaxy-cluster',
+      referenceFrame: 'cosmic-web',
+      metadata: {
+        receivedLightDistanceModel: 'flat-lambda-cdm-luminosity-distance',
+        cosmologicalRedshift: 0.5,
+        cosmologicalRedshiftOrigin: 'inferred-from-luminosity-distance',
+      },
+    });
+    const comovingLight = calculateCatalogDistanceLightDeparture(comoving, time)!;
+    const luminosityLight = resolveObjectReceivedLight(luminosity, time)!;
+
+    expect(comovingLight).toMatchObject({
+      confidence: 'extrapolated',
+      model: 'flat-lambda-cdm-lookback-time',
+      cosmologicalRedshift: 0.5,
+      cosmologicalRedshiftOrigin: 'inferred-from-comoving-distance',
+    });
+    expect(comovingLight.lightTravelDays / 365.25).toBeCloseTo(5_040_637_929.310_091, 2);
+    expect(luminosityLight.lightTravelDays).toBeCloseTo(comovingLight.lightTravelDays, 1);
+    expect(luminosityLight.cosmologicalRedshiftOrigin).toBe('inferred-from-luminosity-distance');
+  });
+
+  it('refuse une distance de catalogue incomplète ou ambiguë', () => {
+    const time = { julianDay: 2_451_545 };
+    const cosmologicalMetadata = {
+      receivedLightDistanceModel: 'flat-lambda-cdm-comoving-distance',
+      cosmologicalRedshiftOrigin: 'inferred-from-comoving-distance',
+    };
+
+    expect(
+      calculateCatalogDistanceLightDeparture(
+        object({ metadata: { ...cosmologicalMetadata, cosmologicalRedshift: Number.NaN } }),
+        time,
+      ),
+    ).toBeNull();
+    expect(
+      calculateCatalogDistanceLightDeparture(
+        object({ metadata: { ...cosmologicalMetadata, cosmologicalRedshift: -1 } }),
+        time,
+      ),
+    ).toBeNull();
+    expect(
+      calculateCatalogDistanceLightDeparture(
+        object({
+          metadata: {
+            ...cosmologicalMetadata,
+            cosmologicalRedshift: 0.1,
+            cosmologicalRedshiftOrigin: 'inferred-from-luminosity-distance',
+          },
+        }),
+        time,
+      ),
+    ).toBeNull();
+    expect(
+      calculateCatalogDistanceLightDeparture(
+        object({
+          type: 'galaxy',
+          referenceFrame: 'local-group',
+          metadata: { distanceLy: Number.NaN, distanceMpc: 0 },
+        }),
+        time,
+      ),
+    ).toBeNull();
+    expect(
+      calculateCatalogDistanceLightDeparture(
+        object({ type: 'galaxy', referenceFrame: 'stellar', metadata: { distanceLy: 1 } }),
         time,
       ),
     ).toBeNull();

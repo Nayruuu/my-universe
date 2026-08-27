@@ -38,11 +38,16 @@ describe('CosmicGroupCatalogRegistry', () => {
         distanceMpc: expect.closeTo(99.611, 4),
         distanceModulusError: expect.closeTo(0.41, 4),
         velocityCmbKmPerSecond: 6_179,
+        receivedLightDistanceModel: 'flat-lambda-cdm-luminosity-distance',
+        cosmologicalRedshift: expect.any(Number),
+        cosmologicalRedshiftOrigin: 'inferred-from-luminosity-distance',
+        cosmologicalModel: 'Flat ΛCDM · H0=70 km/s/Mpc · Ωm=0.3 · ΩΛ=0.7',
         source: 'Cosmicflows-4 · Tully et al. (2023)',
         visualAdaptation:
           'Position du groupe calculée ; silhouettes, orientations, luminosités et membres non résolus illustratifs',
       },
     });
+    expect(group?.metadata?.['cosmologicalRedshift']).toBeCloseTo(0.023, 2);
     expect(registry.getDefinition('cf4-pgc-12')).toBe(group);
     expect(registry.getDefinition('missing')).toBeUndefined();
   });

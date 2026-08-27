@@ -7,6 +7,13 @@ import {
 } from '../../data/models/universe.models';
 import { CoordinateSystem } from '../coordinates/coordinate-system';
 import type { CosmicStructureCatalog } from '../loaders/cosmic-structure-catalog';
+import {
+  COSMOLOGICAL_REDSHIFT_METADATA_KEY,
+  COSMOLOGICAL_REDSHIFT_ORIGIN_METADATA_KEY,
+  inferFlatLambdaCdmRedshiftFromComovingDistanceMpc,
+  RECEIVED_LIGHT_DISTANCE_MODEL_METADATA_KEY,
+  RECEIVED_LIGHT_DISTANCE_MODELS,
+} from '../simulation/cosmological-lookback';
 import type { LabelObject } from './label-manager';
 import {
   cosmicStructureAliases,
@@ -147,6 +154,8 @@ export class CosmicStructureCatalogRegistry {
     const offset = index * 3;
     const densityContrast = catalog.densityContrasts[index]!;
     const boundaryDistanceMpc = catalog.boundaryDistancesMpc[index]!;
+    const distanceMpc = catalog.distancesMpc[index]!;
+    const cosmologicalRedshift = inferFlatLambdaCdmRedshiftFromComovingDistanceMpc(distanceMpc);
     const sample = structureType === 'void' ? voidSample(identifier) : null;
 
     return {
@@ -181,7 +190,12 @@ export class CosmicStructureCatalogRegistry {
         catalogNumericId: catalog.catalogNumericIds[index]!,
         detectionMethod: source.method,
         structureType,
-        distanceMpc: catalog.distancesMpc[index]!,
+        distanceMpc,
+        [RECEIVED_LIGHT_DISTANCE_MODEL_METADATA_KEY]:
+          RECEIVED_LIGHT_DISTANCE_MODELS.flatLambdaCdmComoving,
+        [COSMOLOGICAL_REDSHIFT_METADATA_KEY]: cosmologicalRedshift,
+        [COSMOLOGICAL_REDSHIFT_ORIGIN_METADATA_KEY]: 'inferred-from-comoving-distance',
+        cosmologicalModel: 'Flat ΛCDM · H0=70 km/s/Mpc · Ωm=0.3 · ΩΛ=0.7',
         ...(structureType === 'filament'
           ? { lengthMpc: catalog.radiiMpc[index]! * 2 }
           : catalog.radiiMpc[index]! > 0

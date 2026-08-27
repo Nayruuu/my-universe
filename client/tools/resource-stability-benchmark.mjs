@@ -1,4 +1,10 @@
 import { pathToFileURL } from 'node:url';
+import {
+  parseCpuThrottleRate,
+  printBenchmarkEvidence,
+  publishBenchmarkEvidence,
+  readBrowserHardwareSnapshot,
+} from './benchmark-evidence.mjs';
 
 const DEFAULT_BASE_URL = 'http://127.0.0.1:4203';
 const DEFAULT_CYCLES = 3;
@@ -112,6 +118,7 @@ async function runBenchmark() {
   const qualityFilter = readFilter(process.env['UNIVERSE_BENCHMARK_QUALITIES'], QUALITIES, [
     'high',
   ]);
+  const cpuThrottleRate = parseCpuThrottleRate(process.env['UNIVERSE_CPU_THROTTLE_RATE']);
   const profiles = {
     desktop: { viewport: { width: 1_440, height: 900 } },
     mobile: { ...devices['Pixel 7'] },
@@ -126,7 +133,14 @@ async function runBenchmark() {
 
         try {
           summaries.push(
-            await measureResourceStability(context, baseUrl, profile, quality, cycles),
+            await measureResourceStability(
+              context,
+              baseUrl,
+              profile,
+              quality,
+              cycles,
+              cpuThrottleRate,
+            ),
           );
         } finally {
           await context.close();
@@ -138,6 +152,22 @@ async function runBenchmark() {
   }
 
   printSummaries(summaries);
+  printBenchmarkEvidence(
+    await publishBenchmarkEvidence({
+      benchmark: 'resource-stability',
+      browser: summaries[0].browser,
+      configuration: {
+        profiles: profileFilter,
+        qualities: qualityFilter,
+        cycles,
+        cpuThrottleRate,
+        warmupRoundTrips: WARMUP_ROUND_TRIPS,
+      },
+      cpuThrottleRate,
+      samples: summaries,
+      summary: summaries,
+    }),
+  );
   if (
     process.env['UNIVERSE_BENCHMARK_STRICT'] === '1' &&
     summaries.some((summary) => !summary.stable)
@@ -146,7 +176,14 @@ async function runBenchmark() {
   }
 }
 
-async function measureResourceStability(context, baseUrl, profile, quality, cycles) {
+async function measureResourceStability(
+  context,
+  baseUrl,
+  profile,
+  quality,
+  cycles,
+  cpuThrottleRate,
+) {
   const page = await context.newPage();
   const devtools = await context.newCDPSession(page);
   const url = new URL('/en/', baseUrl);
@@ -162,8 +199,11 @@ async function measureResourceStability(context, baseUrl, profile, quality, cycl
     constellations: '1',
     labels: '1',
   }).toString();
+  await devtools.send('Emulation.setCPUThrottlingRate', { rate: cpuThrottleRate });
   await page.goto(url.href, { waitUntil: 'domcontentloaded', timeout: 60_000 });
   await page.locator('canvas.universe-canvas').waitFor({ state: 'visible', timeout: 60_000 });
+  const browser = await readBrowserHardwareSnapshot(page);
+
   await waitForPopulatedStat(page, 'startup-milestones');
 
   for (let warmup = 0; warmup < WARMUP_ROUND_TRIPS; warmup += 1) {
@@ -183,6 +223,8 @@ async function measureResourceStability(context, baseUrl, profile, quality, cycl
   return {
     profile,
     quality,
+    cpuThrottleRate,
+    browser,
     samples,
     ...summarizeResourceStability(samples),
   };

@@ -54,26 +54,42 @@ and a fully static browser architecture remain constraints for every item.
   distance. The static host direction is unchanged, and each local planetary orbit is evaluated at
   that emission epoch while its phase remains explicitly illustrative; systems without a published
   distance stay simultaneous.
+- Nearby galaxies now use geometric catalogue light time. Cosmicflows-4 distance moduli are treated
+  as luminosity distances and large-scale-structure map distances as comoving distances; both are
+  inverted in the documented flat ΛCDM model. Cards expose the inferred redshift and lookback time,
+  while catalogue positions and static appearances remain unchanged and the result is marked
+  extrapolated.
 - Published walls, probabilistic basins, attractors, and repellers retain separate provenance and
   visual semantics rather than being merged into the Tempel filament network.
 - Cold startup, Tempel transition, resource stability, and frame stability have repeatable browser
   benchmarks.
+- A repeated physical high-end baseline now records three startup, Tempel, and cold-frame runs plus
+  three post-warmup resource cycles on an Apple M5 Max using its real Metal renderer. It is not
+  evidence for another device class.
+- A dedicated observable-planetarium benchmark now covers real sky panning, recentering, a
+  Jupiter-anchored transition into the shared resolved planet, and zoom-out. Three physical
+  high-end Retina runs passed at the high-quality DPR 1.5 cap with no long frames. A separate,
+  explicitly simulated CPU 4×/6× stress matrix also passes and measures regression headroom only.
+- All five manual performance protocols now share a versioned JSON evidence report that records the
+  source state, host, renderer, configuration, samples, and summary. A physical-only guard rejects
+  simulated, software-rendered, or unclassified measurements before writing the report. A
+  clean-checkout campaign runner executes them sequentially and binds the five files into one
+  SHA-256-verifiable manifest.
+- A separate clean-checkout command now runs the same-host medium and low regression campaign across
+  all five protocols: medium quality at CPU 4× and low quality at CPU 6×. Its distinct simulated
+  manifest binds ten reports and states that GPU, memory, driver, bandwidth, and thermal behavior
+  still belong to the source host.
 
 ## Current priorities
 
-- Define source-appropriate received-light contracts for galaxies and large-scale structures. They
-  need cosmological lookback and redshift semantics rather than a naive distance divided by light
-  speed.
+- Record and compare clean manifests from the automated medium and low simulated campaign when
+  performance-sensitive changes land. Physical validation remains optional if representative
+  hardware becomes available; simulated profiles are regression gates, not device claims. Shader
+  precompilation or heavier fallbacks will only be added when those measurements justify their cost.
 
 The observer planetarium remains a separate topocentric projection of the selected observing place.
 The temporal Received light map uses an Earth observer for supported Solar System bodies and the
 Solar System barycentre for HYG stars and documented exoplanet systems.
-
-## Next measured investments
-
-- Run the Tempel cold-transition and startup, memory, and frame-rate benchmarks on representative
-  physical low-, medium-, and high-end devices. Shader precompilation or heavier fallbacks will only
-  be added when those measurements justify their cost.
 
 ## Deliberately deferred
 

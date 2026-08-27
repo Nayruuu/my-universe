@@ -53,26 +53,44 @@ fotograma estables y una arquitectura web completamente estática limitan cada e
   distancia de la estrella publicada por NASA. La dirección estática de la estrella no cambia y cada
   órbita planetaria local se evalúa en esa fecha de emisión, pero su fase sigue siendo explícitamente
   ilustrativa; los sistemas sin distancia publicada permanecen simultáneos.
+- Las galaxias cercanas usan ahora el tiempo geométrico de su distancia de catálogo. Los módulos de
+  distancia Cosmicflows-4 se tratan como distancias de luminosidad y las distancias cartográficas de
+  las grandes estructuras como distancias comóviles; ambas se invierten en el modelo ΛCDM plano
+  documentado. Las fichas muestran el corrimiento al rojo inferido y el tiempo retrospectivo, mientras
+  posiciones y apariencias estáticas no cambian y el resultado se marca como extrapolado.
 - Muros publicados, cuencas probabilísticas, atractores y repulsores conservan procedencia y símbolos
   separados de la red de filamentos Tempel.
 - Inicio en frío, transición Tempel y estabilidad de recursos y fotogramas tienen benchmarks de
   navegador reproducibles.
+- Una referencia física repetida de gama alta documenta tres pasadas de inicio, Tempel y fotogramas
+  en frío, además de tres ciclos de recursos tras calentamiento en un Apple M5 Max con su renderer
+  Metal real. No es evidencia de otra clase de dispositivo.
+- Un benchmark dedicado al planetario observable cubre el desplazamiento real del cielo, el
+  recentrado, la transición anclada en Júpiter hacia el planeta resuelto compartido y el alejamiento.
+  Tres pasadas físicas Retina de gama alta superaron el límite DPR 1,5 de calidad alta sin
+  fotogramas largos. Una matriz separada de estrés CPU 4×/6×, explícitamente simulada, también pasa
+  y solo mide margen frente a regresiones.
+- Los cinco protocolos manuales de rendimiento comparten ahora un informe de evidencia JSON
+  versionado que conserva el estado del código, equipo, renderer, configuración, muestras y resumen.
+  Un control físico rechaza medidas simuladas, renderizadas por software o sin clasificar antes de
+  escribir el informe. Un ejecutor de campaña con checkout limpio los lanza secuencialmente y vincula
+  los cinco archivos en un manifiesto verificable mediante SHA-256.
+- Un comando separado con checkout limpio ejecuta ahora la campaña de regresión media y baja en el
+  mismo equipo para los cinco protocolos: calidad media con CPU 4× y calidad baja con CPU 6×. Su
+  manifiesto simulado independiente vincula diez informes y declara que GPU, memoria, controlador,
+  ancho de banda y comportamiento térmico siguen perteneciendo al equipo de origen.
 
 ## Prioridades actuales
 
-- Definir contratos de luz recibida adecuados para galaxias y estructuras a gran escala. Necesitan
-  semántica cosmológica de tiempo retrospectivo y corrimiento al rojo en vez de una distancia dividida
-  sin más por la velocidad de la luz.
+- Registrar y comparar manifiestos limpios de la campaña simulada automática media y baja cuando se
+  incorporen cambios sensibles al rendimiento. La validación física seguirá siendo opcional si se
+  consigue hardware representativo; los perfiles simulados son controles de regresión, no
+  afirmaciones sobre dispositivos. Solo se añadirá precompilación de shaders u opciones más costosas
+  si esas mediciones lo justifican.
 
 El planetario sigue siendo una proyección topocéntrica distinta del lugar de observación elegido. El
 mapa temporal Luz recibida usa la Tierra para los cuerpos compatibles del Sistema Solar y el
 baricentro del Sistema Solar para las estrellas HYG y los sistemas exoplanetarios documentados.
-
-## Próximas inversiones medidas
-
-- Ejecutar los benchmarks de Tempel, inicio, memoria y frecuencia de imagen en dispositivos físicos
-  representativos de gama baja, media y alta. Solo se añadirá precompilación de shaders u opciones
-  más costosas si esas mediciones lo justifican.
 
 ## Aplazado deliberadamente
 

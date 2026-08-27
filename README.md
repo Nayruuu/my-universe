@@ -319,10 +319,22 @@ npm run benchmark:startup
 npm run benchmark:tempel
 npm run benchmark:resources
 npm run benchmark:frames
+npm run benchmark:observer
+UNIVERSE_BENCHMARK_DEVICE_CLASS=medium \
+UNIVERSE_BENCHMARK_DEVICE_LABEL="Representative laptop" npm run benchmark:campaign
+npm run benchmark:campaign:simulated
 UNIVERSE_BENCHMARK_RUNS=5 UNIVERSE_BENCHMARK_STRICT=1 npm run benchmark:startup
 UNIVERSE_BENCHMARK_RUNS=5 UNIVERSE_BENCHMARK_STRICT=1 npm run benchmark:tempel
 UNIVERSE_RESOURCE_CYCLES=5 UNIVERSE_BENCHMARK_STRICT=1 npm run benchmark:resources
 UNIVERSE_FRAME_COLD=1 UNIVERSE_BENCHMARK_STRICT=1 npm run benchmark:frames
+UNIVERSE_OBSERVER_DPR=2 UNIVERSE_BENCHMARK_STRICT=1 npm run benchmark:observer
+UNIVERSE_CPU_THROTTLE_RATE=4 UNIVERSE_BENCHMARK_QUALITY=medium npm run benchmark:observer
+UNIVERSE_CPU_THROTTLE_RATE=6 UNIVERSE_BENCHMARK_QUALITY=low npm run benchmark:observer
+UNIVERSE_BENCHMARK_DEVICE_CLASS=medium \
+UNIVERSE_BENCHMARK_DEVICE_LABEL="Representative laptop" \
+UNIVERSE_BENCHMARK_REQUIRE_PHYSICAL=1 \
+UNIVERSE_BENCHMARK_REPORT_PATH=/tmp/universe-observer-medium.json \
+UNIVERSE_BENCHMARK_QUALITY=medium npm run benchmark:observer
 ```
 
 The benchmarks expect a local application at `http://127.0.0.1:4203` by default. Override it with
@@ -336,10 +348,63 @@ complete scale journey after the map becomes interactive and reports mean, p50, 
 long-frame ratio, per-transition phases, and the final adaptive-resolution state. It waits for a
 complete post-transition adaptive window before reading that state. The journey is warmed by
 default; set `UNIVERSE_FRAME_COLD=1` to measure the first interactive journey.
+`benchmark:observer` runs a focused 1440 × 900 observable-planetarium journey: wide-sky panning,
+recentering, pointer-anchored zoom until Jupiter resolves, and zooming back out. It reports the
+requested browser DPR, actual canvas DPR, per-phase frame distribution, adaptive-resolution state,
+and whether the existing planet representation resolved. Set `UNIVERSE_OBSERVER_DPR` and
+`UNIVERSE_BENCHMARK_QUALITY` to change that profile. `UNIVERSE_CPU_THROTTLE_RATE` applies a
+controlled Chrome CPU slowdown for regression stress only; it is not evidence for another physical
+device class. Each of the five performance benchmarks can use `UNIVERSE_BENCHMARK_REPORT_PATH` to
+write a versioned JSON evidence report containing the Git revision and dirty state, non-identifying
+host characteristics, browser and WebGL renderer, configuration, raw samples, and summary. Use a
+distinct output path for startup, Tempel, resources, scale frames, and the observable planetarium.
+The declared `UNIVERSE_BENCHMARK_DEVICE_CLASS` remains an explicit operator claim.
+`UNIVERSE_BENCHMARK_REQUIRE_PHYSICAL=1` rejects CPU throttling, software renderers, and an
+unclassified device before writing the report instead of allowing simulated evidence into the
+physical matrix.
+
+`npm run benchmark:campaign` is the evidence-grade wrapper for a representative physical machine.
+It requires a clean Git checkout plus an explicit device class and label, defaults the measured
+quality to that class, and runs the five protocols sequentially to avoid cross-benchmark resource
+contention. It forces strict budgets, disables CPU throttling, collects at least three runs and three
+resource cycles, and writes the five reports outside the repository. The resulting
+`universe-map/performance-campaign@1` manifest binds their common source, host, browser, renderer,
+configuration, and summaries to the report files with SHA-256 digests. Set
+`UNIVERSE_BENCHMARK_CAMPAIGN_DIR` to a new path outside the checkout when the default temporary
+directory is not suitable. This command packages evidence; it does not emulate missing medium- or
+low-end hardware.
+
+`npm run benchmark:campaign:simulated` is the separate same-host regression campaign for cases where
+representative hardware is unavailable. It applies Chrome CPU throttling to all five protocols, runs
+medium quality at 4× with observer DPR 1.25 and low quality at 6× with observer DPR 1, and executes
+the resulting ten browser benchmarks sequentially. A clean checkout is still required. Its external
+`universe-map/simulated-performance-campaign@1` manifest records both profiles, report digests, and
+explicit limitations: GPU, graphics memory, driver, memory bandwidth, and thermal behavior still
+belong to the source host. These profile names are regression proxies, not physical device claims.
+The command is intentionally manual because a complete ten-protocol run is long.
+
+The first repeated physical high-end baseline was recorded on 27 August 2026 with a MacBook Pro
+(Apple M5 Max, 18 CPU cores, 40 GPU cores, 128 GB), macOS 26.6, and Chrome 151 using the real Metal
+renderer. Across three desktop/high runs, the median first usable map arrived in 259.3 ms and the
+median Tempel first visible frame in 7.1 ms. Three cold scale journeys stayed at 9.1–9.2 ms p95,
+16.7 ms p99, 66.6–75 ms maximum, and 0.24–0.36% long frames. After three warmups, three resource
+cycles remained at 100 geometries, 18 textures, and 44 draw calls, with a −0.77 MiB collected-heap
+drift. A separate three-run observable-planetarium profile requested browser DPR 2 at 1440 × 900;
+the high-quality renderer applied its documented DPR 1.5 cap and remained stable there. Each run
+sampled 1,452–1,455 frames at 9.1 ms p95, 9.3 ms p99, 9.4–9.5 ms maximum, and zero long frames,
+while Jupiter reached its resolved representation in all three runs. Representative medium- and
+low-end physical devices still need to be measured.
+
+An explicitly simulated same-host stress matrix also kept the observable journey within budget.
+Medium quality with Chrome CPU throttled 4× used canvas DPR 1.25 and measured median p95 at 9.3 ms,
+p99 at 16.7 ms, maximum at 24.9 ms, and zero long frames. Low quality at CPU 6× used canvas DPR 1,
+with median p95 at 15.9 ms, p99 at 25.1 ms, maximum at 42 ms, a 49.9 ms worst frame, and
+0.20–0.34% long frames. Jupiter resolved in all six stressed runs. These numbers retain the M5 Max
+GPU and therefore measure regression headroom, not representative medium- or low-end hardware.
 
 The current baseline contains:
 
-- 2,428 unit and integration tests plus 132 static-data, documentation, deployment, benchmark, and
+- 2,499 unit and integration tests plus 163 static-data, documentation, deployment, benchmark, and
   scientific-audit tests;
 - 100% statements, branches, functions, and lines coverage across production code;
 - individual 100% coverage gates for declared scientific modules;

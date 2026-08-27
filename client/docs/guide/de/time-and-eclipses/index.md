@@ -39,11 +39,18 @@ gemeinsame baryzentrische Verzögerung für Host und Planeten. Die statische Him
 bleibt unverändert, weil diese Schicht keine Eigenbewegung rekonstruiert. Lokale Planetenbahnen werden
 am gemeinsamen Emissionszeitpunkt ausgewertet, doch Phase, Orientierung und Anzeigemaßstab bleiben
 ausdrücklich illustrativ. Systeme ohne veröffentlichte Distanz bleiben gleichzeitig. Galaxien und
-großräumige Strukturen behalten ihren gleichzeitigen Modellzustand, bis ein kosmologischer Vertrag
-verfügbar ist.
+großräumige Strukturen erhalten nun einen eigenen Vertrag für empfangenes Licht.
 
-Dies ist ein Modell mit endlicher Lichtgeschwindigkeit, kein vollständiges relativistisches oder
-kosmologisches Beobachtungsmodell. Die HYG-Extrapolation gleichförmiger Bewegung ist auf ±10.000
+Nahe Galaxien mit Katalogentfernung verwenden deren geometrische Lichtlaufzeit, ohne ihre statische
+3D-Position zu verschieben. Cosmicflows-4-Distanzmodule gelten als Leuchtkraftentfernungen,
+Darstellungsentfernungen großräumiger Strukturen als komovierende Entfernungen. Beide werden im
+dokumentierten flachen ΛCDM-Modell (H0=70 km/s/Mpc, Ωm=0,3, ΩΛ=0,7) invertiert; anschließend wird
+die [kosmologische Rückblickzeit](https://arxiv.org/abs/astro-ph/9905116) angewandt. Die Objektkarte
+zeigt die abgeleitete Modell-Rotverschiebung und den verwendeten Entfernungstyp. Emissionsepoche,
+nicht aber Katalogposition oder statisches Aussehen, ändert sich.
+
+Dies ist ein Modell mit endlicher Lichtgeschwindigkeit und begrenzter kosmologischer Näherung, kein
+vollständiges relativistisches oder Galaxienentwicklungsmodell. Die HYG-Extrapolation gleichförmiger Bewegung ist auf ±10.000
 julianische Jahre begrenzt und wird beim Erreichen dieser Grenze gekennzeichnet.
 
 Das Planetarium für Erdbeobachter bleibt eine getrennte topozentrische Projektion. Es verwendet den

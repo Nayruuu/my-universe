@@ -55,26 +55,44 @@ Schritt.
   veröffentlichten Hostdistanz. Die statische Hostrichtung bleibt gleich, lokale Planetenbahnen
   werden am Emissionszeitpunkt ausgewertet, ihre Phase bleibt jedoch ausdrücklich illustrativ;
   Systeme ohne veröffentlichte Distanz bleiben gleichzeitig.
+- Nahe Galaxien verwenden nun die geometrische Lichtlaufzeit ihrer Katalogentfernung. Cosmicflows-4-
+  Distanzmodule gelten als Leuchtkraftentfernungen und Kartenentfernungen großräumiger Strukturen als
+  komovierende Entfernungen; beide werden im dokumentierten flachen ΛCDM-Modell invertiert. Karten
+  zeigen abgeleitete Rotverschiebung und Rückblickzeit, während Positionen und statische Erscheinung
+  unverändert bleiben und das Ergebnis als extrapoliert markiert ist.
 - Veröffentlichte Wände, probabilistische Becken, Attraktoren und Repeller behalten getrennte
   Herkunft und Symbole und werden nicht in das Tempel-Filamentnetz integriert.
 - Für Kaltstart, Tempel-Übergang sowie Ressourcen- und Bildstabilität existieren reproduzierbare
   Browser-Benchmarks.
+- Eine wiederholte physische High-End-Baseline dokumentiert nun je drei Läufe für Start, Tempel und
+  kalte Bilder sowie drei Ressourcenzyklen nach dem Aufwärmen auf einem Apple M5 Max mit echtem
+  Metal-Renderer. Sie ist kein Nachweis für eine andere Geräteklasse.
+- Ein eigener Benchmark für das Beobachter-Planetarium deckt nun echtes Schwenken, Zentrieren, den
+  auf Jupiter verankerten Übergang zum gemeinsam genutzten aufgelösten Planeten und das Herauszoomen
+  ab. Drei physische High-End-Retina-Läufe bestanden an der DPR-Grenze 1,5 der hohen Qualität ohne
+  lange Bilder. Eine getrennte, ausdrücklich simulierte CPU-4×/6×-Stressmatrix besteht ebenfalls und
+  misst nur die Regressionsreserve.
+- Alle fünf manuellen Leistungsprotokolle verwenden nun denselben versionierten JSON-Nachweis für
+  Quellzustand, Host, Renderer, Konfiguration, Messwerte und Zusammenfassung. Eine Nur-Physisch-Sperre
+  weist simulierte, per Software gerenderte oder nicht klassifizierte Messungen vor dem Schreiben
+  zurück. Ein Kampagnenbefehl mit sauberem Checkout führt sie nacheinander aus und bindet die fünf
+  Dateien in ein per SHA-256 prüfbares Manifest.
+- Ein separater Befehl mit sauberem Checkout führt nun die mittlere und niedrige Regressionskampagne
+  auf demselben Host über alle fünf Protokolle aus: mittlere Qualität bei CPU 4×, danach niedrige
+  Qualität bei CPU 6×. Das getrennte Simulationsmanifest bindet zehn Berichte und hält fest, dass GPU,
+  Speicher, Treiber, Bandbreite und thermisches Verhalten zum Quellhost gehören.
 
 ## Aktuelle Prioritäten
 
-- Quellengeeignete Verträge für empfangenes Licht für Galaxien und großräumige Strukturen definieren.
-  Sie benötigen kosmologische Rückblickzeit- und Rotverschiebungssemantik statt einer naiven
-  Entfernung geteilt durch Lichttempo.
+- Saubere Manifeste der automatischen simulierten Kampagne für mittlere und niedrige Profile bei
+  leistungsrelevanten Änderungen erfassen und vergleichen. Physische Validierung bleibt optional,
+  falls repräsentative Hardware verfügbar wird; simulierte Profile sind Regressionswächter, keine
+  Geräteaussagen. Shader-Vorkompilierung oder teurere Fallbacks folgen nur, wenn Messwerte ihren
+  Aufwand rechtfertigen.
 
 Das Planetarium bleibt eine getrennte topozentrische Projektion des gewählten Beobachtungsorts. Die
 zeitliche Karte Empfangenes Licht verwendet für unterstützte Körper des Sonnensystems die Erde und
 für HYG-Sterne sowie dokumentierte Exoplanetensysteme das Baryzentrum des Sonnensystems.
-
-## Nächste messungsgebundene Investitionen
-
-- Tempel-, Start-, Speicher- und Bildraten-Benchmarks auf repräsentativen physischen Geräten der
-  unteren, mittleren und oberen Leistungsklasse ausführen. Shader-Vorkompilierung oder teurere
-  Fallbacks folgen nur, wenn Messwerte ihren Aufwand rechtfertigen.
 
 ## Bewusst zurückgestellt
 

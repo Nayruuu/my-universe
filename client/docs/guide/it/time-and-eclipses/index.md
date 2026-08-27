@@ -39,11 +39,18 @@ determina un ritardo baricentrico comune alla stella e ai suoi pianeti secondo l
 statica della stella non cambia perché questo livello non ne ricostruisce il moto proprio. Le orbite
 planetarie locali sono valutate alla data di emissione comune, ma fase, orientamento e scala visiva
 restano esplicitamente illustrativi. I sistemi senza distanza pubblicata restano simultanei. Galassie
-e strutture su larga scala mantengono lo stato simultaneo finché non sarà disponibile un contratto
-cosmologico.
+e strutture su larga scala dispongono ora di un contratto specifico per la luce ricevuta.
 
-È un modello a velocità finita della luce, non un modello osservativo relativistico o cosmologico
-completo. L’estrapolazione del moto uniforme HYG è limitata a ±10.000 anni giuliani e il raggiungimento
+Le galassie vicine con distanza di catalogo usano il tempo di viaggio geometrico senza spostare la
+posizione 3D statica. I moduli di distanza Cosmicflows-4 sono interpretati come distanze di luminosità
+e le distanze visuali delle strutture su larga scala come distanze comoventi. Entrambe sono invertite
+nel modello ΛCDM piatto documentato (H0=70 km/s/Mpc, Ωm=0,3, ΩΛ=0,7), quindi viene applicato il
+[tempo di sguardo all’indietro cosmologico](https://arxiv.org/abs/astro-ph/9905116). La scheda mostra
+il redshift del modello dedotto e il tipo di distanza usato. Cambia la data di emissione, non la
+posizione di catalogo o l’aspetto statico.
+
+È un modello a velocità finita della luce con un’approssimazione cosmologica limitata, non un modello
+relativistico completo né di evoluzione galattica. L’estrapolazione del moto uniforme HYG è limitata a ±10.000 anni giuliani e il raggiungimento
 del limite viene segnalato.
 
 Il planetario per osservatori terrestri resta una proiezione topocentrica distinta. Usa il luogo

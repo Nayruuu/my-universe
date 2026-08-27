@@ -136,22 +136,44 @@ test('starts observable view with an Earth-sky locator use case', async () => {
 });
 
 test('keeps the localized public roadmap as the canonical backlog', async () => {
-  const [readme, technicalReference, roadmap] = await Promise.all([
+  const [readme, technicalReference, roadmap, performanceGuide] = await Promise.all([
     readFile(ROOT_README, 'utf8'),
     readFile(new URL('../../docs/TECHNICAL_REFERENCE.md', import.meta.url), 'utf8'),
     readGuidePage('roadmap/'),
+    readGuidePage('performance-and-limits/'),
   ]);
 
   assert.match(readme, /client\/docs\/guide\/roadmap\/index\.md/u);
   assert.match(technicalReference, /client\/docs\/guide\/roadmap\/index\.md/u);
   assert.match(roadmap, /## Delivered/u);
   assert.match(roadmap, /## Current priorities/u);
-  assert.match(roadmap, /## Next measured investments/u);
   assert.match(roadmap, /## Deliberately deferred/u);
   assert.match(roadmap, /Earth-observer planetarium/u);
   assert.match(roadmap, /\*\*Received light\*\* temporal mode/u);
   assert.match(roadmap, /Documented exoplanet systems now share a barycentric delay/u);
-  assert.match(roadmap, /cosmological lookback and redshift/u);
+  assert.match(roadmap, /Nearby galaxies now use geometric catalogue light time/u);
+  assert.match(roadmap, /Cards expose the inferred redshift and lookback time/u);
+  assert.match(roadmap, /repeated physical high-end baseline/u);
+  assert.match(roadmap, /dedicated observable-planetarium benchmark/u);
+  assert.match(roadmap, /explicitly simulated CPU 4×\/6× stress matrix/u);
+  assert.match(roadmap, /versioned JSON evidence report/u);
+  assert.match(roadmap, /SHA-256-verifiable manifest/u);
+  assert.match(roadmap, /same-host medium and low regression campaign/u);
+  assert.match(roadmap, /Physical validation remains optional/u);
+  assert.match(readme, /npm run benchmark:observer/u);
+  assert.match(readme, /npm run benchmark:campaign/u);
+  assert.match(readme, /npm run benchmark:campaign:simulated/u);
+  assert.match(
+    technicalReference,
+    /all five manual startup, Tempel, resource, scale-frame, and observer benchmarks/u,
+  );
+  assert.match(technicalReference, /universe-map\/performance-campaign@1/u);
+  assert.match(technicalReference, /universe-map\/simulated-performance-campaign@1/u);
+  assert.match(performanceGuide, /All five performance benchmarks/u);
+  assert.match(performanceGuide, /clean Git checkout/u);
+  assert.match(performanceGuide, /UNIVERSE_BENCHMARK_REQUIRE_PHYSICAL/u);
+  assert.match(performanceGuide, /benchmark:campaign:simulated/u);
+  assert.match(performanceGuide, /regression proxies/u);
 });
 
 function readGuidePage(route) {

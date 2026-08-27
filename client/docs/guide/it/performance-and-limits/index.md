@@ -29,6 +29,54 @@ stabile è più importante che mostrare ogni punto disponibile nello stesso ista
 
 Il profilo non cambia mai le coordinate scientifiche.
 
+## Stato delle misure fisiche
+
+Una misura ripetuta del 27 agosto 2026 ha usato un MacBook Pro di fascia alta con Apple M5 Max,
+macOS 26.6, Chrome 151, il vero renderer Metal, qualità desktop/alta e rapporto pixel 1. In tre prove,
+la mediana della prima mappa utilizzabile è stata 259,3 ms e quella del primo frame visibile di Tempel
+7,1 ms. Tre viaggi a freddo sono rimasti a 9,1–9,2 ms al p95, 16,7 ms al p99, 66,6–75 ms massimi e
+0,24–0,36% di frame lunghi. Dopo tre riscaldamenti, tre cicli sono rimasti a 100 geometrie, 18 texture
+e 44 draw call; l’heap raccolto è diminuito di 0,77 MiB.
+
+Un profilo separato del planetario osservabile ha richiesto DPR 2 al browser a 1440 × 900 pixel CSS.
+Il renderer in qualità alta ha applicato il limite DPR 1,5 documentato ed è rimasto stabile in tutte
+e tre le prove. Ogni prova ha campionato 1452–1455 frame a 9,1 ms al p95, 9,3 ms al p99,
+9,4–9,5 ms massimi e senza frame lunghi; Giove ha raggiunto la rappresentazione risolta in tutte e tre.
+
+Anche una matrice di stress sullo stesso computer, indicata esplicitamente come simulata, è rimasta
+nel budget. Con qualità media, CPU Chrome rallentata 4× e DPR canvas 1,25, le mediane sono state
+9,3 ms al p95, 16,7 ms al p99 e 24,9 ms massimi, senza frame lunghi. Con qualità bassa, CPU 6× e
+DPR 1, sono state 15,9 ms al p95, 25,1 ms al p99 e 42 ms massimi, con un peggior frame di 49,9 ms e
+0,20–0,34% di frame lunghi. Giove si è risolto in tutte le sei prove sotto stress. La GPU è rimasta
+la M5 Max: questi dati misurano il margine contro le regressioni, non hardware fisico rappresentativo
+di fascia media o bassa.
+
+Tutti e cinque i benchmark delle prestazioni — avvio, Tempel, risorse, frame tra scale e planetario
+osservabile — possono scrivere lo stesso rapporto di evidenza JSON versionato con
+`UNIVERSE_BENCHMARK_REPORT_PATH`. Registra revisione Git e stato dirty, caratteristiche dell’host,
+browser e renderer WebGL, configurazione, campioni e riepilogo.
+`UNIVERSE_BENCHMARK_REQUIRE_PHYSICAL=1` rifiuta rallentamento CPU, rendering software o l’assenza di
+una `UNIVERSE_BENCHMARK_DEVICE_CLASS` dichiarata prima di scrivere il rapporto, impedendo a una
+simulazione di entrare silenziosamente nella matrice fisica.
+
+`npm run benchmark:campaign` esegue i cinque protocolli in sequenza su un computer fisico
+rappresentativo. Richiede un checkout Git pulito e una classe e un’etichetta dichiarate, disattiva il
+rallentamento CPU, impone budget rigorosi e almeno tre ripetizioni e usa per impostazione predefinita
+la qualità associata alla classe. Scrive cinque rapporti fuori dal repository e un manifesto
+`universe-map/performance-campaign@1` che li collega tramite digest SHA-256. Il comando confeziona
+evidenze confrontabili; non trasforma un computer in un’altra classe.
+
+`npm run benchmark:campaign:simulated` offre una campagna di stress separata sullo stesso host quando
+non è disponibile hardware rappresentativo. Il rallentamento CPU di Chrome si applica a tutti e
+cinque i protocolli: qualità media a 4× con DPR osservatore 1,25, poi qualità bassa a 6× con DPR 1. I
+dieci benchmark restano sequenziali e, da un checkout pulito, generano un manifesto
+`universe-map/simulated-performance-campaign@1` con digest SHA-256 e limiti espliciti. GPU, memoria
+grafica, driver, larghezza di banda della memoria e comportamento termico restano quelli dell’host;
+media e bassa sono proxy di regressione, mai evidenze di dispositivi fisici.
+
+La baseline fisica ripetuta documenta ancora soltanto la fascia alta. Le misure fisiche di fascia
+media e bassa diventano un controllo futuro facoltativo, non un blocco quando manca l’hardware.
+
 ## Pannello di debug
 
 Aggiungi `?debug=true` all’URL per visualizzare FPS, draw call, triangoli, geometrie, texture, oggetti
@@ -48,7 +96,8 @@ supportati del Sistema solare — incluse lune galileiane, satelliti semplificat
 e comete — e le stelle HYG per il tempo di viaggio della luce; i sistemi esoplanetari documentati
 condividono un ritardo derivato dalla distanza pubblicata della stella ospite, mentre le fasi
 planetarie locali restano illustrative e i sistemi senza distanza simultanei; galassie e strutture su
-larga scala mantengono lo stato simultaneo di catalogo o modello;
+larga scala usano il tempo geometrico di catalogo oppure il tempo di sguardo all’indietro ΛCDM
+dedotto dalla distanza di luminosità o comovente; posizioni, forme e misure restano statiche;
 le indagini cosmologiche hanno coperture diverse;
 l’assenza di un rilevamento non prova un vuoto fisico; superfici dettagliate, meteo in tempo reale e
 ray tracing relativistico esatto restano fuori ambito.

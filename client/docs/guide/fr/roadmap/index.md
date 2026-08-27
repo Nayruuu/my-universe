@@ -55,26 +55,46 @@ des contraintes pour chaque évolution.
   distance hôte publiée par la NASA. La direction statique de l’hôte ne change pas et chaque orbite
   planétaire locale est évaluée à cette date d’émission, tandis que sa phase reste explicitement
   illustrative ; les systèmes sans distance publiée restent simultanés.
+- Les galaxies proches utilisent désormais le temps de trajet géométrique de leur distance de
+  catalogue. Les modules de distance Cosmicflows-4 sont traités comme distances de luminosité et les
+  distances cartographiques des grandes structures comme distances comobiles ; les deux sont
+  inversées dans le modèle ΛCDM plat documenté. Les fiches exposent redshift inféré et temps de regard
+  en arrière, tandis que positions et apparences statiques restent inchangées et que le résultat est
+  marqué extrapolé.
 - Murs publiés, bassins probabilistes, attracteurs et répulseurs conservent une provenance et une
   sémantique visuelle séparées au lieu d’être fusionnés avec les filaments Tempel.
 - Le démarrage à froid, la transition Tempel, la stabilité des ressources et celle des images
   disposent de benchmarks navigateur reproductibles.
+- Une baseline physique haut de gamme répétée documente désormais trois passages pour le démarrage,
+  Tempel et les images à froid, puis trois cycles de ressources après préchauffage sur un Apple M5 Max
+  utilisant son véritable renderer Metal. Elle ne constitue pas une preuve pour une autre classe
+  d’appareil.
+- Un benchmark dédié au planétarium observable couvre désormais la rotation réelle du ciel, le
+  recentrage, la transition ancrée sur Jupiter vers la planète résolue partagée, puis le dézoom. Trois
+  passages physiques Retina haut de gamme ont réussi à la borne DPR 1,5 de la qualité élevée, sans
+  aucune image longue. Une matrice séparée de stress CPU 4×/6×, explicitement simulée, réussit aussi
+  et mesure uniquement la marge de régression.
+- Les cinq protocoles manuels de performance partagent désormais un rapport de preuve JSON versionné
+  qui conserve l’état de la source, l’hôte, le renderer, la configuration, les échantillons et la
+  synthèse. Un garde-fou physique refuse les mesures simulées, rendues par logiciel ou non classées
+  avant d’écrire le rapport. Un lanceur exigeant un checkout propre les exécute séquentiellement et
+  lie les cinq fichiers dans un manifeste vérifiable par SHA-256.
+- Une commande séparée sur checkout propre exécute désormais la campagne de régression moyenne et
+  faible sur le même hôte pour les cinq protocoles : qualité moyenne à CPU 4×, puis qualité faible à
+  CPU 6×. Son manifeste simulé distinct lie dix rapports et précise que GPU, mémoire, pilote, bande
+  passante et comportement thermique restent ceux de l’hôte source.
 
 ## Priorités actuelles
 
-- Définir des contrats de lumière reçue adaptés aux galaxies et aux grandes structures. Elles
-  demandent une sémantique cosmologique de temps de regard en arrière et de décalage spectral plutôt
-  qu’une simple distance divisée par la vitesse de la lumière.
+- Enregistrer et comparer les manifestes propres de la campagne simulée automatique moyenne et faible
+  lors des changements sensibles aux performances. Une validation physique reste facultative si du
+  matériel représentatif devient disponible ; les profils simulés sont des gardes de régression, pas
+  des revendications matérielles. Précompilation des shaders ou fallbacks plus lourds ne seront
+  ajoutés que si ces mesures en justifient le coût.
 
 Le planétarium reste une projection topocentrique distincte du lieu choisi. La carte temporelle
 Lumière reçue emploie la Terre pour les corps compatibles du Système solaire et le barycentre du
 Système solaire pour les étoiles HYG et les systèmes exoplanétaires documentés.
-
-## Prochains investissements mesurés
-
-- Exécuter les benchmarks Tempel, démarrage, mémoire et fréquence d’image sur des appareils physiques
-  représentatifs des gammes faible, moyenne et élevée. Précompilation des shaders ou fallbacks plus
-  lourds ne seront ajoutés que si ces mesures en justifient le coût.
 
 ## Volontairement différé
 

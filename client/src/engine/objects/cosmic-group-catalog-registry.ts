@@ -2,6 +2,13 @@ import * as THREE from 'three';
 import { SearchEntry, SpaceObject } from '../../data/models/universe.models';
 import { CoordinateSystem } from '../coordinates/coordinate-system';
 import type { CosmicGroupCatalog } from '../loaders/cosmic-group-catalog';
+import {
+  COSMOLOGICAL_REDSHIFT_METADATA_KEY,
+  COSMOLOGICAL_REDSHIFT_ORIGIN_METADATA_KEY,
+  inferFlatLambdaCdmRedshiftFromLuminosityDistanceMpc,
+  RECEIVED_LIGHT_DISTANCE_MODEL_METADATA_KEY,
+  RECEIVED_LIGHT_DISTANCE_MODELS,
+} from '../simulation/cosmological-lookback';
 import type { LabelObject } from './label-manager';
 
 const DEFAULT_MAXIMUM_LABEL_RANK = 1_000;
@@ -114,6 +121,8 @@ export class CosmicGroupCatalogRegistry {
     const catalog = this.catalog;
     const pgcId = catalog.pgcIds[index]!;
     const offset = index * 3;
+    const distanceMpc = catalog.distancesMpc[index]!;
+    const cosmologicalRedshift = inferFlatLambdaCdmRedshiftFromLuminosityDistanceMpc(distanceMpc);
 
     return {
       id: this.objectIds[index]!,
@@ -143,10 +152,15 @@ export class CosmicGroupCatalogRegistry {
       metadata: {
         source: 'Cosmicflows-4 · Tully et al. (2023)',
         pgcId,
-        distanceMpc: catalog.distancesMpc[index]!,
+        distanceMpc,
         distanceModulus: catalog.distanceModuli[index]!,
         distanceModulusError: catalog.distanceModulusErrors[index]!,
         velocityCmbKmPerSecond: catalog.velocitiesCmbKmPerSecond[index]!,
+        [RECEIVED_LIGHT_DISTANCE_MODEL_METADATA_KEY]:
+          RECEIVED_LIGHT_DISTANCE_MODELS.flatLambdaCdmLuminosity,
+        [COSMOLOGICAL_REDSHIFT_METADATA_KEY]: cosmologicalRedshift,
+        [COSMOLOGICAL_REDSHIFT_ORIGIN_METADATA_KEY]: 'inferred-from-luminosity-distance',
+        cosmologicalModel: 'Flat ΛCDM · H0=70 km/s/Mpc · Ωm=0.3 · ΩΛ=0.7',
         cosmicCatalogRank: index,
         visualAdaptation:
           'Position du groupe calculée ; silhouettes, orientations, luminosités et membres non résolus illustratifs',

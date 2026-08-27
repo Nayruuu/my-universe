@@ -1,4 +1,10 @@
 import { pathToFileURL } from 'node:url';
+import {
+  parseCpuThrottleRate,
+  printBenchmarkEvidence,
+  publishBenchmarkEvidence,
+  readBrowserHardwareSnapshot,
+} from './benchmark-evidence.mjs';
 
 const SIXTY_FPS_FRAME_MS = 1_000 / 60;
 const THIRTY_FPS_FRAME_MS = 1_000 / 30;
@@ -76,6 +82,7 @@ async function runBenchmark() {
     'mobile',
   ]);
   const qualityFilter = readFilter(process.env['UNIVERSE_BENCHMARK_QUALITIES'], QUALITIES);
+  const cpuThrottleRate = parseCpuThrottleRate(process.env['UNIVERSE_CPU_THROTTLE_RATE']);
   const profiles = {
     desktop: { viewport: { width: 1_440, height: 900 } },
     mobile: { ...devices['Pixel 7'] },
@@ -90,7 +97,9 @@ async function runBenchmark() {
           const context = await browser.newContext(profiles[profile]);
 
           try {
-            samples.push(await measureTransition(context, baseUrl, profile, quality));
+            samples.push(
+              await measureTransition(context, baseUrl, profile, quality, cpuThrottleRate),
+            );
           } finally {
             await context.close();
           }
@@ -109,6 +118,21 @@ async function runBenchmark() {
   );
 
   printSummaries(summaries);
+  printBenchmarkEvidence(
+    await publishBenchmarkEvidence({
+      benchmark: 'tempel-transition',
+      browser: samples[0].browser,
+      configuration: {
+        profiles: profileFilter,
+        qualities: qualityFilter,
+        runs,
+        cpuThrottleRate,
+      },
+      cpuThrottleRate,
+      samples,
+      summary: summaries,
+    }),
+  );
   if (
     process.env['UNIVERSE_BENCHMARK_STRICT'] === '1' &&
     summaries.some((summary) => summary.frameBudget === 'slow')
@@ -136,8 +160,9 @@ async function launchChromium(chromium) {
   }
 }
 
-async function measureTransition(context, baseUrl, profile, quality) {
+async function measureTransition(context, baseUrl, profile, quality, cpuThrottleRate) {
   const page = await context.newPage();
+  const devtools = await context.newCDPSession(page);
   const url = new URL('/en/', baseUrl);
 
   url.search = new URLSearchParams({
@@ -151,46 +176,50 @@ async function measureTransition(context, baseUrl, profile, quality) {
     constellations: '1',
     labels: '1',
   }).toString();
-  await page.goto(url.href, { waitUntil: 'networkidle', timeout: 60_000 });
-  await page.getByRole('button', { name: 'Change scale' }).click();
-  await page.getByRole('button', { name: 'Show Cosmic web scale' }).click();
-  await page.waitForFunction(
-    () => {
-      const value = document.querySelector(
-        '[data-debug-stat="tempel-first-frame-total"]',
-      )?.textContent;
+  try {
+    await devtools.send('Emulation.setCPUThrottlingRate', { rate: cpuThrottleRate });
+    await page.goto(url.href, { waitUntil: 'networkidle', timeout: 60_000 });
+    await page.getByRole('button', { name: 'Change scale' }).click();
+    await page.getByRole('button', { name: 'Show Cosmic web scale' }).click();
+    await page.waitForFunction(
+      () => {
+        const value = document.querySelector(
+          '[data-debug-stat="tempel-first-frame-total"]',
+        )?.textContent;
 
-      return Boolean(value && !value.includes('—') && /\d/u.test(value));
-    },
-    null,
-    { timeout: 60_000 },
-  );
-  const [geometryPreparationMs, sceneInstallationMs] = await readTimings(
-    page,
-    'tempel-geometry-install',
-    2,
-  );
-  const [firstVisibleFrameMs, activationToFirstVisibleMs, timeToFirstVisibleMs] = await readTimings(
-    page,
-    'tempel-first-frame-total',
-    3,
-  );
-  const preloadText = await readStat(page, 'tempel-preload');
-  const [preloadLeadMs] = parseDebugTimingText(preloadText, 1);
+        return Boolean(value && !value.includes('—') && /\d/u.test(value));
+      },
+      null,
+      { timeout: 60_000 },
+    );
+    const [geometryPreparationMs, sceneInstallationMs] = await readTimings(
+      page,
+      'tempel-geometry-install',
+      2,
+    );
+    const [firstVisibleFrameMs, activationToFirstVisibleMs, timeToFirstVisibleMs] =
+      await readTimings(page, 'tempel-first-frame-total', 3);
+    const preloadText = await readStat(page, 'tempel-preload');
+    const [preloadLeadMs] = parseDebugTimingText(preloadText, 1);
 
-  return {
-    profile,
-    quality,
-    geometryPreparationMs,
-    sceneInstallationMs,
-    firstVisibleFrameMs,
-    activationToFirstVisibleMs,
-    timeToFirstVisibleMs,
-    preloadHit: preloadText.includes('hit'),
-    preloadLeadMs,
-    drawCalls: await readIntegerStat(page, 'draw-calls'),
-    geometries: await readIntegerStat(page, 'geometries'),
-  };
+    return {
+      profile,
+      quality,
+      cpuThrottleRate,
+      browser: await readBrowserHardwareSnapshot(page),
+      geometryPreparationMs,
+      sceneInstallationMs,
+      firstVisibleFrameMs,
+      activationToFirstVisibleMs,
+      timeToFirstVisibleMs,
+      preloadHit: preloadText.includes('hit'),
+      preloadLeadMs,
+      drawCalls: await readIntegerStat(page, 'draw-calls'),
+      geometries: await readIntegerStat(page, 'geometries'),
+    };
+  } finally {
+    await devtools.detach();
+  }
 }
 
 async function readTimings(page, stat, expectedCount) {

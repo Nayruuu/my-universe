@@ -45,6 +45,10 @@ describe('CosmicStructureCatalogRegistry', () => {
         detectionMethod: 'Luminosity density field',
         structureType: 'supercluster',
         distanceMpc: expect.any(Number),
+        receivedLightDistanceModel: 'flat-lambda-cdm-comoving-distance',
+        cosmologicalRedshift: expect.any(Number),
+        cosmologicalRedshiftOrigin: 'inferred-from-comoving-distance',
+        cosmologicalModel: 'Flat ΛCDM · H0=70 km/s/Mpc · Ωm=0.3 · ΩΛ=0.7',
         effectiveRadiusMpc: expect.closeTo(35.9, 4),
         memberGalaxyCount: 1_038,
         catalogConfidence: expect.closeTo(0.98, 5),
@@ -52,6 +56,7 @@ describe('CosmicStructureCatalogRegistry', () => {
       },
     });
     expect(definition?.visual.color).toBe('#d6a8ff');
+    expect(definition?.metadata?.['cosmologicalRedshift']).toBeCloseTo(0.08, 1);
     expect(registry.getDefinition(definition!.id)).toBe(definition);
     expect(registry.getDefinition('missing')).toBeUndefined();
   });
