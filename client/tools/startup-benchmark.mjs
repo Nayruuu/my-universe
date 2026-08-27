@@ -1,4 +1,10 @@
 import { pathToFileURL } from 'node:url';
+import {
+  parseCpuThrottleRate,
+  printBenchmarkEvidence,
+  publishBenchmarkEvidence,
+  readBrowserHardwareSnapshot,
+} from './benchmark-evidence.mjs';
 
 const DEFAULT_BASE_URL = 'http://127.0.0.1:4203';
 const DEFAULT_FIRST_USABLE_MAP_BUDGET_MS = 7_000;
@@ -67,6 +73,7 @@ async function runBenchmark() {
     'mobile',
   ]);
   const qualityFilter = readFilter(process.env['UNIVERSE_BENCHMARK_QUALITIES'], QUALITIES);
+  const cpuThrottleRate = parseCpuThrottleRate(process.env['UNIVERSE_CPU_THROTTLE_RATE']);
   const profiles = {
     desktop: { viewport: { width: 1_440, height: 900 } },
     mobile: { ...devices['Pixel 7'] },
@@ -81,7 +88,7 @@ async function runBenchmark() {
           const context = await browser.newContext(profiles[profile]);
 
           try {
-            samples.push(await measureStartup(context, baseUrl, profile, quality));
+            samples.push(await measureStartup(context, baseUrl, profile, quality, cpuThrottleRate));
           } finally {
             await context.close();
           }
@@ -113,6 +120,22 @@ async function runBenchmark() {
       budget: summary.withinBudget ? 'pass' : 'fail',
     })),
   );
+  printBenchmarkEvidence(
+    await publishBenchmarkEvidence({
+      benchmark: 'startup',
+      browser: samples[0].browser,
+      configuration: {
+        profiles: profileFilter,
+        qualities: qualityFilter,
+        runs,
+        cpuThrottleRate,
+        firstUsableMapBudgetMs: budgetMs,
+      },
+      cpuThrottleRate,
+      samples,
+      summary: summaries,
+    }),
+  );
   if (
     process.env['UNIVERSE_BENCHMARK_STRICT'] === '1' &&
     summaries.some((summary) => !summary.withinBudget)
@@ -121,8 +144,9 @@ async function runBenchmark() {
   }
 }
 
-async function measureStartup(context, baseUrl, profile, quality) {
+async function measureStartup(context, baseUrl, profile, quality, cpuThrottleRate) {
   const page = await context.newPage();
+  const devtools = await context.newCDPSession(page);
   const url = new URL('/en/', baseUrl);
 
   url.search = new URLSearchParams({
@@ -135,23 +159,34 @@ async function measureStartup(context, baseUrl, profile, quality) {
     constellations: '1',
     labels: '1',
   }).toString();
-  await page.goto(url.href, { waitUntil: 'domcontentloaded', timeout: 60_000 });
-  await page.waitForFunction(
-    () => {
-      const value = document.querySelector('[data-debug-stat="startup-milestones"]')?.textContent;
+  try {
+    await devtools.send('Emulation.setCPUThrottlingRate', { rate: cpuThrottleRate });
+    await page.goto(url.href, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+    await page.waitForFunction(
+      () => {
+        const value = document.querySelector('[data-debug-stat="startup-milestones"]')?.textContent;
 
-      return Boolean(value && !value.includes('—'));
-    },
-    null,
-    { timeout: 60_000 },
-  );
-  const text = await page.locator('[data-debug-stat="startup-milestones"]').textContent();
+        return Boolean(value && !value.includes('—'));
+      },
+      null,
+      { timeout: 60_000 },
+    );
+    const text = await page.locator('[data-debug-stat="startup-milestones"]').textContent();
 
-  if (text === null) {
-    throw new Error('Startup milestones are unavailable.');
+    if (text === null) {
+      throw new Error('Startup milestones are unavailable.');
+    }
+
+    return {
+      profile,
+      quality,
+      cpuThrottleRate,
+      browser: await readBrowserHardwareSnapshot(page),
+      ...parseStartupMilestones(text),
+    };
+  } finally {
+    await devtools.detach();
   }
-
-  return { profile, quality, ...parseStartupMilestones(text) };
 }
 
 async function launchChromium(chromium) {

@@ -121,6 +121,24 @@ describe('ObjectDetailsPresenter', () => {
         orbitRepresentationConfidence: 'illustrative',
       },
     });
+    const cosmologicalStructure = object({
+      type: 'supercluster',
+      referenceFrame: 'cosmic-web',
+      metadata: {
+        receivedLightDistanceModel: 'flat-lambda-cdm-comoving-distance',
+        cosmologicalRedshift: 0.5,
+        cosmologicalRedshiftOrigin: 'inferred-from-comoving-distance',
+      },
+    });
+    const cosmicGroup = object({
+      type: 'galaxy-cluster',
+      referenceFrame: 'cosmic-web',
+      metadata: {
+        receivedLightDistanceModel: 'flat-lambda-cdm-luminosity-distance',
+        cosmologicalRedshift: 0.023,
+        cosmologicalRedshiftOrigin: 'inferred-from-luminosity-distance',
+      },
+    });
 
     expect(presenter.receivedLight(sun)).toBeNull();
     temporalMode = 'observable';
@@ -130,6 +148,16 @@ describe('ObjectDetailsPresenter', () => {
     expect(presenter.receivedLight(hygStar(0.1))?.lightTravelLabel).toMatch(/ jours$/u);
     expect(presenter.receivedLight(hygStar(1))?.lightTravelLabel).toMatch(/ ans$/u);
     expect(presenter.receivedLight(exoplanet)?.lightTravelLabel).toMatch(/ ans$/u);
+    expect(presenter.receivedLight(cosmologicalStructure)).toMatchObject({
+      redshiftLabel: 'z ≈ 0,5',
+      cosmologicalNote: expect.stringContaining('distance comobile'),
+    });
+    expect(presenter.receivedLight(cosmicGroup)).toMatchObject({
+      redshiftLabel: 'z ≈ 0,023',
+      cosmologicalNote: expect.stringContaining('distance de luminosité'),
+    });
+    expect(presenter.receivedLight(exoplanet)?.redshiftLabel).toBeNull();
+    expect(presenter.receivedLight(exoplanet)?.cosmologicalNote).toBeNull();
     expect(presenter.receivedLight(hygStar(4_000))?.modelLimited).toBe(true);
     expect(presenter.receivedLight(object())).toBeNull();
     expect(presenter.receivedLight(sun)?.emissionEpochLabel).toMatch(/^JD /u);

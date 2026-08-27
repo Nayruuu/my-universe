@@ -34,6 +34,9 @@ describe('UniverseInitializationBootstrap', () => {
       harness.rendering.renderer,
       harness.rendering.camera,
     );
+    expect(harness.sceneRuntime.scene.prewarmMilkyWayAssets).toHaveBeenCalledWith(
+      harness.rendering.renderer,
+    );
     expect(harness.createStreamingCoordinator).toHaveBeenCalledWith(
       harness.sceneRuntime.catalogRuntime.spaceTileManager,
       harness.sceneRuntime.catalogRuntime.starTileManager,
@@ -119,6 +122,38 @@ describe('UniverseInitializationBootstrap', () => {
     await creation;
 
     expect(harness.createStreamingCoordinator).toHaveBeenCalledOnce();
+    expect(harness.sceneRuntime.scene.prewarmMilkyWayAssets).toHaveBeenCalledWith(
+      harness.rendering.renderer,
+    );
+  });
+
+  it('préchauffe les textures galactiques en arrière-plan sans retarder les interactions', async () => {
+    const harness = createHarness(true);
+    const prewarmGate = deferred<boolean>();
+
+    harness.sceneRuntime.scene.prewarmMilkyWayAssets.mockReturnValue(prewarmGate.promise);
+
+    await expect(harness.bootstrap.create(options(harness))).resolves.toMatchObject({
+      sceneRuntime: harness.sceneRuntime,
+    });
+    expect(harness.sceneRuntime.scene.prewarmMilkyWayAssets).toHaveBeenCalledWith(
+      harness.rendering.renderer,
+    );
+
+    prewarmGate.resolve(true);
+  });
+
+  it('ignore un échec inattendu du préchauffage galactique différé', async () => {
+    const harness = createHarness(true);
+
+    harness.sceneRuntime.scene.prewarmMilkyWayAssets.mockRejectedValue(
+      new Error('préchauffage indisponible'),
+    );
+
+    await expect(harness.bootstrap.create(options(harness))).resolves.toMatchObject({
+      sceneRuntime: harness.sceneRuntime,
+    });
+    await Promise.resolve();
   });
 
   it('ignore le préchauffage avec un renderer sans primitives GPU compatibles', async () => {
@@ -130,6 +165,7 @@ describe('UniverseInitializationBootstrap', () => {
     await harness.bootstrap.create(options(harness));
 
     expect(harness.sceneRuntime.scene.prewarmInitialRendering).not.toHaveBeenCalled();
+    expect(harness.sceneRuntime.scene.prewarmMilkyWayAssets).not.toHaveBeenCalled();
     expect(harness.createStreamingCoordinator).toHaveBeenCalledOnce();
   });
 
@@ -295,6 +331,7 @@ function renderingRuntime(): UniverseRenderingRuntime & {
 function runtimeScene(hasStarCatalog: boolean): UniverseSceneRuntime & {
   readonly scene: UniverseSceneRuntime['scene'] & {
     readonly prewarmInitialRendering: ReturnType<typeof vi.fn>;
+    readonly prewarmMilkyWayAssets: ReturnType<typeof vi.fn>;
     readonly setStarClusterTiles: ReturnType<typeof vi.fn>;
     readonly dispose: ReturnType<typeof vi.fn>;
   };
@@ -305,6 +342,7 @@ function runtimeScene(hasStarCatalog: boolean): UniverseSceneRuntime & {
   return {
     scene: {
       prewarmInitialRendering: vi.fn(async () => true),
+      prewarmMilkyWayAssets: vi.fn(async () => true),
       setStarClusterTiles: vi.fn(async () => undefined),
       dispose: vi.fn(),
     },

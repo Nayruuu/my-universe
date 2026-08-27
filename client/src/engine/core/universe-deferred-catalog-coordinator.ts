@@ -1,5 +1,6 @@
 export interface DeferredCatalogRuntime {
   readonly hasDeferredCatalogs: boolean;
+  prepareDeferredCatalogs(): Promise<void>;
   installDeferredCatalogs(): Promise<readonly string[]>;
 }
 
@@ -8,6 +9,7 @@ export interface UniverseDeferredCatalogCoordinatorBindings {
   hasObject(objectId: string): boolean;
   requiresDeferredCatalogs(objectId: string): boolean;
   isRuntimeCurrent(runtime: DeferredCatalogRuntime): boolean;
+  canInstallInBackground(): boolean;
   refreshCatalogs(): void;
   emitWarning(message: string): void;
   schedule(callback: () => void): number;
@@ -17,6 +19,8 @@ export interface UniverseDeferredCatalogCoordinatorBindings {
 export class UniverseDeferredCatalogCoordinator {
   private scheduledHandle: number | null = null;
   private loading: Promise<void> | null = null;
+  private preparationRuntime: DeferredCatalogRuntime | null = null;
+  private preparationState: 'idle' | 'preparing' | 'ready' | 'failed' = 'idle';
   private revision = 0;
 
   constructor(private readonly bindings: UniverseDeferredCatalogCoordinatorBindings) {}
@@ -24,13 +28,27 @@ export class UniverseDeferredCatalogCoordinator {
   public schedule(): void {
     const runtime = this.bindings.getRuntime();
 
-    if (this.loading || this.scheduledHandle !== null || !runtime?.hasDeferredCatalogs) {
+    if (this.loading || !runtime?.hasDeferredCatalogs) {
+      return;
+    }
+    if (!this.prepare(runtime)) {
+      return;
+    }
+    if (!this.bindings.canInstallInBackground()) {
+      this.cancelScheduledLoad();
+
+      return;
+    }
+    if (this.scheduledHandle !== null) {
       return;
     }
     const revision = this.revision;
 
     this.scheduledHandle = this.bindings.schedule(() => {
       this.scheduledHandle = null;
+      if (!this.isCurrent(runtime, revision) || !this.bindings.canInstallInBackground()) {
+        return;
+      }
       void this.load(runtime, revision);
     });
   }
@@ -58,6 +76,37 @@ export class UniverseDeferredCatalogCoordinator {
     this.revision += 1;
     this.cancelScheduledLoad();
     this.loading = null;
+    this.preparationRuntime = null;
+    this.preparationState = 'idle';
+  }
+
+  private prepare(runtime: DeferredCatalogRuntime): boolean {
+    if (this.preparationRuntime === runtime) {
+      return this.preparationState === 'ready';
+    }
+
+    this.cancelScheduledLoad();
+    this.preparationRuntime = runtime;
+    this.preparationState = 'preparing';
+    const revision = this.revision;
+
+    void runtime
+      .prepareDeferredCatalogs()
+      .then(() => {
+        if (this.isCurrent(runtime, revision)) {
+          this.preparationState = 'ready';
+        }
+      })
+      .catch((error: unknown) => {
+        if (this.isCurrent(runtime, revision)) {
+          this.preparationState = 'failed';
+          const reason = error instanceof Error ? error.message : 'erreur inconnue';
+
+          this.bindings.emitWarning(`Catalogues complémentaires indisponibles : ${reason}`);
+        }
+      });
+
+    return false;
   }
 
   private load(runtime: DeferredCatalogRuntime, revision: number): Promise<void> {

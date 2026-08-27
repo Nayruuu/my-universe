@@ -5,7 +5,7 @@ description: Scopri ciò che Universe Map ha già rilasciato, le priorità attua
 
 # Roadmap
 
-_Ultima revisione: 27 agosto 2026._
+_Ultima revisione: 28 agosto 2026._
 
 Questa pagina è la roadmap pubblica di riferimento di Universe Map. Descrive risultati e criteri di
 verifica invece di promettere date. Accuratezza scientifica, navigazione leggibile, tempi di frame
@@ -53,26 +53,53 @@ stabili e architettura completamente statica nel browser vincolano ogni sviluppo
   della stella ospite pubblicata dalla NASA. La direzione statica della stella non cambia e ogni orbita
   planetaria locale è valutata a quella data di emissione, ma la fase resta esplicitamente
   illustrativa; i sistemi senza distanza pubblicata restano simultanei.
+- Le galassie vicine usano ora il tempo geometrico della distanza di catalogo. I moduli di distanza
+  Cosmicflows-4 sono trattati come distanze di luminosità e le distanze cartografiche delle strutture
+  su larga scala come distanze comoventi; entrambe sono invertite nel modello ΛCDM piatto documentato.
+  Le schede mostrano redshift dedotto e tempo di sguardo all’indietro, mentre posizioni e aspetti
+  statici restano invariati e il risultato è indicato come estrapolato.
 - Muri pubblicati, bacini probabilistici, attrattori e repulsori mantengono provenienza e simboli
   separati dalla rete di filamenti Tempel.
 - Avvio a freddo, transizione Tempel, stabilità delle risorse e dei frame dispongono di benchmark
   browser ripetibili.
+- Una baseline fisica ripetuta di fascia alta documenta ora tre prove di avvio, Tempel e frame a
+  freddo, più tre cicli di risorse dopo il riscaldamento su un Apple M5 Max con il vero renderer
+  Metal. Non è un’evidenza per un’altra classe di dispositivi.
+- Un benchmark dedicato al planetario osservabile copre ora il movimento reale del cielo, il
+  ricentraggio, la transizione ancorata a Giove verso il pianeta risolto condiviso e lo zoom
+  all’indietro. Tre prove fisiche Retina di fascia alta sono riuscite al limite DPR 1,5 della qualità
+  alta senza frame lunghi. Una matrice separata di stress CPU 4×/6×, esplicitamente simulata, riesce
+  anch’essa e misura solo il margine contro le regressioni.
+- Tutti e cinque i protocolli manuali delle prestazioni condividono ora un rapporto di evidenza JSON
+  versionato che registra stato del sorgente, host, renderer, configurazione, campioni e riepilogo.
+  Un controllo fisico rifiuta misure simulate, renderizzate via software o non classificate prima di
+  scrivere il rapporto. Un esecutore di campagna con checkout pulito li avvia in sequenza e collega i
+  cinque file in un manifesto verificabile tramite SHA-256.
+- Un comando separato con checkout pulito esegue ora la campagna di regressione media e bassa sullo
+  stesso host per tutti e cinque i protocolli: qualità media con CPU 4× e qualità bassa con CPU 6×. Il
+  manifesto simulato distinto collega dieci rapporti e dichiara che GPU, memoria, driver, larghezza di
+  banda e comportamento termico restano quelli dell’host sorgente.
+- I quattro cataloghi complementari vengono ora scaricati e decodificati in un Worker modulo
+  dedicato, trasferendo i buffer tipizzati senza copie. La preparazione non crea risorse di scena;
+  quando termina, l’installazione sul thread principale di registri, ricerca, geometrie e GPU richiede
+  una nuova finestra di 1,2 secondi con camera stabile. Ogni transizione azzera il ritardo, la modalità
+  osservabile sospende del tutto l’installazione in background e un obiettivo richiesto esplicitamente
+  continua a caricarsi subito. La campagna pulita della revisione supera ora tutti e dieci i rapporti.
+  I percorsi di scala media/CPU 4× restano a 9,3 ms p95 con un frame peggiore di 66,5 ms; bassa/CPU 6×
+  resta a 16,6–16,7 ms p95 con un frame peggiore di 83,4 ms. I percorsi osservabili risolvono Giove
+  3/3 in entrambi i profili e i conteggi delle risorse non derivano.
 
 ## Priorità attuali
 
-- Definire contratti di luce ricevuta adeguati alle fonti per galassie e strutture su larga scala.
-  Richiedono una semantica cosmologica del tempo di sguardo all’indietro e del redshift invece della
-  sola distanza divisa per la velocità della luce.
+- Conservare il manifesto simulato pulito riuscito 10/10 come baseline di regressione e ripetere la
+  campagna dopo modifiche sostanziali al rendering o ai cataloghi. Le prove attuali non giustificano
+  né un percorso di precompilazione degli shader più pesante né un fallback meno fedele; la
+  validazione fisica media/bassa resta facoltativa se diventa disponibile hardware adatto. I profili
+  simulati restano controlli di regressione, non dichiarazioni sui dispositivi.
 
 Il planetario resta una proiezione topocentrica distinta del luogo selezionato. La mappa temporale
 Luce ricevuta usa la Terra per i corpi supportati del Sistema solare e il baricentro del Sistema
 solare per le stelle HYG e i sistemi esoplanetari documentati.
-
-## Prossimi investimenti misurati
-
-- Eseguire i benchmark Tempel, avvio, memoria e frequenza dei frame su dispositivi fisici
-  rappresentativi di fascia bassa, media e alta. Precompilazione degli shader o fallback più costosi
-  saranno aggiunti solo quando le misure ne giustificano il costo.
 
 ## Rinviato deliberatamente
 

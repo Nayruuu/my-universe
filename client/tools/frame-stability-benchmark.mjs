@@ -1,4 +1,12 @@
 import { pathToFileURL } from 'node:url';
+import {
+  parseCpuThrottleRate,
+  printBenchmarkEvidence,
+  publishBenchmarkEvidence,
+  readBrowserHardwareSnapshot,
+} from './benchmark-evidence.mjs';
+
+export { parseCpuThrottleRate } from './benchmark-evidence.mjs';
 
 const DEFAULT_BASE_URL = 'http://127.0.0.1:4203';
 const DEFAULT_RUNS = 3;
@@ -93,22 +101,6 @@ export function parseAdaptiveRenderingStats(value) {
   };
 }
 
-export function parseCpuThrottleRate(rawValue) {
-  if (rawValue === undefined) {
-    return 1;
-  }
-  const rate = Number(rawValue);
-
-  if (!Number.isFinite(rate)) {
-    throw new Error('Universe benchmark CPU throttle rate must be a finite number.');
-  }
-  if (rate < 1) {
-    throw new Error('Universe benchmark CPU throttle rate must be at least one.');
-  }
-
-  return rate;
-}
-
 export function parseBenchmarkToggle(rawValue, label) {
   if (rawValue === undefined || rawValue === '1') {
     return true;
@@ -177,6 +169,23 @@ async function runBenchmark() {
   }
 
   printSummaries(summaries);
+  printBenchmarkEvidence(
+    await publishBenchmarkEvidence({
+      benchmark: 'scale-frame-stability',
+      browser: summaries[0].browser,
+      configuration: {
+        profiles: profileFilter,
+        qualities: qualityFilter,
+        runs,
+        mode: cold ? 'cold' : 'warm',
+        cpuThrottleRate,
+        labelsEnabled,
+      },
+      cpuThrottleRate,
+      samples: summaries,
+      summary: summaries,
+    }),
+  );
   if (
     process.env['UNIVERSE_BENCHMARK_STRICT'] === '1' &&
     summaries.some((summary) => !summary.stable)
@@ -203,7 +212,11 @@ async function measureJourney(context, baseUrl, quality, warmUp, cpuThrottleRate
   await page.addInitScript(installFrameCollector);
   await devtools.send('Emulation.setCPUThrottlingRate', { rate: cpuThrottleRate });
   await page.goto(url.href, { waitUntil: 'domcontentloaded', timeout: 60_000 });
-  await page.locator('canvas.universe-canvas').waitFor({ state: 'visible', timeout: 60_000 });
+  const canvas = page.locator('canvas.universe-canvas');
+
+  await canvas.waitFor({ state: 'visible', timeout: 60_000 });
+  const browser = await readBrowserHardwareSnapshot(page);
+
   await waitForJourneyControls(page);
   await waitForCameraSettled(page);
   if (warmUp) {
@@ -222,6 +235,7 @@ async function measureJourney(context, baseUrl, quality, warmUp, cpuThrottleRate
   const adaptiveRendering = parseAdaptiveRenderingStats(rawAdaptiveRendering);
 
   return {
+    browser,
     ...summarizeFrameStability(durations),
     phases: summarizeFramePhases(samples),
     adaptiveRendering,
@@ -257,7 +271,7 @@ async function setFramePhase(page, measured, phase) {
   }
 }
 
-function installFrameCollector() {
+export function installFrameCollector() {
   const samples = [];
   let previousTimestamp = null;
   let active = false;

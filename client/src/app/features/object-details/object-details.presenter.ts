@@ -95,6 +95,18 @@ function createBasePresentation(context: ObjectDetailsPresentationContext) {
         lightTravelLabel: formatLightTravelTime(context, received.lightTravelDays),
         emissionEpochLabel: context.formatDate(received.emissionTime),
         modelLimited: received.status !== 'within-model-domain',
+        redshiftLabel:
+          received.cosmologicalRedshift === undefined
+            ? null
+            : context.interpolate(context.content().details.modelRedshiftValue, {
+                value: context.formatNumber(received.cosmologicalRedshift, 4),
+              }),
+        cosmologicalNote:
+          received.cosmologicalRedshiftOrigin === 'inferred-from-comoving-distance'
+            ? context.content().details.receivedLightComovingCosmologyNote
+            : received.cosmologicalRedshiftOrigin === 'inferred-from-luminosity-distance'
+              ? context.content().details.receivedLightLuminosityCosmologyNote
+              : null,
       };
     },
     description(object: SpaceObject): string {
@@ -170,6 +182,8 @@ export interface ReceivedLightPresentation {
   readonly lightTravelLabel: string;
   readonly emissionEpochLabel: string;
   readonly modelLimited: boolean;
+  readonly redshiftLabel: string | null;
+  readonly cosmologicalNote: string | null;
 }
 
 function formatLightTravelTime(

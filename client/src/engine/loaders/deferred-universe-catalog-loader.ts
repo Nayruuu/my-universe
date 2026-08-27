@@ -1,22 +1,8 @@
 import type { DatasetManifestEntry } from '../../data/models/universe.models';
-import {
-  loadOptionalCosmicGroupCatalog,
-  loadOptionalCosmicStructureCatalog,
-  loadOptionalCosmicWebVolume,
-  loadOptionalExoplanetCatalog,
-} from './asset-catalog-loaders';
-import type { CosmicGroupCatalog } from './cosmic-group-catalog';
-import type { CosmicStructureCatalog } from './cosmic-structure-catalog';
-import type { CosmicWebVolume } from './cosmic-web-volume';
-import type { ExoplanetCatalog } from './exoplanet-catalog';
+import type { LoadedDeferredUniverseCatalogs } from './deferred-universe-catalog-load';
+import { loadDeferredUniverseCatalogsOffThread } from './deferred-universe-catalog-worker-loader';
 
-export interface LoadedDeferredUniverseCatalogs {
-  readonly cosmicGroupCatalog: CosmicGroupCatalog | null;
-  readonly cosmicStructureCatalog: CosmicStructureCatalog | null;
-  readonly cosmicWebVolume: CosmicWebVolume | null;
-  readonly exoplanetCatalog: ExoplanetCatalog | null;
-  readonly warnings: readonly string[];
-}
+export type { LoadedDeferredUniverseCatalogs } from './deferred-universe-catalog-load';
 
 export type DeferredUniverseCatalogLoader = () => Promise<LoadedDeferredUniverseCatalogs>;
 
@@ -42,7 +28,7 @@ export function createDeferredUniverseCatalogLoader(
   let loading: Promise<LoadedDeferredUniverseCatalogs> | null = null;
 
   return () => {
-    loading ??= loadDeferredUniverseCatalogs({
+    loading ??= loadDeferredUniverseCatalogsOffThread({
       cosmicGroup,
       cosmicStructure,
       cosmicWebVolume,
@@ -60,53 +46,4 @@ function findDataset<Type extends DatasetManifestEntry['type']>(
   return datasets.find(
     (dataset): dataset is Extract<DatasetManifestEntry, { type: Type }> => dataset.type === type,
   );
-}
-
-interface DeferredCatalogDatasets {
-  readonly cosmicGroup: Extract<DatasetManifestEntry, { type: 'cosmic-group-catalog' }> | undefined;
-  readonly cosmicStructure:
-    Extract<DatasetManifestEntry, { type: 'cosmic-structure-catalog' }> | undefined;
-  readonly cosmicWebVolume:
-    Extract<DatasetManifestEntry, { type: 'cosmic-web-volume' }> | undefined;
-  readonly exoplanets: Extract<DatasetManifestEntry, { type: 'exoplanet-catalog' }> | undefined;
-}
-
-async function loadDeferredUniverseCatalogs(
-  datasets: DeferredCatalogDatasets,
-): Promise<LoadedDeferredUniverseCatalogs> {
-  const [cosmicGroup, cosmicStructure, cosmicWebVolume, exoplanets] = await Promise.all([
-    datasets.cosmicGroup
-      ? loadOptionalCosmicGroupCatalog(datasets.cosmicGroup.id, datasets.cosmicGroup.url)
-      : Promise.resolve({ value: null, warnings: [] }),
-    datasets.cosmicStructure
-      ? loadOptionalCosmicStructureCatalog(
-          datasets.cosmicStructure.id,
-          datasets.cosmicStructure.url,
-          datasets.cosmicStructure.metadataUrl,
-        )
-      : Promise.resolve({ value: null, warnings: [] }),
-    datasets.cosmicWebVolume
-      ? loadOptionalCosmicWebVolume(datasets.cosmicWebVolume.id, datasets.cosmicWebVolume.url)
-      : Promise.resolve({ value: null, warnings: [] }),
-    datasets.exoplanets
-      ? loadOptionalExoplanetCatalog(
-          datasets.exoplanets.id,
-          datasets.exoplanets.url,
-          datasets.exoplanets.metadataUrl,
-        )
-      : Promise.resolve({ value: null, warnings: [] }),
-  ]);
-
-  return {
-    cosmicGroupCatalog: cosmicGroup.value,
-    cosmicStructureCatalog: cosmicStructure.value,
-    cosmicWebVolume: cosmicWebVolume.value,
-    exoplanetCatalog: exoplanets.value,
-    warnings: [
-      ...cosmicGroup.warnings,
-      ...cosmicStructure.warnings,
-      ...cosmicWebVolume.warnings,
-      ...exoplanets.warnings,
-    ],
-  };
 }

@@ -5,7 +5,7 @@ description: See what Universe Map has delivered, what is being improved now, an
 
 # Roadmap
 
-_Last reviewed: 27 August 2026._
+_Last reviewed: 28 August 2026._
 
 This page is the canonical public roadmap for Universe Map. It describes outcomes and evidence gates
 rather than promising release dates. Scientific accuracy, readable navigation, stable frame time,
@@ -54,26 +54,50 @@ and a fully static browser architecture remain constraints for every item.
   distance. The static host direction is unchanged, and each local planetary orbit is evaluated at
   that emission epoch while its phase remains explicitly illustrative; systems without a published
   distance stay simultaneous.
+- Nearby galaxies now use geometric catalogue light time. Cosmicflows-4 distance moduli are treated
+  as luminosity distances and large-scale-structure map distances as comoving distances; both are
+  inverted in the documented flat ΛCDM model. Cards expose the inferred redshift and lookback time,
+  while catalogue positions and static appearances remain unchanged and the result is marked
+  extrapolated.
 - Published walls, probabilistic basins, attractors, and repellers retain separate provenance and
   visual semantics rather than being merged into the Tempel filament network.
 - Cold startup, Tempel transition, resource stability, and frame stability have repeatable browser
   benchmarks.
+- A repeated physical high-end baseline now records three startup, Tempel, and cold-frame runs plus
+  three post-warmup resource cycles on an Apple M5 Max using its real Metal renderer. It is not
+  evidence for another device class.
+- A dedicated observable-planetarium benchmark now covers real sky panning, recentering, a
+  Jupiter-anchored transition into the shared resolved planet, and zoom-out. Three physical
+  high-end Retina runs passed at the high-quality DPR 1.5 cap with no long frames. A separate,
+  explicitly simulated CPU 4×/6× stress matrix also passes and measures regression headroom only.
+- All five manual performance protocols now share a versioned JSON evidence report that records the
+  source state, host, renderer, configuration, samples, and summary. A physical-only guard rejects
+  simulated, software-rendered, or unclassified measurements before writing the report. A
+  clean-checkout campaign runner executes them sequentially and binds the five files into one
+  SHA-256-verifiable manifest.
+- A separate clean-checkout command now runs the same-host medium and low regression campaign across
+  all five protocols: medium quality at CPU 4× and low quality at CPU 6×. Its distinct simulated
+  manifest binds ten reports and states that GPU, memory, driver, bandwidth, and thermal behavior
+  still belong to the source host.
+- The four complementary catalogues now fetch and decode in a dedicated module Worker and transfer
+  their typed-array buffers without copying. Worker preparation creates no scene resource; once it
+  finishes, main-thread registry, search, geometry, and GPU installation requires a fresh 1.2-second
+  stable-camera window. A transition restarts that delay, observable mode suspends background
+  installation entirely, and an explicitly requested catalogue target still loads immediately.
+  The clean revision-level campaign now passes all ten reports. Medium/CPU 4× scale runs remain at
+  9.3 ms p95 with a 66.5 ms worst frame; low/CPU 6× remains at 16.6–16.7 ms p95 with an 83.4 ms
+  worst frame. Observable runs resolve Jupiter 3/3 in both profiles, and resource counts do not drift.
 
 ## Current priorities
 
-- Define source-appropriate received-light contracts for galaxies and large-scale structures. They
-  need cosmological lookback and redshift semantics rather than a naive distance divided by light
-  speed.
+- Keep the clean 10/10 simulated manifest as the regression baseline and repeat it after material
+  rendering or catalogue changes. The current evidence does not justify a heavier shader-precompile
+  path or a lower-fidelity fallback. Physical validation remains optional if suitable medium/low
+  hardware becomes available. Simulated profiles remain regression gates, not device claims.
 
 The observer planetarium remains a separate topocentric projection of the selected observing place.
 The temporal Received light map uses an Earth observer for supported Solar System bodies and the
 Solar System barycentre for HYG stars and documented exoplanet systems.
-
-## Next measured investments
-
-- Run the Tempel cold-transition and startup, memory, and frame-rate benchmarks on representative
-  physical low-, medium-, and high-end devices. Shader precompilation or heavier fallbacks will only
-  be added when those measurements justify their cost.
 
 ## Deliberately deferred
 

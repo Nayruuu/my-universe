@@ -426,6 +426,9 @@ export class UniverseEngine {
     hasObject: (objectId) => this.hasObject(objectId),
     requiresDeferredCatalogs: (objectId) => DEFERRED_CATALOG_SCALE_TARGETS.has(objectId),
     isRuntimeCurrent: (runtime) => this.initialized && this.catalogRuntime === runtime,
+    canInstallInBackground: () =>
+      this.displayOptions.temporalMode !== 'observable' &&
+      this.cameraController?.isTransitioning !== true,
     refreshCatalogs: () => {
       const coordinator = this.streamingRuntime.coordinator;
 
@@ -435,7 +438,7 @@ export class UniverseEngine {
       }
     },
     emitWarning: (message) => this.emit({ type: 'performance-warning', message }),
-    schedule: (callback) => window.setTimeout(callback, 400),
+    schedule: (callback) => window.setTimeout(callback, 1_200),
     cancel: (handle) => window.clearTimeout(handle),
   });
   private readonly solarEclipsePresentation = new SolarEclipsePresentationController();

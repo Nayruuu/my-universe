@@ -5,7 +5,7 @@ description: Erfahren Sie, was Universe Map bereits liefert, welche Verbesserung
 
 # Projektplan
 
-_Zuletzt geprüft: 27. August 2026._
+_Zuletzt geprüft: 28. August 2026._
 
 Diese Seite ist der verbindliche öffentliche Projektplan von Universe Map. Sie beschreibt Ergebnisse
 und Prüfkriterien statt fester Veröffentlichungstermine. Wissenschaftliche Genauigkeit, verständliche
@@ -55,26 +55,53 @@ Schritt.
   veröffentlichten Hostdistanz. Die statische Hostrichtung bleibt gleich, lokale Planetenbahnen
   werden am Emissionszeitpunkt ausgewertet, ihre Phase bleibt jedoch ausdrücklich illustrativ;
   Systeme ohne veröffentlichte Distanz bleiben gleichzeitig.
+- Nahe Galaxien verwenden nun die geometrische Lichtlaufzeit ihrer Katalogentfernung. Cosmicflows-4-
+  Distanzmodule gelten als Leuchtkraftentfernungen und Kartenentfernungen großräumiger Strukturen als
+  komovierende Entfernungen; beide werden im dokumentierten flachen ΛCDM-Modell invertiert. Karten
+  zeigen abgeleitete Rotverschiebung und Rückblickzeit, während Positionen und statische Erscheinung
+  unverändert bleiben und das Ergebnis als extrapoliert markiert ist.
 - Veröffentlichte Wände, probabilistische Becken, Attraktoren und Repeller behalten getrennte
   Herkunft und Symbole und werden nicht in das Tempel-Filamentnetz integriert.
 - Für Kaltstart, Tempel-Übergang sowie Ressourcen- und Bildstabilität existieren reproduzierbare
   Browser-Benchmarks.
+- Eine wiederholte physische High-End-Baseline dokumentiert nun je drei Läufe für Start, Tempel und
+  kalte Bilder sowie drei Ressourcenzyklen nach dem Aufwärmen auf einem Apple M5 Max mit echtem
+  Metal-Renderer. Sie ist kein Nachweis für eine andere Geräteklasse.
+- Ein eigener Benchmark für das Beobachter-Planetarium deckt nun echtes Schwenken, Zentrieren, den
+  auf Jupiter verankerten Übergang zum gemeinsam genutzten aufgelösten Planeten und das Herauszoomen
+  ab. Drei physische High-End-Retina-Läufe bestanden an der DPR-Grenze 1,5 der hohen Qualität ohne
+  lange Bilder. Eine getrennte, ausdrücklich simulierte CPU-4×/6×-Stressmatrix besteht ebenfalls und
+  misst nur die Regressionsreserve.
+- Alle fünf manuellen Leistungsprotokolle verwenden nun denselben versionierten JSON-Nachweis für
+  Quellzustand, Host, Renderer, Konfiguration, Messwerte und Zusammenfassung. Eine Nur-Physisch-Sperre
+  weist simulierte, per Software gerenderte oder nicht klassifizierte Messungen vor dem Schreiben
+  zurück. Ein Kampagnenbefehl mit sauberem Checkout führt sie nacheinander aus und bindet die fünf
+  Dateien in ein per SHA-256 prüfbares Manifest.
+- Ein separater Befehl mit sauberem Checkout führt nun die mittlere und niedrige Regressionskampagne
+  auf demselben Host über alle fünf Protokolle aus: mittlere Qualität bei CPU 4×, danach niedrige
+  Qualität bei CPU 6×. Das getrennte Simulationsmanifest bindet zehn Berichte und hält fest, dass GPU,
+  Speicher, Treiber, Bandbreite und thermisches Verhalten zum Quellhost gehören.
+- Die vier ergänzenden Kataloge werden nun in einem eigenen Modul-Worker geladen und dekodiert; ihre
+  typisierten Puffer werden ohne Kopie übertragen. Die Worker-Vorbereitung erzeugt keine
+  Szenenressource. Danach benötigt die Installation von Registern, Suche, Geometrie und GPU auf dem
+  Hauptthread ein neues 1,2-Sekunden-Fenster mit stabiler Kamera. Transitionen starten die Frist neu,
+  der Beobachtungsmodus sperrt die Hintergrundinstallation vollständig, und ein ausdrücklich
+  angefordertes Ziel lädt weiterhin sofort. Die saubere Kampagne der Revision besteht nun alle zehn
+  Berichte. Skalenläufe mit mittel/CPU 4× bleiben bei 9,3 ms p95 mit einem schlechtesten Bild von
+  66,5 ms; niedrig/CPU 6× bleibt bei 16,6–16,7 ms p95 mit einem schlechtesten Bild von 83,4 ms. Die
+  Beobachterläufe lösen Jupiter in beiden Profilen 3/3 auf, und die Ressourcenzahlen driften nicht.
 
 ## Aktuelle Prioritäten
 
-- Quellengeeignete Verträge für empfangenes Licht für Galaxien und großräumige Strukturen definieren.
-  Sie benötigen kosmologische Rückblickzeit- und Rotverschiebungssemantik statt einer naiven
-  Entfernung geteilt durch Lichttempo.
+- Das saubere simulierte 10/10-Manifest als Regressionsbaseline beibehalten und die Kampagne nach
+  wesentlichen Änderungen an Rendering oder Katalogen wiederholen. Die aktuellen Nachweise
+  rechtfertigen weder einen aufwendigeren Shader-Vorkompilierungspfad noch einen detailärmeren
+  Fallback; eine physische Mittel-/Niedrig-Validierung bleibt optional, falls geeignete Hardware
+  verfügbar wird. Simulierte Profile bleiben Regressionswächter, keine Geräteaussagen.
 
 Das Planetarium bleibt eine getrennte topozentrische Projektion des gewählten Beobachtungsorts. Die
 zeitliche Karte Empfangenes Licht verwendet für unterstützte Körper des Sonnensystems die Erde und
 für HYG-Sterne sowie dokumentierte Exoplanetensysteme das Baryzentrum des Sonnensystems.
-
-## Nächste messungsgebundene Investitionen
-
-- Tempel-, Start-, Speicher- und Bildraten-Benchmarks auf repräsentativen physischen Geräten der
-  unteren, mittleren und oberen Leistungsklasse ausführen. Shader-Vorkompilierung oder teurere
-  Fallbacks folgen nur, wenn Messwerte ihren Aufwand rechtfertigen.
 
 ## Bewusst zurückgestellt
 

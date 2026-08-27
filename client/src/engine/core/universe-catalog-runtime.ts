@@ -59,6 +59,8 @@ export class UniverseCatalogRuntime {
   public readonly tempelFilamentSpineSource: TempelFilamentSpineSource | null;
   public readonly constellationCatalog: ConstellationCatalog | null;
   private deferredCatalogWarnings: readonly string[] = [];
+  private deferredCatalogs: LoadedDeferredUniverseCatalogs | null = null;
+  private deferredPreparation: Promise<LoadedDeferredUniverseCatalogs> | null = null;
   private deferredInstallation: Promise<readonly string[]> | null = null;
   private deferredLoader: DeferredUniverseCatalogLoader | null;
   private exoplanetRegistry: ExoplanetCatalogRegistry | null;
@@ -97,19 +99,26 @@ export class UniverseCatalogRuntime {
   }
 
   public get hasDeferredCatalogs(): boolean {
-    return this.deferredLoader !== null;
+    return this.deferredLoader !== null || this.deferredCatalogs !== null;
+  }
+
+  public async prepareDeferredCatalogs(): Promise<void> {
+    if (!this.hasDeferredCatalogs) {
+      return;
+    }
+
+    await this.loadDeferredCatalogs();
   }
 
   public installDeferredCatalogs(): Promise<readonly string[]> {
     if (this.deferredInstallation) {
       return this.deferredInstallation;
     }
-    if (!this.deferredLoader) {
+    if (!this.hasDeferredCatalogs) {
       return Promise.resolve(this.deferredCatalogWarnings);
     }
-    const loader = this.deferredLoader;
 
-    this.deferredInstallation = loader().then((catalogs) =>
+    this.deferredInstallation = this.loadDeferredCatalogs().then((catalogs) =>
       this.installLoadedDeferredCatalogs(catalogs),
     );
 
@@ -201,9 +210,25 @@ export class UniverseCatalogRuntime {
     this.cosmicGroupRegistry = cosmicGroups;
     this.cosmicStructureRegistry = cosmicStructures;
     this.deferredCatalogWarnings = catalogs.warnings;
+    this.deferredCatalogs = null;
+    this.deferredPreparation = null;
     this.deferredLoader = null;
 
     return this.deferredCatalogWarnings;
+  }
+
+  private loadDeferredCatalogs(): Promise<LoadedDeferredUniverseCatalogs> {
+    if (this.deferredCatalogs) {
+      return Promise.resolve(this.deferredCatalogs);
+    }
+
+    this.deferredPreparation ??= this.deferredLoader!().then((catalogs) => {
+      this.deferredCatalogs = catalogs;
+
+      return catalogs;
+    });
+
+    return this.deferredPreparation;
   }
 
   private async installDeferredLayer<Catalog, Result>(

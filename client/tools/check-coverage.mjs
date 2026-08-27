@@ -102,6 +102,10 @@ const scientificModules = [
     suffix: '/src/engine/simulation/received-light-time.ts',
   },
   {
+    name: 'temps de regard en arrière cosmologique',
+    suffix: '/src/engine/simulation/cosmological-lookback.ts',
+  },
+  {
     name: 'évolution visuelle des supernovas',
     suffix: '/src/engine/simulation/supernova-appearance.ts',
   },

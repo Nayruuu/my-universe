@@ -213,7 +213,12 @@ describe('UniverseEngine', () => {
     });
 
     runtime.access.renderFrame(0.016);
-    expect(window.setTimeout).toHaveBeenCalledWith(expect.any(Function), 400);
+    expect(runtime.catalog.prepareDeferredCatalogs).toHaveBeenCalledOnce();
+    expect(window.setTimeout).not.toHaveBeenCalled();
+
+    await Promise.resolve();
+    runtime.access.renderFrame(0.016);
+    expect(window.setTimeout).toHaveBeenCalledWith(expect.any(Function), 1_200);
 
     expect(scheduledCallback).not.toBeNull();
     scheduledCallback!();
@@ -230,7 +235,7 @@ describe('UniverseEngine', () => {
     runtime.engine.dispose();
   });
 
-  it('annule un chargement complémentaire planifié lors de la destruction', () => {
+  it('annule un chargement complémentaire planifié lors de la destruction', async () => {
     const runtime = createRuntime();
     const clearTimeout = vi.spyOn(window, 'clearTimeout').mockImplementation(() => undefined);
 
@@ -238,10 +243,42 @@ describe('UniverseEngine', () => {
     vi.spyOn(window, 'setTimeout').mockReturnValue(73);
 
     runtime.access.renderFrame(0.016);
+    await Promise.resolve();
+    runtime.access.renderFrame(0.016);
     runtime.engine.dispose();
 
     expect(clearTimeout).toHaveBeenCalledWith(73);
     expect(runtime.catalog.installDeferredCatalogs).not.toHaveBeenCalled();
+  });
+
+  it('prépare les catalogues sans les installer en fond dans la vue observable', async () => {
+    const runtime = createRuntime();
+    const setTimeout = vi.spyOn(window, 'setTimeout').mockReturnValue(87);
+    const observableOptions = {
+      showOrbits: true,
+      showConstellations: true,
+      showLabels: true,
+      quality: 'medium' as const,
+      labelDensity: 'balanced' as const,
+      temporalMode: 'observable' as const,
+    };
+
+    runtime.catalog.hasDeferredCatalogs = true;
+    runtime.engine.setDisplayOptions(observableOptions);
+
+    runtime.access.renderFrame(0.016);
+    await Promise.resolve();
+    runtime.access.renderFrame(0.016);
+
+    expect(runtime.catalog.prepareDeferredCatalogs).toHaveBeenCalledOnce();
+    expect(setTimeout).not.toHaveBeenCalled();
+    expect(runtime.catalog.installDeferredCatalogs).not.toHaveBeenCalled();
+
+    runtime.engine.setDisplayOptions({ ...observableOptions, temporalMode: 'state' });
+    runtime.access.renderFrame(0.016);
+
+    expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 1_200);
+    runtime.engine.dispose();
   });
 
   it('partage une initialisation encore en cours entre les appelants', async () => {
@@ -3523,6 +3560,7 @@ interface FakeCatalogRuntime {
   readonly getSearchEntries: ReturnType<typeof vi.fn>;
   readonly getLabelObjects: ReturnType<typeof vi.fn>;
   hasDeferredCatalogs: boolean;
+  readonly prepareDeferredCatalogs: ReturnType<typeof vi.fn>;
   readonly installDeferredCatalogs: ReturnType<typeof vi.fn>;
 }
 
@@ -3731,6 +3769,7 @@ function createRuntime(): Runtime {
     getSearchEntries: vi.fn(() => []),
     getLabelObjects: vi.fn(() => []),
     hasDeferredCatalogs: false,
+    prepareDeferredCatalogs: vi.fn(async () => undefined),
     installDeferredCatalogs: vi.fn(async () => []),
   };
   const selection: FakeSelectionManager = {

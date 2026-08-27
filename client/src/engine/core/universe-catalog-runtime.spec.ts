@@ -45,6 +45,7 @@ describe('UniverseCatalogRuntime', () => {
     expect(runtime.getDefinition('missing')).toBeUndefined();
     expect(runtime.getSearchEntries()).toEqual([]);
     expect(runtime.getLabelObjects([], 10, 10, 10)).toEqual([]);
+    await expect(runtime.prepareDeferredCatalogs()).resolves.toBeUndefined();
     await expect(runtime.installDeferredCatalogs()).resolves.toEqual([]);
     expect(scene.calls()).toEqual([]);
   });
@@ -237,6 +238,21 @@ describe('UniverseCatalogRuntime', () => {
     expect(runtime.hasDeferredCatalogs).toBe(true);
     expect(runtime.exoplanetCatalogRegistry).toBeNull();
 
+    const firstPreparation = runtime.prepareDeferredCatalogs();
+    const concurrentPreparation = runtime.prepareDeferredCatalogs();
+
+    await expect(Promise.all([firstPreparation, concurrentPreparation])).resolves.toEqual([
+      undefined,
+      undefined,
+    ]);
+    expect(loadDeferredCatalogs).toHaveBeenCalledOnce();
+    expect(runtime.hasDeferredCatalogs).toBe(true);
+    expect(runtime.exoplanetCatalogRegistry).toBeNull();
+    expect(scene.setExoplanetCatalog).not.toHaveBeenCalled();
+    expect(scene.setCosmicGroupCatalog).not.toHaveBeenCalled();
+    expect(scene.setCosmicStructureCatalog).not.toHaveBeenCalled();
+    expect(scene.setCosmicWebVolume).not.toHaveBeenCalled();
+
     const firstInstallation = runtime.installDeferredCatalogs();
     const concurrentInstallation = runtime.installDeferredCatalogs();
 
@@ -254,6 +270,7 @@ describe('UniverseCatalogRuntime', () => {
     await expect(runtime.installDeferredCatalogs()).resolves.toEqual([
       'catalogue différé incomplet',
     ]);
+    await expect(runtime.prepareDeferredCatalogs()).resolves.toBeUndefined();
     expect(loadDeferredCatalogs).toHaveBeenCalledOnce();
   });
 

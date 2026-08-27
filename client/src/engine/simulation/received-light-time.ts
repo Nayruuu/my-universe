@@ -14,7 +14,17 @@ import type {
   UniverseTime,
   Vector3Like,
 } from '../../data/models/universe.models';
+import { convertDistance } from '../coordinates/unit-conversion';
 import { astronomyEngineDaysSinceJ2000 } from './astronomy-engine-time-domain';
+import {
+  calculateFlatLambdaCdmLookbackJulianYears,
+  COSMOLOGICAL_REDSHIFT_METADATA_KEY,
+  COSMOLOGICAL_REDSHIFT_ORIGIN_METADATA_KEY,
+  type CosmologicalRedshiftOrigin,
+  HOGG_COSMOLOGICAL_DISTANCE_SOURCE_URL,
+  RECEIVED_LIGHT_DISTANCE_MODEL_METADATA_KEY,
+  RECEIVED_LIGHT_DISTANCE_MODELS,
+} from './cosmological-lookback';
 import { calculateKeplerianEclipticPositionAu } from './keplerian-orbit';
 import {
   JULIAN_DAYS_PER_YEAR,
@@ -37,6 +47,9 @@ export const JPL_SATELLITE_LIGHT_TIME_SOURCE_URL = 'https://ssd.jpl.nasa.gov/sat
 
 export const NASA_EXOPLANET_DISTANCE_SOURCE_URL =
   'https://exoplanetarchive.ipac.caltech.edu/docs/API_PS_columns.html';
+
+export const IAU_DISTANCE_RESOLUTION_SOURCE_URL =
+  'https://www.iau.org/static/resolutions/IAU2015_English.pdf';
 
 export const HYG_REFERENCE_POSITION_METADATA_KEYS = {
   x: 'stellarReferencePositionParsecX',
@@ -61,9 +74,13 @@ export interface ReceivedLightEpoch {
     | 'astronomy-engine-jovian-light-time'
     | 'keplerian-earth-light-time'
     | 'exoplanet-system-distance-light-time'
-    | 'hyg-uniform-rectilinear-light-time';
+    | 'hyg-uniform-rectilinear-light-time'
+    | 'catalog-distance-light-time'
+    | 'flat-lambda-cdm-lookback-time';
   readonly status: 'within-model-domain' | StellarMotionDomainStatus;
   readonly sourceUrl: string;
+  readonly cosmologicalRedshift?: number;
+  readonly cosmologicalRedshiftOrigin?: CosmologicalRedshiftOrigin;
 }
 
 export interface SolarSystemLightDeparture extends ReceivedLightEpoch {
@@ -260,6 +277,55 @@ export function calculateExoplanetSystemLightDeparture(
   );
 }
 
+/**
+ * Resolves static catalogue distances without changing their map position. Nearby galaxy distances
+ * use their geometric light time; explicitly marked cosmological catalogues use ΛCDM lookback time.
+ */
+export function calculateCatalogDistanceLightDeparture(
+  object: SpaceObject,
+  time: UniverseTime,
+): ReceivedLightEpoch | null {
+  const distance = readReceivedLightCatalogDistance(object);
+
+  if (!distance) {
+    return null;
+  }
+  const reception = resolveReceptionTime(time);
+
+  if (distance.kind === 'geometric') {
+    const lightTravelDays = distance.lightTravelJulianYears * JULIAN_DAYS_PER_YEAR;
+
+    return createReceivedLightEpoch(
+      reception.julianDay,
+      {
+        emissionDaysSinceJ2000: reception.daysSinceJ2000 - lightTravelDays,
+        lightTravelDays,
+      },
+      'calculated',
+      'catalog-distance-light-time',
+      IAU_DISTANCE_RESOLUTION_SOURCE_URL,
+    );
+  }
+  const lightTravelDays =
+    calculateFlatLambdaCdmLookbackJulianYears(distance.redshift) * JULIAN_DAYS_PER_YEAR;
+  const epoch = createReceivedLightEpoch(
+    reception.julianDay,
+    {
+      emissionDaysSinceJ2000: reception.daysSinceJ2000 - lightTravelDays,
+      lightTravelDays,
+    },
+    'extrapolated',
+    'flat-lambda-cdm-lookback-time',
+    HOGG_COSMOLOGICAL_DISTANCE_SOURCE_URL,
+  );
+
+  return {
+    ...epoch,
+    cosmologicalRedshift: distance.redshift,
+    cosmologicalRedshiftOrigin: distance.redshiftOrigin,
+  };
+}
+
 export function resolveObjectReceivedLight(
   object: SpaceObject,
   time: UniverseTime,
@@ -306,7 +372,9 @@ export function resolveObjectReceivedLight(
     };
   }
 
-  return calculateExoplanetSystemLightDeparture(object, time);
+  const exoplanet = calculateExoplanetSystemLightDeparture(object, time);
+
+  return exoplanet ?? calculateCatalogDistanceLightDeparture(object, time);
 }
 
 interface ReceptionTime {
@@ -418,6 +486,71 @@ function readExoplanetSystemDistanceParsec(object: SpaceObject): number | null {
     Number.isFinite(distanceLightYears) &&
     distanceLightYears > 0
     ? distanceLightYears * LIGHT_SPEED_PARSEC_PER_JULIAN_YEAR
+    : null;
+}
+
+type ReceivedLightCatalogDistance =
+  | {
+      readonly kind: 'geometric';
+      readonly lightTravelJulianYears: number;
+    }
+  | {
+      readonly kind: 'cosmological';
+      readonly redshift: number;
+      readonly redshiftOrigin: CosmologicalRedshiftOrigin;
+    };
+
+function readReceivedLightCatalogDistance(
+  object: SpaceObject,
+): ReceivedLightCatalogDistance | null {
+  const metadata = object.metadata;
+
+  if (!metadata) {
+    return null;
+  }
+  const distanceModel = metadata[RECEIVED_LIGHT_DISTANCE_MODEL_METADATA_KEY];
+
+  if (
+    distanceModel === RECEIVED_LIGHT_DISTANCE_MODELS.flatLambdaCdmComoving ||
+    distanceModel === RECEIVED_LIGHT_DISTANCE_MODELS.flatLambdaCdmLuminosity
+  ) {
+    const redshift = metadata[COSMOLOGICAL_REDSHIFT_METADATA_KEY];
+    const redshiftOrigin = metadata[COSMOLOGICAL_REDSHIFT_ORIGIN_METADATA_KEY];
+    const expectedOrigin: CosmologicalRedshiftOrigin =
+      distanceModel === RECEIVED_LIGHT_DISTANCE_MODELS.flatLambdaCdmComoving
+        ? 'inferred-from-comoving-distance'
+        : 'inferred-from-luminosity-distance';
+
+    return typeof redshift === 'number' &&
+      Number.isFinite(redshift) &&
+      redshift >= 0 &&
+      redshiftOrigin === expectedOrigin
+      ? { kind: 'cosmological', redshift, redshiftOrigin: expectedOrigin }
+      : null;
+  }
+  const isNearbyGalaxy =
+    object.type === 'galaxy' &&
+    (object.referenceFrame === 'local-group' || object.referenceFrame === 'nearby-universe');
+
+  if (distanceModel !== RECEIVED_LIGHT_DISTANCE_MODELS.catalogGeometric && !isNearbyGalaxy) {
+    return null;
+  }
+  const distanceLightYears = metadata['distanceLy'];
+
+  if (
+    typeof distanceLightYears === 'number' &&
+    Number.isFinite(distanceLightYears) &&
+    distanceLightYears > 0
+  ) {
+    return { kind: 'geometric', lightTravelJulianYears: distanceLightYears };
+  }
+  const distanceMpc = metadata['distanceMpc'];
+
+  return typeof distanceMpc === 'number' && Number.isFinite(distanceMpc) && distanceMpc > 0
+    ? {
+        kind: 'geometric',
+        lightTravelJulianYears: convertDistance(distanceMpc, 'megaparsec', 'light-year'),
+      }
     : null;
 }
 

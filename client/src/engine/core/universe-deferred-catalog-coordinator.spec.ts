@@ -6,14 +6,43 @@ describe('UniverseDeferredCatalogCoordinator', () => {
 
     harness.coordinator.schedule();
     harness.coordinator.schedule();
-    expect(harness.schedule).toHaveBeenCalledOnce();
+    expect(harness.prepareDeferredCatalogs).toHaveBeenCalledOnce();
+    expect(harness.schedule).not.toHaveBeenCalled();
     expect(harness.installDeferredCatalogs).not.toHaveBeenCalled();
 
+    await harness.waitForPreparation();
+    harness.coordinator.schedule();
+    harness.coordinator.schedule();
+    expect(harness.schedule).toHaveBeenCalledOnce();
     await harness.runScheduled();
 
     expect(harness.installDeferredCatalogs).toHaveBeenCalledOnce();
     expect(harness.refreshCatalogs).toHaveBeenCalledOnce();
     expect(harness.emitWarning).toHaveBeenCalledWith('catalogue partiel');
+  });
+
+  it('réinitialise le délai de fond lorsqu’une transition de caméra commence', async () => {
+    const harness = createHarness();
+
+    harness.coordinator.schedule();
+    await harness.waitForPreparation();
+    harness.coordinator.schedule();
+    expect(harness.schedule).toHaveBeenCalledOnce();
+
+    harness.setBackgroundBusy(true);
+    harness.coordinator.schedule();
+
+    expect(harness.installDeferredCatalogs).not.toHaveBeenCalled();
+    expect(harness.cancel).toHaveBeenCalledOnce();
+    await harness.runScheduled(false);
+
+    harness.setBackgroundBusy(false);
+    harness.coordinator.schedule();
+    expect(harness.schedule).toHaveBeenCalledTimes(2);
+    await harness.runScheduled();
+
+    expect(harness.installDeferredCatalogs).toHaveBeenCalledOnce();
+    expect(harness.refreshCatalogs).toHaveBeenCalledOnce();
   });
 
   it('attend le catalogue immédiatement pour une cible absente et mutualise les appels', async () => {
@@ -72,6 +101,54 @@ describe('UniverseDeferredCatalogCoordinator', () => {
     expect(harness.emitWarning).not.toHaveBeenCalled();
   });
 
+  it('ignore une préparation terminée après une réinitialisation', async () => {
+    const completed = createHarness({ preparationPending: true });
+
+    completed.coordinator.schedule();
+    completed.coordinator.reset();
+    completed.resolvePreparation();
+    await completed.waitForPreparation();
+
+    expect(completed.schedule).not.toHaveBeenCalled();
+    expect(completed.refreshCatalogs).not.toHaveBeenCalled();
+    expect(completed.emitWarning).not.toHaveBeenCalled();
+
+    const failed = createHarness({
+      preparationFailure: new Error('trop tard'),
+      preparationPendingFailure: true,
+    });
+
+    failed.coordinator.schedule();
+    failed.coordinator.reset();
+    failed.rejectPreparation();
+    await failed.waitForPreparation();
+
+    expect(failed.emitWarning).not.toHaveBeenCalled();
+  });
+
+  it('signale une préparation Worker indisponible sans la relancer à chaque image', async () => {
+    const failed = createHarness({ preparationFailure: new Error('worker') });
+
+    failed.coordinator.schedule();
+    await failed.waitForPreparation();
+    failed.coordinator.schedule();
+
+    expect(failed.prepareDeferredCatalogs).toHaveBeenCalledOnce();
+    expect(failed.schedule).not.toHaveBeenCalled();
+    expect(failed.emitWarning).toHaveBeenCalledWith(
+      'Catalogues complémentaires indisponibles : worker',
+    );
+
+    const unknown = createHarness({ preparationFailure: 'échec brut' });
+
+    unknown.coordinator.schedule();
+    await unknown.waitForPreparation();
+
+    expect(unknown.emitWarning).toHaveBeenCalledWith(
+      'Catalogues complémentaires indisponibles : erreur inconnue',
+    );
+  });
+
   it('signale une erreur documentée sans casser la carte et annule une tâche planifiée', async () => {
     const failed = createHarness({ initiallyAvailable: false, failure: new Error('réseau') });
 
@@ -102,6 +179,8 @@ describe('UniverseDeferredCatalogCoordinator', () => {
     const cancelled = createHarness();
 
     cancelled.coordinator.schedule();
+    await cancelled.waitForPreparation();
+    cancelled.coordinator.schedule();
     cancelled.coordinator.reset();
     expect(cancelled.cancel).toHaveBeenCalledOnce();
   });
@@ -113,14 +192,31 @@ interface HarnessOptions {
   readonly pending?: boolean;
   readonly pendingFailure?: boolean;
   readonly failure?: unknown;
+  readonly preparationPending?: boolean;
+  readonly preparationPendingFailure?: boolean;
+  readonly preparationFailure?: unknown;
   readonly requiredTarget?: string;
+  readonly backgroundBusy?: boolean;
 }
 
 function createHarness(options: HarnessOptions = {}) {
   let available = options.initiallyAvailable ?? true;
+  let backgroundBusy = options.backgroundBusy ?? false;
   let scheduled: (() => void) | null = null;
   let resolveInstallation = (): void => undefined;
   let rejectInstallation = (): void => undefined;
+  let resolvePreparation = (): void => undefined;
+  let rejectPreparation = (): void => undefined;
+  const preparationGate = options.preparationPending
+    ? new Promise<void>((resolve) => {
+        resolvePreparation = resolve;
+      })
+    : null;
+  const preparationFailureGate = options.preparationPendingFailure
+    ? new Promise<void>((_resolve, reject) => {
+        rejectPreparation = () => reject(options.preparationFailure);
+      })
+    : null;
   const installationGate = options.pending
     ? new Promise<readonly string[]>((resolve) => {
         resolveInstallation = () => {
@@ -148,6 +244,17 @@ function createHarness(options: HarnessOptions = {}) {
 
     return ['catalogue partiel'];
   });
+  const prepareDeferredCatalogs = vi.fn(async () => {
+    if (preparationGate) {
+      return preparationGate;
+    }
+    if (preparationFailureGate) {
+      return preparationFailureGate;
+    }
+    if (options.preparationFailure !== undefined) {
+      throw options.preparationFailure;
+    }
+  });
   const schedule = vi.fn((callback: () => void) => {
     scheduled = callback;
 
@@ -158,6 +265,7 @@ function createHarness(options: HarnessOptions = {}) {
   const emitWarning = vi.fn();
   const runtime = {
     hasDeferredCatalogs: options.hasDeferredCatalogs ?? true,
+    prepareDeferredCatalogs,
     installDeferredCatalogs,
   };
   const coordinator = new UniverseDeferredCatalogCoordinator({
@@ -165,6 +273,7 @@ function createHarness(options: HarnessOptions = {}) {
     hasObject: () => available,
     requiresDeferredCatalogs: (objectId) => objectId === options.requiredTarget,
     isRuntimeCurrent: (candidate) => candidate === runtime,
+    canInstallInBackground: () => !backgroundBusy,
     refreshCatalogs,
     emitWarning,
     schedule,
@@ -173,6 +282,7 @@ function createHarness(options: HarnessOptions = {}) {
 
   return {
     coordinator,
+    prepareDeferredCatalogs,
     installDeferredCatalogs,
     refreshCatalogs,
     emitWarning,
@@ -180,9 +290,24 @@ function createHarness(options: HarnessOptions = {}) {
     cancel,
     resolveInstallation,
     rejectInstallation,
-    runScheduled: async () => {
+    resolvePreparation,
+    rejectPreparation,
+    setBackgroundBusy: (busy: boolean) => {
+      backgroundBusy = busy;
+    },
+    runScheduled: async (expectInstallation = true) => {
       scheduled?.();
-      await vi.waitFor(() => expect(installDeferredCatalogs).toHaveBeenCalledOnce());
+      if (expectInstallation) {
+        await vi.waitFor(() => expect(installDeferredCatalogs).toHaveBeenCalledOnce());
+      }
+      await Promise.resolve();
+    },
+    waitForPreparation: async () => {
+      const preparation = prepareDeferredCatalogs.mock.results[0]?.value;
+
+      if (preparation) {
+        await Promise.allSettled([preparation]);
+      }
       await Promise.resolve();
     },
   };

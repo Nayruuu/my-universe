@@ -40,11 +40,18 @@ define un retardo baricéntrico común para la estrella y sus planetas según la
 dirección estática de la estrella no cambia porque esta capa no reconstruye su movimiento propio. Las
 órbitas planetarias locales se evalúan en la fecha de emisión común, pero su fase, orientación y
 escala visual siguen siendo explícitamente ilustrativas. Los sistemas sin distancia publicada
-permanecen simultáneos. Galaxias y estructuras a gran escala también conservan su estado simultáneo
-hasta disponer de un contrato cosmológico.
+permanecen simultáneos.
 
-Es un modelo con velocidad finita de la luz, no un modelo de observación relativista o cosmológico
-completo. La extrapolación del movimiento uniforme HYG está limitada a ±10.000 años julianos y se
+Las galaxias cercanas con distancia de catálogo usan su tiempo de viaje geométrico sin mover la
+posición 3D estática. Los módulos de distancia de Cosmicflows-4 se interpretan como distancias de
+luminosidad y las distancias visuales de las estructuras a gran escala como distancias comóviles.
+Ambas se invierten con el mismo modelo ΛCDM plano documentado (H0=70 km/s/Mpc, Ωm=0,3, ΩΛ=0,7) y
+se aplica el [tiempo retrospectivo cosmológico](https://arxiv.org/abs/astro-ph/9905116). La ficha
+muestra el corrimiento al rojo inferido y el tipo de distancia utilizado. Cambia la fecha de emisión,
+no la posición de catálogo ni la apariencia estática.
+
+Es un modelo con velocidad finita de la luz y una aproximación cosmológica acotada, no un modelo
+relativista completo ni de evolución galáctica. La extrapolación del movimiento uniforme HYG está limitada a ±10.000 años julianos y se
 indica al alcanzar ese límite.
 
 El planetario para observadores terrestres sigue siendo una proyección topocéntrica distinta. Usa el

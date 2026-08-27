@@ -72,6 +72,11 @@
             {{ t.details.receivedLightClampedNote }}
           </div>
         }
+        @if (receivedLight.cosmologicalNote) {
+          <div class="approximation-note">
+            {{ receivedLight.cosmologicalNote }}
+          </div>
+        }
       }
 
       @if (canObserveFromEarth(selected)) {
@@ -88,6 +93,12 @@
             <dt>{{ t.details.emissionEpoch }}</dt>
             <dd>{{ receivedLight.emissionEpochLabel }}</dd>
           </div>
+          @if (receivedLight.redshiftLabel) {
+            <div>
+              <dt>{{ t.details.modelRedshift }}</dt>
+              <dd>{{ receivedLight.redshiftLabel }}</dd>
+            </div>
+          }
         }
         @if (p.distanceLabel(selected); as distance) {
           <div [class.facts__wide]="selected.type === 'black-hole'">

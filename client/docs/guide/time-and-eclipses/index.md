@@ -45,10 +45,18 @@ sets one barycentric delay shared by the host and all its planets, using the
 at its static catalogue direction because this layer reconstructs no host proper motion. Each local
 planet orbit is evaluated at the shared emission epoch, but its phase, orientation, and display scale
 remain explicitly illustrative rather than an observed ephemeris. Systems without a published
-distance stay simultaneous. Galaxies and large-scale structures also keep their simultaneous model
-state until a cosmological contract is available.
+distance stay simultaneous.
 
-This is a finite-speed-of-light model, not a complete relativistic or cosmological observation model.
+Nearby galaxies with a catalogue distance now use its geometric light time while their 3D position
+stays static. Cosmicflows-4 distance moduli are interpreted as luminosity distances; large-scale
+structure display distances are interpreted as comoving distances. Each is inverted in the same
+documented flat ΛCDM model (H0=70 km/s/Mpc, Ωm=0.3, ΩΛ=0.7), then the
+[cosmological lookback time](https://arxiv.org/abs/astro-ph/9905116) is applied. The object card shows
+the inferred model redshift and identifies which distance type was used. This changes the emission
+epoch, not the catalogue position or an object's static appearance.
+
+This is a finite-speed-of-light model with a bounded cosmological approximation, not a complete
+relativistic observation or galaxy-evolution model.
 HYG uniform-motion extrapolation is bounded to ±10,000 Julian years and is identified when that
 boundary is reached.
 

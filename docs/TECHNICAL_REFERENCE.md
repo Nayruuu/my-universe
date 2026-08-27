@@ -844,6 +844,18 @@ proper motion. `IllustrativeOrbitProvider` evaluates each local orbit at the sha
 while the existing card note continues to identify its phase, orientation, and scale as illustrative
 rather than an observed ephemeris.
 
+Nearby catalogue galaxies now receive a direct geometric delay from their documented light-year or
+megaparsec distance. The two cosmological catalogue families use explicit distance semantics instead
+of `distance / c`: `CosmicGroupCatalogRegistry` treats the Cosmicflows-4 distance-modulus result as a
+luminosity distance, while `CosmicStructureCatalogRegistry` treats its map radius as a comoving
+distance. Each registry lazily inverts that distance to a model redshift under the same flat ΛCDM
+parameters used by the structure importer (H0=70 km/s/Mpc, Ωm=0.3, ΩΛ=0.7).
+`engine/simulation/cosmological-lookback.ts` then evaluates the corresponding lookback time following
+[Hogg's distance-measure formulation](https://arxiv.org/abs/astro-ph/9905116). Cards label the
+redshift as inferred and distinguish luminosity from comoving input. Static providers deliberately
+keep the catalogue position and appearance unchanged: this is an emission-epoch contract, not a
+galaxy-evolution reconstruction.
+
 The Solar System provider uses
 [Astronomy Engine](https://github.com/cosinekitty/astronomy), an MIT dependency executed locally in
 the browser. Its compact VSOP87 and lunar models are validated by the upstream project against NOVAS
@@ -1104,9 +1116,10 @@ Contact labels follow the local-circumstances definitions documented by
   repeats it. It checks geometry, texture, draw-call and garbage-collected JavaScript heap drift
   against bounded budgets. The initial two-cycle desktop/high baseline remained at 90 geometries,
   18 textures and 35 draw calls, with a 0.10 MiB heap drift;
-- Milky Way atlas and 8K local panorama textures are uploaded before the map becomes interactive,
-  then all scene materials are compiled asynchronously. Loading failure keeps the procedural
-  fallback instead of preventing startup;
+- Milky Way atlas and 8K local-panorama requests begin during initial scene prewarming. Initial
+  scene materials are compiled before the map becomes interactive, while the two texture uploads
+  continue through a non-blocking GPU prewarm. Loading failure keeps the procedural fallback
+  instead of preventing startup;
 - `npm run benchmark:frames` records every animation-frame interval over an Earth → Milky Way →
   nearby universe → cosmic web → Earth journey, reports p95, p99, maximum and long-frame ratio, and
   isolates regressions by transition phase. It begins only once the map controls are interactive,
@@ -1120,7 +1133,75 @@ Contact labels follow the local-circumstances definitions documented by
   frames from 58.3 to 91.8 ms; two mobile/low cold runs stayed at p95 at or below 9.1 ms and maximum
   frames from 50 to 58.8 ms. After adaptive integration, a cold desktop/high smoke journey sampled
   852 frames at 9.1 ms p95, 16.6 ms p99, 50 ms maximum and 0.23% long frames, remaining stable at
-  its native browser pixel ratio;
+  its native browser pixel ratio. The first complete same-host simulated campaign then isolated its
+  only two failures to cold scale journeys: deferred catalogue decoding and installation overlapped
+  the first transition. The first clean campaign after moving decoding into a dedicated module
+  Worker still passed only 8/10 because installation could resume after the original camera check.
+  Preparation and installation are now separate: after the Worker transfers its typed arrays
+  without copying, main-thread registry/search/GPU installation requires a fresh 1.2-second stable
+  window, every transition restarts that delay, and observable mode suspends background
+  installation entirely. An explicitly requested deferred target still loads immediately. The
+  clean campaign recorded on 28 August 2026 from revision `27db0e1` then passed all ten reports.
+  Medium/CPU 4× cold scale runs held at 9.3 ms p95 with a 66.5 ms worst frame; its observable runs
+  held at 9.2 ms median p95, a 24.9 ms worst frame, zero long frames, and Jupiter resolved 3/3.
+  Low/CPU 6× cold scale runs held at 16.6–16.7 ms p95 with an 83.4 ms worst frame; its observable
+  runs held at 9.4 ms median p95, a 41.7 ms worst frame, and Jupiter resolved 3/3. Both resource
+  protocols retained identical geometry, texture, and draw-call counts over three cycles. This is
+  the amended revision's same-host regression baseline, not representative-device evidence;
+- `npm run benchmark:observer` opens a focused 1440 × 900 observer planetarium, records a real
+  pointer drag, recenter, Jupiter-anchored zoom into the shared resolved planet representation,
+  zoom-out, and final settle. It reports the requested browser DPR, actual canvas DPR, frame
+  percentiles by phase, adaptive-resolution state, WebGL renderer, and planet-resolution result.
+  `UNIVERSE_OBSERVER_DPR` defaults to 2 and strict mode requires both the frame budget and resolved
+  planet path to pass;
+- the first repeated physical high-end baseline was recorded on 27 August 2026 on a MacBook Pro
+  `Mac17,6` with an Apple M5 Max (18 CPU cores, 40 GPU cores, 128 GB), macOS 26.6, and Chrome 151.
+  WebGL reported the real `ANGLE Metal Renderer: Apple M5 Max` rather than SwiftShader. Three
+  desktop/high startup runs reached median engine-module, data, scene, and first-usable-map milestones
+  at 37.3 ms, 64.1 ms, 188.5 ms, and 259.3 ms; the worst first-usable value was 261.8 ms. Three
+  Tempel runs preloaded successfully and measured median preparation at 2.3 ms, scene insertion at
+  0 ms, first visible frame at 7.1 ms, activation-to-visible at 15.6 ms, and total time at 1.54 s;
+  the worst first frame was 7.9 ms. Three 832–833-frame cold journeys stayed at 9.1–9.2 ms p95,
+  16.7 ms p99, 66.6–75 ms maximum, and 0.24–0.36% long frames, with adaptive rendering stable at
+  device pixel ratio 1. After three warmups, three resource cycles stayed at 100 geometries,
+  18 textures, and 44 draw calls while collected heap moved from 128.25 MiB to 127.48 MiB. Three
+  observable-planetarium runs requested browser DPR 2 at 1440 × 900; the high-quality cap selected
+  canvas DPR 1.5 and adaptive rendering remained stable there. The 1,452–1,455 sampled frames per
+  run stayed at 9.1 ms p95, 9.3 ms p99, 9.4–9.5 ms maximum, and zero long frames, with Jupiter
+  resolving in all three runs. This is repeated evidence for the high-end class only;
+  representative medium- and low-end physical devices remain unmeasured;
+- an explicitly nonphysical same-host observer stress matrix used Chrome CPU throttling while
+  retaining the M5 Max GPU. Three medium-quality runs at CPU 4× and canvas DPR 1.25 measured median
+  p95 at 9.3 ms, p99 at 16.7 ms, maximum at 24.9 ms, a 25 ms worst frame, zero long frames, and
+  Jupiter resolving 3/3. Three low-quality runs at CPU 6× and canvas DPR 1 measured median p95 at
+  15.9 ms, p99 at 25.1 ms, maximum at 42 ms, a 49.9 ms worst frame, 0.20–0.34% long frames, and
+  Jupiter resolving 3/3. Long frames under the strongest stress concentrated in wide-sky panning
+  and recentering; planet zoom-in produced none. This is controlled regression evidence, not a
+  substitute for the outstanding physical medium- and low-end matrix;
+- all five manual startup, Tempel, resource, scale-frame, and observer benchmarks can emit a
+  versioned `universe-map/performance-evidence@1` JSON report with the Git revision and dirty state,
+  OS/architecture, logical CPU model and count, physical host memory, browser-reported capabilities,
+  actual WebGL vendor and renderer, complete configuration, samples, phases where applicable, and
+  summary. A physical-only guard rejects CPU throttling, SwiftShader or another recognized software
+  renderer, and an undeclared high/medium/low device class before writing the report. The class
+  itself remains an explicit operator declaration rather than an inferred marketing tier;
+- `npm run benchmark:campaign` executes those protocols sequentially from one clean Git revision on
+  one declared physical device. It forces strict budgets, CPU rate 1, cold labelled scale frames,
+  one class-matched quality, at least three repeated runs and three resource cycles, then verifies
+  that source, host, browser, renderer, class, and label agree across all five reports. Its external
+  `universe-map/performance-campaign@1` manifest records summaries and SHA-256 report digests without
+  presenting emulation as representative hardware;
+- `npm run benchmark:campaign:simulated` applies Chrome CPU throttling to all five protocols and
+  records two sequential same-host regression profiles: medium quality at 4× with observer DPR 1.25,
+  then low quality at 6× with observer DPR 1. Its external
+  `universe-map/simulated-performance-campaign@1` manifest binds all ten reports and explicitly keeps
+  the source GPU, graphics memory, driver, memory bandwidth, and thermal behavior outside the
+  simulation claim. Child protocols collect with local strict mode disabled so a failed budget does
+  not suppress the remaining evidence. The complete manifest records `withinBudget` at protocol,
+  profile, and campaign level; strict mode then fails the command after the manifest is written.
+  `UNIVERSE_BENCHMARK_STRICT=0` permits deliberate collection of a known-regressing baseline. A clean
+  simulated baseline can replace unavailable hardware as a regression gate, but not as representative
+  physical evidence;
 - one 128³ cosmic-density texture rendered by one ray-marched mesh, with bounded quality steps and no
   per-voxel CPU or Three.js allocation;
 - raycast volumes placed on a non-rendered selection layer;
@@ -1160,9 +1241,15 @@ individual galaxy files remain deferred until their LOD or target requires them.
 aggregate manifest entry is lighter still: only its source descriptor is retained at startup; its
 index and spatial packs are not fetched by the current product configuration. Constellation figures
 are also cross-validated against the loaded HYG identifier array before scene creation. The compact
-Cosmicflows-4, documented-structure, NASA-exoplanet, and density-volume binaries are fetched
-together after the first usable map, or immediately when URL restoration requires one of their
-targets. The catalogues decode into typed arrays and remain searchable/renderable without creating
+Cosmicflows-4, documented-structure, NASA-exoplanet, and density-volume binaries are fetched and
+validated together in a dedicated module Worker after the first usable map. That preparation
+creates no registry or scene resource. Once it completes, a fresh 1.2-second stable-camera window is
+required before registry, search, Three.js geometry, and GPU installation can run on the main
+thread; every camera transition cancels and restarts this installation delay, and observable mode
+suspends background installation entirely. URL restoration or another explicit request for one of
+the deferred targets still waits for preparation and installs it immediately. Decoded typed-array
+buffers are transferred back without copying. A Worker creation, messaging, or clone failure falls
+back to the same validated main-thread loader. The catalogues remain searchable/renderable without creating
 64,230 generic object instances or running the nearest-neighbor search on the main thread; the
 volume uploads as one GPU texture and is not part of search. Azure revalidates the manifest on every
 visit, while stable data payloads and textures use bounded browser/CDN freshness windows to make
@@ -1235,6 +1322,8 @@ Vitest covers:
 - lunar and solar shadow-material uniforms and activation;
 - HYG v4.1 Cartesian space motion for Barnard's Star over 50 years, cross-checked against the
   independent `pmRA`/`pmDec` angular displacement, plus past and future validity clamps;
+- flat-ΛCDM comoving distance, luminosity distance, inverse redshift, and lookback time at z=0.5,
+  cross-checked against an independent Astropy `FlatLambdaCDM(H0=70, Om0=0.3)` reference;
 - time, render loop, Earth rotation stabilization with exact pause restoration, and floating origin;
 - camera transitions, reversible semantic zoom, focus interruption, and navigation limits;
 - logical reference adoption without geometric-pivot recentering, including preserved pointer
@@ -1397,9 +1486,12 @@ observed with Node 24 on macOS. This does not affect generated application outpu
 - the temporal Received light map mode treats the selected date as reception time: compatible Solar
   System positions—including Galilean moons and simplified two-body objects—are backdated from
   Earth, HYG stars are solved from the Solar System barycentre, and documented exoplanet systems
-  share a barycentric delay derived from the published host distance; systems without such a
-  distance, galaxies, and large-scale structures retain their simultaneous catalogue or model state,
-  while the Earth-observer planetarium remains a distinct topocentric projection;
+  share a barycentric delay derived from the published host distance; nearby galaxies use geometric
+  catalogue light time, while Cosmicflows-4 and large-scale structures use an inferred flat-ΛCDM
+  redshift and lookback time from explicitly typed luminosity or comoving distance; these static
+  layers do not reconstruct position, morphology, catalogue evolution, or uncertainty at the
+  emission epoch, and objects without a supported distance remain simultaneous; the Earth-observer
+  planetarium remains a distinct topocentric projection;
 - the prototype does not implement relativity, full gravitational simulation, or ground exploration.
 
 ## Next engineering steps

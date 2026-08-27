@@ -93,6 +93,7 @@ export class UniverseInitializationBootstrap {
       });
       if (supportsRenderingPrewarm(rendering.renderer)) {
         await sceneRuntime.scene.prewarmInitialRendering(rendering.renderer, rendering.camera);
+        void sceneRuntime.scene.prewarmMilkyWayAssets(rendering.renderer).catch(() => false);
       }
       this.startupPerformance.markSceneReady();
       const activeSceneRuntime = sceneRuntime;

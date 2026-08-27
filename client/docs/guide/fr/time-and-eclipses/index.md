@@ -40,11 +40,19 @@ détermine un retard barycentrique commun à l’étoile hôte et à toutes ses 
 statique de l’hôte ne change pas, car cette couche ne reconstruit pas son mouvement propre. Chaque
 orbite planétaire locale est évaluée à cette date d’émission commune, mais sa phase, son orientation
 et son échelle d’affichage restent explicitement illustratives et non une éphéméride observée. Les
-systèmes sans distance publiée restent simultanés. Galaxies et grandes structures conservent aussi
-leur état simultané jusqu’à la définition d’un contrat cosmologique.
+systèmes sans distance publiée restent simultanés.
 
-Il s’agit d’un modèle à vitesse finie de la lumière, pas d’un modèle d’observation relativiste ou
-cosmologique complet. L’extrapolation du mouvement uniforme HYG est bornée à ±10 000 années juliennes
+Les galaxies proches disposant d’une distance de catalogue utilisent désormais son temps de trajet
+géométrique, sans déplacer leur position 3D statique. Les modules de distance Cosmicflows-4 sont
+interprétés comme distances de luminosité ; les distances d’affichage des grandes structures comme
+distances comobiles. Chacune est inversée dans le même modèle ΛCDM plat documenté (H0=70 km/s/Mpc,
+Ωm=0,3, ΩΛ=0,7), puis le
+[temps de regard en arrière cosmologique](https://arxiv.org/abs/astro-ph/9905116) est appliqué. La
+fiche affiche le redshift inféré du modèle et précise le type de distance employé. Cela modifie la
+date d’émission, pas la position de catalogue ni l’apparence statique de l’objet.
+
+Il s’agit d’un modèle à vitesse finie de la lumière avec approximation cosmologique bornée, pas d’un
+modèle relativiste complet ni d’un modèle d’évolution des galaxies. L’extrapolation du mouvement uniforme HYG est bornée à ±10 000 années juliennes
 et cette borne est signalée lorsqu’elle est atteinte.
 
 Le planétarium d’observation terrestre reste une projection topocentrique distincte. Il emploie le

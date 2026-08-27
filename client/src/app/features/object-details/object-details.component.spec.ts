@@ -217,6 +217,28 @@ describe('ObjectDetailsComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('2026');
   });
 
+  it('identifie le redshift cosmologique inféré sans déplacer la structure', () => {
+    const fixture = TestBed.createComponent(ObjectDetailsComponent);
+    const structure = object({
+      type: 'supercluster',
+      referenceFrame: 'cosmic-web',
+      metadata: {
+        receivedLightDistanceModel: 'flat-lambda-cdm-comoving-distance',
+        cosmologicalRedshift: 0.5,
+        cosmologicalRedshiftOrigin: 'inferred-from-comoving-distance',
+      },
+    });
+
+    facade.selectedObject.set(structure);
+    facade.setTemporalMode('observable');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Redshift du modèle');
+    expect(fixture.nativeElement.textContent).toContain('z ≈ 0,5');
+    expect(fixture.nativeElement.textContent).toContain('distance comobile');
+    expect(structure.positionProvider).toEqual(staticProvider());
+  });
+
   it('explique les paramètres spécifiques d’une exoplanète sans confondre mesure et rendu', () => {
     const component = createComponent();
     const exoplanet = object({
