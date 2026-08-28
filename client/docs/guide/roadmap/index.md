@@ -33,8 +33,10 @@ and a fully static browser architecture remain constraints for every item.
   altitude curve with rise, culmination, set, USNO twilight bands, Moon interference, an explicitly
   illustrative best-window index, and an action that moves both shared time and camera. The curve
   target can be replaced from the same local catalogue without moving the current sky; only that
-  action commits the target, shared time, and camera. Live weather, light pollution, and unsurveyed
-  local obstacles remain outside the model.
+  action commits the target, shared time, and camera. A compact comparison applies the same
+  calculation to seven consecutive nights; selecting one moves directly to that night's best instant,
+  locally refined to five-minute resolution. Live weather, light pollution, and unsurveyed local
+  obstacles remain outside the model.
 - Every fixed catalogue location has a 360° obstruction profile calculated from the authoritative
   NOAA/NCEI ETOPO 2022 v1 60-arc-second surface-relief product. The compact profiles load lazily and
   can hide stars, the Moon, planets, and satellites behind modelled terrain; buildings, vegetation,

@@ -965,22 +965,26 @@ calculated altitude, evaluates the 48 brightest catalogue stars, and proposes at
 stars. It shares the same topocentric, refraction, geometric-horizon, and ETOPO-obstruction functions
 as the renderer. Selecting a suggestion opens the existing object details and recentres the
 planetarium on its calculated horizontal coordinates. By default, the panel additionally samples the
-active target over one local-solar-noon-to-noon window every 30 minutes. Its shared local search can
+active target over one local-solar-noon-to-noon window every 30 minutes, then resamples only the
+neighbourhoods of the coarse culmination and convenience-index maximum every five minutes. This
+preserves the compact 49-point chart while exposing nightly timing shifts. Its shared local search can
 replace that curve target with a calculable star, planet, or moon without mutating the selected object,
 shared time, URL, or camera. The chart plots calculated altitude and terrain clearance, interpolates
-rise and set crossings, finds the sampled culmination, and separates daylight, civil, nautical,
-astronomical twilight, and night with the Sun-centre thresholds documented by the
+rise, set, and best-window crossings, locally refines the culmination and best instant, and separates
+daylight, civil, nautical, astronomical twilight, and night with the Sun-centre thresholds documented by the
 [US Naval Observatory](https://aa.usno.navy.mil/faq/RST_defs). The topocentric solar position has an
 independent regression value from the [NASA/JPL Horizons observer table](https://ssd.jpl.nasa.gov/horizons/manual.html).
 An explicitly `illustrative` index combines darkness, angular height, lunar illuminated fraction,
 Moon altitude, and target–Moon separation to identify a convenient window. Its action commits the
 previewed target, sets the shared simulation time, and recentres the existing camera on the sampled
-target coordinates. The calculation
-runs only while the panel is open; its 24-hour samples are reused until the local solar date, target,
-location, or terrain changes. Current-list suggestions remain geometric and the convenience index is
-not a visibility forecast: live weather, atmospheric transparency, light pollution, and unsurveyed
-local obstacles are outside the model. The view is not a historical reconstruction, a weather service,
-or a professional observation-planning tool.
+target coordinates. A compact astronomical comparison reuses the identical noon-to-noon calculation
+for seven consecutive nights. Each card exposes the interpolated best window, refined best instant,
+maximum altitude, and lunar interference; selecting it commits that night's refined instant through
+the same target, time, and camera action. The calculation runs only while the panel is open; its
+samples are reused until the local solar date, target, location, or terrain changes. Current-list suggestions remain geometric and
+the convenience index is not a visibility forecast: live weather, atmospheric transparency, light
+pollution, and unsurveyed local obstacles are outside the model. The view is not a historical
+reconstruction, a weather service, or a professional observation-planning tool.
 
 ## Eclipse model
 

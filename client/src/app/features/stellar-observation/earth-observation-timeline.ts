@@ -5,8 +5,12 @@ import type { EarthTerrainHorizonProfile } from './earth-terrain-horizon-catalog
 
 export const EARTH_OBSERVATION_TIMELINE_HOURS = 24;
 export const EARTH_OBSERVATION_TIMELINE_SAMPLE_MINUTES = 30;
+export const EARTH_OBSERVATION_TIMELINE_REFINEMENT_MINUTES = 5;
 export const EARTH_OBSERVATION_TIMELINE_CHART_WIDTH = 320;
 export const EARTH_OBSERVATION_TIMELINE_CHART_HEIGHT = 112;
+export const EARTH_OBSERVATION_FORECAST_NIGHTS = 7;
+
+const EARTH_OBSERVATION_FORECAST_MAXIMUM_NIGHTS = 31;
 
 export type EarthObservationTwilight = 'daylight' | 'civil' | 'nautical' | 'astronomical' | 'night';
 
@@ -46,6 +50,7 @@ export interface EarthObservationTimeline {
   readonly startTime: UniverseTime;
   readonly endTime: UniverseTime;
   readonly sampleMinutes: number;
+  readonly refinementMinutes: number;
   readonly points: readonly EarthObservationTimelinePoint[];
   readonly targetPolyline: string;
   readonly terrainPolyline: string;
@@ -66,6 +71,10 @@ export interface EarthObservationTimelineInput {
   readonly terrainHorizon: EarthTerrainHorizonProfile | null;
   readonly sample: (time: UniverseTime) => EarthObservationTimelineSample | null;
   readonly sampleMinutes?: number;
+}
+
+export interface EarthObservationForecastInput extends EarthObservationTimelineInput {
+  readonly nightCount?: number;
 }
 
 /** Returns the latest local solar noon, a stable anchor for one evening-to-evening window. */
@@ -98,53 +107,29 @@ export function createEarthObservationTimeline({
   const intervalCount = (EARTH_OBSERVATION_TIMELINE_HOURS * 60) / sampleMinutes;
   const intervalDays = sampleMinutes / (24 * 60);
   const points: EarthObservationTimelinePoint[] = [];
+  const pointCache = new Map<string, EarthObservationTimelinePoint | null>();
+  const pointAt = (time: UniverseTime): EarthObservationTimelinePoint | null => {
+    const cacheKey = time.julianDay.toFixed(12);
+    const cachedPoint = pointCache.get(cacheKey);
+
+    if (cachedPoint !== undefined) {
+      return cachedPoint;
+    }
+    const point = createTimelinePoint(time, startTime, target, terrainHorizon, sample(time));
+
+    pointCache.set(cacheKey, point);
+
+    return point;
+  };
 
   for (let index = 0; index <= intervalCount; index += 1) {
     const time = { julianDay: startTime.julianDay + index * intervalDays };
-    const sampled = sample(time);
+    const point = pointAt(time);
 
-    if (!sampled) {
+    if (!point) {
       return null;
     }
-    const terrainAltitudeDegrees = terrainHorizon
-      ? earthTerrainObstructionDegrees(terrainHorizon, sampled.target.azimuthDegrees)
-      : 0;
-    const clearanceDegrees = terrainHorizon
-      ? sampled.target.geometricAltitudeDegrees - terrainAltitudeDegrees
-      : sampled.target.altitudeDegrees;
-    const visible = clearanceDegrees > 0;
-    const twilight = earthObservationTwilight(sampled.sun.geometricAltitudeDegrees);
-    const moonSeparationDegrees = horizontalAngularSeparationDegrees(sampled.target, sampled.moon);
-    const moonInterference = calculateMoonInterference(
-      target.id,
-      sampled.moon,
-      sampled.moonIlluminatedFraction,
-      moonSeparationDegrees,
-    );
-    const quality = calculateIndicativeQuality(
-      visible,
-      clearanceDegrees,
-      sampled.sun.geometricAltitudeDegrees,
-      moonInterference,
-    );
-
-    points.push({
-      time,
-      targetObservation: sampled.target,
-      targetAltitudeDegrees: sampled.target.altitudeDegrees,
-      terrainAltitudeDegrees,
-      clearanceDegrees,
-      sunAltitudeDegrees: sampled.sun.geometricAltitudeDegrees,
-      twilight,
-      moonAltitudeDegrees: sampled.moon.altitudeDegrees,
-      moonSeparationDegrees,
-      moonInterference,
-      quality,
-      visible,
-      chartX: (index / intervalCount) * EARTH_OBSERVATION_TIMELINE_CHART_WIDTH,
-      chartY: altitudeChartY(sampled.target.altitudeDegrees),
-      terrainChartY: altitudeChartY(terrainAltitudeDegrees),
-    });
+    points.push(point);
   }
 
   const culminationIndex = indexOfMaximum(
@@ -152,10 +137,23 @@ export function createEarthObservationTimeline({
     ({ targetAltitudeDegrees }) => targetAltitudeDegrees,
   );
   const bestIndex = indexOfMaximum(points, ({ quality }) => quality);
-  const bestPoint = points[bestIndex]!.quality >= 0.02 ? points[bestIndex]! : null;
-  const bestWindow = bestPoint
-    ? calculateBestWindow(points, bestIndex, intervalDays, bestPoint.quality)
-    : null;
+  const refinementMinutes = Math.min(sampleMinutes, EARTH_OBSERVATION_TIMELINE_REFINEMENT_MINUTES);
+  const culminationPoint = refineMaximumPoint(
+    points,
+    culminationIndex,
+    refinementMinutes,
+    pointAt,
+    ({ targetAltitudeDegrees }) => targetAltitudeDegrees,
+  );
+  const refinedBestPoint = refineMaximumPoint(
+    points,
+    bestIndex,
+    refinementMinutes,
+    pointAt,
+    ({ quality }) => quality,
+  );
+  const bestPoint = refinedBestPoint.quality >= 0.02 ? refinedBestPoint : null;
+  const bestWindow = bestPoint ? calculateBestWindow(points, bestIndex, bestPoint.quality) : null;
   const { riseTime, setTime } = calculateRiseAndSet(points, culminationIndex);
 
   return {
@@ -163,12 +161,13 @@ export function createEarthObservationTimeline({
     startTime,
     endTime: { julianDay: startTime.julianDay + 1 },
     sampleMinutes,
+    refinementMinutes,
     points,
     targetPolyline: chartPolyline(points, ({ chartX, chartY }) => [chartX, chartY]),
     terrainPolyline: chartPolyline(points, ({ chartX, terrainChartY }) => [chartX, terrainChartY]),
     riseTime,
-    culminationTime: points[culminationIndex]!.time,
-    culminationAltitudeDegrees: points[culminationIndex]!.targetAltitudeDegrees,
+    culminationTime: culminationPoint.time,
+    culminationAltitudeDegrees: culminationPoint.targetAltitudeDegrees,
     setTime,
     bestPoint,
     bestWindowStart: bestWindow?.start ?? null,
@@ -176,6 +175,43 @@ export function createEarthObservationTimeline({
     terrainApplied: terrainHorizon !== null,
     scoreConfidence: 'illustrative',
   };
+}
+
+/**
+ * Reuses the same noon-to-noon calculation for consecutive local nights. The forecast is
+ * astronomical only: it intentionally contains no weather or atmospheric-transparency estimate.
+ */
+export function createEarthObservationForecast({
+  startTime,
+  target,
+  terrainHorizon,
+  sample,
+  sampleMinutes = EARTH_OBSERVATION_TIMELINE_SAMPLE_MINUTES,
+  nightCount = EARTH_OBSERVATION_FORECAST_NIGHTS,
+}: EarthObservationForecastInput): readonly EarthObservationTimeline[] | null {
+  assertNightCount(nightCount);
+  assertSampleMinutes(sampleMinutes);
+  if (!Number.isFinite(startTime.julianDay)) {
+    return null;
+  }
+  const timelines: EarthObservationTimeline[] = [];
+
+  for (let nightIndex = 0; nightIndex < nightCount; nightIndex += 1) {
+    const timeline = createEarthObservationTimeline({
+      startTime: { julianDay: startTime.julianDay + nightIndex },
+      target,
+      terrainHorizon,
+      sample,
+      sampleMinutes,
+    });
+
+    if (!timeline) {
+      break;
+    }
+    timelines.push(timeline);
+  }
+
+  return timelines;
 }
 
 export function earthObservationTwilight(
@@ -208,6 +244,58 @@ export function horizontalAngularSeparationDegrees(
     Math.cos(firstAltitude) * Math.cos(secondAltitude) * Math.cos(azimuthDifference);
 
   return radiansToDegrees(Math.acos(clamp(cosine, -1, 1)));
+}
+
+function createTimelinePoint(
+  time: UniverseTime,
+  startTime: UniverseTime,
+  target: EarthObservationTimelineTarget,
+  terrainHorizon: EarthTerrainHorizonProfile | null,
+  sampled: EarthObservationTimelineSample | null,
+): EarthObservationTimelinePoint | null {
+  if (!sampled) {
+    return null;
+  }
+  const terrainAltitudeDegrees = terrainHorizon
+    ? earthTerrainObstructionDegrees(terrainHorizon, sampled.target.azimuthDegrees)
+    : 0;
+  const clearanceDegrees = terrainHorizon
+    ? sampled.target.geometricAltitudeDegrees - terrainAltitudeDegrees
+    : sampled.target.altitudeDegrees;
+  const visible = clearanceDegrees > 0;
+  const twilight = earthObservationTwilight(sampled.sun.geometricAltitudeDegrees);
+  const moonSeparationDegrees = horizontalAngularSeparationDegrees(sampled.target, sampled.moon);
+  const moonInterference = calculateMoonInterference(
+    target.id,
+    sampled.moon,
+    sampled.moonIlluminatedFraction,
+    moonSeparationDegrees,
+  );
+  const quality = calculateIndicativeQuality(
+    visible,
+    clearanceDegrees,
+    sampled.sun.geometricAltitudeDegrees,
+    moonInterference,
+  );
+
+  return {
+    time,
+    targetObservation: sampled.target,
+    targetAltitudeDegrees: sampled.target.altitudeDegrees,
+    terrainAltitudeDegrees,
+    clearanceDegrees,
+    sunAltitudeDegrees: sampled.sun.geometricAltitudeDegrees,
+    twilight,
+    moonAltitudeDegrees: sampled.moon.altitudeDegrees,
+    moonSeparationDegrees,
+    moonInterference,
+    quality,
+    visible,
+    chartX:
+      clamp(time.julianDay - startTime.julianDay, 0, 1) * EARTH_OBSERVATION_TIMELINE_CHART_WIDTH,
+    chartY: altitudeChartY(sampled.target.altitudeDegrees),
+    terrainChartY: altitudeChartY(terrainAltitudeDegrees),
+  };
 }
 
 function calculateMoonInterference(
@@ -285,7 +373,6 @@ function interpolateHorizonCrossing(
 function calculateBestWindow(
   points: readonly EarthObservationTimelinePoint[],
   bestIndex: number,
-  intervalDays: number,
   bestQuality: number,
 ): { readonly start: UniverseTime; readonly end: UniverseTime } {
   const threshold = Math.max(0.05, bestQuality * 0.65);
@@ -300,19 +387,53 @@ function calculateBestWindow(
   }
 
   return {
-    start: {
-      julianDay: Math.max(
-        points[0]!.time.julianDay,
-        points[startIndex]!.time.julianDay - intervalDays / 2,
-      ),
-    },
-    end: {
-      julianDay: Math.min(
-        points.at(-1)!.time.julianDay,
-        points[endIndex]!.time.julianDay + intervalDays / 2,
-      ),
-    },
+    start:
+      startIndex === 0
+        ? points[0]!.time
+        : interpolateQualityCrossing(points[startIndex - 1]!, points[startIndex]!, threshold),
+    end:
+      endIndex === points.length - 1
+        ? points[endIndex]!.time
+        : interpolateQualityCrossing(points[endIndex]!, points[endIndex + 1]!, threshold),
   };
+}
+
+function interpolateQualityCrossing(
+  first: EarthObservationTimelinePoint,
+  second: EarthObservationTimelinePoint,
+  threshold: number,
+): UniverseTime {
+  const qualityDelta = second.quality - first.quality;
+  const mix = clamp((threshold - first.quality) / qualityDelta, 0, 1);
+
+  return {
+    julianDay: first.time.julianDay + (second.time.julianDay - first.time.julianDay) * mix,
+  };
+}
+
+function refineMaximumPoint(
+  points: readonly EarthObservationTimelinePoint[],
+  coarseIndex: number,
+  refinementMinutes: number,
+  pointAt: (time: UniverseTime) => EarthObservationTimelinePoint | null,
+  score: (point: EarthObservationTimelinePoint) => number,
+): EarthObservationTimelinePoint {
+  const coarsePoint = points[coarseIndex]!;
+  const start = points[Math.max(0, coarseIndex - 1)]!.time.julianDay;
+  const end = points[Math.min(points.length - 1, coarseIndex + 1)]!.time.julianDay;
+  const refinementDays = refinementMinutes / (24 * 60);
+  const refinementCount = Math.round((end - start) / refinementDays);
+  let bestPoint = coarsePoint;
+
+  for (let index = 0; index <= refinementCount; index += 1) {
+    const point = pointAt({ julianDay: start + index * refinementDays });
+
+    if (point && score(point) > score(bestPoint)) {
+      bestPoint = point;
+    }
+  }
+
+  return bestPoint;
 }
 
 function chartPolyline<T>(
@@ -360,6 +481,16 @@ function assertSampleMinutes(sampleMinutes: number): void {
     totalMinutes % sampleMinutes !== 0
   ) {
     throw new RangeError('Earth observation timeline sample interval must divide 24 hours.');
+  }
+}
+
+function assertNightCount(nightCount: number): void {
+  if (
+    !Number.isInteger(nightCount) ||
+    nightCount < 1 ||
+    nightCount > EARTH_OBSERVATION_FORECAST_MAXIMUM_NIGHTS
+  ) {
+    throw new RangeError('Earth observation forecast must contain between 1 and 31 nights.');
   }
 }
 

@@ -429,6 +429,60 @@ describe('EarthSkyViewComponent', () => {
     }
   });
 
+  it('compare sept nuits et rejoint directement le meilleur créneau choisi', () => {
+    const fixture = TestBed.createComponent(EarthSkyViewComponent);
+    const component = fixture.componentInstance as unknown as SkyViewAccess;
+    const focused: EarthObserverLookAtDetail[] = [];
+    const handleLookAt = (event: Event): void => {
+      focused.push((event as CustomEvent<EarthObserverLookAtDetail>).detail);
+      event.preventDefault();
+    };
+
+    window.addEventListener(EARTH_OBSERVER_LOOK_AT_EVENT, handleLookAt);
+    try {
+      fixture.detectChanges();
+      (
+        fixture.nativeElement.querySelector('.earth-sky-view__planner-toggle') as HTMLButtonElement
+      ).click();
+      fixture.detectChanges();
+
+      const forecast = component.observationForecast();
+      const nights = Array.from(
+        fixture.nativeElement.querySelectorAll('[data-planner-night-index]'),
+      ) as HTMLButtonElement[];
+      const secondNight = forecast?.[1];
+
+      expect(forecast).toHaveLength(7);
+      expect(nights).toHaveLength(7);
+      expect(fixture.nativeElement.textContent).toContain('Comparaison sur 7 nuits');
+      expect(fixture.nativeElement.textContent).toContain('Calcul astronomique sans météo');
+      expect(nights[0]?.textContent).toContain('Gêne lunaire');
+      expect(nights[0]?.textContent).toContain('Idéal à');
+      expect(
+        new Set(
+          nights.map(
+            (night) =>
+              night.querySelector('[data-planner-night-best-time]')?.textContent?.trim() ?? '',
+          ),
+        ).size,
+      ).toBeGreaterThan(1);
+      expect(secondNight?.bestPoint).not.toBeNull();
+
+      nights[1]!.click();
+      fixture.detectChanges();
+
+      expect(facade.setTime).toHaveBeenCalledWith(secondNight!.bestPoint!.time);
+      expect(facade.selectObject).toHaveBeenCalledWith('sirius');
+      expect(focused.at(-1)).toEqual({
+        altitudeDegrees: secondNight!.bestPoint!.targetObservation.altitudeDegrees,
+        azimuthDegrees: secondNight!.bestPoint!.targetObservation.azimuthDegrees,
+      });
+      expect(fixture.nativeElement.querySelector('.earth-observation-planner')).toBeNull();
+    } finally {
+      window.removeEventListener(EARTH_OBSERVER_LOOK_AT_EVENT, handleLookAt);
+    }
+  });
+
   it('prévisualise une autre étoile sans déplacer le ciel puis la rejoint au meilleur instant', async () => {
     const fixture = TestBed.createComponent(EarthSkyViewComponent);
     const component = fixture.componentInstance as unknown as SkyViewAccess;
@@ -1214,6 +1268,7 @@ interface SkyViewAccess {
   horizonPosition(): string;
   horizonPerspective(): { readonly centerAzimuthDegrees: number };
   solarSystemSky(): readonly SolarSystemSkyObservation[];
+  observationForecast(): readonly EarthObservationTimeline[] | null;
   observationTimeline(): EarthObservationTimeline | null;
   selectPlannerTarget(result: SearchEntry): Promise<void>;
   focusPlannerTimeline(

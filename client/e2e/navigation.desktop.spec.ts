@@ -1502,10 +1502,13 @@ test('le planificateur prévisualise une étoile puis engage sa cible et son mei
   await targetSearch.fill('Bételgeuse');
   await planner.getByRole('option', { name: /^Bételgeuse\b/u }).click();
   await expect(planner).toContainText('Visibilité de Bételgeuse');
+  await expect(planner).toContainText('Comparaison sur 7 nuits');
+  await expect(planner).toContainText('Idéal à');
+  await expect(planner.locator('[data-planner-night-index]')).toHaveCount(7);
   expect(queryParameter(page, 'target')).toBe(initialTarget);
   expect(queryParameter(page, 'time')).toBe(initialTime);
 
-  await planner.locator('[data-planner-best-time]').click();
+  await planner.locator('[data-planner-night-index="1"]').click();
   await expect.poll(() => queryParameter(page, 'target')).toBe('betelgeuse');
   await expect.poll(() => queryParameter(page, 'time')).not.toBe(initialTime);
   await waitForCameraSettled(page);

@@ -44,7 +44,7 @@ import {
 } from './earth-observation-planner';
 import { EarthObservationPlannerComponent } from './earth-observation-planner.component';
 import {
-  createEarthObservationTimeline,
+  createEarthObservationForecast,
   earthObservationTimelineStartJulianDay,
   type EarthObservationTimeline,
   type EarthObservationTimelineSample,
@@ -301,7 +301,7 @@ export class EarthSkyViewComponent implements OnDestroy {
       terrainHorizon: this.terrainHorizon(),
     });
   });
-  protected readonly observationTimeline = computed(() => {
+  protected readonly observationForecast = computed(() => {
     const startJulianDay = this.observationTimelineStartJulianDay();
     const location = this.observerSelection.location();
     const target = this.plannerTarget() ?? this.target();
@@ -310,7 +310,7 @@ export class EarthSkyViewComponent implements OnDestroy {
       return null;
     }
 
-    return createEarthObservationTimeline({
+    return createEarthObservationForecast({
       startTime: { julianDay: startJulianDay },
       target: {
         id: target.id,
@@ -321,6 +321,7 @@ export class EarthSkyViewComponent implements OnDestroy {
       sample: (time) => this.calculateTimelineSample(target, time, location),
     });
   });
+  protected readonly observationTimeline = computed(() => this.observationForecast()?.[0] ?? null);
   private readonly observerView = signal<EarthObserverViewState | null>(null);
   private readonly pendingObserverView = signal<EarthObserverViewState | null>(null);
   private readonly plannerTarget = signal<SpaceObject | null>(null);

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import type {
   SearchEntry,
   SpaceObjectType,
@@ -26,6 +26,7 @@ import {
 })
 export class EarthObservationPlannerComponent {
   public readonly plan = input.required<EarthObservationPlan>();
+  public readonly forecast = input<readonly EarthObservationTimeline[]>([]);
   public readonly timeline = input<EarthObservationTimeline | null>(null);
   public readonly timeZone = input.required<string>();
   public readonly closeRequested = output<void>();
@@ -37,6 +38,24 @@ export class EarthObservationPlannerComponent {
   protected readonly chartHeight = EARTH_OBSERVATION_TIMELINE_CHART_HEIGHT;
   protected readonly targetSearchTypes: readonly SpaceObjectType[] = ['star', 'planet', 'moon'];
   protected readonly excludedTargetIds: readonly string[] = ['sun', 'earth'];
+  private readonly shortTimeFormatter = computed(
+    () =>
+      new Intl.DateTimeFormat(this.i18n.locale(), {
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+        timeZone: this.timeZone(),
+      }),
+  );
+  private readonly nightDateFormatter = computed(
+    () =>
+      new Intl.DateTimeFormat(this.i18n.locale(), {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        timeZone: this.timeZone(),
+      }),
+  );
 
   protected formatTime(time: UniverseTime): string {
     return formatUniverseClock(time, this.timeZone(), this.i18n.locale());
@@ -44,12 +63,11 @@ export class EarthObservationPlannerComponent {
 
   protected formatShortTime(time: UniverseTime | null): string {
     return time
-      ? new Intl.DateTimeFormat(this.i18n.locale(), {
-          hour: '2-digit',
-          minute: '2-digit',
-          hourCycle: 'h23',
-          timeZone: this.timeZone(),
-        }).format(julianDayToDate(time.julianDay))
+      ? this.shortTimeFormatter().format(julianDayToDate(time.julianDay))
       : this.i18n.content().stellarObservation.plannerUnavailable;
+  }
+
+  protected formatNightDate(time: UniverseTime): string {
+    return this.nightDateFormatter().format(julianDayToDate(time.julianDay));
   }
 }

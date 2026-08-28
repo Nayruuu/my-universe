@@ -236,6 +236,61 @@
   }
 }
 
+.earth-observation-planner__forecast-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding-inline: 8px;
+
+  small {
+    color: rgb(171 202 221 / 48%);
+    font-size: var(--ui-font-micro);
+    text-align: right;
+  }
+}
+
+.earth-observation-planner__night-list {
+  display: grid;
+  grid-auto-columns: 142px;
+  grid-auto-flow: column;
+  gap: 6px;
+  margin: 0;
+  padding: 2px 6px 7px;
+  overflow-x: auto;
+  list-style: none;
+}
+
+.earth-observation-planner__scroll .earth-observation-planner__night {
+  display: block;
+  min-height: 106px;
+  padding: 9px 10px;
+  border-color: rgb(120 199 240 / 13%);
+  background: rgb(5 18 33 / 58%);
+
+  > * {
+    display: block;
+  }
+
+  time {
+    color: rgb(140 205 237 / 72%);
+    font-size: var(--ui-font-micro);
+  }
+
+  strong {
+    margin: 5px 0;
+  }
+
+  span {
+    color: rgb(188 216 233 / 60%);
+    font-size: var(--ui-font-micro);
+    white-space: nowrap;
+  }
+
+  &:disabled {
+    opacity: 0.52;
+  }
+}
+
 .earth-observation-planner__timeline {
   padding: 12px;
   border: 1px solid rgb(120 199 240 / 16%);

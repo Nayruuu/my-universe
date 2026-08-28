@@ -168,6 +168,7 @@
       <app-earth-observation-planner
         id="earth-observation-planner"
         [plan]="plan"
+        [forecast]="observationForecast() ?? []"
         [timeline]="observationTimeline()"
         [timeZone]="observerSelection.location()!.timeZone"
         (closeRequested)="closePlanner()"

@@ -1,6 +1,9 @@
 import type { StellarObservation } from '../../../engine/simulation/stellar-observation';
 import {
+  createEarthObservationForecast,
   createEarthObservationTimeline,
+  EARTH_OBSERVATION_FORECAST_NIGHTS,
+  EARTH_OBSERVATION_TIMELINE_REFINEMENT_MINUTES,
   earthObservationTimelineStartJulianDay,
   earthObservationTwilight,
   horizontalAngularSeparationDegrees,
@@ -56,6 +59,7 @@ describe('earth observation timeline', () => {
     })!;
 
     expect(timeline.points).toHaveLength(49);
+    expect(timeline.refinementMinutes).toBe(EARTH_OBSERVATION_TIMELINE_REFINEMENT_MINUTES);
     expect(timeline.endTime.julianDay - timeline.startTime.julianDay).toBeCloseTo(1, 10);
     expect(hoursAfterStart(timeline.riseTime!)).toBeCloseTo(6, 1);
     expect(hoursAfterStart(timeline.culminationTime)).toBeCloseTo(12, 1);
@@ -68,6 +72,114 @@ describe('earth observation timeline', () => {
     expect(timeline.targetPolyline.split(' ')).toHaveLength(49);
     expect(timeline.terrainPolyline).toContain('91.64');
     expect(timeline.scoreConfidence).toBe('illustrative');
+  });
+
+  it('raffine localement la culmination et le meilleur instant sans densifier la courbe', () => {
+    let sampleCount = 0;
+    const timeline = createEarthObservationTimeline({
+      startTime,
+      target,
+      terrainHorizon: null,
+      sample: (time) => {
+        sampleCount += 1;
+        const minutes = (time.julianDay - startTime.julianDay) * 24 * 60;
+        const targetAltitude = 60 - Math.pow((minutes - 727) / 24, 2);
+
+        return {
+          target: observation(targetAltitude, 180),
+          sun: observation(-30, 270),
+          moon: observation(-20, 0),
+          moonIlluminatedFraction: 0,
+        };
+      },
+    })!;
+
+    expect(timeline.points).toHaveLength(49);
+    expect(minutesAfter(timeline.culminationTime, startTime)).toBeCloseTo(725, 3);
+    expect(minutesAfter(timeline.bestPoint!.time, startTime)).toBeCloseTo(725, 3);
+    expect(sampleCount).toBeLessThan(70);
+  });
+
+  it('borne au jour calculé une fenêtre favorable pendant les 24 heures', () => {
+    const timeline = createEarthObservationTimeline({
+      startTime,
+      target,
+      terrainHorizon: null,
+      sample: () => ({
+        target: observation(60, 180),
+        sun: observation(-30, 270),
+        moon: observation(-20, 0),
+        moonIlluminatedFraction: 0,
+      }),
+    })!;
+
+    expect(timeline.bestWindowStart).toEqual(startTime);
+    expect(timeline.bestWindowEnd).toEqual({ julianDay: startTime.julianDay + 1 });
+  });
+
+  it('calcule sept nuits consécutives avec la même méthode astronomique', () => {
+    const forecast = createEarthObservationForecast({
+      startTime,
+      target,
+      terrainHorizon: null,
+      sample: sampleNight,
+    })!;
+
+    expect(forecast).toHaveLength(EARTH_OBSERVATION_FORECAST_NIGHTS);
+    expect(forecast[0]?.points).toHaveLength(49);
+    expect(forecast.at(-1)?.startTime.julianDay).toBe(startTime.julianDay + 6);
+    expect(forecast.map(({ target: forecastTarget }) => forecastTarget.id)).toEqual(
+      Array.from({ length: EARTH_OBSERVATION_FORECAST_NIGHTS }, () => target.id),
+    );
+    expect(
+      forecast.every(
+        (timeline, index) => timeline.startTime.julianDay === startTime.julianDay + index,
+      ),
+    ).toBe(true);
+  });
+
+  it('rend visible un décalage quotidien inférieur au pas de la courbe', () => {
+    const syntheticCycleMinutes = 1_436;
+    const forecast = createEarthObservationForecast({
+      startTime,
+      target,
+      terrainHorizon: null,
+      sample: (time) => {
+        const elapsedMinutes = (time.julianDay - startTime.julianDay) * 24 * 60;
+        const phase = ((elapsedMinutes - 720) * Math.PI * 2) / syntheticCycleMinutes;
+
+        return {
+          target: observation(45 + 15 * Math.cos(phase), 180),
+          sun: observation(-30, 270),
+          moon: observation(-20, 0),
+          moonIlluminatedFraction: 0,
+        };
+      },
+    })!;
+    const bestLocalMinutes = forecast.map(({ bestPoint, startTime: nightStart }) =>
+      minutesAfter(bestPoint!.time, nightStart),
+    );
+
+    expect(bestLocalMinutes[0]).toBeCloseTo(720, 3);
+    expect(bestLocalMinutes[1]).toBeCloseTo(715, 3);
+    expect(bestLocalMinutes.at(-1)).toBeCloseTo(695, 3);
+    expect(new Set(bestLocalMinutes.map(Math.round)).size).toBeGreaterThan(1);
+    expect(
+      forecast.every(({ culminationAltitudeDegrees }) =>
+        Number.isFinite(culminationAltitudeDegrees),
+      ),
+    ).toBe(true);
+  });
+
+  it('arrête les nuits consécutives à la limite des éphémérides', () => {
+    const forecast = createEarthObservationForecast({
+      startTime,
+      target,
+      terrainHorizon: null,
+      sample: (time) => (time.julianDay <= startTime.julianDay + 2 ? sampleNight(time) : null),
+    });
+
+    expect(forecast).toHaveLength(2);
   });
 
   it('applique le relief au lever et à la courbe sans le présenter comme une prévision', () => {
@@ -147,6 +259,34 @@ describe('earth observation timeline', () => {
         sampleMinutes: 7,
       }),
     ).toThrow(/sample interval/i);
+    expect(
+      createEarthObservationForecast({
+        startTime: { julianDay: Number.NaN },
+        target,
+        terrainHorizon: null,
+        sample: sampleNight,
+      }),
+    ).toBeNull();
+    expect(() =>
+      createEarthObservationForecast({
+        startTime,
+        target,
+        terrainHorizon: null,
+        sample: sampleNight,
+        sampleMinutes: 7,
+      }),
+    ).toThrow(/sample interval/i);
+    for (const nightCount of [0, 1.5, 32]) {
+      expect(() =>
+        createEarthObservationForecast({
+          startTime,
+          target,
+          terrainHorizon: null,
+          sample: sampleNight,
+          nightCount,
+        }),
+      ).toThrow(/between 1 and 31 nights/i);
+    }
   });
 
   function sampleNight(time: { readonly julianDay: number }, brightMoon = false) {
@@ -166,6 +306,13 @@ describe('earth observation timeline', () => {
     return (time.julianDay - startTime.julianDay) * 24;
   }
 });
+
+function minutesAfter(
+  time: { readonly julianDay: number },
+  startTime: { readonly julianDay: number },
+): number {
+  return (time.julianDay - startTime.julianDay) * 24 * 60;
+}
 
 function observation(altitudeDegrees: number, azimuthDegrees: number): StellarObservation {
   return {

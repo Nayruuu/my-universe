@@ -35,8 +35,9 @@ des contraintes pour chaque évolution.
   crépuscule USNO, gêne lunaire, indice de meilleure fenêtre explicitement illustratif et action qui
   déplace ensemble le temps partagé et la caméra. La cible de cette courbe peut être remplacée depuis
   le même catalogue local sans déplacer le ciel courant ; seule cette action engage la cible, le temps
-  partagé et la caméra. Météo en direct, pollution lumineuse et obstacles locaux non mesurés restent
-  hors du modèle.
+  partagé et la caméra. Une comparaison compacte applique le même calcul à sept nuits consécutives ;
+  choisir une nuit déplace directement à son meilleur instant, raffiné localement à cinq minutes.
+  Météo en direct, pollution lumineuse et obstacles locaux non mesurés restent hors du modèle.
 - Chaque lieu fixe du catalogue dispose d’un profil d’obstruction à 360° calculé depuis le produit
   de relief de surface NOAA/NCEI ETOPO 2022 v1 à 60 secondes d’arc. Ces profils compacts sont chargés
   à la demande et peuvent masquer étoiles, Lune, planètes et satellites derrière le relief modélisé ; bâtiments,

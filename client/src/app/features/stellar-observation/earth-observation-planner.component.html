@@ -49,6 +49,85 @@
     <p class="earth-observation-planner__empty">{{ text.plannerEmpty }}</p>
   } @else {
     <div class="earth-observation-planner__scroll">
+      @let nights = forecast();
+      @if (nights.length > 0) {
+        <section class="earth-observation-planner__forecast" data-confidence="illustrative">
+          <div class="earth-observation-planner__forecast-heading">
+            <h3>
+              {{ i18n.interpolate(text.plannerForecastTitle, { count: nights.length }) }}
+            </h3>
+            <small>{{ text.plannerForecastNote }}</small>
+          </div>
+          <ol class="earth-observation-planner__night-list">
+            @for (night of nights; track night.startTime.julianDay; let index = $index) {
+              <li>
+                @if (night.bestPoint; as bestPoint) {
+                  <button
+                    type="button"
+                    class="earth-observation-planner__night"
+                    [attr.data-planner-night-index]="index"
+                    [attr.aria-label]="
+                      i18n.interpolate(text.plannerNightGoTo, {
+                        date: formatNightDate(night.startTime),
+                        time: formatShortTime(bestPoint.time),
+                        altitude: i18n.formatNumber(night.culminationAltitudeDegrees, 0),
+                        score: i18n.formatNumber(bestPoint.moonInterference * 100, 1),
+                      })
+                    "
+                    (click)="timelineSelected.emit(night)"
+                  >
+                    <time>{{ formatNightDate(night.startTime) }}</time>
+                    <strong data-planner-night-best-time>
+                      {{
+                        i18n.interpolate(text.plannerNightBestTime, {
+                          time: formatShortTime(bestPoint.time),
+                        })
+                      }}
+                    </strong>
+                    <span>
+                      {{ formatShortTime(night.bestWindowStart) }}–{{
+                        formatShortTime(night.bestWindowEnd)
+                      }}
+                    </span>
+                    <span>
+                      {{
+                        i18n.interpolate(text.plannerNightMaximum, {
+                          altitude: i18n.formatNumber(night.culminationAltitudeDegrees, 0),
+                        })
+                      }}
+                    </span>
+                    <span>
+                      {{
+                        i18n.interpolate(text.plannerNightMoon, {
+                          score: i18n.formatNumber(bestPoint.moonInterference * 100, 1),
+                        })
+                      }}
+                    </span>
+                  </button>
+                } @else {
+                  <button
+                    type="button"
+                    class="earth-observation-planner__night"
+                    [attr.data-planner-night-index]="index"
+                    disabled
+                  >
+                    <time>{{ formatNightDate(night.startTime) }}</time>
+                    <strong>{{ text.plannerNightUnavailable }}</strong>
+                    <span>
+                      {{
+                        i18n.interpolate(text.plannerNightMaximum, {
+                          altitude: i18n.formatNumber(night.culminationAltitudeDegrees, 0),
+                        })
+                      }}
+                    </span>
+                  </button>
+                }
+              </li>
+            }
+          </ol>
+        </section>
+      }
+
       @if (timeline(); as currentTimeline) {
         <section
           class="earth-observation-planner__timeline"

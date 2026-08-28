@@ -33,8 +33,10 @@ stabili e architettura completamente statica nel browser vincolano ogni sviluppo
   24 ore con sorgere, culminazione, tramonto, fasce di crepuscolo USNO, disturbo lunare, indice della
   finestra migliore esplicitamente illustrativo e un’azione che sposta insieme tempo e camera. Il
   bersaglio della curva può essere sostituito dallo stesso catalogo locale senza muovere il cielo
-  corrente; solo quell’azione conferma bersaglio, tempo condiviso e camera. Meteo in tempo reale,
-  inquinamento luminoso e ostacoli locali non rilevati restano fuori dal modello.
+  corrente; solo quell’azione conferma bersaglio, tempo condiviso e camera. Un confronto compatto
+  applica lo stesso calcolo a sette notti consecutive; sceglierne una porta direttamente al suo miglior
+  istante, raffinato localmente a cinque minuti. Meteo in tempo reale, inquinamento luminoso e ostacoli
+  locali non rilevati restano fuori dal modello.
 - Ogni luogo fisso del catalogo dispone di un profilo di ostruzione a 360° calcolato dal prodotto
   autorevole di rilievo superficiale NOAA/NCEI ETOPO 2022 v1 a 60 secondi d’arco. I profili compatti
   vengono caricati su richiesta e possono nascondere stelle, Luna, pianeti e satelliti dietro il terreno
