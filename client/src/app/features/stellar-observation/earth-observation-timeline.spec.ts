@@ -7,6 +7,7 @@ import {
   earthObservationTimelineStartJulianDay,
   earthObservationTwilight,
   horizontalAngularSeparationDegrees,
+  selectBestEarthObservationForecastNight,
 } from './earth-observation-timeline';
 import type { EarthTerrainHorizonProfile } from './earth-terrain-horizon-catalog.types';
 
@@ -180,6 +181,43 @@ describe('earth observation timeline', () => {
     });
 
     expect(forecast).toHaveLength(2);
+  });
+
+  it('recommande le meilleur indice disponible et départage une égalité par la première nuit', () => {
+    const hidden = createEarthObservationTimeline({
+      startTime,
+      target,
+      terrainHorizon: terrainProfile(80),
+      sample: sampleNight,
+    })!;
+    const moonlit = createEarthObservationTimeline({
+      startTime,
+      target,
+      terrainHorizon: null,
+      sample: (time) => sampleNight(time, true),
+    })!;
+    const clear = createEarthObservationTimeline({
+      startTime,
+      target,
+      terrainHorizon: null,
+      sample: sampleNight,
+    })!;
+    const laterClear = {
+      ...clear,
+      startTime: { julianDay: startTime.julianDay + 2 },
+    };
+    const earlierClear = {
+      ...clear,
+      startTime: { julianDay: startTime.julianDay + 1 },
+    };
+
+    expect(selectBestEarthObservationForecastNight([])).toBeNull();
+    expect(selectBestEarthObservationForecastNight([hidden])).toBeNull();
+    expect(selectBestEarthObservationForecastNight([moonlit, laterClear])).toBe(laterClear);
+    expect(selectBestEarthObservationForecastNight([laterClear, earlierClear])).toBe(earlierClear);
+    expect(selectBestEarthObservationForecastNight([earlierClear, laterClear, moonlit])).toBe(
+      earlierClear,
+    );
   });
 
   it('applique le relief au lever et à la courbe sans le présenter comme une prévision', () => {

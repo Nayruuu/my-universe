@@ -20,6 +20,8 @@ describe('CosmicCatalogLayers', () => {
     layers.update(210_000, 1 / 60, 1.1);
     await layers.setNearbyGalaxyOverview(emptyNearbyGalaxyIndex(), new CoordinateSystem());
 
+    expect(layers.intergalacticScale.sceneUnitsPerMegaparsec).toBe(10_000);
+    expect(layers.intergalacticScale.referenceFrameBlend).toBe('local-group');
     expect(layers.getCatalogWorldPosition('unknown')).toBeNull();
     expect(layers.getCatalogWorldPosition('unknown', target)).toBeNull();
     expect(layers.getPickables()).toEqual([]);

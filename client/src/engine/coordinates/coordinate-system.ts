@@ -98,6 +98,7 @@ export class CoordinateSystem {
     }
     if (
       frame === 'solar-system' ||
+      frame === 'galactic' ||
       frame === 'local-group' ||
       frame === 'nearby-universe' ||
       frame === 'cosmic-web'
@@ -105,14 +106,8 @@ export class CoordinateSystem {
       return this.toSceneDistance(1, unit, frame);
     }
 
-    const scientificDistance =
-      frame === 'stellar'
-        ? convertDistance(length, unit, 'light-year')
-        : convertDistance(length, unit, 'kiloparsec');
-    const compressedRadius =
-      frame === 'stellar'
-        ? 420 + Math.log1p(scientificDistance) * 250
-        : 1_600 + Math.log1p(scientificDistance) * 460;
+    const scientificDistance = convertDistance(length, unit, 'light-year');
+    const compressedRadius = 420 + Math.log1p(scientificDistance) * 250;
 
     return compressedRadius / length;
   }

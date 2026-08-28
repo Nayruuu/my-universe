@@ -33,14 +33,14 @@
   border-left: 1px solid rgb(218 238 252 / 72%);
 }
 
-@media (width <= 720px) {
+@media (width <= 1100px) {
   :host {
-    bottom: calc(190px + var(--mobile-bottom-safe, 0px));
+    bottom: var(--mobile-timeline-clearance, 84px);
     left: max(12px, var(--mobile-left-safe, 0px));
   }
 }
 
-@media (height <= 520px) and (width > 720px) and (width <= 1000px) {
+@media (height <= 520px) and (width > 720px) and (width <= 1100px) {
   :host {
     bottom: var(--landscape-timeline-clearance, 82px);
     left: max(12px, var(--landscape-left-safe, 0px));

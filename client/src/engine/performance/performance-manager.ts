@@ -4,9 +4,9 @@ import { getAdaptiveFrameProfile } from './adaptive-rendering-profile';
 import { recommendGraphicQuality } from './graphic-quality-recommendation';
 
 const QUALITY_PARTICLE_COUNTS: Readonly<Record<GraphicQuality, number>> = {
-  low: 2_000,
-  medium: 5_000,
-  high: 10_000,
+  low: 6_000,
+  medium: 14_000,
+  high: 28_000,
 };
 
 export class PerformanceManager {

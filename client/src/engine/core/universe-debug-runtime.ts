@@ -1,5 +1,6 @@
 import type {
   EngineDebugStats,
+  GaiaPresentationStats,
   GraphicQuality,
   TempelFilamentPerformanceStats,
   UniverseStartupPerformanceStats,
@@ -21,6 +22,7 @@ export interface UniverseDebugRuntimeResources {
   readonly renderer: UniverseDebugRendererMetrics;
   readonly camera: UniverseDebugCameraMetrics;
   readonly universeScene: UniverseDebugSceneMetrics;
+  getGaiaPresentationStats(): GaiaPresentationStats;
 }
 
 export interface UniverseDebugRuntimeBindings {
@@ -88,6 +90,7 @@ export class UniverseDebugRuntime {
           zoomAnchor: this.bindings.getZoomAnchor(),
           tempelPerformance: this.bindings.getTempelPerformance(),
           startupPerformance: this.bindings.getStartupPerformance(),
+          gaiaPresentation: resources.getGaiaPresentationStats(),
         }),
         emitStats: (stats) => this.bindings.emitStats(stats),
       },

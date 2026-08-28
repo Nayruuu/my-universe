@@ -50,6 +50,31 @@ describe('UniverseCatalogRuntime', () => {
     expect(scene.calls()).toEqual([]);
   });
 
+  it('expose une source Gaia chargée dynamiquement sans l’ajouter à la recherche globale', async () => {
+    const scene = sceneHarness();
+    const gaiaSource = {
+      ...staticObject('gaia-dr3-source-123456789', 'Gaia DR3 123456789'),
+      type: 'star' as const,
+      referenceFrame: 'stellar' as const,
+    };
+
+    scene.hasStarClusterObject.mockImplementation((objectId) => objectId === gaiaSource.id);
+    scene.getStarClusterDefinition.mockImplementation((objectId) =>
+      objectId === gaiaSource.id ? gaiaSource : undefined,
+    );
+    const runtime = await createUniverseCatalogRuntime(
+      emptyAssets([]),
+      new CoordinateSystem(),
+      scene.scene,
+    );
+
+    expect(runtime.has(gaiaSource.id)).toBe(true);
+    expect(runtime.isCatalogStar(gaiaSource.id)).toBe(true);
+    expect(runtime.getDefinition(gaiaSource.id)).toBe(gaiaSource);
+    expect(runtime.supportsWheelNavigation(gaiaSource.id)).toBe(false);
+    expect(runtime.getSearchEntries()).toEqual([]);
+  });
+
   it('construit et relie toutes les sources statiques à la scène', async () => {
     const linkedStar = catalogStar();
     const assets: LoadedUniverseAssets = {
@@ -76,7 +101,7 @@ describe('UniverseCatalogRuntime', () => {
       starTileSource: {
         id: 'stellar-tiles',
         url: '/data/stars/index.json',
-        starCatalogId: 'hyg-v41-bright-stars',
+        sourceCatalogId: 'gaia-dr3-bright-high-confidence',
       },
       tempelFilamentSpineSource: {
         id: 'tempel-spines',
@@ -379,6 +404,10 @@ function sceneHarness() {
   const setCosmicGroupCatalog = vi.fn(() => record('cosmic-groups'));
   const setCosmicStructureCatalog = vi.fn(() => record('cosmic-structures'));
   const setCosmicWebVolume = vi.fn(() => record('cosmic-volume'));
+  const hasStarClusterObject = vi.fn<(objectId: string) => boolean>(() => false);
+  const getStarClusterDefinition = vi.fn<(objectId: string) => SpaceObject | undefined>(
+    () => undefined,
+  );
   const scene = {
     setNearbyGalaxyOverview,
     setStarCatalog,
@@ -387,6 +416,8 @@ function sceneHarness() {
     setCosmicGroupCatalog,
     setCosmicStructureCatalog,
     setCosmicWebVolume,
+    hasStarClusterObject,
+    getStarClusterDefinition,
   } satisfies UniverseCatalogScene;
 
   return {
@@ -399,6 +430,8 @@ function sceneHarness() {
     setCosmicGroupCatalog,
     setCosmicStructureCatalog,
     setCosmicWebVolume,
+    hasStarClusterObject,
+    getStarClusterDefinition,
   };
 }
 

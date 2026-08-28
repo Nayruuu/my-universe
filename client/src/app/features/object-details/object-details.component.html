@@ -2,8 +2,34 @@
   @let t = i18n.content();
   @let p = presenter;
   @let receivedLight = p.receivedLight(selected);
-  <aside class="details" [attr.aria-label]="t.details.aria">
+  <aside class="details" [attr.data-sheet-state]="sheetState()" [attr.aria-label]="t.details.aria">
     <div class="details__hero">
+      <button
+        type="button"
+        class="details__sheet-toggle"
+        [attr.aria-label]="
+          sheetState() === 'summary' ? t.details.showSheet : t.details.collapseSheet
+        "
+        [title]="sheetState() === 'summary' ? t.details.showSheet : t.details.collapseSheet"
+        [attr.aria-expanded]="sheetState() !== 'summary'"
+        aria-controls="object-details-body object-details-actions"
+        (click)="toggleSheet()"
+      >
+        <span class="details__handle" aria-hidden="true"></span>
+      </button>
+      <button
+        type="button"
+        class="details__sheet-expand"
+        [attr.aria-label]="
+          sheetState() === 'expanded' ? t.details.previewSheet : t.details.expandSheet
+        "
+        [title]="sheetState() === 'expanded' ? t.details.previewSheet : t.details.expandSheet"
+        [attr.aria-expanded]="sheetState() === 'expanded'"
+        aria-controls="object-details-body object-details-actions"
+        (click)="toggleExpandedSheet()"
+      >
+        <span aria-hidden="true">{{ sheetState() === 'expanded' ? '⌄' : '⌃' }}</span>
+      </button>
       <div
         class="object-orb"
         [attr.data-object-type]="selected.type"
@@ -34,7 +60,7 @@
       </div>
     </div>
 
-    <div class="details__body">
+    <div id="object-details-body" class="details__body">
       <div
         class="confidence"
         [attr.data-confidence]="selected.scientificConfidence"
@@ -114,7 +140,7 @@
         }
         @if (p.colorIndexLabel(selected); as colorIndex) {
           <div>
-            <dt>{{ t.details.colorIndex }}</dt>
+            <dt>{{ p.colorIndexName(selected) }}</dt>
             <dd>{{ colorIndex }}</dd>
           </div>
         }
@@ -323,7 +349,20 @@
         @if (p.orbitPeriodLabel(selected); as period) {
           <div>
             <dt>{{ t.details.orbitalPeriod }}</dt>
-            <dd>{{ period }}</dd>
+            <dd>
+              {{ period }}
+              @if (p.hasOrbit(selected)) {
+                <button
+                  type="button"
+                  class="orbit-link"
+                  [title]="t.details.fullOrbitTitle"
+                  (click)="viewOrbit(selected)"
+                >
+                  {{ p.orbitActionLabel(selected) }}
+                  <span aria-hidden="true">↗</span>
+                </button>
+              }
+            </dd>
           </div>
         }
         @if (p.rotationPeriodLabel(selected); as rotation) {
@@ -375,7 +414,7 @@
       }
     </div>
 
-    <div class="details__actions">
+    <div id="object-details-actions" class="details__actions">
       <button
         type="button"
         class="primary-action"
@@ -384,17 +423,6 @@
         <span aria-hidden="true">{{ selected.rotation ? '↻' : '◎' }}</span>
         {{ selected.rotation ? t.details.viewRotation : t.details.centerView }}
       </button>
-      @if (p.hasOrbit(selected)) {
-        <button
-          type="button"
-          class="orbit-action"
-          [title]="t.details.fullOrbitTitle"
-          (click)="viewOrbit(selected)"
-        >
-          <span aria-hidden="true">↗</span>
-          {{ p.orbitActionLabel(selected) }}
-        </button>
-      }
       @if (canObserveFromEarth(selected) && earthSkyViewState.phase() === 'closed') {
         <button
           type="button"
@@ -419,9 +447,6 @@
           {{ t.details.viewEvent }}
         </button>
       }
-      <button type="button" class="secondary-action" (click)="facade.closeDetails()">
-        {{ t.common.close }}
-      </button>
     </div>
   </aside>
 }

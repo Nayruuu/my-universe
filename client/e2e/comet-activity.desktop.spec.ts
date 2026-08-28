@@ -24,15 +24,17 @@ test('67P active sa coma et ses queues près du périhélie, à l’opposé du S
   await expect(
     page.getByRole('complementary', { name: 'Informations sur l’objet sélectionné' }),
   ).toContainText('coma et queues illustratives');
-  await expect
-    .poll(() => readCometActivityVisualState(page, COMET_ID))
-    .toMatchObject({ present: true, active: true, rendered: true });
-  const active = await readCometActivityVisualState(page, COMET_ID);
+  // The near representation becomes visible before its LOD opacity has finished fading in.
+  // Wait for the complete rendered state without weakening any brightness or alignment threshold.
+  await expect(async () => {
+    const active = await readCometActivityVisualState(page, COMET_ID);
 
-  expect(active.antiSolarAlignment).toBeGreaterThan(0.999);
-  expect(active.comaOpacity).toBeGreaterThan(0.3);
-  expect(active.dustTailOpacity).toBeGreaterThan(0.15);
-  expect(active.ionTailOpacity).toBeGreaterThan(0.1);
+    expect(active).toMatchObject({ present: true, active: true, rendered: true });
+    expect(active.antiSolarAlignment).toBeGreaterThan(0.999);
+    expect(active.comaOpacity).toBeGreaterThan(0.3);
+    expect(active.dustTailOpacity).toBeGreaterThan(0.15);
+    expect(active.ionTailOpacity).toBeGreaterThan(0.1);
+  }).toPass({ timeout: 10_000 });
   expect(browserErrors).toEqual([]);
 });
 

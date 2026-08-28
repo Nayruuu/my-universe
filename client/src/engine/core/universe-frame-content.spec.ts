@@ -24,6 +24,8 @@ describe('UniverseFrameContent', () => {
         transitioning: true,
         targetId: 'earth',
         selectedId: 'moon',
+        referenceFrameScale: 2.5,
+        stellarNeighborhoodReveal: 1,
       },
       0.25,
     );
@@ -127,6 +129,26 @@ describe('UniverseFrameContent', () => {
       'earth',
     );
   });
+
+  it('recale la caméra ciblée après avoir mis à jour toutes les racines intergalactiques', () => {
+    const harness = createHarness({ objectScaleChanged: true });
+
+    harness.content.update(0.25, harness.services, 4);
+
+    expect(harness.updateObjectReferenceFrameScale).toHaveBeenCalledWith(24);
+    expect(harness.updateSceneReferenceFrameScale).toHaveBeenCalledWith(24);
+    expect(harness.followCurrentTarget).toHaveBeenCalledOnce();
+  });
+
+  it('reste compatible avec une scène sans conversion dynamique de référentiel', () => {
+    const harness = createHarness({ referenceFrameScaleAvailable: false });
+
+    harness.content.update(0.25, harness.services, 2);
+
+    expect(harness.updateObjectReferenceFrameScale).not.toHaveBeenCalled();
+    expect(harness.updateSceneReferenceFrameScale).not.toHaveBeenCalled();
+    expect(harness.followCurrentTarget).not.toHaveBeenCalled();
+  });
 });
 
 interface HarnessOptions {
@@ -134,6 +156,9 @@ interface HarnessOptions {
   readonly observerModeActive: boolean;
   readonly observerPresentationActive: boolean;
   readonly observerSkyContentActive?: boolean;
+  readonly objectScaleChanged: boolean;
+  readonly sceneScaleChanged: boolean;
+  readonly referenceFrameScaleAvailable: boolean;
 }
 
 function createHarness(overrides: Partial<HarnessOptions> = {}) {
@@ -141,6 +166,9 @@ function createHarness(overrides: Partial<HarnessOptions> = {}) {
     streamingAvailable: true,
     observerModeActive: true,
     observerPresentationActive: true,
+    objectScaleChanged: false,
+    sceneScaleChanged: false,
+    referenceFrameScaleAvailable: true,
     ...overrides,
   };
   const camera = new THREE.PerspectiveCamera(48, 16 / 9, 0.1, 100_000);
@@ -149,23 +177,37 @@ function createHarness(overrides: Partial<HarnessOptions> = {}) {
     update: updateStreaming,
   };
   const updateObjectLod = vi.fn<FrameContentObjectRuntime['updateLod']>();
+  const updateObjectReferenceFrameScale = vi.fn<
+    NonNullable<FrameContentObjectRuntime['updateReferenceFrameScale']>
+  >(() => options.objectScaleChanged);
   const objectRuntime: FrameContentObjectRuntime = {
+    ...(options.referenceFrameScaleAvailable
+      ? { updateReferenceFrameScale: updateObjectReferenceFrameScale }
+      : {}),
     updateLod: updateObjectLod,
   };
   const ensureMilkyWayAtlas = vi.fn<FrameContentScene['ensureMilkyWayAtlas']>(async () => true);
   const updateSceneLod = vi.fn<FrameContentScene['updateLod']>();
+  const updateSceneReferenceFrameScale = vi.fn<
+    NonNullable<FrameContentScene['updateReferenceFrameScale']>
+  >(() => options.sceneScaleChanged);
   const scene: FrameContentScene = {
     spaceRoot: new THREE.Group(),
     ensureMilkyWayAtlas,
+    ...(options.referenceFrameScaleAvailable
+      ? { updateReferenceFrameScale: updateSceneReferenceFrameScale }
+      : {}),
     updateLod: updateSceneLod,
   };
   const ensureTempelFilamentSpines = vi.fn<() => Promise<void>>(async () => undefined);
   const preloadTempelFilamentSpines = vi.fn<() => Promise<void>>(async () => undefined);
+  const followCurrentTarget = vi.fn();
   const bindings: UniverseFrameContentBindings = {
     getStreamingCoordinator: () => (options.streamingAvailable ? streamingCoordinator : null),
     getQuality: () => 'high',
     getTargetId: () => 'earth',
     getSelectedId: () => 'moon',
+    followCurrentTarget,
     preloadTempelFilamentSpines,
     ensureTempelFilamentSpines,
   };
@@ -191,8 +233,11 @@ function createHarness(overrides: Partial<HarnessOptions> = {}) {
     scene,
     updateStreaming,
     updateObjectLod,
+    updateObjectReferenceFrameScale,
     ensureMilkyWayAtlas,
     updateSceneLod,
+    updateSceneReferenceFrameScale,
+    followCurrentTarget,
     preloadTempelFilamentSpines,
     ensureTempelFilamentSpines,
   };

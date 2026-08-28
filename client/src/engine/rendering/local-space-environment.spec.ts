@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import {
+  calculateLocalMilkyWayInteriorReveal,
+  calculateLocalMilkyWayPanoramaBlend,
   createLocalSpaceEnvironmentSample,
+  getLocalGalacticBandObserverOpacity,
   getLocalSpaceCinematicProfile,
   getLocalSpaceObserverOpacity,
   LOCAL_MILKY_WAY_PANORAMA_URL,
@@ -14,34 +17,89 @@ describe('LocalSpaceEnvironment', () => {
     const planetary = sampleLocalSpaceEnvironment(4.8, createLocalSpaceEnvironmentSample());
     const solar = sampleLocalSpaceEnvironment(520, createLocalSpaceEnvironmentSample());
     const nightSky = sampleLocalSpaceEnvironment(520, createLocalSpaceEnvironmentSample(), 0, true);
-    const stellar = sampleLocalSpaceEnvironment(1_400, createLocalSpaceEnvironmentSample());
-    const galactic = sampleLocalSpaceEnvironment(9_600, createLocalSpaceEnvironmentSample());
+    const stellarEntry = sampleLocalSpaceEnvironment(620, createLocalSpaceEnvironmentSample());
+    const stellar = sampleLocalSpaceEnvironment(740, createLocalSpaceEnvironmentSample());
+    const observedPlanetary = sampleLocalSpaceEnvironment(
+      4.8,
+      createLocalSpaceEnvironmentSample(),
+      0,
+      true,
+    );
+    const observedStellarEntry = sampleLocalSpaceEnvironment(
+      620,
+      createLocalSpaceEnvironmentSample(),
+      0,
+      true,
+    );
+    const observedStellar = sampleLocalSpaceEnvironment(
+      740,
+      createLocalSpaceEnvironmentSample(),
+      0,
+      true,
+    );
+    const galacticEdge = sampleLocalSpaceEnvironment(3_000, createLocalSpaceEnvironmentSample());
+    const galactic = sampleLocalSpaceEnvironment(3_600, createLocalSpaceEnvironmentSample());
 
-    expect(planetary.galacticBandOpacity).toBeCloseTo(0.4, 8);
+    expect(planetary.galacticBandOpacity).toBe(0);
     expect(planetary.zodiacalLightOpacity).toBe(0);
     expect(planetary.solarCoronaOpacity).toBe(0);
     expect(planetary.solarCoronaDiameter).toBe(0);
-    expect(solar.galacticBandOpacity).toBeGreaterThan(0.12);
-    expect(solar.galacticBandOpacity).toBeGreaterThan(planetary.galacticBandOpacity);
+    expect(solar.galacticBandOpacity).toBe(0);
     expect(solar.zodiacalLightOpacity).toBeGreaterThan(0.16);
     expect(solar.solarCoronaOpacity).toBeGreaterThan(0.6);
     expect(solar.solarCoronaDiameter).toBeGreaterThan(35);
     expect(nightSky).toEqual({
-      galacticBandOpacity: solar.galacticBandOpacity,
+      galacticBandOpacity: expect.any(Number),
       zodiacalLightOpacity: 0,
       solarCoronaOpacity: 0,
       solarCoronaDiameter: 0,
     });
-    expect(stellar.galacticBandOpacity).toBeGreaterThan(solar.galacticBandOpacity);
+    expect(nightSky.galacticBandOpacity).toBeGreaterThan(observedPlanetary.galacticBandOpacity);
+    expect(observedPlanetary.galacticBandOpacity).toBeCloseTo(0.4, 8);
+    expect(stellarEntry.galacticBandOpacity).toBe(0);
+    expect(stellar.galacticBandOpacity).toBe(0);
+    expect(observedStellarEntry.galacticBandOpacity).toBeGreaterThan(nightSky.galacticBandOpacity);
+    expect(observedStellar.galacticBandOpacity).toBeGreaterThan(0.35);
+    expect(observedStellar.galacticBandOpacity).toBeLessThan(
+      observedStellarEntry.galacticBandOpacity,
+    );
     expect(stellar.zodiacalLightOpacity).toBeGreaterThan(0);
-    expect(stellar.zodiacalLightOpacity).toBeLessThan(solar.zodiacalLightOpacity);
+    expect(stellar.zodiacalLightOpacity).toBeLessThanOrEqual(solar.zodiacalLightOpacity);
     expect(stellar.solarCoronaOpacity).toBeGreaterThan(0.2);
+    expect(galacticEdge.galacticBandOpacity).toBe(0);
     expect(galactic).toEqual({
       galacticBandOpacity: 0,
       zodiacalLightOpacity: 0,
       solarCoronaOpacity: 0,
       solarCoronaDiameter: 0,
     });
+  });
+
+  it('retarde le panorama du mode observateur jusqu’à l’intérieur du disque', () => {
+    const distances = [1_150, 1_050, 900, 750, 650];
+    const reveals = distances.map((distance) => calculateLocalMilkyWayInteriorReveal(distance));
+    const opacities = distances.map(
+      (distance) =>
+        sampleLocalSpaceEnvironment(distance, createLocalSpaceEnvironmentSample(), 0, true)
+          .galacticBandOpacity,
+    );
+
+    expect(reveals[0]).toBe(0);
+    expect(reveals.at(-1)).toBe(1);
+    for (let index = 1; index < reveals.length; index += 1) {
+      expect(reveals[index]).toBeGreaterThan(reveals[index - 1]!);
+      expect(opacities[index]).toBeGreaterThan(opacities[index - 1]!);
+      expect(opacities[index]! - opacities[index - 1]!).toBeLessThan(0.24);
+    }
+  });
+
+  it('morph progressivement le ciel procédural vers le panorama observé', () => {
+    expect(calculateLocalMilkyWayPanoramaBlend(1_400)).toBe(0);
+    expect(calculateLocalMilkyWayPanoramaBlend(900)).toBe(0);
+    expect(calculateLocalMilkyWayPanoramaBlend(750)).toBeGreaterThan(0.4);
+    expect(calculateLocalMilkyWayPanoramaBlend(750)).toBeLessThan(0.6);
+    expect(calculateLocalMilkyWayPanoramaBlend(600)).toBe(1);
+    expect(calculateLocalMilkyWayPanoramaBlend(Number.NaN)).toBe(1);
   });
 
   it('reste continu aux frontières et borne les distances invalides', () => {
@@ -55,18 +113,31 @@ describe('LocalSpaceEnvironment', () => {
     );
     expect(
       sampleLocalSpaceEnvironment(Number.POSITIVE_INFINITY, createLocalSpaceEnvironmentSample()),
-    ).toEqual(sampleLocalSpaceEnvironment(9_600, createLocalSpaceEnvironmentSample()));
+    ).toEqual(sampleLocalSpaceEnvironment(3_600, createLocalSpaceEnvironmentSample()));
   });
 
   it('retire le panorama héliocentrique quand l’observateur quitte le voisinage solaire', () => {
-    const local = sampleLocalSpaceEnvironment(22, createLocalSpaceEnvironmentSample(), 0);
-    const transition = sampleLocalSpaceEnvironment(22, createLocalSpaceEnvironmentSample(), 4_800);
-    const remote = sampleLocalSpaceEnvironment(22, createLocalSpaceEnvironmentSample(), 7_200);
+    const local = sampleLocalSpaceEnvironment(22, createLocalSpaceEnvironmentSample(), 0, true);
+    const transition = sampleLocalSpaceEnvironment(
+      22,
+      createLocalSpaceEnvironmentSample(),
+      2_000,
+      true,
+    );
+    const remote = sampleLocalSpaceEnvironment(
+      22,
+      createLocalSpaceEnvironmentSample(),
+      3_600,
+      true,
+    );
 
     expect(local.galacticBandOpacity).toBeCloseTo(0.4, 8);
     expect(getLocalSpaceObserverOpacity(0)).toBe(1);
-    expect(getLocalSpaceObserverOpacity(4_800)).toBeGreaterThan(0);
-    expect(getLocalSpaceObserverOpacity(4_800)).toBeLessThan(1);
+    expect(getLocalSpaceObserverOpacity(2_000)).toBeGreaterThan(0);
+    expect(getLocalSpaceObserverOpacity(2_000)).toBeLessThan(1);
+    expect(getLocalGalacticBandObserverOpacity(2_000)).toBeGreaterThan(
+      getLocalSpaceObserverOpacity(2_000),
+    );
     expect(transition.galacticBandOpacity).toBeGreaterThan(0);
     expect(transition.galacticBandOpacity).toBeLessThan(local.galacticBandOpacity);
     expect(remote).toEqual({
@@ -80,7 +151,7 @@ describe('LocalSpaceEnvironment', () => {
   });
 
   it('ne produit aucun saut visible aux seuils de transition', () => {
-    const boundaries = [120, 420, 850, 900, 2_600, 2_800, 3_200, 7_200, 9_600];
+    const boundaries = [120, 420, 520, 600, 650, 850, 900, 1_150, 2_600, 3_200, 3_600];
 
     for (const boundary of boundaries) {
       const before = sampleLocalSpaceEnvironment(
@@ -122,16 +193,21 @@ describe('LocalSpaceEnvironment', () => {
     expect(environment.root.userData).toMatchObject({
       scientificConfidence: 'illustrative',
       visualRole: 'local-space-cinematic-environment',
+      galacticBandTransitionDistanceRange: [650, 1_150],
+      galacticBandTransitionCurve: 'log-distance-smoothstep',
+      galacticBandObserverDistanceRange: [1_400, 3_600],
+      galacticBandPanoramaBlendDistanceRange: [600, 900],
     });
     expect(band).toBeInstanceOf(THREE.Mesh);
-    expect(band?.rotation.x).toBeCloseTo(THREE.MathUtils.degToRad(-32), 8);
-    expect(band?.rotation.z).toBeCloseTo(THREE.MathUtils.degToRad(-6.5), 8);
+    expect(band?.rotation.x).toBe(0);
+    expect(band?.rotation.z).toBe(0);
     expect(band?.userData).toMatchObject({
       physicalPhenomenon: 'integrated-milky-way-light-and-dust',
       referenceFrame: 'galactic-heliocentric',
       galacticCenterDirection: [-1, 0, 0],
       visualStyle: 'inside-milky-way-panoramic-band',
       angularPresentation: 'distant-thin-sky-band',
+      observerAnchoring: 'camera-centered-distant-sphere',
       sourceCredit: 'ESO/S. Brunier',
       sourceImageId: 'ESO-ESO0932A',
       sourcePageUrl: LOCAL_MILKY_WAY_SOURCE_PAGE_URL,
@@ -140,13 +216,13 @@ describe('LocalSpaceEnvironment', () => {
       sourceAngularLatitudeSpanDegrees: 60,
       angularLatitudeSpanDegrees: 32,
       latitudePresentationScale: 32 / 60,
-      visibilityTreatment: 'photographic-continuous-light',
-      displayGrade: 'eso-photographic-v3',
+      visibilityTreatment: 'photographic-interior-crossfade-with-density-volume',
+      displayGrade: 'eso-photographic-neutral-warm-v4',
       sourceProjection: 'full-sky-panorama-galactic-plane-horizontal',
-      presentationPitchDegrees: -32,
-      presentationRollDegrees: -6.5,
-      presentationComposition: 'diagonal-cinematic-sky',
-      orientationConfidence: 'illustrative',
+      presentationPitchDegrees: 0,
+      presentationRollDegrees: 0,
+      presentationComposition: 'shared-galactic-plane-with-density-volume',
+      orientationConfidence: 'calculated-shared-galactic-frame',
       visualLayers: ['integrated-starlight', 'central-bulge', 'dust-rifts', 'star-forming-clouds'],
     });
     expect(zodiacal).toBeInstanceOf(THREE.Mesh);
@@ -169,10 +245,30 @@ describe('LocalSpaceEnvironment', () => {
     expect(bandMaterial.fragmentShader).toContain('dustRift');
     expect(bandMaterial.uniforms['panoramaExposure']!.value).toBeGreaterThanOrEqual(1.1);
     expect(bandMaterial.uniforms['panoramaExposure']!.value).toBeLessThanOrEqual(1.25);
+    expect(bandMaterial.uniforms['panoramaBlend']!.value).toBe(0);
+    expect(bandMaterial.fragmentShader).toContain('photographicMix');
     expect(bandMaterial.blending).toBe(THREE.NormalBlending);
     expect(bandMaterial.depthTest).toBe(false);
     expect(zodiacalMaterial.fragmentShader).toContain('radialFade');
     expect(coronaMaterial.map?.userData['visualLayers']).toContain('coronaRays');
+    environment.dispose();
+  });
+
+  it('centre le panorama lointain sur la caméra sans modifier son orientation galactique', () => {
+    const parent = new THREE.Group();
+    const environment = new LocalSpaceEnvironment();
+    const observer = new THREE.Vector3(18, -7, 4);
+    const band = environment.root.getObjectByName('illustrative-local-milky-way-sky')!;
+
+    parent.position.set(-120, 32, 7);
+    parent.scale.setScalar(0.085);
+    parent.add(environment.root);
+    parent.updateMatrixWorld(true);
+    environment.update(1_400, 10, 1, 0, false, observer);
+
+    expect(band.getWorldPosition(new THREE.Vector3()).distanceTo(observer)).toBeLessThan(1e-10);
+    expect(band.rotation.toArray().slice(0, 3)).toEqual([0, 0, 0]);
+
     environment.dispose();
   });
 
@@ -270,11 +366,12 @@ describe('LocalSpaceEnvironment', () => {
     environment.setQuality('high');
     environment.update(520, 0, 1.2);
     expect(environment.drawMeshCount).toBe(0);
+    expect(band.material.uniforms['panoramaBlend']!.value).toBe(1);
     environment.update(520, 1 / 60, 1.2);
-    expect(environment.drawMeshCount).toBe(3);
+    expect(environment.drawMeshCount).toBe(2);
     expect(band.material.uniforms['radiance']!.value).toBe(1.2);
-    expect(band.material.uniforms['opacity']!.value).toBeGreaterThan(0);
-    expect(band.material.uniforms['opacity']!.value).toBeLessThan(0.3);
+    expect(band.material.uniforms['opacity']!.value).toBe(0);
+    expect(band.visible).toBe(false);
     expect(zodiacal.visible).toBe(true);
     expect(corona.visible).toBe(true);
     expect(corona.scale.x).toBeGreaterThan(0);
@@ -292,7 +389,7 @@ describe('LocalSpaceEnvironment', () => {
     expect(environment.root.userData['observerDistance']).toBe(7_200);
     expect(environment.root.userData['observerLocalityOpacity']).toBe(0);
 
-    environment.update(9_600, 10, 1);
+    environment.update(3_600, 10, 1);
     expect(environment.drawMeshCount).toBe(0);
     environment.dispose();
     environment.dispose();

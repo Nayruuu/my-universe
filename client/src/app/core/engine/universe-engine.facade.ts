@@ -218,6 +218,7 @@ export class UniverseEngineFacade {
     getTime: () => this.currentTime(),
     getCameraDistance: () => this.cameraDistance(),
     getEngineCameraDistance: () => this.engine.cameraDistance,
+    getCameraOrientation: () => this.engine.cameraOrientation,
     getDisplayOptions: () => this.displayOptions(),
     scheduleWrite: (state) => this.urlService.scheduleWrite(state),
   });
@@ -276,8 +277,6 @@ export class UniverseEngineFacade {
     getCosmicMapLayers: () => this.cosmicMapLayers(),
     setCosmicMapLayers: (layers) => this.cosmicMapLayers.set(layers),
     scheduleUrlUpdate: () => this.scheduleUrlUpdate(),
-    setPerformanceWarning: (message) => this.performanceWarning.set(message),
-    getObservableWarning: () => this.i18n.content().facade.observableWarning,
   });
   private readonly viewCommandRuntime = new UniverseViewCommandRuntime(this.engine, {
     getSelectedId: () => this.selectedId(),
@@ -403,8 +402,8 @@ export class UniverseEngineFacade {
     return this.engine.prepareEarthObservation(objectId, framing, selectedObjectId);
   }
 
-  public exitEarthObservation(): void {
-    this.engine.exitEarthObservation();
+  public exitEarthObservation(animate = false): void {
+    this.engine.exitEarthObservation(animate);
   }
 
   public setEarthObserverCelestialPresentations(

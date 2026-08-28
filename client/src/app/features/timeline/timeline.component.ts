@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { TemporalMode } from '../../../data/models/universe.models';
 import { EarthEclipseEvent, EarthEclipseKind } from '../../../engine/simulation/earth-eclipse';
 import { currentUniverseTime, formatUniverseDate } from '../../../engine/simulation/time-utils';
@@ -17,6 +17,7 @@ import { EclipseBrowserComponent } from '../eclipse-browser/eclipse-browser.comp
 export class TimelineComponent {
   protected readonly facade = inject(UniverseEngineFacade);
   protected readonly i18n = inject(I18nService);
+  protected readonly optionsOpen = signal(false);
   protected readonly speeds = TIME_SPEED_OPTIONS;
   protected readonly presentJulianDay = currentUniverseTime().julianDay;
   protected readonly timelineOffset = computed(() =>
@@ -28,6 +29,10 @@ export class TimelineComponent {
   protected readonly epochLabel = computed(() =>
     formatUniverseDate(this.facade.currentTime(), this.i18n.locale()),
   );
+
+  protected toggleOptions(): void {
+    this.optionsOpen.update((open) => !open);
+  }
 
   protected changeDateTime(event: Event): void {
     this.facade.setDateTime((event.target as HTMLInputElement).value);

@@ -6,9 +6,12 @@
   class="earth-sky-view"
   [class.earth-sky-view--travelling]="phase === 'travelling'"
   [class.earth-sky-view--open]="isOpen"
+  [class.earth-sky-view--returning]="phase === 'returning'"
+  [style.opacity]="phase === 'returning' ? departureHorizonOpacity() : 1"
+  [style.--lift-y]="phase === 'returning' ? (1 - departureHorizonOpacity()) * 22 + 'vh' : '0'"
   role="region"
   [attr.aria-label]="viewTitle()"
-  [attr.aria-busy]="phase === 'travelling'"
+  [attr.aria-busy]="phase === 'travelling' || phase === 'returning'"
   [attr.data-phase]="phase"
 >
   @if (observation(); as currentObservation) {
@@ -96,7 +99,9 @@
     }
   }
 
-  @if (!isOpen) {
+  @if (phase === 'returning') {
+    <span class="visually-hidden" role="status">{{ text.returnToMap }}</span>
+  } @else if (!isOpen) {
     <span class="visually-hidden">
       {{
         i18n.interpolate(text.journeyTitle, {

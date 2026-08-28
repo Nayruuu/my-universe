@@ -128,7 +128,7 @@ export class AssetLoader {
         ? {
             id: starTileDataset.id,
             url: starTileDataset.url,
-            starCatalogId: starTileDataset.starCatalogId,
+            sourceCatalogId: starTileDataset.sourceCatalogId,
           }
         : null,
       tempelFilamentSpineSource: tempelFilamentSpineDataset

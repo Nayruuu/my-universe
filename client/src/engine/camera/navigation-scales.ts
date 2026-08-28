@@ -17,6 +17,13 @@ export interface NavigationScaleDefinition {
   direction: readonly [number, number, number];
 }
 
+/**
+ * Camera distance at which the illustrative Milky Way envelope becomes immersive. The canonical
+ * Galactic reference frame, navigation distance, and wheel response remain independent from that
+ * visual enlargement.
+ */
+export const MILKY_WAY_NAVIGATION_DISTANCE = 3_600;
+
 export const NAVIGATION_SCALES: readonly NavigationScaleDefinition[] = [
   {
     id: 'planetary',
@@ -50,7 +57,7 @@ export const NAVIGATION_SCALES: readonly NavigationScaleDefinition[] = [
     label: 'Voie lactée',
     description: 'Observer la structure galactique',
     targetId: 'milky-way',
-    distance: 9_600,
+    distance: MILKY_WAY_NAVIGATION_DISTANCE,
     lodLevel: 3,
     direction: [1, 0.72, 1],
   },

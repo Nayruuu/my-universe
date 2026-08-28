@@ -59,6 +59,26 @@ describe('EarthSkyViewState', () => {
     expect(state.entryVerticalFieldOfViewDegrees()).toBe(82);
   });
 
+  it('conserve le cadrage pendant la sortie et invalide un ancien voyage', () => {
+    const state = TestBed.inject(EarthSkyViewState);
+    const target = sirius();
+    const journey = state.beginJourney(target.id, target.name, target, 35, 94);
+
+    state.completeJourney(journey);
+    state.beginReturn();
+
+    expect(state.phase()).toBe('returning');
+    expect(state.activeTarget()).toBe(target);
+    expect(state.entryPitchOffsetDegrees()).toBe(35);
+    expect(state.entryVerticalFieldOfViewDegrees()).toBe(94);
+    expect(navigation.setViewMode).toHaveBeenLastCalledWith('map');
+    expect(state.completeJourney(journey)).toBe(false);
+    expect(state.isCurrentJourney(journey)).toBe(false);
+    state.close();
+    expect(state.phase()).toBe('closed');
+    expect(state.activeTarget()).toBeNull();
+  });
+
   it('ignore la fin d’un ancien voyage après une nouvelle navigation', () => {
     const state = TestBed.inject(EarthSkyViewState);
     const firstJourney = state.beginJourney('sirius', 'Sirius');

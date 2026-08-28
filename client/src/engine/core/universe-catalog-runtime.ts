@@ -33,6 +33,8 @@ export type UniverseCatalogScene = Pick<
   | 'setCosmicGroupCatalog'
   | 'setCosmicStructureCatalog'
   | 'setCosmicWebVolume'
+  | 'hasStarClusterObject'
+  | 'getStarClusterDefinition'
 >;
 
 export interface UniverseCatalogRuntimeState {
@@ -128,6 +130,7 @@ export class UniverseCatalogRuntime {
   public has(objectId: string): boolean {
     return (
       this.starCatalogRegistry?.has(objectId) === true ||
+      this.scene?.hasStarClusterObject(objectId) === true ||
       this.exoplanetCatalogRegistry?.has(objectId) === true ||
       this.cosmicGroupCatalogRegistry?.has(objectId) === true ||
       this.cosmicStructureCatalogRegistry?.has(objectId) === true
@@ -135,7 +138,10 @@ export class UniverseCatalogRuntime {
   }
 
   public isCatalogStar(objectId: string): boolean {
-    return this.starCatalogRegistry?.has(objectId) === true;
+    return (
+      this.starCatalogRegistry?.has(objectId) === true ||
+      this.scene?.hasStarClusterObject(objectId) === true
+    );
   }
 
   public isExoplanetHost(objectId: string): boolean {
@@ -153,6 +159,7 @@ export class UniverseCatalogRuntime {
   public getDefinition(objectId: string): SpaceObject | undefined {
     return (
       this.starCatalogRegistry?.getDefinition(objectId) ??
+      this.scene?.getStarClusterDefinition(objectId) ??
       this.exoplanetCatalogRegistry?.getDefinition(objectId) ??
       this.cosmicGroupCatalogRegistry?.getDefinition(objectId) ??
       this.cosmicStructureCatalogRegistry?.getDefinition(objectId)

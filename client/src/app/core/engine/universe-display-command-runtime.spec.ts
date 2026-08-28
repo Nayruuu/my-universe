@@ -39,15 +39,17 @@ describe('UniverseDisplayCommandRuntime', () => {
     });
   });
 
-  it('avertit uniquement lors de l’activation du mode observable', () => {
+  it('synchronise les modes temporels avec le moteur et l’URL', () => {
     const harness = createHarness();
 
     harness.runtime.setTemporalMode('state');
-    expect(harness.setPerformanceWarning).not.toHaveBeenCalled();
+    expect(harness.state.options.temporalMode).toBe('state');
+    expect(harness.engine.setDisplayOptions).toHaveBeenLastCalledWith(harness.state.options);
 
     harness.runtime.setTemporalMode('observable');
     expect(harness.state.options.temporalMode).toBe('observable');
-    expect(harness.setPerformanceWarning).toHaveBeenCalledWith('Vue observable approximative');
+    expect(harness.engine.setDisplayOptions).toHaveBeenLastCalledWith(harness.state.options);
+    expect(harness.scheduleUrlUpdate).toHaveBeenCalledTimes(2);
   });
 
   it('bascule puis réinitialise les couches de la carte cosmique', () => {
@@ -76,7 +78,6 @@ function createHarness() {
   };
   const engine = new FakeDisplayCommandEngine();
   const scheduleUrlUpdate = vi.fn();
-  const setPerformanceWarning = vi.fn();
   const bindings: UniverseDisplayCommandRuntimeBindings = {
     getDisplayOptions: () => state.options,
     setDisplayOptions: (options) => {
@@ -87,8 +88,6 @@ function createHarness() {
       state.layers = layers;
     },
     scheduleUrlUpdate,
-    setPerformanceWarning,
-    getObservableWarning: () => 'Vue observable approximative',
   };
 
   return {
@@ -96,7 +95,6 @@ function createHarness() {
     engine,
     state,
     scheduleUrlUpdate,
-    setPerformanceWarning,
   };
 }
 

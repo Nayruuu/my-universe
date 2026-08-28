@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { SpaceObject } from '../../data/models/universe.models';
 import { CameraController } from './camera-controller';
+import { EARTH_OBSERVER_DEPARTURE_EVENT } from './earth-observer-departure';
 import {
   EARTH_OBSERVER_LOOK_AT_EVENT,
   EARTH_OBSERVER_VIEW_EVENT,
@@ -14,6 +15,7 @@ import {
   getMinimumNavigationDistance,
   MAX_NAVIGATION_DISTANCE,
 } from './navigation-policy';
+import { MILKY_WAY_NAVIGATION_DISTANCE } from './navigation-scales';
 import { LOG_DISTANCE_PER_WHEEL_PIXEL } from './zoom-physics';
 
 const earth = {
@@ -68,6 +70,18 @@ describe('CameraController', () => {
     expect(controller.controls.minDistance).toBe(FREE_NAVIGATION_MIN_DISTANCE);
     expect(controller.controls.minDistance).toBeLessThan(distanceBeforeRelease);
     expect(controller.isTransitioning).toBe(false);
+  });
+
+  it('expose la direction normalisée actuellement regardée', () => {
+    controller.controls.target.set(4, -2, 8);
+    camera.position.set(1, 2, 2);
+
+    expect(
+      controller.viewDirection.distanceTo(new THREE.Vector3(3, -4, 6).normalize()),
+    ).toBeLessThan(1e-12);
+
+    camera.position.copy(controller.controls.target);
+    expect(controller.viewDirection).toEqual(new THREE.Vector3(0, 0, -1));
   });
 
   it('un zoom explicite interrompt la transition et reste appliqué', () => {
@@ -126,14 +140,14 @@ describe('CameraController', () => {
   it('effectue un aller-retour sémantique sans perdre la cible caméra', () => {
     camera.position.set(0, 0, 4.8);
 
-    for (const expected of [520, 1_400, 9_600, 17_000, 120_000]) {
+    for (const expected of [520, 1_400, 3_600, 17_000, 120_000]) {
       controller.zoomSemantically(480);
       expect(controller.distanceToTarget).toBeCloseTo(expected, 6);
     }
     expect(controller.semanticZoomActive).toBe(true);
     expect(controller.hasActiveTarget).toBe(false);
 
-    for (const expected of [17_000, 9_600, 1_400, 520, 4.8]) {
+    for (const expected of [17_000, 3_600, 1_400, 520, 4.8]) {
       controller.zoomSemantically(-480);
       expect(controller.distanceToTarget).toBeCloseTo(expected, 6);
     }
@@ -305,6 +319,235 @@ describe('CameraController', () => {
     expect(controller.controls.target).toEqual(pivotBeforeAdoption.clone().add(displacement));
   });
 
+  it('guide doucement l’inclinaison galactique tout en donnant la priorité au geste manuel', () => {
+    const target = new THREE.Vector3();
+    const initialDistance = controller.distanceToTarget;
+
+    controller.follow(target, 0.82);
+    controller.update(1);
+
+    expect(Math.abs(camera.position.clone().sub(target).normalize().y)).toBeGreaterThan(0.7);
+    expect(controller.distanceToTarget).toBeCloseTo(initialDistance, 10);
+
+    camera.position.set(0, 0, initialDistance);
+    controller.controls.target.copy(target);
+    controller.controls.dispatchEvent({ type: 'start' });
+    controller.follow(target, 0.82);
+    controller.update(1);
+
+    expect(Math.abs(camera.position.clone().sub(target).normalize().y)).toBeLessThan(0.01);
+
+    controller.zoomSemantically(-1);
+    controller.follow(target, 0.82);
+    controller.update(1);
+
+    expect(Math.abs(camera.position.clone().sub(target).normalize().y)).toBeLessThan(0.01);
+
+    controller.controls.dispatchEvent({ type: 'end' });
+    controller.zoomSemantically(-1);
+    controller.follow(target, 0.82);
+    controller.update(1);
+
+    expect(Math.abs(camera.position.clone().sub(target).normalize().y)).toBeGreaterThan(0.7);
+  });
+
+  it('ne mélange pas pivot guidé, ancre de roulette et rotation simultanée', () => {
+    const target = new THREE.Vector3(20, 0, 0);
+    const initialDistance = controller.distanceToTarget;
+
+    controller.controls.dispatchEvent({ type: 'start' });
+    const manualPivot = controller.controls.target.clone();
+    const manualDirection = camera.position.clone().sub(manualPivot).normalize();
+
+    controller.adoptZoomPointer(0.6, -0.4);
+    controller.zoomSemantically(-1);
+
+    expect(controller.controls.target).toEqual(manualPivot);
+
+    controller.adoptZoomAnchor(target);
+    controller.zoomSemantically(-120);
+    controller.follow(target, 0.45, 'distance');
+    controller.update(1 / 60);
+
+    expect(controller.distanceToTarget).toBeLessThan(initialDistance);
+    expect(controller.controls.target).toEqual(manualPivot);
+    expect(
+      camera.position.clone().sub(manualPivot).normalize().angleTo(manualDirection),
+    ).toBeLessThan(1e-12);
+
+    controller.adoptReferenceFrame(target, earth);
+    controller.follow(target, 0.45, 'distance');
+    controller.update(1 / 60);
+
+    expect(controller.controls.target).toEqual(manualPivot);
+    expect(
+      camera.position.clone().sub(manualPivot).normalize().angleTo(manualDirection),
+    ).toBeLessThan(1e-12);
+
+    controller.controls.dispatchEvent({ type: 'end' });
+    controller.follow(target, 0.45, 'distance');
+    controller.adoptZoomAnchor(target);
+    controller.adoptReferenceFrame(target, earth);
+    controller.update(1 / 60);
+
+    const resumedPivotAngle = Math.atan2(
+      controller.controls.target.distanceTo(manualPivot),
+      controller.distanceToTarget,
+    );
+
+    expect(resumedPivotAngle).toBeGreaterThan(0);
+    expect(resumedPivotAngle).toBeLessThanOrEqual(THREE.MathUtils.degToRad(8 / 60) + 1e-12);
+
+    for (let frame = 0; frame < 1_000; frame += 1) {
+      controller.update(1 / 60);
+    }
+
+    expect(controller.controls.target.distanceTo(target)).toBeLessThan(1e-12);
+    expect(
+      Math.abs(camera.position.clone().sub(controller.controls.target).normalize().y),
+    ).toBeCloseTo(0.45, 6);
+
+    const nextTarget = target.clone().add(new THREE.Vector3(5, 0, 0));
+
+    controller.controls.dispatchEvent({ type: 'start' });
+    controller.zoomSemantically(-1);
+    controller.follow(nextTarget, 0.18, 'distance');
+    controller.controls.dispatchEvent({ type: 'end' });
+    controller.follow(nextTarget);
+    for (let frame = 0; frame < 400; frame += 1) {
+      controller.update(1 / 60);
+    }
+
+    expect(controller.controls.target.distanceTo(nextTarget)).toBeLessThan(1e-12);
+  });
+
+  it('conserve une rotation manuelle sans molette comme override du guide de distance', () => {
+    const target = new THREE.Vector3(20, 0, 0);
+
+    controller.controls.dispatchEvent({ type: 'start' });
+    const manualPivot = controller.controls.target.clone();
+
+    controller.follow(target, 0.45, 'distance');
+    controller.update(1 / 60);
+    controller.controls.dispatchEvent({ type: 'end' });
+    controller.update(1);
+
+    expect(controller.controls.target).toEqual(manualPivot);
+  });
+
+  it('lie la pose galactique à la distance sans rattrapage temporel', () => {
+    const target = new THREE.Vector3();
+
+    controller.follow(target, 0.45, 'distance');
+    controller.update(1 / 60);
+
+    expect(Math.abs(camera.position.clone().sub(target).normalize().y)).toBeCloseTo(0.45, 12);
+    expect(controller.distanceToTarget).toBeCloseTo(24, 12);
+    const guidedCameraPosition = camera.position.clone();
+
+    controller.update(0.5);
+
+    expect(camera.position.distanceTo(guidedCameraPosition)).toBeLessThan(1e-12);
+
+    controller.follow(target, 0.18, 'distance');
+    controller.update(1 / 60);
+
+    expect(Math.abs(camera.position.clone().sub(target).normalize().y)).toBeCloseTo(0.18, 12);
+    expect(controller.distanceToTarget).toBeCloseTo(24, 12);
+  });
+
+  it('lie aussi le pivot galactique à la distance sans dérive après la molette', () => {
+    const target = new THREE.Vector3(20, 0, 0);
+    const initialDistance = controller.distanceToTarget;
+
+    controller.follow(target, 0.18, 'distance');
+    controller.update(1 / 60);
+
+    expect(controller.controls.target.distanceTo(target)).toBeLessThan(1e-12);
+    expect(controller.distanceToTarget).toBeCloseTo(initialDistance, 12);
+    const guidedCameraPosition = camera.position.clone();
+    const guidedTarget = controller.controls.target.clone();
+
+    controller.update(0.5);
+
+    expect(controller.controls.target.distanceTo(guidedTarget)).toBeLessThan(1e-12);
+    expect(camera.position.distanceTo(guidedCameraPosition)).toBeLessThan(1e-12);
+    expect(controller.distanceToTarget).toBeCloseTo(initialDistance, 12);
+  });
+
+  it('rend la main au suivi ordinaire sans correction galactique résiduelle', () => {
+    const target = new THREE.Vector3(20, 0, 0);
+
+    controller.follow(target, 0.18, 'distance');
+    controller.update(0.1);
+    const guidedTarget = controller.controls.target.clone();
+    const guidedCameraPosition = camera.position.clone();
+
+    controller.follow(target);
+    expect(controller.controls.target).toEqual(guidedTarget);
+    controller.update(0.5);
+    expect(controller.controls.target.distanceTo(guidedTarget)).toBeLessThan(1e-12);
+    expect(camera.position.distanceTo(guidedCameraPosition)).toBeLessThan(1e-12);
+
+    const movedTarget = target.clone().add(new THREE.Vector3(1, -2, 3));
+    const cameraBeforeOrdinaryFollow = camera.position.clone();
+
+    controller.follow(movedTarget);
+
+    expect(controller.controls.target.distanceTo(movedTarget)).toBeLessThan(1e-12);
+    expect(
+      camera.position.distanceTo(cameraBeforeOrdinaryFollow.add(movedTarget.clone().sub(target))),
+    ).toBeLessThan(1e-12);
+  });
+
+  it('abandonne le guide galactique avant de suivre une nouvelle étoile', () => {
+    const galacticGuide = new THREE.Vector3(20, 0, 0);
+    const starPosition = new THREE.Vector3(-104, 151, 716);
+
+    controller.follow(galacticGuide, 0.18, 'distance');
+    controller.update(0.1);
+    const cameraBeforeHandoff = camera.position.clone();
+    const targetBeforeHandoff = controller.controls.target.clone();
+
+    controller.trackTarget(starPosition, objectOfType('star'));
+    controller.adoptZoomAnchor(starPosition);
+    controller.zoomSemantically(-120);
+    const cameraAfterHandoff = camera.position.clone();
+    const targetAfterHandoff = controller.controls.target.clone();
+
+    controller.follow(starPosition);
+    controller.update(1 / 60);
+
+    expect(camera.position.distanceTo(cameraAfterHandoff)).toBeLessThan(1e-10);
+    expect(controller.controls.target.distanceTo(targetAfterHandoff)).toBeLessThan(1e-10);
+
+    controller.adoptZoomPointer(0.18, 0.06);
+    controller.zoomSemantically(120);
+
+    expect(camera.position.distanceTo(cameraBeforeHandoff)).toBeLessThan(1e-10);
+    expect(controller.controls.target.distanceTo(targetBeforeHandoff)).toBeLessThan(1e-10);
+  });
+
+  it('stabilise le guide pour une caméra confondue avec son pivot ou strictement verticale', () => {
+    const target = new THREE.Vector3();
+
+    controller.controls.minDistance = 0;
+    camera.position.copy(target);
+    controller.controls.target.copy(target);
+    controller.follow(target, 0.82);
+    controller.update(1);
+
+    expect(camera.position).toEqual(target);
+
+    camera.position.set(0, -24, 0);
+    controller.follow(target, 0.82);
+    controller.update(1);
+
+    expect(camera.position.y).toBeLessThan(0);
+    expect(camera.position.z).toBeGreaterThan(0);
+    expect(controller.distanceToTarget).toBeCloseTo(24, 10);
+  });
+
   it('choisit une direction stable pour un changement de référentiel dégénéré', () => {
     camera.position.copy(controller.controls.target);
 
@@ -340,6 +583,64 @@ describe('CameraController', () => {
     expect(controller.isTransitioning).toBe(false);
     expect(settled).toHaveBeenCalledWith(controller.distanceToTarget, 'transition');
   });
+
+  it('laisse respirer les référentiels traversés par une recherche directe vers une planète', () => {
+    camera.position.set(0, 0, 17_000);
+    controller.controls.target.set(0, 0, 0);
+    controller.controls.update();
+
+    controller.focusOn(new THREE.Vector3(), earth, 4.8);
+    controller.update(2.2);
+
+    expect(controller.isTransitioning).toBe(true);
+    expect(controller.distanceToTarget).toBeGreaterThan(MILKY_WAY_NAVIGATION_DISTANCE);
+
+    controller.update(4.8);
+
+    expect(controller.isTransitioning).toBe(false);
+    expect(controller.distanceToTarget).toBeCloseTo(4.8, 8);
+  });
+
+  it.each([2_800, 17_000])(
+    'acquiert Sagittarius A* depuis Andromède à %s sans dépasser la destination',
+    (initialDistance) => {
+      // Captured map coordinates after rebasing onto Andromeda, not scientific distances.
+      const destination = new THREE.Vector3(3_771.31, 2_882.42, -6_227.18);
+      const direction = new THREE.Vector3(0.875355, 0.17956, 0.4489).normalize();
+      const blackHole = {
+        ...objectOfType('black-hole'),
+        visual: { visualRadius: 3.2 },
+      } as SpaceObject;
+
+      camera.position.copy(direction).multiplyScalar(initialDistance);
+      controller.controls.update();
+      controller.focusOn(destination, blackHole);
+      let previousDistance = camera.position.distanceTo(destination);
+      let centeredSamples = 0;
+
+      for (let frame = 1; frame <= 840 && controller.isTransitioning; frame += 1) {
+        controller.update(1 / 120);
+        camera.updateMatrixWorld();
+        const destinationOffset = destination.clone().sub(camera.position);
+        const destinationDistance = destinationOffset.length();
+        const screen = destination.clone().project(camera);
+
+        expect(destinationOffset.dot(controller.viewDirection)).toBeGreaterThan(0);
+        expect(destinationDistance).toBeLessThanOrEqual(previousDistance + 1e-7);
+        if (frame > 150) {
+          expect(Math.hypot(screen.x, screen.y)).toBeLessThan(1e-7);
+          centeredSamples += 1;
+        }
+        previousDistance = destinationDistance;
+      }
+
+      expect(centeredSamples).toBeGreaterThan(100);
+      expect(controller.isTransitioning).toBe(false);
+      expect(controller.controls.target.distanceTo(destination)).toBeLessThan(1e-9);
+      expect(controller.distanceToTarget).toBeCloseTo(38.4, 8);
+      expect(controller.viewDirection.distanceTo(direction.negate())).toBeLessThan(1e-9);
+    },
+  );
 
   it('garde le cadrage de sécurité planétaire assez bas pour révéler le plan galactique', () => {
     camera.position.set(20, 0, 0);
@@ -458,6 +759,119 @@ describe('CameraController', () => {
     expect(controller.controls.enableRotate).toBe(true);
     expect(controller.controls.enablePan).toBe(true);
     expect(camera.fov).toBe(82);
+  });
+
+  it('quitte l’observateur sans saut et termine en orbite autour de la Terre mobile', () => {
+    const center = new THREE.Vector3(10, 2, 4);
+    const observer = center.clone().add(new THREE.Vector3(0, 0.7, 0));
+
+    controller.observeFrom(observer, observer.clone().add(new THREE.Vector3(10, 4, -10)));
+    controller.update(2.4);
+    const position = camera.position.clone();
+    const orientation = camera.quaternion.clone();
+    const fieldOfView = camera.fov;
+
+    settled.mockClear();
+    controller.leaveObserver(center, earth);
+
+    expect(controller.isTransitioning).toBe(true);
+    expect(controller.observerModeActive).toBe(false);
+    expect(controller.observerPresentationActive).toBe(false);
+    expect(controller.controls.enabled).toBe(true);
+    expect(controller.controls.enableRotate).toBe(true);
+    expect(controller.controls.enablePan).toBe(true);
+    expect(controller.controls.minDistance).toBe(getMinimumNavigationDistance(earth));
+    expect(camera.position.distanceTo(position)).toBeLessThan(1e-10);
+    expect(camera.quaternion.angleTo(orientation)).toBeLessThan(1e-7);
+    expect(camera.fov).toBe(fieldOfView);
+
+    controller.update(1);
+    expect(controller.isTransitioning).toBe(true);
+    expect(settled).not.toHaveBeenCalled();
+    const movement = new THREE.Vector3(1, 3, -2);
+    const shift = new THREE.Vector3(8, 0, -2);
+
+    controller.follow(center.clone().add(movement));
+    camera.position.sub(shift);
+    controller.controls.target.sub(shift);
+    controller.shiftTrackedPosition(shift);
+    controller.update(1.4);
+
+    expect(controller.isTransitioning).toBe(false);
+    expect(controller.hasActiveTarget).toBe(true);
+    expect(controller.distanceToTarget).toBeCloseTo(4.96, 10);
+    expect(controller.controls.target.distanceTo(center.add(movement).sub(shift))).toBeLessThan(
+      1e-10,
+    );
+    expect(camera.fov).toBe(48);
+    expect(settled).toHaveBeenCalledOnce();
+    expect(settled).toHaveBeenCalledWith(expect.closeTo(4.96, 10), 'transition');
+    const finalOrientation = camera.quaternion.clone();
+
+    controller.update(1);
+    expect(camera.quaternion.angleTo(finalOrientation)).toBeLessThan(1e-7);
+  });
+
+  it.each(['orbit', 'wheel', 'zoom', 'release', 'focus', 'dispose'] as const)(
+    'interrompt la sortie du planétarium au premier geste ou changement : %s',
+    (action) => {
+      controller.observeFrom(new THREE.Vector3(0, 0.7, 0), new THREE.Vector3(10, 5, -10));
+      controller.update(2.4);
+      controller.leaveObserver(new THREE.Vector3(), earth);
+      controller.update(0.8);
+      const orientation = camera.quaternion.clone();
+      const departureEnd = vi.fn();
+
+      window.addEventListener(EARTH_OBSERVER_DEPARTURE_EVENT, departureEnd);
+      if (action === 'orbit') {
+        controller.controls.dispatchEvent({ type: 'start' });
+      }
+      if (action === 'wheel') {
+        controller.zoomSemantically(-30);
+      }
+      if (action === 'zoom') {
+        controller.zoomBy(0.9);
+      }
+      if (action === 'release') {
+        controller.releaseTarget();
+      }
+      if (action === 'focus') {
+        controller.focusOn(new THREE.Vector3(20, 0, 0), earth);
+      }
+      if (action === 'dispose') {
+        controller.dispose();
+      }
+
+      expect(departureEnd).toHaveBeenCalledOnce();
+      expect(departureEnd.mock.calls[0]?.[0].detail).toEqual({ active: false, progress: 1 });
+      expect(camera.quaternion.angleTo(orientation)).toBeLessThan(1e-7);
+      const position = camera.position.clone();
+
+      if (action !== 'dispose') {
+        controller.update(3);
+      }
+      if (action !== 'focus') {
+        expect(controller.isTransitioning).toBe(false);
+        expect(camera.position.distanceTo(position)).toBeLessThan(1e-10);
+      }
+      expect(departureEnd).toHaveBeenCalledOnce();
+      window.removeEventListener(EARTH_OBSERVER_DEPARTURE_EVENT, departureEnd);
+    },
+  );
+
+  it('retourne immédiatement à la carte lorsque les animations sont réduites', () => {
+    controller.observeFrom(new THREE.Vector3(0.7, 0, 0), new THREE.Vector3(10, 5, -10));
+    controller.update(2.4);
+    settled.mockClear();
+
+    controller.leaveObserver(new THREE.Vector3(), earth, 0);
+
+    expect(controller.isTransitioning).toBe(false);
+    expect(controller.controls.enabled).toBe(true);
+    expect(controller.controls.target).toEqual(new THREE.Vector3());
+    expect(controller.distanceToTarget).toBeCloseTo(4.96, 10);
+    expect(camera.fov).toBe(48);
+    expect(settled).toHaveBeenCalledOnce();
   });
 
   it('ne réactive jamais les contrôles orbitaux en recentrant le ciel terrestre', () => {
@@ -631,6 +1045,31 @@ describe('CameraController', () => {
     expect(controller.hasActiveTarget).toBe(true);
     expect(camera.position.distanceTo(focusedPosition)).toBeLessThan(1e-12);
     expect(controller.lastZoomDiagnostics?.status).toBe('minimum');
+  });
+
+  it('peut terminer une rafale libre à la butée sans engager sa traversée', () => {
+    controller.releaseTarget();
+    camera.position.set(0, 0, FREE_NAVIGATION_MIN_DISTANCE);
+    controller.controls.target.set(0, 0, 0);
+    camera.lookAt(controller.controls.target);
+    camera.updateMatrixWorld();
+    const initialCameraPosition = camera.position.clone();
+    const initialTarget = controller.controls.target.clone();
+
+    controller.adoptZoomPointer(0.109_375, 0.265_384_615_384_615_33);
+    controller.zoomSemantically(-18.714_973_875_118_524, 1, false);
+
+    expect(camera.position.distanceTo(initialCameraPosition)).toBeLessThan(1e-12);
+    expect(controller.controls.target.distanceTo(initialTarget)).toBeLessThan(1e-12);
+    expect(controller.distanceToTarget).toBeCloseTo(FREE_NAVIGATION_MIN_DISTANCE, 12);
+    expect(controller.minimumTraversalActive).toBe(false);
+    expect(controller.lastZoomDiagnostics?.status).toBe('minimum');
+
+    controller.adoptZoomPointer(0.109_375, 0.265_384_615_384_615_33);
+    controller.zoomSemantically(-18.714_973_875_118_524);
+
+    expect(camera.position.distanceTo(initialCameraPosition)).toBeGreaterThan(1);
+    expect(controller.minimumTraversalActive).toBe(true);
   });
 
   it('oublie une traversée libre lorsqu’une nouvelle cible est suivie', () => {

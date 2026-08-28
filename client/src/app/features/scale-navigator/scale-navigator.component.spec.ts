@@ -80,6 +80,39 @@ describe('ScaleNavigatorComponent', () => {
     expect(component.scaleLabel()).toBe('Voie lactée');
   });
 
+  it('conserve le contexte galactique pendant la plongée vers le voisinage stellaire', () => {
+    const component = createComponent();
+
+    lodLevel.set(2);
+    targetId.set('milky-way');
+    objects.set([
+      {
+        id: 'milky-way',
+        name: 'Milky Way',
+        type: 'galaxy',
+        referenceFrame: 'local-group',
+        scientificConfidence: 'simulated',
+        visual: {
+          visualRadius: 1,
+          scaleMode: 'adaptive',
+        },
+        positionProvider: {
+          type: 'static',
+          position: [0, 0, 0],
+          unit: 'kiloparsec',
+        },
+      },
+    ]);
+
+    expect(component.scaleLabel()).toBe('Voie lactée');
+    expect(component.activeScaleLodLevel()).toBe(3);
+
+    targetId.set('sun');
+
+    expect(component.scaleLabel()).toBe('Voisinage stellaire');
+    expect(component.activeScaleLodLevel()).toBe(2);
+  });
+
   it('nomme explicitement le contexte compact lorsqu’un trou noir est ciblé', () => {
     const component = createComponent();
 
@@ -169,6 +202,7 @@ describe('ScaleNavigatorComponent', () => {
 
 interface ScaleNavigatorAccess {
   readonly menuOpen: ReturnType<typeof signal<boolean>>;
+  activeScaleLodLevel(): number;
   breadcrumbItems(): readonly { id: string; name: string }[];
   scaleLabel(): string;
   navigateToObject(objectId: string): void;

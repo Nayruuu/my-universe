@@ -39,8 +39,9 @@ const VISUAL_VIEWS = [
   },
   {
     id: 'milky-way',
-    parameters: { target: 'milky-way', selected: '', zoom: '9600', quality: 'medium' },
+    parameters: { target: 'milky-way', selected: '', zoom: '3600', quality: 'medium' },
     minimumLuminanceDeviation: 2,
+    minimumChromaticPixelRatio: 0.01,
   },
   {
     id: 'black-hole',
@@ -188,10 +189,13 @@ for (const view of VISUAL_VIEWS) {
     await waitForCameraSettled(page);
     const minimumLuminousPixelRatio =
       'minimumLuminousPixelRatio' in view ? view.minimumLuminousPixelRatio : 0.000_01;
+    const minimumChromaticPixelRatio =
+      'minimumChromaticPixelRatio' in view ? view.minimumChromaticPixelRatio : 0.002;
     const signature = await waitForStableRenderedFrameSignature(
       page,
       minimumLuminousPixelRatio,
       view.minimumLuminanceDeviation,
+      minimumChromaticPixelRatio,
     );
 
     await testInfo.attach(`${view.id}-signature.json`, {
@@ -202,7 +206,7 @@ for (const view of VISUAL_VIEWS) {
     expect(signature.sampledPixels).toBeGreaterThan(50_000);
     expect(signature.visiblePixelRatio).toBeGreaterThan(0.015);
     expect(signature.luminousPixelRatio).toBeGreaterThan(minimumLuminousPixelRatio);
-    expect(signature.chromaticPixelRatio).toBeGreaterThan(0.002);
+    expect(signature.chromaticPixelRatio).toBeGreaterThan(minimumChromaticPixelRatio);
     expect(signature.meanLuminance).toBeGreaterThan(1);
     expect(signature.luminanceDeviation).toBeGreaterThan(view.minimumLuminanceDeviation);
     await testInfo.attach(`${view.id}.png`, {
@@ -217,6 +221,7 @@ async function waitForStableRenderedFrameSignature(
   page: Parameters<typeof readRenderedFrameSignature>[0],
   minimumLuminousPixelRatio: number,
   minimumLuminanceDeviation: number,
+  minimumChromaticPixelRatio: number,
 ) {
   let signature = await readRenderedFrameSignature(page);
 
@@ -228,7 +233,7 @@ async function waitForStableRenderedFrameSignature(
         return (
           signature.visiblePixelRatio > 0.015 &&
           signature.luminousPixelRatio > minimumLuminousPixelRatio &&
-          signature.chromaticPixelRatio > 0.002 &&
+          signature.chromaticPixelRatio > minimumChromaticPixelRatio &&
           signature.meanLuminance > 1 &&
           signature.luminanceDeviation > minimumLuminanceDeviation
         );

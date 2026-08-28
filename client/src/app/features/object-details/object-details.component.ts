@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal } from '@angular/core';
 import type { SpaceObject } from '../../../data/models/universe.models';
 import { UniverseEngineFacade } from '../../core/engine/universe-engine.facade';
 import { I18nService } from '../../core/i18n/i18n.service';
@@ -8,6 +8,8 @@ import { EarthSkyJourney } from '../stellar-observation/earth-sky-journey';
 import { EarthSkyViewState } from '../stellar-observation/earth-sky-view-state';
 import { StellarObservationComponent } from '../stellar-observation/stellar-observation.component';
 import { createObjectDetailsPresenter } from './object-details.presenter';
+
+type DetailsSheetState = 'summary' | 'preview' | 'expanded';
 
 @Component({
   selector: 'app-object-details',
@@ -20,6 +22,10 @@ export class ObjectDetailsComponent {
   protected readonly facade = inject(UniverseEngineFacade);
   protected readonly i18n = inject(I18nService);
   protected readonly object = this.facade.selectedObject;
+  protected readonly sheetState = linkedSignal({
+    source: computed(() => this.object()?.id),
+    computation: (): DetailsSheetState => 'preview',
+  });
   protected readonly presenter = createObjectDetailsPresenter({
     content: () => this.i18n.content(),
     language: () => this.i18n.lang(),
@@ -34,6 +40,14 @@ export class ObjectDetailsComponent {
   });
   protected readonly earthSkyViewState = inject(EarthSkyViewState);
   private readonly earthSkyJourney = inject(EarthSkyJourney);
+
+  protected toggleSheet(): void {
+    this.sheetState.update((state) => (state === 'summary' ? 'preview' : 'summary'));
+  }
+
+  protected toggleExpandedSheet(): void {
+    this.sheetState.update((state) => (state === 'expanded' ? 'preview' : 'expanded'));
+  }
 
   protected focus(object: SpaceObject): void {
     if (this.earthSkyViewState.phase() !== 'closed' && this.canObserveFromEarth(object)) {

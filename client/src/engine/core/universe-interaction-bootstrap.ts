@@ -18,6 +18,7 @@ type PickableReader = () => readonly THREE.Object3D[];
 
 export interface UniverseInteractionBindings {
   handleCameraSettled: CameraSettledCallback;
+  handleCameraChanged(distance: number): void;
   isObjectVisible(objectId: string): boolean;
   getPickables: PickableReader;
   handlePick: SelectionCallback;
@@ -35,6 +36,7 @@ export interface UniverseInteractionFactories {
     camera: THREE.PerspectiveCamera,
     canvas: HTMLCanvasElement,
     onCameraSettled: CameraSettledCallback,
+    onCameraChanged: (distance: number) => void,
   ): CameraController;
   createLabelManager(
     container: HTMLElement,
@@ -79,8 +81,8 @@ export interface UniverseInteractionRuntime {
 }
 
 const DEFAULT_INTERACTION_FACTORIES: UniverseInteractionFactories = {
-  createCameraController: (camera, canvas, onCameraSettled) =>
-    new CameraController(camera, canvas, onCameraSettled),
+  createCameraController: (camera, canvas, onCameraSettled, onCameraChanged) =>
+    new CameraController(camera, canvas, onCameraSettled, onCameraChanged),
   createLabelManager: (container, objects, quality, density, isObjectVisible, nameResolver) =>
     new LabelManager(container, objects, quality, density, isObjectVisible, nameResolver),
   createSelectionManager: (
@@ -126,6 +128,7 @@ export class UniverseInteractionBootstrap {
         options.camera,
         options.canvas,
         this.bindings.handleCameraSettled,
+        this.bindings.handleCameraChanged,
       );
 
       createdResources.push(cameraController);

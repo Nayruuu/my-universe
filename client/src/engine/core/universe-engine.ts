@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type {
   AdaptiveRenderingStats,
+  CameraOrientation,
   DisplayOptions,
   GraphicQuality,
   SpaceObject,
@@ -98,16 +99,26 @@ export class UniverseEngine {
   private readonly lifecycle = new UniverseEngineLifecycle();
   private readonly interactionBootstrap = new UniverseInteractionBootstrap({
     handleCameraSettled: (distance, source) => this.handleCameraSettled(distance, source),
+    handleCameraChanged: (distance) => this.publishCameraState(distance),
     isObjectVisible: (objectId) => {
       if (this.universeScene?.hasConstellation(objectId)) {
-        return this.displayOptions.showConstellations;
+        return (
+          this.displayOptions.showConstellations &&
+          (this.universeScene.isCatalogObjectVisibleForLabels(objectId) ?? true)
+        );
       }
 
       const registry = this.objectRuntime.getRegistry(objectId);
       const cosmicMapVisible =
         this.universeScene?.isCatalogObjectVisibleForLabels(objectId) ?? true;
+      const observerCatalogStarVisible =
+        this.cameraController?.observerPresentationActive === true &&
+        this.catalogRuntime?.isCatalogStar(objectId) === true;
 
-      return cosmicMapVisible && (registry === null || registry.isVisibleForLabels(objectId));
+      return (
+        observerCatalogStarVisible ||
+        (cosmicMapVisible && (registry === null || registry.isVisibleForLabels(objectId)))
+      );
     },
     getPickables: () => [
       ...this.objectRuntime.getPickables(),
@@ -299,6 +310,7 @@ export class UniverseEngine {
     getQuality: () => this.displayOptions.quality,
     getTargetId: () => this.targetId,
     getSelectedId: () => this.selectedId,
+    followCurrentTarget: () => this.followCurrentTarget(),
     preloadTempelFilamentSpines: () => this.preloadTempelFilamentSpines(),
     ensureTempelFilamentSpines: () => this.ensureTempelFilamentSpines(),
   });
@@ -308,6 +320,7 @@ export class UniverseEngine {
     {
       getQuality: () => this.displayOptions.quality,
       getCurrentTime: () => this.timeController.currentTime,
+      updateCameraGuide: () => this.navigationRuntime.updateCameraGuide(this.cameraController),
       emitLodChanged: (level) => this.emit({ type: 'lod-changed', level }),
     },
   );
@@ -325,6 +338,7 @@ export class UniverseEngine {
     getTargetId: () => this.targetId,
     getSelectedId: () => this.selectedId,
     getQuality: () => this.displayOptions.quality,
+    getCameraDistance: () => this.cameraController?.distanceToTarget ?? 0,
     labelsAllowed: () => this.solarEclipsePresentation.labelsAllowed,
     isObserverModeActive: () => this.cameraController?.observerPresentationActive ?? false,
     isObserverSkyObject: (objectId) =>
@@ -336,8 +350,24 @@ export class UniverseEngine {
     getRegistry: (objectId) => this.objectRuntime.getRegistry(objectId),
     isCameraTransitioning: () => this.cameraController?.isTransitioning ?? false,
     setLabelsTransitioning: (transitioning) => this.labelManager?.setTransitioning(transitioning),
-    renderLabels: (camera, readWorldPosition, lodLevel, activeObjectId) =>
-      this.labelManager?.render(camera, readWorldPosition, lodLevel, activeObjectId),
+    renderLabels: (
+      camera,
+      readWorldPosition,
+      lodLevel,
+      activeObjectId,
+      stellarNeighborhoodReveal,
+      galacticContextLabelOpacity,
+    ) =>
+      this.labelManager?.render(
+        camera,
+        readWorldPosition,
+        lodLevel,
+        activeObjectId,
+        undefined,
+        stellarNeighborhoodReveal,
+        galacticContextLabelOpacity,
+        this.targetId,
+      ),
     clearLabels: () => this.labelManager?.clear(),
   });
   private readonly frameRuntime = new UniverseFrameRuntime(
@@ -401,7 +431,12 @@ export class UniverseEngine {
       const universeScene = this.universeScene;
 
       return renderer && camera && universeScene && this.objectRuntime.primaryRegistry
-        ? { renderer, camera, universeScene }
+        ? {
+            renderer,
+            camera,
+            universeScene,
+            getGaiaPresentationStats: () => universeScene.getGaiaPresentationStats(camera),
+          }
         : null;
     },
     getCameraTarget: () => this.cameraController?.controls.target ?? null,
@@ -596,8 +631,12 @@ export class UniverseEngine {
     this.timeController.setSpeed(daysPerSecond);
   }
 
-  public async setTarget(objectId: string, zoom?: number): Promise<void> {
-    await this.viewController.setTarget(objectId, zoom);
+  public async setTarget(
+    objectId: string,
+    zoom?: number,
+    orientation?: CameraOrientation,
+  ): Promise<void> {
+    await this.viewController.setTarget(objectId, zoom, orientation);
   }
 
   public async prepareEarthObservation(
@@ -608,7 +647,21 @@ export class UniverseEngine {
     await this.viewController.prepareEarthObservation(objectId, framing, selectedObjectId);
   }
 
-  public exitEarthObservation(): void {
+  public exitEarthObservation(animate = false): void {
+    const controller = this.cameraController;
+    const earth = this.getDefinition('earth');
+    const earthPosition = this.getWorldPosition('earth');
+
+    if (animate && controller?.observerPresentationActive && earth && earthPosition) {
+      this.selectionManager?.clearNavigationLock();
+      this.navigationRuntime.adoptTarget('earth');
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      controller.leaveObserver(earthPosition, earth, reducedMotion ? 0 : undefined);
+      this.emit({ type: 'target-changed', objectId: 'earth' });
+
+      return;
+    }
     this.releaseNavigationTarget();
   }
 
@@ -712,6 +765,12 @@ export class UniverseEngine {
 
   public get cameraDistance(): number {
     return this.cameraController?.distanceToTarget ?? 0;
+  }
+
+  public get cameraOrientation(): CameraOrientation | null {
+    const direction = this.cameraController?.viewDirection;
+
+    return direction ? vectorLike(direction) : null;
   }
 
   public get cameraTransitioning(): boolean {
@@ -900,6 +959,7 @@ export class UniverseEngine {
         deltaY,
         pointer,
         metadata.continuesWheelAnchor !== true,
+        metadata.continuesWheelGesture !== true,
       );
 
       return 'retain-wheel-anchor';
@@ -920,6 +980,7 @@ export class UniverseEngine {
           deltaY,
           pointer,
           metadata.continuesWheelAnchor !== true,
+          metadata.continuesWheelGesture !== true,
         ),
     );
 
@@ -953,23 +1014,32 @@ export class UniverseEngine {
   }
 
   private readonly handleCameraSettled = (distance: number, source: CameraSettledSource): void => {
-    this.emit({ type: 'camera-changed', zoom: distance });
+    this.publishCameraState(distance);
     const controller = this.cameraController;
 
     if (!controller) {
+      this.viewController.cancelPendingSelection();
+
       return;
     }
     // CameraZoomController publishes `zoom` synchronously, before the navigation runtime can hand
     // the journey to its next scale target. Its current object can therefore be temporarily out of
     // frame even though the same wheel transaction is still using it as a reversible context.
     if (source !== 'zoom' && this.releaseNavigationTargetOutsideViewport(controller)) {
+      this.viewController.cancelPendingSelection();
+
       return;
     }
+    this.viewController.handleCameraSettled(source);
     if (source !== 'pinch' || controller.isTransitioning) {
       return;
     }
     this.synchronizeNavigationContextTarget(controller, this.lodManager.selectLevel(distance));
   };
+
+  private publishCameraState(distance: number): void {
+    this.emit({ type: 'camera-changed', zoom: distance });
+  }
 
   private releaseNavigationTargetOutsideViewport(controller: CameraController): boolean {
     const camera = this.camera;
@@ -1032,7 +1102,7 @@ export class UniverseEngine {
       return;
     }
     if (objectId && focusRequested) {
-      void this.setTarget(objectId);
+      void this.viewController.setTarget(objectId, undefined, undefined, 'immediate');
 
       return;
     }

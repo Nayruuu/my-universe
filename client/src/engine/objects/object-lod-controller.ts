@@ -1,5 +1,8 @@
 import * as THREE from 'three';
 import type { GraphicQuality, SpaceObject } from '../../data/models/universe.models';
+import { calculateMilkyWayReferenceFrameScale } from '../coordinates/galaxy-scale-model';
+import { LOCAL_GROUP_SCALE_DISTANCE } from '../coordinates/intergalactic-scale-model';
+import { calculatePlanetarySystemReveal } from '../coordinates/stellar-neighborhood-scale-model';
 import {
   type CelestialLodRepresentation,
   requestCelestialLodTextures,
@@ -22,6 +25,15 @@ interface VisibilityBlendVisual {
   setVisibilityBlend(blend: number): void;
 }
 
+const LOCAL_NEIGHBORHOOD_OVERVIEW_TYPES = new Set<SpaceObject['type']>([
+  'planet',
+  'exoplanet',
+  'dwarf-planet',
+  'moon',
+  'asteroid',
+  'comet',
+]);
+
 export interface ObjectLodEntry {
   readonly definition: SpaceObject;
   readonly node: THREE.Group;
@@ -40,6 +52,7 @@ export interface ObjectLodState {
   readonly navigationTargetId: string | null;
   readonly solarObserverActive: boolean;
   readonly earthObserverActive: boolean;
+  readonly stellarNeighborhoodReveal?: number;
 }
 
 export interface ObjectLodBatch {
@@ -54,6 +67,7 @@ export interface ObjectLodUpdateResult {
 export class ObjectLodController {
   private readonly worldPosition = new THREE.Vector3();
   private readonly localPosition = new THREE.Vector3();
+  private readonly worldScale = new THREE.Vector3();
   private readonly rootWorldInverse = new THREE.Matrix4();
 
   constructor(
@@ -71,8 +85,15 @@ export class ObjectLodController {
   ): ObjectLodUpdateResult {
     const qualityMinimumPixelDiameter =
       this.quality === 'low' ? 3.5 : this.quality === 'medium' ? 4.5 : 5;
-    const photographicProfile = getPhotographicProfile(state.lodLevel, this.quality);
+    const photographicProfile = getPhotographicProfile(
+      state.lodLevel,
+      this.quality,
+      state.stellarNeighborhoodReveal,
+    );
     const stellarObserverActive = state.earthObserverActive && !state.solarObserverActive;
+    const planetarySystemReveal = calculatePlanetarySystemReveal(
+      state.stellarNeighborhoodReveal ?? 1,
+    );
     let selectionMarkerScale: number | null = null;
 
     this.root.updateWorldMatrix(true, false);
@@ -92,12 +113,23 @@ export class ObjectLodController {
         !state.solarObserverActive ||
         entry.definition.id === 'sun' ||
         entry.definition.id === 'moon';
+      const localNeighborhoodOverview = isLocalNeighborhoodOverviewObject(entry.definition);
+      const visibleAtLevel =
+        shouldDisplayObjectAtLevel(entry.definition, state.lodLevel, keepVisible) ||
+        (state.lodLevel === 2 && localNeighborhoodOverview);
+      const localNeighborhoodReveal = keepVisible
+        ? 1
+        : localNeighborhoodOverview
+          ? planetarySystemReveal
+          : entry.definition.referenceFrame === 'stellar'
+            ? (state.stellarNeighborhoodReveal ?? 1)
+            : 1;
       const targetVisibility =
         !stellarObserverActive &&
         allowedInSolarObserver &&
         milkyWayImpostorAllowed &&
-        shouldDisplayObjectAtLevel(entry.definition, state.lodLevel, keepVisible)
-          ? 1
+        visibleAtLevel
+          ? localNeighborhoodReveal
           : 0;
       const lod = entry.lod;
       const minimumPixelDiameter = getMinimumVisualDiameterPixels(
@@ -109,19 +141,45 @@ export class ObjectLodController {
       lod.visibilityBlend = dampValue(lod.visibilityBlend, targetVisibility, 8, deltaSeconds);
 
       const position = entry.node.getWorldPosition(this.worldPosition);
+      const nodeWorldScale = Math.max(
+        0.000_001,
+        Math.abs(entry.node.getWorldScale(this.worldScale).x),
+      );
       const distance = Math.max(camera.position.distanceTo(position), 0.001);
+      const pickingProxyOnly = lod.farSprite?.userData['pickingProxyOnly'] === true;
+      const pickingProxyVisibility = pickingProxyOnly
+        ? calculateMilkyWayTransition(distance).impostorOpacity
+        : 1;
+      const usesGalacticMilkyWayScale =
+        pickingProxyOnly &&
+        entry.definition.id === 'milky-way' &&
+        distance <= LOCAL_GROUP_SCALE_DISTANCE;
+      const physicalWorldDiameter = usesGalacticMilkyWayScale
+        ? calculateMilkyWayReferenceFrameScale(distance).worldDiameter
+        : lod.farBaseDiameter * nodeWorldScale;
+      const physicalLocalDiameter = physicalWorldDiameter / nodeWorldScale;
+      const representationRadius =
+        entry.definition.type === 'galaxy'
+          ? physicalWorldDiameter / 2
+          : entry.definition.visual.visualRadius * nodeWorldScale;
       const apparentRadius = calculateApparentRadiusPixels(
-        entry.definition.visual.visualRadius,
+        representationRadius,
         distance,
         viewportHeight,
         camera.fov,
       );
+      const overviewSun = entry.definition.id === 'sun' && state.lodLevel >= 2;
       const allowNearRepresentation =
         lod.nearRoot !== null &&
+        !overviewSun &&
         (entry.definition.type !== 'star' || entry.definition.id === 'sun' || keepVisible);
-      const targetNearBlend = allowNearRepresentation
-        ? calculateNearRepresentationBlend(apparentRadius)
-        : 0;
+      const continuousVolumeAlwaysVisible =
+        lod.continuousVolume !== undefined && (entry.farBatchIndex === null || keepVisible);
+      const targetNearBlend = continuousVolumeAlwaysVisible
+        ? 1
+        : allowNearRepresentation
+          ? calculateNearRepresentationBlend(apparentRadius)
+          : 0;
 
       if (targetVisibility > 0 && targetNearBlend > 0) {
         if (lod.deferredTextures.length > 0) {
@@ -134,7 +192,9 @@ export class ObjectLodController {
         }
       }
 
-      lod.nearBlend = dampValue(lod.nearBlend, targetNearBlend, 10, deltaSeconds);
+      lod.nearBlend = continuousVolumeAlwaysVisible
+        ? 1
+        : dampValue(lod.nearBlend, targetNearBlend, 10, deltaSeconds);
       const nearOpacity = lod.nearBlend * lod.visibilityBlend;
 
       entry.lunarEclipse?.setVisibilityBlend(nearOpacity);
@@ -160,10 +220,7 @@ export class ObjectLodController {
         synchronizeLayerOpacityUniform(managed.material);
       }
 
-      const transitionOpacity =
-        entry.definition.id === 'milky-way'
-          ? calculateMilkyWayTransition(distance).impostorOpacity
-          : 1;
+      const transitionOpacity = pickingProxyOnly ? 0 : 1;
       const photographicRadiance =
         entry.definition.type === 'galaxy'
           ? photographicProfile.galaxyRadiance
@@ -190,14 +247,34 @@ export class ObjectLodController {
         camera.fov,
       );
       const useDetailedFarSprite =
-        lod.farSprite !== null && (entry.farBatchIndex === null || keepVisible);
+        !lod.continuousVolume &&
+        lod.farSprite !== null &&
+        !overviewSun &&
+        (entry.farBatchIndex === null || keepVisible);
+
+      lod.continuousVolume?.updateDetail(
+        nearOpacity > 0.008 ? Math.max(apparentRadius, minimumPixelDiameter / 2) : 0,
+        Math.max(physicalLocalDiameter, minimumWorldDiameter / nodeWorldScale) / 2,
+        deltaSeconds,
+      );
 
       if (lod.farSprite) {
-        lod.farSprite.material.opacity = useDetailedFarSprite ? farOpacity : 0;
-        lod.farSprite.visible = useDetailedFarSprite && farOpacity > 0.008;
-        const farDiameter = Math.max(lod.farBaseDiameter, minimumWorldDiameter);
+        lod.farSprite.material.opacity = useDetailedFarSprite && !pickingProxyOnly ? farOpacity : 0;
+        lod.farSprite.visible =
+          useDetailedFarSprite &&
+          (pickingProxyOnly
+            ? lod.visibilityBlend * pickingProxyVisibility > 0.008
+            : farOpacity > 0.008);
+        const minimumLocalDiameter = minimumWorldDiameter / nodeWorldScale;
+        const farDiameter = Math.max(physicalLocalDiameter, minimumLocalDiameter);
 
         lod.farSprite.scale.set(farDiameter, farDiameter * lod.farAspectRatio, 1);
+        synchronizeSelectionTargetScale(entry.pickTarget, farDiameter);
+        if (pickingProxyOnly) {
+          lod.farSprite.userData['worldDiameter'] = physicalWorldDiameter;
+          lod.farSprite.userData['minimumScreenDiameterApplied'] =
+            minimumWorldDiameter > physicalWorldDiameter;
+        }
       }
       if (entry.farBatchIndex !== null) {
         const farPixelDiameter = THREE.MathUtils.clamp(
@@ -223,7 +300,10 @@ export class ObjectLodController {
 
       if (entry.pickTarget) {
         const individualPickTargetVisible =
-          entry.farBatchIndex === null || lod.farSprite === null || lod.farSprite.visible;
+          entry.farBatchIndex === null ||
+          lod.farSprite === null ||
+          lod.farSprite.visible ||
+          (lod.continuousVolume !== undefined && lod.nearRoot?.visible === true);
 
         if (lod.visibilityBlend > 0.02 && individualPickTargetVisible) {
           entry.pickTarget.layers.enable(PICKING_LAYER);
@@ -235,7 +315,7 @@ export class ObjectLodController {
       if (selected) {
         selectionMarkerScale = Math.max(
           getSelectionMarkerScale(entry.definition),
-          minimumWorldDiameter * 1.55,
+          (minimumWorldDiameter * 1.55) / nodeWorldScale,
         );
       }
     }
@@ -281,10 +361,34 @@ export class ObjectLodController {
   }
 }
 
+function isLocalNeighborhoodOverviewObject(object: SpaceObject): boolean {
+  return (
+    object.id !== 'sun' &&
+    LOCAL_NEIGHBORHOOD_OVERVIEW_TYPES.has(object.type) &&
+    (object.referenceFrame === 'solar-system' || object.referenceFrame === 'stellar')
+  );
+}
+
 function getAppearanceOpacity(userData: THREE.Object3D['userData'] | undefined): number {
   const opacity = userData?.['appearanceOpacity'];
 
   return typeof opacity === 'number' ? THREE.MathUtils.clamp(opacity, 0, 1) : 1;
+}
+
+function synchronizeSelectionTargetScale(
+  pickTarget: THREE.Object3D | null,
+  renderedDiameter: number,
+): void {
+  const radiusMultiplier = pickTarget?.userData['renderDiameterRadiusMultiplier'];
+
+  if (
+    pickTarget &&
+    typeof radiusMultiplier === 'number' &&
+    Number.isFinite(radiusMultiplier) &&
+    radiusMultiplier > 0
+  ) {
+    pickTarget.scale.setScalar(renderedDiameter * radiusMultiplier);
+  }
 }
 
 function synchronizeLayerOpacityUniform(material: THREE.Material): void {
