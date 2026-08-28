@@ -1,6 +1,8 @@
 @let t = i18n.content();
 <main
   class="app-shell"
+  [style.--timeline-height.px]="timelineHeight()"
+  [style.--details-height.px]="facade.selectedId() ? detailsHeight() : 0"
   [class.app-shell--details]="facade.selectedId()"
   [class.app-shell--eclipse]="facade.timelineSolarEclipse()"
   [class.app-shell--earth-sky]="earthSkyVisible()"
@@ -104,11 +106,11 @@
   }
   @if (!earthSkyJourneyVisible()) {
     @defer (when facade.selectedId()) {
-      <app-object-details />
+      <app-object-details appPanelHeight (panelHeightChange)="detailsHeight.set($event)" />
     }
   }
   @defer (when facade.ready()) {
-    <app-timeline />
+    <app-timeline appPanelHeight (panelHeightChange)="timelineHeight.set($event)" />
   }
 
   @if (facade.loading()) {

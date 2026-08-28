@@ -402,8 +402,8 @@ the least-prioritized ordinary entries instead of increasing the catalogue size.
 Proxima Centauri, Barnard's Star, and Wolf 359 available even though a pure brightness cut would
 exclude them. The binary file preserves scientific coordinates in parsecs, velocities in parsecs per
 year, and a compact UTF-8 table of names, alternate designations, and spectral types. Propagation is
-performed before the J2000-to-Galactic rotation and visual distance compression. The same command
-also rebuilds the static spatial index in `public/data/stars/tiles/`.
+performed before the J2000-to-Galactic rotation and visual distance compression. This command does
+not rebuild the separate Gaia hierarchy.
 
 `nearby-stars.json` contains the stable public IDs, localized descriptions, and physical metadata
 for 16 featured stars, but no independent position vectors. Each object links to an HYG catalogue
@@ -413,19 +413,21 @@ focus, and shareable URL. A featured star therefore does not create a duplicate 
 conflicting hand-authored direction. Date changes update the shared typed-array position buffer at a
 maximum of 24 Hz without creating one Three.js object per star.
 
-The spatial preparation step builds a deterministic two-depth loose octree. Its 26 root nodes cover
-640-parsec cubes and render 160-parsec aggregates; 85 child nodes cover 320-parsec cubes and render
-40-parsec aggregates. Root data is grouped into eight 1,280-parsec request packs, while each root's
-children share one detailed pack, for 34 static pack files in total. If every region is expanded,
-the detailed representation contains 2,308 calculated clusters and the overview contains 302.
+## Gaia DR3 hierarchical stellar background
 
-Cluster positions are J2000 arithmetic centroids, magnitudes combine source flux, and B−V values are
-flux-weighted. Parent, child, pack, and global counts preserve all 10,000 source stars exactly.
-These values are marked `calculated`, while their point size and aggregate rendering are explicitly
-`illustrative-aggregation`. They never replace the observed catalogue used by search, labels, or
-object focus.
+The stellar-neighborhood overview uses a separate hybrid hierarchy derived from 2,923,790
+quality-filtered Gaia DR3 sources. Distant tiles use calculated aggregates; refined tiles expose
+133,526 real catalogue-source samples with their measured position, G magnitude, and BP−RP colour.
+It does not replace the exact HYG catalogue used by search, labels, constellations, selection,
+focus, or time propagation, and the sampled Gaia identifiers are intentionally omitted at runtime.
 
-To rebuild only those derived files:
+The raw Gaia CSV partitions are intentionally ignored because they total about 294 MiB. Their exact
+queries, source-ID boundaries, row counts, SHA-256 hashes, reference epoch, selection limits,
+transformations, attribution, and incompleteness caveats are versioned in
+`gaia-dr3/gaia-dr3-g12-high-confidence.meta.json` and `gaia-dr3/README.md`. The approximately 18 MiB
+generated hierarchy under `public/data/stars/gaia-dr3-tiles/` is committed.
+
+To rebuild the derived Gaia files from those local partitions:
 
 ```bash
 npm run data:star-tiles

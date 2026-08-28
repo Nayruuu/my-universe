@@ -648,11 +648,11 @@ describe('AssetLoader', () => {
         version: '1.0.0',
         datasets: [
           {
-            id: 'hyg-star-tiles',
-            url: '/data/stars/tiles/index.json',
+            id: 'gaia-star-tiles',
+            url: '/data/stars/gaia-dr3-tiles/index.json',
             type: 'star-tile-index',
-            format: 'star-tiles-v2',
-            starCatalogId: 'hyg-v41-bright-stars',
+            format: 'star-tiles-v4',
+            sourceCatalogId: 'gaia-dr3-bright-high-confidence',
           },
         ],
       }),
@@ -661,12 +661,12 @@ describe('AssetLoader', () => {
     const assets = await new AssetLoader().loadAssets();
 
     expect(assets.starTileSource).toEqual({
-      id: 'hyg-star-tiles',
-      url: '/data/stars/tiles/index.json',
-      starCatalogId: 'hyg-v41-bright-stars',
+      id: 'gaia-star-tiles',
+      url: '/data/stars/gaia-dr3-tiles/index.json',
+      sourceCatalogId: 'gaia-dr3-bright-high-confidence',
     });
     expect(fetchMock).toHaveBeenCalledOnce();
-    expect(fetchMock).not.toHaveBeenCalledWith('/data/stars/tiles/index.json');
+    expect(fetchMock).not.toHaveBeenCalledWith('/data/stars/gaia-dr3-tiles/index.json');
   });
 
   it('expose les épines Tempel sans télécharger leur binaire au démarrage', async () => {

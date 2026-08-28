@@ -214,6 +214,29 @@ export function createEarthObservationForecast({
   return timelines;
 }
 
+/** Selects the strongest available illustrative index, resolving equal scores by local night. */
+export function selectBestEarthObservationForecastNight(
+  forecast: readonly EarthObservationTimeline[],
+): EarthObservationTimeline | null {
+  let bestNight: EarthObservationTimeline | null = null;
+
+  for (const night of forecast) {
+    if (!night.bestPoint) {
+      continue;
+    }
+    if (
+      !bestNight ||
+      night.bestPoint.quality > bestNight.bestPoint!.quality ||
+      (night.bestPoint.quality === bestNight.bestPoint!.quality &&
+        night.startTime.julianDay < bestNight.startTime.julianDay)
+    ) {
+      bestNight = night;
+    }
+  }
+
+  return bestNight;
+}
+
 export function earthObservationTwilight(
   sunGeometricAltitudeDegrees: number,
 ): EarthObservationTwilight {

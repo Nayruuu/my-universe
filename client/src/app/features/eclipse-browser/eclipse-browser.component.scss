@@ -414,10 +414,14 @@
   }
 }
 
-@media (width <= 720px) {
+@media (width <= 1100px) {
   .eclipse-browser {
     width: min(370px, calc(100vw - 20px));
-    max-height: calc(100dvh - 282px - var(--mobile-top-safe, 0px) - var(--mobile-bottom-safe, 0px));
+    max-height: calc(
+      100dvh - 126px - var(--mobile-top-safe, 0px) - var(--mobile-timeline-clearance, 84px)
+    );
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
   .close-button,

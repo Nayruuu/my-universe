@@ -165,6 +165,8 @@ test('la hiérarchie mobile reste lisible sans superposer son échelle à la fic
     }),
   );
 
+  await page.getByRole('button', { name: 'Déplier les contrôles du temps' }).click();
+
   const targets: readonly LegibilityTarget[] = [
     {
       name: 'la recherche mobile',

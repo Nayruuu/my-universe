@@ -83,6 +83,7 @@ class FakeUniverseEngine {
   public recommendedQuality = 'high';
   public currentTime = { julianDay: 2_461_250 };
   public cameraDistance = 42;
+  public cameraOrientation = { x: 0.2, y: -0.3, z: -0.932738 };
   public cameraTransitioning = false;
   public navigationDebugTrace: readonly NavigationDebugTraceEntry[] = [];
   public readonly subscribe = vi.fn((listener: (event: unknown) => void) => {
@@ -486,6 +487,9 @@ describe('UniverseEngineFacade', () => {
 
     facade.exitEarthObservation();
     expect(engine.exitEarthObservation).toHaveBeenCalledOnce();
+    expect(engine.exitEarthObservation).toHaveBeenLastCalledWith(false);
+    facade.exitEarthObservation(true);
+    expect(engine.exitEarthObservation).toHaveBeenLastCalledWith(true);
 
     const celestialPresentations = [
       {
@@ -654,7 +658,7 @@ describe('UniverseEngineFacade', () => {
     expect(engine.resize).toHaveBeenCalledWith(800, 450);
   });
 
-  it('met à jour toutes les options d’affichage et avertit le mode observable', () => {
+  it('met à jour toutes les options d’affichage sans alerte pour le mode observable', () => {
     facade.toggleOrbits();
     facade.toggleConstellations();
     facade.toggleLabels();
@@ -672,8 +676,18 @@ describe('UniverseEngineFacade', () => {
       labelDensity: 'dense',
       temporalMode: 'observable',
     });
-    expect(facade.performanceWarning()).toContain('Lumière reçue');
+    expect(facade.performanceWarning()).toBeNull();
     expect(engine.setDisplayOptions).toHaveBeenCalledTimes(7);
+  });
+
+  it('conserve un vrai avertissement de chargement pendant les changements de mode', () => {
+    const warning = 'Streaming stellaire indisponible : catalogue absent';
+
+    facade.performanceWarning.set(warning);
+    facade.setTemporalMode('observable');
+    expect(facade.performanceWarning()).toBe(warning);
+    facade.setTemporalMode('state');
+    expect(facade.performanceWarning()).toBe(warning);
   });
 
   it('pilote les couches cosmiques indépendamment des autres options visuelles', () => {
@@ -1149,6 +1163,13 @@ function debugStats(): EngineDebugStats {
     activeStarClusters: 0,
     cachedStarClusters: 0,
     visibleStarClusters: 0,
+    gaiaPresentation: {
+      sampledSources: 0,
+      perceptibleSampledSources: 0,
+      projectedSampledSources: 0,
+      aggregateCells: 0,
+      projectedAggregateCells: 0,
+    },
     cameraPosition: { x: 1, y: 2, z: 3 },
     cameraTarget: { x: 0, y: 0, z: 0 },
     cameraDistance: 4,

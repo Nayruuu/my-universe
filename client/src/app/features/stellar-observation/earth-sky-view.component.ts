@@ -28,6 +28,10 @@ import {
   EARTH_OBSERVER_LOCATIONS,
   type EarthObserverLocation,
 } from '../../../engine/simulation/earth-observer-location';
+import {
+  EARTH_OBSERVER_DEPARTURE_EVENT,
+  type EarthObserverDepartureState,
+} from '../../../engine/camera/earth-observer-departure';
 import { calculateSolarSystemSatelliteSky } from '../../../engine/simulation/solar-system-satellite-sky';
 import {
   calculateSolarSystemSky,
@@ -113,6 +117,12 @@ export class EarthSkyViewComponent implements OnDestroy {
   protected readonly terrainHorizon = signal<EarthTerrainHorizonProfile | null>(null);
   protected readonly plannerOpen = signal(false);
   protected readonly focusCues = signal<readonly EarthSkyFocusCue[]>([]);
+  protected readonly departureProgress = signal(0);
+  protected readonly departureHorizonOpacity = computed(() => {
+    const progress = Math.min(1, this.departureProgress() / 0.4);
+
+    return 1 - progress * progress * (3 - 2 * progress);
+  });
   protected readonly observableSearchTypes: readonly SpaceObjectType[] = ['star'];
   protected readonly availableLocations = computed(() => {
     const selected = this.observerSelection.location();
@@ -404,6 +414,7 @@ export class EarthSkyViewComponent implements OnDestroy {
       this.handleLookAtSettled as EventListener,
     );
     window.addEventListener(EARTH_OBSERVER_VIEW_EVENT, this.handleObserverView as EventListener);
+    window.addEventListener(EARTH_OBSERVER_DEPARTURE_EVENT, this.handleDeparture as EventListener);
     window.addEventListener('resize', this.handleResize);
   }
 
@@ -414,6 +425,10 @@ export class EarthSkyViewComponent implements OnDestroy {
       this.handleLookAtSettled as EventListener,
     );
     window.removeEventListener(EARTH_OBSERVER_VIEW_EVENT, this.handleObserverView as EventListener);
+    window.removeEventListener(
+      EARTH_OBSERVER_DEPARTURE_EVENT,
+      this.handleDeparture as EventListener,
+    );
     window.removeEventListener('resize', this.handleResize);
     this.facade.setEarthObserverCelestialPresentations([]);
     this.viewState.close();
@@ -422,9 +437,13 @@ export class EarthSkyViewComponent implements OnDestroy {
   protected close(): void {
     this.pendingFocusCue = null;
     this.resetPlanner();
-    this.facade.exitEarthObservation();
-    this.viewState.close();
+    this.departureProgress.set(0);
+    this.viewState.beginReturn();
+    this.facade.exitEarthObservation(true);
     this.facade.setTemporalMode('state');
+    if (!this.facade.isCameraTransitioning()) {
+      this.viewState.close();
+    }
   }
 
   protected changeLocation(locationId: string): void {
@@ -707,11 +726,23 @@ export class EarthSkyViewComponent implements OnDestroy {
   };
 
   private readonly handleObserverView = (event: CustomEvent<EarthObserverViewState>): void => {
+    if (this.viewState.phase() === 'returning') {
+      return;
+    }
     const observerView = event.detail.active ? event.detail : null;
 
     this.observerView.set(observerView);
     if (observerView && observerViewsMatch(observerView, this.pendingObserverView(), 0.5)) {
       this.pendingObserverView.set(null);
+    }
+  };
+  private readonly handleDeparture = (event: CustomEvent<EarthObserverDepartureState>): void => {
+    if (this.viewState.phase() !== 'returning') {
+      return;
+    }
+    this.departureProgress.set(event.detail.progress);
+    if (!event.detail.active) {
+      this.viewState.close();
     }
   };
   private readonly handleResize = (): void => {

@@ -30,8 +30,9 @@ export class ExoplanetObjectFactory {
     coordinateSystem: CoordinateSystem,
     private readonly hostObjectIds: readonly string[],
     private readonly planetObjectIds: readonly string[],
+    spatialModel = createExoplanetSpatialModel(catalog, coordinateSystem),
   ) {
-    this.spatialModel = createExoplanetSpatialModel(catalog, coordinateSystem);
+    this.spatialModel = spatialModel;
     this.renderPositions = this.spatialModel.renderPositions;
   }
 

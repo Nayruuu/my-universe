@@ -1,4 +1,5 @@
 import { type GraphicQuality } from '../../data/models/universe.models';
+import { interpolateStellarNeighborhoodLodValue } from '../coordinates/stellar-neighborhood-scale-model';
 
 export interface PhotographicRenderingProfile {
   readonly exposure: number;
@@ -31,14 +32,55 @@ const QUALITY_RADIANCE: Readonly<Record<GraphicQuality, number>> = {
 export function getPhotographicProfile(
   lodLevel: number,
   quality: GraphicQuality,
+  stellarNeighborhoodReveal?: number,
 ): PhotographicRenderingProfile {
   const index = Math.max(0, Math.min(SCALE_PROFILES.length - 1, Math.trunc(lodLevel)));
-  const base = SCALE_PROFILES[index]!;
+  const categoricalBase = SCALE_PROFILES[index]!;
+  const reveal =
+    typeof stellarNeighborhoodReveal === 'number' && Number.isFinite(stellarNeighborhoodReveal)
+      ? Math.max(0, Math.min(1, stellarNeighborhoodReveal))
+      : null;
+  const base =
+    reveal !== null && lodLevel >= 1 && lodLevel <= 3
+      ? interpolatePhotographicProfile(reveal)
+      : categoricalBase;
 
   return {
     exposure: base.exposure * QUALITY_EXPOSURE[quality],
     starRadiance: base.starRadiance * QUALITY_RADIANCE[quality],
     galaxyRadiance: base.galaxyRadiance * QUALITY_RADIANCE[quality],
+  };
+}
+
+/**
+ * Uses the same continuous reveal as Gaia/HYG for the three profiles surrounding the Galactic
+ * handoff. The LOD manager can therefore cross either categorical boundary without changing the
+ * exposure or point radiance at a fixed camera distance.
+ */
+function interpolatePhotographicProfile(reveal: number): PhotographicRenderingProfile {
+  const local = SCALE_PROFILES[1]!;
+  const stellarOverview = SCALE_PROFILES[2]!;
+  const galactic = SCALE_PROFILES[3]!;
+
+  return {
+    exposure: interpolateStellarNeighborhoodLodValue(
+      local.exposure,
+      stellarOverview.exposure,
+      galactic.exposure,
+      reveal,
+    ),
+    starRadiance: interpolateStellarNeighborhoodLodValue(
+      local.starRadiance,
+      stellarOverview.starRadiance,
+      galactic.starRadiance,
+      reveal,
+    ),
+    galaxyRadiance: interpolateStellarNeighborhoodLodValue(
+      local.galaxyRadiance,
+      stellarOverview.galaxyRadiance,
+      galactic.galaxyRadiance,
+      reveal,
+    ),
   };
 }
 

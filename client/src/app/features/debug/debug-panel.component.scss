@@ -8,7 +8,8 @@
   top: 82px;
   right: 76px;
   width: 250px;
-  overflow: hidden;
+  max-height: calc(100dvh - 94px);
+  overflow: hidden auto;
   border: 1px solid rgb(99 222 183 / 20%);
   border-radius: 12px;
   color: rgb(205 244 232 / 80%);
@@ -16,6 +17,13 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.61rem;
   backdrop-filter: blur(16px);
+  pointer-events: auto;
+  scrollbar-color: rgb(116 225 186 / 32%) transparent;
+  scrollbar-width: thin;
+}
+
+.debug-panel--cosmic {
+  right: 312px;
 }
 
 header {
@@ -110,7 +118,12 @@ dd {
     top: 112px;
     right: 10px;
     width: 184px;
+    max-height: calc(100dvh - 122px);
     font-size: 0.52rem;
+  }
+
+  .debug-panel--cosmic {
+    right: 10px;
   }
 
   header,

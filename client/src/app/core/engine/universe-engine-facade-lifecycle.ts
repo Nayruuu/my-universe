@@ -1,5 +1,6 @@
 import type {
   DisplayOptions,
+  CameraOrientation,
   GraphicQuality,
   NavigationState,
   UniverseEngineEvent,
@@ -17,7 +18,7 @@ export interface UniverseEngineFacadeLifecycleEngine {
   setTimeSpeed(daysPerSecond: number): void;
   ensureObjectAvailable(objectId: string): Promise<boolean>;
   hasObject(objectId: string): boolean;
-  setTarget(objectId: string, zoom?: number): Promise<void>;
+  setTarget(objectId: string, zoom?: number, orientation?: CameraOrientation): Promise<void>;
   completeTargetTransition(): void;
   selectObject(objectId: string | null): void;
   start(): void;
@@ -91,7 +92,11 @@ export class UniverseEngineFacadeLifecycle {
       this.ensureCurrent(lifecycleRevision);
       const target = this.engine.hasObject(requestedTarget) ? requestedTarget : 'earth';
 
-      await this.engine.setTarget(target, navigation.zoom);
+      if (navigation.orientation) {
+        await this.engine.setTarget(target, navigation.zoom, navigation.orientation);
+      } else {
+        await this.engine.setTarget(target, navigation.zoom);
+      }
       this.ensureCurrent(lifecycleRevision);
       if (navigation.selectedId && navigation.selectedId !== requestedTarget) {
         await this.engine.ensureObjectAvailable(navigation.selectedId);

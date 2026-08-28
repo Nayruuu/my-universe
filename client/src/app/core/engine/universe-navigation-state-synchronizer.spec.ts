@@ -17,6 +17,7 @@ describe('UniverseNavigationStateSynchronizer', () => {
       selectedId: 'moon',
       julianDay: 2_451_545,
       zoom: 15,
+      orientation: { x: 0.4, y: -0.2, z: -0.9 },
       mode: 'observable',
       quality: 'high',
       labelDensity: 'dense',
@@ -30,6 +31,9 @@ describe('UniverseNavigationStateSynchronizer', () => {
 
     harness.engineCameraDistance.current = 0;
     expect(harness.synchronizer.create().zoom).toBe(24);
+
+    harness.cameraOrientation.current = null;
+    expect(harness.synchronizer.create().orientation).toBeUndefined();
   });
 
   it('ne planifie l’écriture que lorsque la façade est prête', () => {
@@ -52,6 +56,9 @@ function createHarness() {
   const time = { current: { julianDay: 2_451_545 } satisfies UniverseTime };
   const cameraDistance = { current: 15 };
   const engineCameraDistance = { current: 42 };
+  const cameraOrientation: {
+    current: { x: number; y: number; z: number } | null;
+  } = { current: { x: 0.4, y: -0.2, z: -0.9 } };
   const displayOptions = {
     current: {
       showOrbits: false,
@@ -70,6 +77,7 @@ function createHarness() {
     getTime: () => time.current,
     getCameraDistance: () => cameraDistance.current,
     getEngineCameraDistance: () => engineCameraDistance.current,
+    getCameraOrientation: () => cameraOrientation.current,
     getDisplayOptions: () => displayOptions.current,
     scheduleWrite,
   };
@@ -79,6 +87,7 @@ function createHarness() {
     ready,
     cameraDistance,
     engineCameraDistance,
+    cameraOrientation,
     scheduleWrite,
   };
 }

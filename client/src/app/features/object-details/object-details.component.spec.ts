@@ -63,6 +63,118 @@ describe('ObjectDetailsComponent', () => {
 
   afterEach(() => TestBed.resetTestingModule());
 
+  it('replie la fiche sans perdre la sélection puis réouvre son aperçu', () => {
+    const fixture = TestBed.createComponent(ObjectDetailsComponent);
+
+    facade.selectedObject.set(sun);
+    fixture.detectChanges();
+
+    const details = fixture.nativeElement.querySelector('.details') as HTMLElement;
+    const toggle = fixture.nativeElement.querySelector(
+      '.details__sheet-toggle',
+    ) as HTMLButtonElement;
+
+    expect(details.dataset['sheetState']).toBe('preview');
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(toggle.getAttribute('aria-label')).toBe('Réduire la fiche');
+    expect(toggle.getAttribute('aria-controls')).toBe('object-details-body object-details-actions');
+
+    toggle.click();
+    fixture.detectChanges();
+
+    expect(details.dataset['sheetState']).toBe('summary');
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(toggle.getAttribute('aria-label')).toBe('Ouvrir la fiche');
+    expect(facade.selectedObject()).toBe(sun);
+    expect(fixture.nativeElement.querySelector('.close-button')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.details__actions').textContent).not.toContain(
+      'Fermer',
+    );
+    expect(facade.focus).not.toHaveBeenCalled();
+    expect(facade.closeDetails).not.toHaveBeenCalled();
+
+    toggle.click();
+    fixture.detectChanges();
+
+    expect(details.dataset['sheetState']).toBe('preview');
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(fixture.nativeElement.querySelector('#object-details-body')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('#object-details-actions')).not.toBeNull();
+  });
+
+  it('déploie la fiche depuis le résumé ou l’aperçu et peut revenir à chaque niveau', () => {
+    const fixture = TestBed.createComponent(ObjectDetailsComponent);
+
+    facade.selectedObject.set(sun);
+    fixture.detectChanges();
+
+    const details = fixture.nativeElement.querySelector('.details') as HTMLElement;
+    const expand = fixture.nativeElement.querySelector(
+      '.details__sheet-expand',
+    ) as HTMLButtonElement;
+    const toggle = fixture.nativeElement.querySelector(
+      '.details__sheet-toggle',
+    ) as HTMLButtonElement;
+
+    expect(expand.getAttribute('aria-label')).toBe('Déployer la fiche');
+    expect(expand.getAttribute('aria-expanded')).toBe('false');
+
+    expand.click();
+    fixture.detectChanges();
+
+    expect(details.dataset['sheetState']).toBe('expanded');
+    expect(expand.getAttribute('aria-label')).toBe('Revenir à l’aperçu');
+    expect(expand.getAttribute('aria-expanded')).toBe('true');
+
+    expand.click();
+    fixture.detectChanges();
+    expect(details.dataset['sheetState']).toBe('preview');
+
+    toggle.click();
+    fixture.detectChanges();
+    expand.click();
+    fixture.detectChanges();
+    expect(details.dataset['sheetState']).toBe('expanded');
+
+    toggle.click();
+    fixture.detectChanges();
+    expect(details.dataset['sheetState']).toBe('summary');
+
+    const close = fixture.nativeElement.querySelector('.close-button') as HTMLButtonElement;
+
+    close.click();
+    expect(facade.closeDetails).toHaveBeenCalledOnce();
+  });
+
+  it('conserve l’ouverture pendant une actualisation de l’objet mais revient à l’aperçu pour une nouvelle sélection', () => {
+    const fixture = TestBed.createComponent(ObjectDetailsComponent);
+
+    facade.selectedObject.set(sun);
+    fixture.detectChanges();
+
+    const expand = fixture.nativeElement.querySelector(
+      '.details__sheet-expand',
+    ) as HTMLButtonElement;
+
+    expand.click();
+    fixture.detectChanges();
+    facade.selectedObject.set({ ...sun, description: 'Description actualisée.' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.details').dataset.sheetState).toBe('expanded');
+
+    facade.selectedObject.set(object({ id: 'earth', name: 'Terre' }));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.details').dataset.sheetState).toBe('preview');
+    expect(fixture.nativeElement.querySelector('h2').textContent).toBe('Terre');
+
+    facade.selectedObject.set(null);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.details')).toBeNull();
+  });
+
   it('délègue le focus, la rotation et le cadrage orbital', () => {
     const component = createComponent();
     const earth = object({ id: 'earth', name: 'Terre', parentId: 'sun' });
@@ -74,6 +186,43 @@ describe('ObjectDetailsComponent', () => {
     expect(facade.focus).toHaveBeenCalledWith('earth');
     expect(facade.viewRotation).toHaveBeenCalledWith('earth');
     expect(facade.viewOrbit).toHaveBeenCalledWith('earth');
+  });
+
+  it('place le cadrage orbital dans les données et réserve le pied de fiche aux actions principales', () => {
+    const fixture = TestBed.createComponent(ObjectDetailsComponent);
+
+    facade.selectedObject.set(
+      object({
+        id: 'mars',
+        name: 'Mars',
+        parentId: 'sun',
+        rotationHours: 24.6,
+        positionProvider: keplerianProvider(687),
+      }),
+    );
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    const orbitLink = element.querySelector<HTMLButtonElement>('.facts .orbit-link')!;
+    const actions = element.querySelector('.details__actions')!;
+
+    expect(orbitLink.textContent).toContain('Orbite · Soleil');
+    expect(orbitLink.title).toBe('Afficher l’orbite complète autour du corps parent');
+    expect(orbitLink.closest('dd')?.textContent).toContain('687 jours');
+    expect(actions.querySelectorAll('button')).toHaveLength(2);
+    expect(actions.querySelector('.primary-action')?.textContent).toContain('Voir la rotation');
+    expect(actions.querySelector('.observation-action')).not.toBeNull();
+    expect(actions.querySelector('.orbit-link')).toBeNull();
+
+    orbitLink.click();
+    expect(facade.viewOrbit).toHaveBeenCalledExactlyOnceWith('mars');
+
+    facade.selectedObject.set(object({ positionProvider: keplerianProvider(365.25) }));
+    fixture.detectChanges();
+
+    expect(element.querySelector('.orbit-link')).toBeNull();
+    expect(element.querySelector('.facts')?.textContent).toContain('365,25 jours');
+    expect(actions.querySelectorAll('button')).toHaveLength(1);
   });
 
   it('recentre une autre étoile sans quitter le planétarium', () => {
@@ -547,6 +696,10 @@ describe('ObjectDetailsComponent', () => {
 
     expect(component.apparentMagnitudeLabel(documented)).toBe('-1,46');
     expect(component.colorIndexLabel(documented)).toBe('0,009');
+    expect(component.colorIndexName(documented)).toBe('Indice B−V');
+    expect(component.colorIndexName(object({ metadata: { colorIndexBpRp: 1.2 } }))).toBe(
+      'Indice BP−RP',
+    );
     expect(component.catalogIdentifierLabel(documented)).toBe('HYG 32263');
     expect(component.morphologyLabel(documented)).toBe('Sb');
     expect(component.diameterLabel(documented)).toContain('a.l.');
@@ -714,13 +867,13 @@ describe('ObjectDetailsComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('26,06 × 22,8 × 18,28 km');
     expect(fixture.nativeElement.textContent).toContain('NASA Planetary Data System');
     expect(fixture.nativeElement.querySelector('.approximation-note')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('.orbit-action')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.facts .orbit-link')).not.toBeNull();
 
     facade.selectedObject.set(object({ scientificConfidence: 'calculated' }));
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('.approximation-note')).toBeNull();
-    expect(fixture.nativeElement.querySelector('.orbit-action')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.orbit-link')).toBeNull();
     expect(fixture.nativeElement.textContent).toContain('Aucune description disponible');
   });
 });

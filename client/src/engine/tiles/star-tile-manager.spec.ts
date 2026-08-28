@@ -11,17 +11,84 @@ describe('StarTileManager', () => {
     vi.unstubAllGlobals();
   });
 
-  it('ne télécharge rien aux échelles exactes et charge un paquet partagé une seule fois', async () => {
+  it('partage une préparation complète entre requêtes sans charger de paquet pendant les pauses', async () => {
+    const count = 513;
+    const gate = deferred<void>();
+    const fetcher = vi.fn(async () => successfulResponse(parallelIndex(count)));
+    const stars = registry();
+    const project = vi.spyOn(stars, 'toRenderPosition');
+    const pause = vi.fn(async () => {
+      await gate.promise;
+    });
+    const manager = new StarTileManager(source(), stars, fetcher, 24, pause);
+    const emptyView = { ...view(4), worldOffset: new THREE.Vector3(1e9, 0, 0) };
+    const completed = vi.fn();
+    const first = manager.synchronize(emptyView).then(completed);
+    const second = manager.synchronize(emptyView).then(completed);
+
+    await vi.waitFor(() => expect(pause).toHaveBeenCalledOnce());
+    expect(fetcher).toHaveBeenCalledOnce();
+    expect(project).not.toHaveBeenCalled();
+    expect(completed).not.toHaveBeenCalled();
+    expect(manager.activeTileCount).toBe(0);
+    expect(manager.cachedPackCount).toBe(0);
+    gate.resolve();
+    await Promise.all([first, second]);
+    expect(completed).toHaveBeenCalledTimes(2);
+    expect(completed).toHaveBeenCalledWith({ changed: false, tiles: [] });
+    expect(pause).toHaveBeenCalledTimes(1 + Math.floor(count / 128));
+    expect(project).toHaveBeenCalledTimes(count * 27);
+    await expect(manager.synchronize(emptyView)).resolves.toEqual({ changed: false, tiles: [] });
+    expect(project).toHaveBeenCalledTimes(count * 27);
+    expect(fetcher).toHaveBeenCalledOnce();
+  });
+
+  it.each([1, 2, 5])('n’expose aucun index incomplet si la pause %i échoue', async (cancelAt) => {
+    const fetcher = vi.fn(async () => successfulResponse(parallelIndex(513)));
+    const stars = registry();
+    const project = vi.spyOn(stars, 'toRenderPosition');
+    const error = new Error('préparation interrompue');
+    let pauses = 0;
+    const manager = new StarTileManager(source(), stars, fetcher, 24, async () => {
+      pauses += 1;
+      if (pauses === cancelAt) {
+        throw error;
+      }
+    });
+
+    await expect(manager.synchronize(view(4))).rejects.toBe(error);
+    expect(pauses).toBe(cancelAt);
+    expect(project).toHaveBeenCalledTimes((cancelAt - 1) * 128 * 27);
+    expect(fetcher).toHaveBeenCalledOnce();
+    expect(manager.activeTileCount).toBe(0);
+    expect(manager.cachedPackCount).toBe(0);
+    await expect(manager.synchronize(view(4))).rejects.toBe(error);
+    expect(pauses).toBe(cancelAt);
+  });
+
+  it('autorise les tâches navigateur pendant la préparation par défaut', async () => {
+    const fetcher = vi.fn(async () => successfulResponse(parallelIndex(128)));
+    const manager = new StarTileManager(source(), registry(), fetcher);
+    const emptyView = { ...view(4), worldOffset: new THREE.Vector3(1e9, 0, 0) };
+
+    await expect(manager.synchronize(emptyView)).resolves.toEqual({ changed: false, tiles: [] });
+    expect(fetcher).toHaveBeenCalledOnce();
+  });
+
+  it('conserve le même aperçu agrégé de la Voie lactée au Groupe local', async () => {
     const fetcher = installFetcher();
     const manager = new StarTileManager(source(), registry(), fetcher);
 
-    await expect(manager.synchronize(view(2))).resolves.toEqual({ changed: false, tiles: [] });
-    expect(fetcher).not.toHaveBeenCalled();
+    const localGroup = await manager.synchronize(view(4, 1));
 
-    const result = await manager.synchronize(view(4));
+    expect(localGroup.changed).toBe(true);
+    expect(localGroup.tiles.map((tile) => tile.id)).toEqual(['root-a', 'root-b']);
+    expect(fetcher).toHaveBeenCalledTimes(2);
 
-    expect(result.changed).toBe(true);
-    expect(result.tiles.map((tile) => tile.id)).toEqual(['root-a', 'root-b']);
+    const milkyWay = await manager.synchronize(view(3, 1));
+
+    expect(milkyWay.changed).toBe(false);
+    expect(milkyWay.tiles.map((tile) => tile.id)).toEqual(['root-a', 'root-b']);
     expect(fetcher).toHaveBeenCalledTimes(2);
     expect(manager.activeTileCount).toBe(2);
     expect(manager.activeClusterCount).toBe(3);
@@ -30,13 +97,68 @@ describe('StarTileManager', () => {
     expect(manager.cachedClusterCount).toBe(3);
   });
 
+  it('publie d’abord une couverture Gaia agrégée puis les sources détaillées', async () => {
+    const fetcher = installFetcher();
+    const manager = new StarTileManager(source(), registry(), fetcher);
+
+    const coverage = await manager.synchronize(view(1));
+
+    expect(coverage.tiles.map((tile) => tile.id)).toEqual(['root-a', 'root-b']);
+    expect(manager.activeClusterCount).toBe(3);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+
+    const solarSystem = await manager.synchronize(view(1));
+
+    expect(solarSystem.tiles.map((tile) => tile.id)).toEqual(['a-0', 'a-1', 'b-0']);
+    expect(manager.activeClusterCount).toBe(4);
+    expect(fetcher).toHaveBeenCalledTimes(4);
+
+    const access = manager as unknown as { activeNodeIds: readonly string[] };
+
+    // Simule la sélection mixte racine/détails laissée par l'orientation précédente.
+    access.activeNodeIds = ['a-0', 'root-b'];
+    const rotated = await manager.synchronize(view(1));
+
+    expect(rotated).not.toHaveProperty('isCoverage');
+    expect(rotated.tiles.map((tile) => tile.id)).toEqual(['a-0', 'a-1', 'b-0']);
+  });
+
+  it('borne à quatre les téléchargements et décodages de paquets concurrents', async () => {
+    const release = deferred<void>();
+    let activePackLoads = 0;
+    let maximumPackLoads = 0;
+    const fetcher = vi.fn(async (url: string) => {
+      if (url.endsWith('index.json')) {
+        return successfulResponse(parallelIndex());
+      }
+      activePackLoads += 1;
+      maximumPackLoads = Math.max(maximumPackLoads, activePackLoads);
+      await release.promise;
+      activePackLoads -= 1;
+      const id = url.slice(url.lastIndexOf('/') + 1, -'.json'.length);
+
+      return successfulResponse(pack([rawTile(id, undefined, 4, 1, 1, 512)]));
+    });
+    const manager = new StarTileManager(source(), registry(), fetcher);
+    const synchronization = manager.synchronize(view(2, 1));
+
+    await vi.waitFor(() => expect(activePackLoads).toBe(4));
+    expect(fetcher).toHaveBeenCalledTimes(5);
+    release.resolve();
+    await expect(synchronization).resolves.toMatchObject({ changed: true });
+    expect(maximumPackLoads).toBe(4);
+    expect(activePackLoads).toBe(0);
+    expect(fetcher).toHaveBeenCalledTimes(7);
+    expect(manager.activeTileCount).toBe(6);
+  });
+
   it('raffine les racines visibles, conserve le rendu précédent pendant le chargement et réutilise le cache', async () => {
     const childRequest = deferred<Response>();
     const fetcher = installFetcher({ childResponse: childRequest.promise });
     const manager = new StarTileManager(source(), registry(), fetcher);
 
-    const overview = await manager.synchronize(view(4));
-    const pending = manager.synchronize(view(3));
+    const overview = await manager.synchronize(view(2, 1));
+    const pending = manager.synchronize(view(2));
 
     expect(manager.activeTileCount).toBe(2);
     expect(overview.tiles.map((tile) => tile.id)).toEqual(['root-a', 'root-b']);
@@ -49,8 +171,8 @@ describe('StarTileManager', () => {
     expect(manager.activeClusterCount).toBe(4);
     expect(manager.cachedPackCount).toBe(3);
 
-    await expect(manager.synchronize(view(4))).resolves.toMatchObject({ changed: true });
-    await expect(manager.synchronize(view(4))).resolves.toMatchObject({ changed: false });
+    await expect(manager.synchronize(view(2, 1))).resolves.toMatchObject({ changed: true });
+    await expect(manager.synchronize(view(2, 1))).resolves.toMatchObject({ changed: false });
     expect(fetcher).toHaveBeenCalledTimes(4);
   });
 
@@ -59,9 +181,9 @@ describe('StarTileManager', () => {
     const fetcher = installFetcher({ childResponse: childRequest.promise });
     const manager = new StarTileManager(source(), registry(), fetcher);
 
-    await manager.synchronize(view(4));
-    const first = manager.synchronize(view(3));
-    const second = manager.synchronize(view(3));
+    await manager.synchronize(view(2, 1));
+    const first = manager.synchronize(view(2));
+    const second = manager.synchronize(view(2));
 
     childRequest.reject(new Error('offline'));
     await expect(first).rejects.toThrow('offline');
@@ -73,8 +195,8 @@ describe('StarTileManager', () => {
   it('évince les paquets inactifs les moins récents sans retirer les tuiles actives', async () => {
     const manager = new StarTileManager(source(), registry(), installFetcher(), 1);
 
-    await manager.synchronize(view(4));
-    await manager.synchronize(view(3));
+    await manager.synchronize(view(2, 1));
+    await manager.synchronize(view(2));
 
     expect(manager.activeTileCount).toBe(3);
     expect(manager.cachedPackCount).toBe(2);
@@ -82,12 +204,14 @@ describe('StarTileManager', () => {
     expect(manager.cachedClusterCount).toBe(4);
   });
 
-  it('vide la sélection hors des niveaux agrégés après un changement d’échelle', async () => {
+  it('conserve les racines au Groupe local puis les vide dans l’Univers proche', async () => {
     const manager = new StarTileManager(source(), registry(), installFetcher());
 
-    await manager.synchronize(view(4));
-    await expect(manager.synchronize(view(2))).resolves.toEqual({ changed: true, tiles: [] });
-    await expect(manager.synchronize(view(2))).resolves.toEqual({ changed: false, tiles: [] });
+    await manager.synchronize(view(3, 1));
+    await expect(manager.synchronize(view(4, 1))).resolves.toMatchObject({ changed: false });
+    expect(manager.activeTileCount).toBe(2);
+    await expect(manager.synchronize(view(5))).resolves.toEqual({ changed: true, tiles: [] });
+    await expect(manager.synchronize(view(5))).resolves.toEqual({ changed: false, tiles: [] });
     expect(manager.activeTileCount).toBe(0);
   });
 
@@ -98,8 +222,8 @@ describe('StarTileManager', () => {
       vi.fn(async () => failedResponse(503)),
     );
 
-    await expect(indexFailure.synchronize(view(4))).rejects.toThrow(
-      'Impossible de charger l’index stellaire hyg-star-tiles (503)',
+    await expect(indexFailure.synchronize(view(2, 1))).rejects.toThrow(
+      'Impossible de charger l’index stellaire gaia-star-tiles (503)',
     );
 
     const packFailure = new StarTileManager(
@@ -110,7 +234,7 @@ describe('StarTileManager', () => {
       ),
     );
 
-    await expect(packFailure.synchronize(view(4))).rejects.toThrow(
+    await expect(packFailure.synchronize(view(2, 1))).rejects.toThrow(
       'Impossible de charger le paquet de tuiles stellaires (404)',
     );
 
@@ -124,7 +248,7 @@ describe('StarTileManager', () => {
       ),
     );
 
-    await expect(missingTile.synchronize(view(4))).rejects.toThrow(
+    await expect(missingTile.synchronize(view(2, 1))).rejects.toThrow(
       'Tuile stellaire sélectionnée absente : root-b',
     );
   });
@@ -134,7 +258,7 @@ describe('StarTileManager', () => {
 
     vi.stubGlobal('fetch', fetcher);
     await expect(
-      new StarTileManager(source(), registry()).synchronize(view(4)),
+      new StarTileManager(source(), registry()).synchronize(view(2, 1)),
     ).resolves.toMatchObject({ changed: true });
 
     const wrongIndex = new StarTileManager(
@@ -143,7 +267,7 @@ describe('StarTileManager', () => {
       vi.fn(async () => successfulResponse({ ...index(), sourceCatalog: 'other' })),
     );
 
-    await expect(wrongIndex.synchronize(view(4))).rejects.toThrow(
+    await expect(wrongIndex.synchronize(view(2, 1))).rejects.toThrow(
       'Index stellaire associé au mauvais catalogue : other.',
     );
 
@@ -160,7 +284,7 @@ describe('StarTileManager', () => {
       ),
     );
 
-    await expect(unknownTile.synchronize(view(4))).rejects.toThrow(
+    await expect(unknownTile.synchronize(view(2, 1))).rejects.toThrow(
       'Tuile stellaire absente de l’index : unknown',
     );
 
@@ -174,7 +298,7 @@ describe('StarTileManager', () => {
       ),
     );
 
-    await expect(wrongPack.synchronize(view(4))).rejects.toThrow(
+    await expect(wrongPack.synchronize(view(2, 1))).rejects.toThrow(
       'Tuile stellaire chargée depuis le mauvais paquet : a-0',
     );
   });
@@ -190,7 +314,7 @@ describe('StarTileManager', () => {
     const missingNode = loadedIndex.nodesById.get('root-b')!;
 
     loadedIndex.nodesById.delete('root-b');
-    await expect(manager.synchronize(view(4))).rejects.toThrow(
+    await expect(manager.synchronize(view(2, 1))).rejects.toThrow(
       'Nœud stellaire sélectionné absent de l’index : root-b',
     );
 
@@ -202,9 +326,9 @@ describe('StarTileManager', () => {
 
 function source(): StarTileSource {
   return {
-    id: 'hyg-star-tiles',
-    url: '/data/stars/tiles/index.json',
-    starCatalogId: 'hyg-v41-bright-stars',
+    id: 'gaia-star-tiles',
+    url: '/data/stars/gaia-dr3-tiles/index.json',
+    sourceCatalogId: 'gaia-dr3-bright-high-confidence',
   };
 }
 
@@ -247,14 +371,34 @@ function installFetcher(
 
 function index(): object {
   return {
-    version: '2.0.0',
-    sourceCatalog: 'hyg-v41-bright-stars',
+    version: '5.0.0',
+    sourceCatalog: 'gaia-dr3-bright-high-confidence',
     sourceStarCount: 4,
-    referenceEpochJulianDay: 2_451_545,
-    referenceFrame: 'equatorial-j2000',
+    referenceEpochJulianDay: 2_457_388.5,
+    referenceFrame: 'icrs',
     distanceUnit: 'parsec',
+    magnitudeBand: 'gaia-g',
+    colorIndexSystem: 'gaia-bp-rp',
+    source: {
+      name: 'Gaia Data Release 3 · gaia_source_lite',
+      url: 'https://gea.esac.esa.int/archive/',
+      doi: '10.5270/esa-qa4lep3',
+      credit: 'ESA/Gaia/DPAC',
+      retrievedAt: '2026-08-28T00:00:00.000Z',
+      query: 'SELECT source_id FROM gaiadr3.gaia_source_lite',
+    },
+    selection: {
+      maximumDistanceParsec: 5_000,
+      maximumApparentMagnitude: 12,
+      minimumParallaxOverError: 10,
+    },
+    sampling: {
+      method: 'brightest-plus-deterministic-uniform',
+      maximumSamplesPerLeaf: 96,
+      brightestSamplesPerLeaf: 32,
+    },
     scientificConfidence: 'calculated',
-    representation: 'illustrative-aggregation',
+    representation: 'hierarchical-aggregation-with-deterministic-samples',
     rootIds: ['root-a', 'root-b'],
     nodes: [
       node(
@@ -288,6 +432,30 @@ function index(): object {
   };
 }
 
+function parallelIndex(count = 6): object {
+  const roots = Array.from({ length: count }, (_, index) => `root-${index}`);
+
+  return {
+    ...index(),
+    sourceStarCount: roots.length,
+    rootIds: roots,
+    nodes: roots.map((id, index) =>
+      node(
+        id,
+        4,
+        undefined,
+        [],
+        [index * 10, -5, -5],
+        [index * 10 + 10, 5, 5],
+        1,
+        1,
+        512,
+        `/lod4/${id}.json`,
+      ),
+    ),
+  };
+}
+
 function node(
   id: string,
   lodLevel: number,
@@ -309,6 +477,7 @@ function node(
     sourceStarCount,
     clusterCount,
     cellSizeParsec,
+    representation: lodLevel === 4 ? 'aggregate-cell' : 'sampled-source',
     url,
   };
 }
@@ -327,9 +496,11 @@ function childPackB(): object {
 
 function pack(tiles: object[]): object {
   return {
-    version: '2.0.0',
-    sourceCatalog: 'hyg-v41-bright-stars',
-    referenceEpochJulianDay: 2_451_545,
+    version: '5.0.0',
+    sourceCatalog: 'gaia-dr3-bright-high-confidence',
+    referenceEpochJulianDay: 2_457_388.5,
+    magnitudeBand: 'gaia-g',
+    colorIndexSystem: 'gaia-bp-rp',
     tiles,
   };
 }
@@ -359,26 +530,42 @@ function rawTile(
   return {
     id,
     ...(parentId ? { parentId } : {}),
-    version: '2.0.0',
-    sourceCatalog: 'hyg-v41-bright-stars',
+    version: '5.0.0',
+    sourceCatalog: 'gaia-dr3-bright-high-confidence',
     sourceStarCount: stars,
-    referenceEpochJulianDay: 2_451_545,
+    referenceEpochJulianDay: 2_457_388.5,
+    magnitudeBand: 'gaia-g',
+    colorIndexSystem: 'gaia-bp-rp',
     lodLevel,
     cellSizeParsec,
+    representation: lodLevel === 4 ? 'aggregate-cell' : 'sampled-source',
     cellCoordinates: Array.from({ length: clusters * 3 }, (_, index) => index),
     positionsParsec: Array.from({ length: clusters * 3 }, (_, index) => index + 1),
     starCounts,
     apparentMagnitudes: Array.from({ length: clusters }, (_, index) => index),
-    colorIndicesBv: Array.from({ length: clusters }, (_, index) => index / 2),
+    colorIndices: Array.from({ length: clusters }, (_, index) => index / 2),
+    ...(lodLevel === 3
+      ? {
+          sourceIds: Array.from(
+            { length: clusters },
+            (_, index) =>
+              `${Array.from(id, (character) => character.charCodeAt(0)).join('')}${index}`,
+          ),
+        }
+      : {}),
   };
 }
 
-function view(lodLevel: number): StarTileView {
+function view(
+  lodLevel: number,
+  viewportHeight = 100_000,
+  projectionScaleY = viewportHeight === 1 ? 0.000_001 : 1,
+): StarTileView {
   return {
     lodLevel,
     quality: 'high',
-    viewportHeight: 100_000,
-    projectionScaleY: 1,
+    viewportHeight,
+    projectionScaleY,
     cameraPosition: new THREE.Vector3(0, 0, 100),
     worldOffset: new THREE.Vector3(),
     frustum: cubeFrustum(1_000_000),

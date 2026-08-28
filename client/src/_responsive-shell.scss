@@ -31,26 +31,28 @@ app-root .app-shell .support-action__icon {
   line-height: 1;
 }
 
-@media (width <= 720px) {
+@media (width <= 1100px) {
   app-root .app-shell {
     --mobile-top-safe: env(safe-area-inset-top, 0px);
     --mobile-right-safe: env(safe-area-inset-right, 0px);
     --mobile-bottom-safe: env(safe-area-inset-bottom, 0px);
     --mobile-left-safe: env(safe-area-inset-left, 0px);
-    --mobile-content-top-clearance: calc(170px + var(--mobile-top-safe));
-    --mobile-timeline-clearance: calc(140px + var(--mobile-bottom-safe));
-  }
-
-  app-root .app-shell.app-shell--eclipse {
-    --mobile-timeline-clearance: calc(232px + var(--mobile-bottom-safe));
+    --mobile-content-top-clearance: calc(188px + var(--mobile-top-safe));
+    --mobile-timeline-clearance: calc(
+      var(--timeline-height, 62px) + max(10px, var(--mobile-bottom-safe)) + 12px
+    );
   }
 
   app-root .app-shell .topbar {
     top: calc(10px + var(--mobile-top-safe));
     right: max(10px, var(--mobile-right-safe));
     left: max(10px, var(--mobile-left-safe));
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 7px;
+  }
+
+  app-root .app-shell--earth-sky {
+    --mobile-content-top-clearance: calc(250px + var(--mobile-top-safe));
   }
 
   app-root .app-shell .brand {
@@ -119,25 +121,36 @@ app-root .app-shell .support-action__icon {
   }
 }
 
-@media (height <= 520px) and (width > 720px) and (width <= 1000px) {
+@media (height <= 520px) and (width > 720px) and (width <= 1100px) {
   app-root .app-shell {
     --landscape-top-safe: env(safe-area-inset-top, 0px);
     --landscape-right-safe: env(safe-area-inset-right, 0px);
     --landscape-bottom-safe: env(safe-area-inset-bottom, 0px);
     --landscape-left-safe: env(safe-area-inset-left, 0px);
-    --landscape-timeline-clearance: calc(82px + var(--landscape-bottom-safe));
+    --landscape-timeline-clearance: calc(
+      var(--timeline-height, 62px) + max(8px, var(--landscape-bottom-safe)) + 12px
+    );
   }
 
-  app-root .app-shell.app-shell--eclipse {
-    --landscape-timeline-clearance: calc(142px + var(--landscape-bottom-safe));
+  app-root .app-shell--earth-sky {
+    --landscape-content-top-clearance: 126px;
   }
 
   app-root .app-shell .topbar {
     top: calc(8px + var(--landscape-top-safe));
     right: max(12px, var(--landscape-right-safe));
     left: max(12px, var(--landscape-left-safe));
-    grid-template-columns: minmax(150px, 1fr) minmax(280px, 420px) minmax(190px, 1fr);
+    grid-template-columns: minmax(135px, 1fr) minmax(0, 420px) auto;
     gap: 10px;
+  }
+
+  app-root .app-shell app-universe-search {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  app-root .app-shell .topbar__actions {
+    grid-column: 3;
   }
 
   app-root .app-shell .brand__edition,

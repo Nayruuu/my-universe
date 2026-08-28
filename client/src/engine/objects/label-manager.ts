@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { GraphicQuality, LabelDensity } from '../../data/models/universe.models';
+import { calculatePlanetarySystemReveal } from '../coordinates/stellar-neighborhood-scale-model';
 import {
   LabelCandidateCollector,
   type LabelCandidate,
@@ -17,7 +18,7 @@ import {
 } from './label-render-policy';
 import { LabelScreenProjector, getLabelViewportLayout } from './label-screen-projector';
 import { LabelOcclusionManager } from './label-occlusion-manager';
-import type { LabelObject } from './label-visibility-policy';
+import { isMoonLabelInActiveSystem, type LabelObject } from './label-visibility-policy';
 
 export {
   getLabelTextColor,
@@ -32,6 +33,7 @@ export {
   isScaleLandmarkAtLevel,
   requiresDynamicLabelVisibility,
 } from './label-visibility-policy';
+export { calculateGalacticContextLabelOpacity } from './label-render-policy';
 export type { LabelObject } from './label-visibility-policy';
 export type { LabelNameResolver } from './label-canvas-painter';
 export { findLabelHit } from './label-screen-layout';
@@ -42,6 +44,7 @@ type ObjectVisibilityReader = LabelObjectVisibilityReader;
 
 const LABEL_FRAME_INTERVAL_MS = 1_000 / 30;
 const LABEL_TRANSITION_FRAME_INTERVAL_MS = 1_000 / 15;
+const MINIMUM_LABEL_OPACITY = 0.02;
 const LABEL_PIXEL_RATIO_CAP = {
   low: 1,
   medium: 1.25,
@@ -188,6 +191,9 @@ export class LabelManager {
     lodLevel: number,
     selectedId: string | null,
     now = performance.now(),
+    stellarNeighborhoodReveal = 1,
+    galacticContextLabelOpacity = 1,
+    navigationTargetId: string | null = null,
   ): void {
     const interval = this.transitioning
       ? LABEL_TRANSITION_FRAME_INTERVAL_MS
@@ -199,6 +205,7 @@ export class LabelManager {
     this.lastRenderTime = now;
     this.clearCanvas();
     const candidates = this.collectCandidates(camera, readWorldPosition, lodLevel, selectedId);
+    const planetarySystemReveal = calculatePlanetarySystemReveal(stellarNeighborhoodReveal);
 
     this.occlusionManager.collect(camera, readWorldPosition, this.width, this.height);
 
@@ -233,8 +240,30 @@ export class LabelManager {
 
     for (const candidate of candidates) {
       const flags = getLabelRenderFlags(candidate.object, lodLevel);
+      const hovered = candidate.object.id === this.hoveredId;
 
       if (
+        !hovered &&
+        !isMoonLabelInActiveSystem(candidate.object, selectedId, navigationTargetId)
+      ) {
+        continue;
+      }
+      const localDetailReveal =
+        flags.solarSystemLabel || candidate.object.type === 'exoplanet'
+          ? planetarySystemReveal
+          : stellarNeighborhoodReveal;
+      const stellarNeighborhoodOpacity =
+        lodLevel >= 1 && lodLevel <= 2 && !flags.scaleLandmark && !candidate.selected && !hovered
+          ? clampOpacity(localDetailReveal)
+          : 1;
+      const galaxyContextOpacity =
+        candidate.object.type === 'galaxy' && !candidate.selected && !hovered
+          ? clampOpacity(galacticContextLabelOpacity)
+          : 1;
+      const labelOpacity = Math.min(stellarNeighborhoodOpacity, galaxyContextOpacity);
+
+      if (
+        labelOpacity <= MINIMUM_LABEL_OPACITY ||
         !isLabelWithinOrdinaryBudget(
           candidate,
           flags.scaleLandmark,
@@ -274,7 +303,6 @@ export class LabelManager {
       if (!rectangle) {
         continue;
       }
-      const hovered = candidate.object.id === this.hoveredId;
 
       if (flags.drawAnchor) {
         this.painter.drawAnchor(
@@ -284,9 +312,17 @@ export class LabelManager {
           candidate.selected,
           hovered,
           flags.solarSystemLabel,
+          labelOpacity,
         );
       }
-      this.painter.drawLabel(candidate.object, rectangle, candidate.selected, hovered, lodLevel);
+      this.painter.drawLabel(
+        candidate.object,
+        rectangle,
+        candidate.selected,
+        hovered,
+        lodLevel,
+        labelOpacity,
+      );
       this.hitRegions.push({
         objectId: candidate.object.id,
         rectangle,
@@ -344,4 +380,8 @@ export class LabelManager {
     this.hitRegions.length = 0;
     this.painter.clear(this.canvas.width, this.canvas.height, this.pixelRatio);
   }
+}
+
+function clampOpacity(opacity: number): number {
+  return Math.max(0, Math.min(1, opacity));
 }

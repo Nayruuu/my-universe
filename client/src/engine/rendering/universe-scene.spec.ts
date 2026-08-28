@@ -4,7 +4,16 @@ import {
   type SpaceTileIndex,
   type StarClusterTile,
 } from '../../data/models/universe.models';
+import {
+  calculateGalacticFrameScale,
+  calculateMilkyWaySceneScale,
+} from '../coordinates/galaxy-scale-model';
 import { CoordinateSystem } from '../coordinates/coordinate-system';
+import {
+  calculateStellarNeighborhoodReveal,
+  STELLAR_NEIGHBORHOOD_REVEAL_END,
+  STELLAR_NEIGHBORHOOD_REVEAL_START,
+} from '../coordinates/stellar-neighborhood-scale-model';
 import { CosmicGroupCatalog } from '../loaders/cosmic-group-catalog';
 import {
   CosmicStructureCatalog,
@@ -23,31 +32,68 @@ import { getNavigationScale } from '../camera/navigation-scales';
 import { ALL_COSMIC_MAP_LAYERS, DEFAULT_COSMIC_MAP_LAYERS } from './cosmic-map-policy';
 import { getCosmicWebVolumeProfile } from './cosmic-web-volume';
 import { getPhotographicProfile } from './photographic-profile';
+import { calculateStellarNeighborhoodSceneScale } from './galactic-transition-layer';
 import { LOCAL_MILKY_WAY_PANORAMA_URL } from './local-space-environment';
 import { UniverseScene } from './universe-scene';
 
 describe('UniverseScene', () => {
-  it('sépare le voisinage solaire du centre galactique et réduit son échelle progressivement', () => {
+  afterEach(() => vi.useRealTimers());
+
+  it('sépare le voisinage solaire du centre galactique et le stabilise avant son affichage', () => {
     const scene = new UniverseScene(new PerformanceManager());
     const stellarRoot = scene.spaceRoot.getObjectByName('solar-neighborhood-reference');
-    const origin = new THREE.Vector3(2_620, 0, 0);
+    const origin = new THREE.Vector3(736.02, 0, 0);
 
     expect(stellarRoot).toBeInstanceOf(THREE.Group);
+    expect(scene.intergalacticScale.sceneUnitsPerMegaparsec).toBe(10_000);
+    expect(scene.intergalacticScale.referenceFrameBlend).toBe('local-group');
     scene.setStellarOrigin(origin);
     expect(stellarRoot?.position.toArray()).toEqual(origin.toArray());
 
     scene.updateLod(2, 10, 1_400);
-    expect(stellarRoot?.scale.x).toBeCloseTo(1, 4);
+    const diveScale = calculateStellarNeighborhoodSceneScale(1_400, origin.length());
 
-    scene.updateLod(3, 10, 9_600);
-    expect(stellarRoot?.scale.x).toBeGreaterThanOrEqual(0.14);
-    expect(stellarRoot?.scale.x).toBeLessThanOrEqual(0.2);
-    expect(scene.spaceRoot.getObjectByName('illustrative-milky-way')?.position.length()).toBe(0);
+    expect(stellarRoot?.scale.x).toBeCloseTo(diveScale.radialScale, 4);
+    expect(stellarRoot?.scale.x).toBeCloseTo(1, 8);
+    expect(stellarRoot?.scale.y).toBeCloseTo(1, 8);
+
+    scene.updateLod(2, 10, 420);
+    expect(stellarRoot?.scale.x).toBeCloseTo(1, 4);
+    expect(stellarRoot?.scale.y).toBeCloseTo(1, 4);
+
+    scene.updateLod(3, 10, 3_000);
+    const approachScale = calculateStellarNeighborhoodSceneScale(3_000, origin.length());
+
+    expect(stellarRoot?.scale.x).toBeCloseTo(approachScale.radialScale, 4);
+    expect(stellarRoot?.scale.y).toBeCloseTo(approachScale.verticalScale, 4);
+
+    scene.updateLod(3, 10, 3_600);
+    expect(stellarRoot?.scale.x).toBeCloseTo(0.085, 4);
+    expect(stellarRoot!.scale.y).toBeLessThan(stellarRoot!.scale.x);
+    expect(stellarRoot?.position.x).toBeCloseTo(origin.x, 4);
+    const milkyWay = scene.spaceRoot.getObjectByName('illustrative-milky-way');
+
+    expect(milkyWay?.position.length()).toBe(0);
+    expect(origin.x).toBeLessThan((milkyWay?.scale.x ?? 0) * (11_400 / 2));
+
+    scene.updateLod(3, 10, 13_300);
+    expect(stellarRoot?.position.x).toBeGreaterThan(0);
+    expect(stellarRoot?.position.x).toBeLessThan(origin.x);
+    expect(stellarRoot?.position.x).toBeCloseTo(origin.x * calculateGalacticFrameScale(13_300), 4);
+    expect(stellarRoot!.scale.x).toBeGreaterThan(stellarRoot!.scale.y);
+    expect(stellarRoot?.scale.x).toBeLessThan(0.13);
+
+    scene.updateLod(4, 10, 17_000);
+    const localGroupScale = calculateStellarNeighborhoodSceneScale(17_000, origin.length());
+
+    expect(stellarRoot?.position.x).toBeCloseTo(origin.x * localGroupScale.originScale, 4);
+    expect(stellarRoot?.scale.x).toBeCloseTo(localGroupScale.radialScale, 8);
+    expect(stellarRoot?.scale.y).toBeCloseTo(localGroupScale.verticalScale, 8);
 
     scene.dispose();
   });
 
-  it('affiche un disque à quatre bras centré sur le centre galactique, jamais sur le Soleil', () => {
+  it('affiche un nuage galactique à quatre bras centré sur le centre, jamais sur le Soleil', () => {
     const scene = new UniverseScene(new PerformanceManager());
     const milkyWay = scene.spaceRoot.getObjectByName('illustrative-milky-way') as THREE.Points<
       THREE.BufferGeometry,
@@ -57,59 +103,95 @@ describe('UniverseScene', () => {
     expect(milkyWay.visible).toBe(false);
     expect(milkyWay.material.uniforms['opacity']!.value).toBe(0);
     expect(milkyWay.userData['scientificConfidence']).toBe('illustrative');
-    expect(milkyWay.userData['visualStructure']).toBe('illustrative-galactocentric-four-arm-disk');
+    expect(milkyWay.userData['visualStructure']).toBe(
+      'continuous-illustrative-galactocentric-four-arm-volume',
+    );
     expect(milkyWay.userData['structureOrigin']).toBe('galactic-center');
     expect(milkyWay.userData['spiralArmCount']).toBe(4);
     expect(milkyWay.userData['spiralPitchDegrees']).toBeCloseTo(13, 6);
+    expect(milkyWay.userData['visualStyle']).toBe(
+      'batched-three-dimensional-point-galaxy-and-stellar-detail',
+    );
+    expect(milkyWay.userData['representationTechnique']).toBe('single-batched-point-cloud');
+    expect(milkyWay.userData['rasterTextureRole']).toBe('none-at-all-galactic-scales');
+    expect(milkyWay.userData['surfaceGeometry']).toBe('none');
+    expect(milkyWay.userData['apparentScaleTreatment']).toBe(
+      'shared-canonical-galactic-metric-for-disc-and-solar-position',
+    );
+    expect(milkyWay.userData['physicalDiameterLightYears']).toBe(100_000);
+    expect(milkyWay.userData['authoringDiameter']).toBe(11_400);
     expect(milkyWay.position.length()).toBe(0);
     expect(scene.spaceRoot.getObjectByName('illustrative-milky-way-aura')).toBeUndefined();
+    expect(scene.spaceRoot.getObjectByName('illustrative-milky-way-stellar-halo')).toBeInstanceOf(
+      THREE.Points,
+    );
+    expect(scene.spaceRoot.getObjectByName('illustrative-extragalactic-background')).toBeInstanceOf(
+      THREE.Points,
+    );
+    expect(
+      scene.spaceRoot.getObjectByName('illustrative-extragalactic-deep-field-sky'),
+    ).toBeInstanceOf(THREE.Mesh);
 
-    scene.updateLod(3, 1, 9_600);
+    scene.updateLod(3, 1, 3_600);
     expect(milkyWay.visible).toBe(true);
-    expect(milkyWay.material.uniforms['opacity']!.value).toBeGreaterThan(0.015);
-    expect(milkyWay.material.uniforms['opacity']!.value).toBeLessThan(0.05);
-    const detailedScale = milkyWay.scale.x;
+    expect(milkyWay.material.uniforms['opacity']!.value).toBeGreaterThan(0.95);
+    expect(milkyWay.material.uniforms['opacity']!.value).toBeLessThanOrEqual(0.96);
+    expect(milkyWay.scale.x).toBeCloseTo(calculateMilkyWaySceneScale(3_600).modelScale, 8);
 
-    scene.updateLod(3, 10, 13_300);
-    expect(milkyWay.material.uniforms['opacity']!.value).toBeGreaterThan(0);
-    expect(milkyWay.material.uniforms['opacity']!.value).toBeLessThan(0.24);
-    expect(milkyWay.scale.x).toBeLessThan(detailedScale);
+    scene.updateLod(3, 10, 11_000);
+    expect(milkyWay.material.uniforms['opacity']!.value).toBeGreaterThan(0.9);
+    expect(milkyWay.material.uniforms['opacity']!.value).toBeLessThanOrEqual(0.96);
+    expect(milkyWay.scale.x).toBeCloseTo(calculateMilkyWaySceneScale(11_000).modelScale, 8);
 
     scene.updateLod(4, 10, 17_000);
+    expect(milkyWay.visible).toBe(true);
+    expect(milkyWay.material.uniforms['opacity']!.value).toBeCloseTo(0.96, 6);
+
+    scene.updateLod(4, 10, 40_000);
+    expect(milkyWay.visible).toBe(true);
+    expect(milkyWay.material.uniforms['opacity']!.value).toBeCloseTo(0.96, 6);
+
+    scene.updateLod(5, 10, 120_000);
+    expect(milkyWay.visible).toBe(true);
+    expect(milkyWay.material.uniforms['opacity']!.value).toBeCloseTo(0.96, 6);
+
+    scene.updateLod(5, 10, 300_000);
     expect(milkyWay.visible).toBe(false);
     expect(milkyWay.material.uniforms['opacity']!.value).toBeLessThan(0.004);
 
     scene.dispose();
   });
 
-  it('superpose un atlas différé sur plusieurs profondeurs au disque galactique', async () => {
-    const volumeTexture = new THREE.Texture(document.createElement('img'));
+  it('conserve le même objet procédural du Groupe local à la Voie lactée', async () => {
     const panoramaTexture = new THREE.Texture(document.createElement('img'));
     const loadAsync = vi
       .spyOn(THREE.TextureLoader.prototype, 'loadAsync')
-      .mockResolvedValueOnce(volumeTexture)
       .mockResolvedValueOnce(panoramaTexture);
     const scene = new UniverseScene(new PerformanceManager());
     const volume = scene.spaceRoot.getObjectByName('illustrative-milky-way-volume');
 
     expect(volume).toBeInstanceOf(THREE.Group);
     expect(volume?.userData['scientificConfidence']).toBe('illustrative');
-    expect(scene.milkyWayAtlasStatus).toBe('idle');
+    expect(scene.milkyWayAtlasStatus).toBe('point-cloud');
     expect(scene.localMilkyWayPanoramaStatus).toBe('idle');
 
     scene.setQuality('high');
     await expect(scene.ensureMilkyWayAtlas()).resolves.toBe(true);
-    scene.updateLod(3, 10, 9_600);
+    scene.updateLod(3, 10, 3_600);
 
-    expect(loadAsync).toHaveBeenCalledTimes(2);
-    expect(loadAsync).toHaveBeenNthCalledWith(1, '/textures/milky-way-emissive-1254-v2.jpg');
-    expect(loadAsync).toHaveBeenNthCalledWith(2, LOCAL_MILKY_WAY_PANORAMA_URL);
-    expect(scene.milkyWayAtlasStatus).toBe('ready');
+    expect(loadAsync).toHaveBeenCalledOnce();
+    expect(loadAsync).toHaveBeenCalledWith(LOCAL_MILKY_WAY_PANORAMA_URL);
+    expect(scene.milkyWayAtlasStatus).toBe('point-cloud');
     expect(scene.localMilkyWayPanoramaStatus).toBe('ready');
-    expect(scene.milkyWayVolumeDrawMeshCount).toBe(4);
-    expect(volume?.visible).toBe(true);
-    expect(volume?.scale.x).toBeCloseTo(1, 4);
+    // The same co-spatial point batch is now the complete Milky Way representation; there is no
+    // second volumetric scene to remove during Galactic entry.
+    expect(scene.milkyWayVolumeDrawMeshCount).toBe(0);
+    expect(volume?.visible).toBe(false);
+    expect(volume?.scale.x).toBeCloseTo(calculateMilkyWaySceneScale(3_600).modelScale, 8);
     expect(scene.spaceRoot.getObjectByName('illustrative-milky-way')?.visible).toBe(true);
+
+    scene.updateLod(3, 10, 13_300);
+    expect(scene.milkyWayVolumeDrawMeshCount).toBe(0);
 
     scene.updateLod(4, 10, 17_000);
     expect(scene.milkyWayVolumeDrawMeshCount).toBe(0);
@@ -119,31 +201,24 @@ describe('UniverseScene', () => {
   });
 
   it('préchauffe les textures galactiques sur le GPU avant leur première apparition', async () => {
-    const volumeTexture = new THREE.Texture(document.createElement('img'));
     const panoramaTexture = new THREE.Texture(document.createElement('img'));
 
-    vi.spyOn(THREE.TextureLoader.prototype, 'loadAsync')
-      .mockResolvedValueOnce(volumeTexture)
-      .mockResolvedValueOnce(panoramaTexture);
+    vi.spyOn(THREE.TextureLoader.prototype, 'loadAsync').mockResolvedValueOnce(panoramaTexture);
     const target = { initTexture: vi.fn<(texture: THREE.Texture) => void>() };
     const scene = new UniverseScene(new PerformanceManager());
 
     await expect(scene.prewarmMilkyWayAssets(target)).resolves.toBe(true);
 
-    expect(target.initTexture).toHaveBeenCalledTimes(2);
-    expect(target.initTexture).toHaveBeenNthCalledWith(1, volumeTexture);
-    expect(target.initTexture).toHaveBeenNthCalledWith(2, panoramaTexture);
+    expect(target.initTexture).toHaveBeenCalledOnce();
+    expect(target.initTexture).toHaveBeenCalledWith(panoramaTexture);
 
     scene.dispose();
   });
 
   it('compile tous les matériaux avant d’autoriser la première navigation', async () => {
-    const volumeTexture = new THREE.Texture(document.createElement('img'));
     const panoramaTexture = new THREE.Texture(document.createElement('img'));
 
-    vi.spyOn(THREE.TextureLoader.prototype, 'loadAsync')
-      .mockResolvedValueOnce(volumeTexture)
-      .mockResolvedValueOnce(panoramaTexture);
+    vi.spyOn(THREE.TextureLoader.prototype, 'loadAsync').mockResolvedValueOnce(panoramaTexture);
     const camera = new THREE.PerspectiveCamera();
     const target = {
       initTexture: vi.fn<(texture: THREE.Texture) => void>(),
@@ -153,14 +228,34 @@ describe('UniverseScene', () => {
 
     await expect(scene.prewarmRendering(target, camera)).resolves.toBe(true);
 
-    expect(target.initTexture).toHaveBeenCalledTimes(2);
+    expect(target.initTexture).toHaveBeenCalledOnce();
     expect(target.compileAsync).toHaveBeenCalledOnce();
     expect(target.compileAsync).toHaveBeenCalledWith(scene.scene, camera);
 
     scene.dispose();
   });
 
-  it('préchauffe le premier rendu sans bloquer sur les textures galactiques différées', async () => {
+  it('préchauffe aussi le panorama disponible avant la première navigation', async () => {
+    vi.useFakeTimers();
+    const texture = new THREE.Texture(document.createElement('img'));
+
+    vi.spyOn(THREE.TextureLoader.prototype, 'loadAsync').mockResolvedValueOnce(texture);
+    const camera = new THREE.PerspectiveCamera();
+    const target = {
+      initTexture: vi.fn(),
+      compileAsync: vi.fn(async (root: THREE.Object3D) => root),
+    };
+    const scene = new UniverseScene(new PerformanceManager());
+
+    await expect(scene.prewarmInitialRendering(target, camera)).resolves.toBe(true);
+    expect(target.initTexture).toHaveBeenCalledExactlyOnceWith(texture);
+    expect(target.compileAsync).toHaveBeenCalledWith(scene.scene, camera);
+    expect(vi.getTimerCount()).toBe(0);
+    scene.dispose();
+  });
+
+  it('limite à 500 ms l’attente du panorama sans bloquer indéfiniment le premier rendu', async () => {
+    vi.useFakeTimers();
     const pendingTexture = new Promise<THREE.Texture<HTMLImageElement>>(() => undefined);
     const loadAsync = vi
       .spyOn(THREE.TextureLoader.prototype, 'loadAsync')
@@ -173,21 +268,28 @@ describe('UniverseScene', () => {
     const scene = new UniverseScene(new PerformanceManager());
     const loadsBeforePrewarm = loadAsync.mock.calls.length;
 
-    await expect(scene.prewarmInitialRendering(target, camera)).resolves.toBe(true);
+    const ready = vi.fn();
+    const pending = scene.prewarmInitialRendering(target, camera).then(ready);
+
+    await vi.advanceTimersByTimeAsync(499);
+    expect(ready).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    await pending;
+    expect(ready).toHaveBeenCalledExactlyOnceWith(true);
 
     expect(target.initTexture).not.toHaveBeenCalled();
     expect(target.compileAsync).toHaveBeenCalledWith(scene.scene, camera);
-    expect(loadAsync.mock.calls.length - loadsBeforePrewarm).toBe(2);
-    expect(scene.milkyWayAtlasStatus).toBe('loading');
+    expect(loadAsync.mock.calls.length - loadsBeforePrewarm).toBe(1);
+    expect(scene.milkyWayAtlasStatus).toBe('point-cloud');
     expect(scene.localMilkyWayPanoramaStatus).toBe('loading');
 
     scene.dispose();
   });
 
   it('conserve la scène lorsque la précompilation des matériaux échoue', async () => {
-    vi.spyOn(THREE.TextureLoader.prototype, 'loadAsync')
-      .mockResolvedValueOnce(new THREE.Texture(document.createElement('img')))
-      .mockResolvedValueOnce(new THREE.Texture(document.createElement('img')));
+    vi.spyOn(THREE.TextureLoader.prototype, 'loadAsync').mockResolvedValueOnce(
+      new THREE.Texture(document.createElement('img')),
+    );
     const target = {
       initTexture: vi.fn<(texture: THREE.Texture) => void>(),
       compileAsync: vi.fn<() => Promise<THREE.Object3D>>(() =>
@@ -204,9 +306,9 @@ describe('UniverseScene', () => {
   });
 
   it('conserve le fallback procédural lorsque le préchauffage GPU échoue', async () => {
-    vi.spyOn(THREE.TextureLoader.prototype, 'loadAsync')
-      .mockResolvedValueOnce(new THREE.Texture(document.createElement('img')))
-      .mockResolvedValueOnce(new THREE.Texture(document.createElement('img')));
+    vi.spyOn(THREE.TextureLoader.prototype, 'loadAsync').mockResolvedValueOnce(
+      new THREE.Texture(document.createElement('img')),
+    );
     const target = {
       initTexture: vi.fn<(texture: THREE.Texture) => void>(() => {
         throw new Error('contexte WebGL indisponible');
@@ -242,11 +344,19 @@ describe('UniverseScene', () => {
     >;
 
     milkyWay.geometry.computeBoundingSphere();
-    expect(milkyWay.material.vertexShader).toContain('stellarPointProximityGrowth');
+    expect(milkyWay.material.vertexShader).toContain('projectedDiameter');
     expect(milkyWay.material.uniforms['opacity']!.value).toBe(0);
-    expect(getNavigationScale('milky-way').distance).toBeGreaterThan(
-      milkyWay.geometry.boundingSphere!.radius * 1.4,
-    );
+    const galacticDistance = getNavigationScale('milky-way').distance;
+    const morphologyRadius = milkyWay.geometry.boundingSphere!.radius;
+    const renderedRadius =
+      morphologyRadius * calculateMilkyWaySceneScale(galacticDistance).modelScale;
+    const renderedDistanceInRadii = galacticDistance / renderedRadius;
+
+    // One static population defines both the exterior silhouette and the traversed volume.
+    expect(milkyWay.geometry.getAttribute('pointFlythrough')).toBeUndefined();
+    // The Galactic overview is outside the canonically sized cloud, not inside an enlarged disc.
+    expect(renderedDistanceInRadii).toBeGreaterThan(2.1);
+    expect(renderedDistanceInRadii).toBeLessThan(2.3);
 
     scene.setQuality('low');
     scene.setQuality('medium');
@@ -302,10 +412,12 @@ describe('UniverseScene', () => {
 
     expect(scene.visibleNearbyGalaxyOverviewCount).toBe(2);
     expect(firstPoints?.material.uniforms['catalogOpacity']!.value).toBeGreaterThan(0.54);
+    expect(firstPoints?.getWorldScale(new THREE.Vector3()).x).toBeCloseTo(2.5, 8);
 
     scene.updateLod(5, 10, 120_000);
 
     expect(scene.visibleNearbyGalaxyOverviewCount).toBe(2);
+    expect(firstPoints?.getWorldScale(new THREE.Vector3()).x).toBeCloseTo(1, 8);
     expect(firstPoints?.material.uniforms['catalogOpacity']!.value).toBeCloseTo(0.42, 5);
     expect(firstPoints?.material.uniforms['radiance']!.value).toBe(
       getPhotographicProfile(5, 'high').galaxyRadiance,
@@ -364,6 +476,7 @@ describe('UniverseScene', () => {
 
     expect(scene.cosmicGroupCount).toBe(1);
     expect(scene.visibleCosmicGroupCount).toBe(1);
+    expect(activePoints?.getWorldScale(new THREE.Vector3()).x).toBeCloseTo(1, 8);
     expect(
       (activePoints as THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial>).material.uniforms[
         'pixelRatio'
@@ -391,6 +504,7 @@ describe('UniverseScene', () => {
 
     scene.updateLod(5, 10, 120_000);
     expect(scene.visibleCosmicGroupCount).toBe(1);
+    expect(activePoints?.getWorldScale(new THREE.Vector3()).x).toBeCloseTo(20, 8);
 
     scene.updateLod(4, 10, 17_000);
     expect(scene.visibleCosmicGroupCount).toBe(0);
@@ -484,7 +598,7 @@ describe('UniverseScene', () => {
     expect(scene.cosmicFilamentCount).toBe(0);
   });
 
-  it('estompe le fond procédural avant les échelles galactiques', () => {
+  it('fait chevaucher le fond procédural et le relais Gaia sans rupture de LOD', () => {
     const scene = new UniverseScene(new PerformanceManager());
     const backdrop = scene.spaceRoot.getObjectByName('distant-star-field') as THREE.Points<
       THREE.BufferGeometry,
@@ -512,14 +626,29 @@ describe('UniverseScene', () => {
     expect(backdrop.material.uniforms['pixelRatio']!.value).toBe(1.25);
 
     scene.updateLod(0, 10);
-    expect(backdrop.visible).toBe(true);
-    expect(backdrop.material.opacity).toBeGreaterThan(0.22);
-    expect(backdrop.material.opacity).toBeLessThan(0.34);
+    expect(backdrop.visible).toBe(false);
+    expect(backdrop.material.opacity).toBeLessThan(0.004);
 
-    scene.updateLod(2, 1);
+    const transitionMiddle = Math.sqrt(
+      STELLAR_NEIGHBORHOOD_REVEAL_START * STELLAR_NEIGHBORHOOD_REVEAL_END,
+    );
+
+    scene.updateLod(2, 10, transitionMiddle);
     expect(backdrop.visible).toBe(true);
-    expect(backdrop.material.opacity).toBeGreaterThan(0.14);
-    expect(backdrop.material.opacity).toBeLessThan(0.24);
+    expect(backdrop.material.opacity).toBeCloseTo(0.24, 6);
+    const stellarLodOpacity = backdrop.material.opacity;
+
+    scene.updateLod(3, 10, transitionMiddle);
+    expect(backdrop.visible).toBe(true);
+    expect(backdrop.material.opacity).toBeCloseTo(stellarLodOpacity, 10);
+
+    scene.updateLod(2, 10, 600);
+    expect(backdrop.visible).toBe(true);
+    const neighborhoodLodOpacity = backdrop.material.opacity;
+
+    scene.updateLod(1, 10, 600);
+    expect(backdrop.visible).toBe(true);
+    expect(backdrop.material.opacity).toBeCloseTo(neighborhoodLodOpacity, 10);
 
     scene.updateLod(4, 1);
     expect(backdrop.visible).toBe(false);
@@ -531,8 +660,8 @@ describe('UniverseScene', () => {
 
     scene.updateLod(1, 1);
     expect(backdrop.visible).toBe(true);
-    expect(backdrop.material.opacity).toBeGreaterThan(0.28);
-    expect(backdrop.material.opacity).toBeLessThan(0.4);
+    expect(backdrop.material.opacity).toBeGreaterThan(0.23);
+    expect(backdrop.material.opacity).toBeLessThanOrEqual(0.24);
     scene.dispose();
   });
 
@@ -548,16 +677,16 @@ describe('UniverseScene', () => {
     expect(environment?.userData['scientificConfidence']).toBe('illustrative');
     scene.setQuality('high');
     scene.updateLod(0, 10, 4.8);
-    expect(band?.visible).toBe(true);
+    expect(band?.visible).toBe(false);
     expect(zodiacal?.visible).toBe(false);
     expect(corona?.visible).toBe(false);
-    expect(environment?.userData['drawMeshCount']).toBe(1);
+    expect(environment?.userData['drawMeshCount']).toBe(0);
 
     scene.updateLod(1, 10, 520);
-    expect(band?.visible).toBe(true);
+    expect(band?.visible).toBe(false);
     expect(zodiacal?.visible).toBe(true);
     expect(corona?.visible).toBe(true);
-    expect(environment?.userData['drawMeshCount']).toBe(3);
+    expect(environment?.userData['drawMeshCount']).toBe(2);
 
     scene.updateLod(1, 10, 520, undefined, true);
     expect(band?.visible).toBe(true);
@@ -570,7 +699,7 @@ describe('UniverseScene', () => {
     expect(environment?.userData['observerDistance']).toBeCloseTo(7_200, 8);
     expect(environment?.userData['observerLocalityOpacity']).toBe(0);
 
-    scene.updateLod(3, 10, 9_600);
+    scene.updateLod(3, 10, 3_600);
     expect(band?.visible).toBe(false);
     expect(zodiacal?.visible).toBe(false);
     expect(corona?.visible).toBe(false);
@@ -716,7 +845,7 @@ describe('UniverseScene', () => {
           positionsParsec: Float32Array.from([1, 2, 3]),
           starCounts: Uint32Array.from([1]),
           apparentMagnitudes: Float32Array.from([0.5]),
-          colorIndicesBv: Float32Array.from([0.2]),
+          colorIndices: Float32Array.from([0.2]),
         },
       ],
       first,
@@ -740,9 +869,11 @@ describe('UniverseScene', () => {
     expect(scene.getCatalogWorldPosition('unknown')).toBeNull();
     expect(scene.getCatalogPickables()).toHaveLength(2);
     expect(points.material.uniforms['radiance']!.value).toBe(
-      getPhotographicProfile(1, 'high').starRadiance,
+      getPhotographicProfile(1, 'high', calculateStellarNeighborhoodReveal(520)).starRadiance,
     );
     expect(points.userData['quality']).toBe('high');
+    expect(points.userData['fieldRendering']).toBe('rendered');
+    expect(points.visible).toBe(true);
     expect(points.material.uniforms['pixelRatio']!.value).toBe(1.375);
     expect(points.material.uniforms['airyStrength']!.value).toBeGreaterThan(0.2);
     expect(points.parent?.parent).toBe(stellarRoot);
@@ -774,17 +905,19 @@ describe('UniverseScene', () => {
     expect(firstPoints.parent?.parent?.name).toBe('solar-neighborhood-reference');
     scene.setQuality('high');
     scene.setPixelRatio(1.25);
-    scene.updateLod(2, 10);
+    scene.updateLod(2, 10, 700);
     scene.selectCatalogObject(first.getPlanetObjectId(0));
     expect(scene.exoplanetHostCount).toBe(1);
     expect(scene.exoplanetCount).toBe(1);
-    expect(scene.visibleExoplanetHostCount).toBe(1);
+    expect(scene.visibleExoplanetHostCount).toBe(0);
     expect(scene.getCatalogWorldPosition(first.getPlanetObjectId(0))).toBeInstanceOf(THREE.Vector3);
-    expect(scene.getCatalogPickables()).toHaveLength(2);
+    expect(scene.getCatalogPickables()).toHaveLength(1);
     expect(scene.isCatalogObjectVisibleForLabels(first.getPlanetObjectId(0))).toBe(true);
+    expect(firstPoints.userData['fieldRendering']).toBe('suppressed-in-favor-of-gaia');
+    expect(firstPoints.visible).toBe(false);
     expect(firstPoints.material.uniforms['pixelRatio']!.value).toBe(1.25);
     expect(firstPoints.material.uniforms['radiance']!.value).toBe(
-      getPhotographicProfile(2, 'high').starRadiance,
+      getPhotographicProfile(2, 'high', calculateStellarNeighborhoodReveal(700)).starRadiance,
     );
 
     await scene.setExoplanetCatalog(second);
@@ -795,34 +928,44 @@ describe('UniverseScene', () => {
     expect(scene.exoplanetCount).toBe(0);
   });
 
-  it('garde les cellules stellaires masquées tout en adaptant leur cache à la qualité', async () => {
+  it('affiche Gaia du Système solaire au voisinage et conserve le lot pendant la bascule', async () => {
     const scene = new UniverseScene(new PerformanceManager());
     const registry = constellationRegistry();
 
     await scene.setStarCatalog(registry);
     await scene.setStarClusterTiles([starClusterTile()], registry);
     scene.setQuality('low');
-    scene.updateLod(3, 10);
+    scene.updateLod(2, 10, 700);
     const clusterPoints = scene.spaceRoot.getObjectByName(
-      'calculated-hyg-star-clusters-lod-3',
+      'calculated-dense-star-samples-lod-3',
     ) as THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial>;
 
     expect(scene.activeStarTileCount).toBe(1);
-    expect(scene.visibleStarClusterCount).toBe(0);
+    expect(scene.visibleStarClusterCount).toBe(1);
+    expect(scene.getGaiaPresentationStats(new THREE.PerspectiveCamera()).sampledSources).toBe(1);
     expect(clusterPoints.geometry.drawRange.count).toBe(1);
+    expect(scene.hasStarClusterObject('gaia-dr3-source-123456789')).toBe(true);
+    expect(scene.getStarClusterDefinition('gaia-dr3-source-123456789')).toMatchObject({
+      name: 'Gaia DR3 123456789',
+    });
+    expect(
+      scene.getStarClusterDefinition('gaia-dr3-source-123456789')?.metadata?.['colorIndexBpRp'],
+    ).toBeCloseTo(0.2);
+    expect(scene.getCatalogPickables()).toContain(clusterPoints);
+    scene.selectCatalogObject('gaia-dr3-source-123456789');
 
     scene.setQuality('high');
-    expect(scene.visibleStarClusterCount).toBe(0);
+    expect(scene.visibleStarClusterCount).toBe(2);
     expect(clusterPoints.geometry.drawRange.count).toBe(2);
-    scene.updateLod(3, 10);
+    scene.updateLod(2, 10, 700);
 
     expect(clusterPoints.material.uniforms['radiance']!.value).toBe(
-      getPhotographicProfile(3, 'high').starRadiance,
+      getPhotographicProfile(2, 'high', calculateStellarNeighborhoodReveal(700)).starRadiance,
     );
-    scene.updateLod(4, 10);
+    scene.updateLod(2, 10, STELLAR_NEIGHBORHOOD_REVEAL_END);
     expect(scene.visibleStarClusterCount).toBe(0);
-    scene.updateLod(2, 10);
-    expect(scene.visibleStarClusterCount).toBe(0);
+    scene.updateLod(1, 10, 520);
+    expect(scene.visibleStarClusterCount).toBe(2);
 
     scene.dispose();
     expect(scene.activeStarTileCount).toBe(0);
@@ -867,7 +1010,7 @@ describe('UniverseScene', () => {
     const stellarRoot = scene.spaceRoot.getObjectByName('solar-neighborhood-reference');
 
     expect(
-      stellarRoot?.children.filter((child) => child.name === 'hyg-star-cluster-root'),
+      stellarRoot?.children.filter((child) => child.name === 'dense-star-cluster-root'),
     ).toHaveLength(1);
     scene.dispose();
   });
@@ -879,13 +1022,15 @@ describe('UniverseScene', () => {
     await scene.setStarCatalog(registry);
     await scene.setConstellationCatalog(constellationCatalog(), registry);
     scene.setConstellationsEnabled(true);
-    scene.updateLod(2, 10);
+    scene.updateLod(2, 10, 700);
 
     const firstLines = scene.spaceRoot.getObjectByName(
       'illustrative-constellation-lines',
     ) as THREE.LineSegments<THREE.BufferGeometry, THREE.LineBasicMaterial>;
 
     expect(firstLines).toBeInstanceOf(THREE.LineSegments);
+    expect(firstLines.visible).toBe(false);
+    scene.updateLod(2, 10, 520);
     expect(firstLines.visible).toBe(true);
     expect(firstLines.userData['segmentCount']).toBe(1);
     expect(scene.getCatalogPickables()).toContain(firstLines);
@@ -1219,18 +1364,22 @@ function starClusterTile(): StarClusterTile {
   return {
     id: 'detail',
     parentId: 'root',
-    version: '2.0.0',
-    sourceCatalog: 'hyg-v41-bright-stars',
+    version: '5.0.0',
+    sourceCatalog: 'gaia-dr3-bright-high-confidence',
     sourceStarCount: 2,
-    referenceEpochJulianDay: 2_451_545,
+    referenceEpochJulianDay: 2_457_388.5,
+    magnitudeBand: 'gaia-g',
+    colorIndexSystem: 'gaia-bp-rp',
     lodLevel: 3,
     cellSizeParsec: 40,
+    representation: 'sampled-source',
     clusterCount: 2,
     cellCoordinates: Int32Array.from([0, 0, 0, 1, 1, 1]),
     positionsParsec: Float32Array.from([1, 2, 3, 4, 5, 6]),
     starCounts: Uint32Array.from([1, 1]),
     apparentMagnitudes: Float32Array.from([0.5, 1]),
-    colorIndicesBv: Float32Array.from([0.2, 0.6]),
+    colorIndices: Float32Array.from([0.2, 0.6]),
+    sourceIds: ['123456789', '987654321'],
   };
 }
 

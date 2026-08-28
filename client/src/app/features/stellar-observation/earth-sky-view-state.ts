@@ -3,7 +3,7 @@ import type { SpaceObject } from '../../../data/models/universe.models';
 import { EARTH_OBSERVER_FIELD_OF_VIEW_DEGREES } from '../../../engine/camera/earth-observer-view.constants';
 import { NavigationPresentationState } from '../../core/url/navigation-presentation-state';
 
-export type EarthSkyViewPhase = 'closed' | 'travelling' | 'open';
+export type EarthSkyViewPhase = 'closed' | 'travelling' | 'open' | 'returning';
 
 @Injectable({ providedIn: 'root' })
 export class EarthSkyViewState {
@@ -83,6 +83,12 @@ export class EarthSkyViewState {
     this.entryPitchOffsetDegrees.set(0);
     this.entryVerticalFieldOfViewDegrees.set(EARTH_OBSERVER_FIELD_OF_VIEW_DEGREES);
     this.phase.set('closed');
+    this.navigation.setViewMode('map');
+  }
+
+  public beginReturn(): void {
+    this.journeyRevision += 1;
+    this.phase.set('returning');
     this.navigation.setViewMode('map');
   }
 }

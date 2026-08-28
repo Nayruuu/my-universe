@@ -1,6 +1,11 @@
 import * as THREE from 'three';
 import { type CosmicGroupCatalogRegistry } from '../objects/cosmic-group-catalog-registry';
 import { getCosmicGroupRevealThreshold, stableMapPriority } from './cosmic-map-policy';
+import {
+  CATALOG_PREPARATION_CHUNK_SIZE,
+  finishCatalogPreparation,
+  sortCatalogRecords,
+} from '../core/catalog-preparation';
 
 export interface CosmicGroupFilamentGeometry {
   readonly geometry: THREE.BufferGeometry;
@@ -33,10 +38,24 @@ export function createCosmicGroupFilamentGeometry(
   registry: CosmicGroupCatalogRegistry,
   filamentPairs: Uint32Array,
 ): CosmicGroupFilamentGeometry {
+  return finishCatalogPreparation(prepareCosmicGroupFilamentGeometry(registry, filamentPairs));
+}
+
+export function* prepareCosmicGroupFilamentGeometry(
+  registry: CosmicGroupCatalogRegistry,
+  filamentPairs: Uint32Array,
+): Generator<void, CosmicGroupFilamentGeometry> {
   const edgeCount = filamentPairs.length / 2;
-  const records = Array.from({ length: edgeCount }, (_, edgeIndex) =>
-    createFilamentRecord(registry, filamentPairs, edgeIndex),
-  ).sort(
+  let records = new Array<FilamentRenderRecord>(edgeCount);
+
+  for (let edgeIndex = 0; edgeIndex < edgeCount; edgeIndex += 1) {
+    records[edgeIndex] = createFilamentRecord(registry, filamentPairs, edgeIndex);
+    if ((edgeIndex + 1) % CATALOG_PREPARATION_CHUNK_SIZE === 0) {
+      yield;
+    }
+  }
+  records = yield* sortCatalogRecords(
+    records,
     (left, right) =>
       left.revealThreshold - right.revealThreshold || left.edgeIndex - right.edgeIndex,
   );
@@ -62,6 +81,9 @@ export function createCosmicGroupFilamentGeometry(
     detailThresholds[alphaOffset] = record.revealThreshold;
     detailThresholds[alphaOffset + 1] = record.revealThreshold;
     revealThresholds[renderIndex] = record.revealThreshold;
+    if ((renderIndex + 1) % CATALOG_PREPARATION_CHUNK_SIZE === 0) {
+      yield;
+    }
   }
   const geometry = new THREE.BufferGeometry();
 
@@ -79,17 +101,31 @@ export function createCosmicGroupFilamentGeometry(
 export function createCosmicGroupPointGeometry(
   registry: CosmicGroupCatalogRegistry,
 ): CosmicGroupPointGeometry {
+  return finishCatalogPreparation(prepareCosmicGroupPointGeometry(registry));
+}
+
+export function* prepareCosmicGroupPointGeometry(
+  registry: CosmicGroupCatalogRegistry,
+): Generator<void, CosmicGroupPointGeometry> {
   const catalog = registry.catalog;
-  const records: GroupRenderRecord[] = Array.from({ length: catalog.count }, (_, catalogIndex) => ({
-    catalogIndex,
-    objectId: registry.objectIds[catalogIndex]!,
-    revealThreshold: getCosmicGroupRevealThreshold(registry.objectIds[catalogIndex]!),
-  }));
+  let records = new Array<GroupRenderRecord>(catalog.count);
+
+  for (let catalogIndex = 0; catalogIndex < catalog.count; catalogIndex += 1) {
+    records[catalogIndex] = {
+      catalogIndex,
+      objectId: registry.objectIds[catalogIndex]!,
+      revealThreshold: getCosmicGroupRevealThreshold(registry.objectIds[catalogIndex]!),
+    };
+    if ((catalogIndex + 1) % CATALOG_PREPARATION_CHUNK_SIZE === 0) {
+      yield;
+    }
+  }
 
   if (records.length > 0) {
     records[0]!.revealThreshold = 0;
   }
-  records.sort(
+  records = yield* sortCatalogRecords(
+    records,
     (left, right) =>
       left.revealThreshold - right.revealThreshold || left.catalogIndex - right.catalogIndex,
   );
@@ -143,6 +179,9 @@ export function createCosmicGroupPointGeometry(
     galaxyProminences[renderIndex] = prominence;
     galaxySeeds[renderIndex] = stableMapPriority(`${objectId}:structure`);
     objectIds[renderIndex] = objectId;
+    if ((renderIndex + 1) % CATALOG_PREPARATION_CHUNK_SIZE === 0) {
+      yield;
+    }
   }
   const geometry = new THREE.BufferGeometry();
 

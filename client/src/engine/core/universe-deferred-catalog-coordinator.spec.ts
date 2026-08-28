@@ -92,8 +92,11 @@ describe('UniverseDeferredCatalogCoordinator', () => {
   it('ignore un chargement terminé après une réinitialisation', async () => {
     const harness = createHarness({ initiallyAvailable: false, pending: true });
     const loading = harness.coordinator.ensureObjectAvailable('kepler-22-b');
+    const isCurrent = harness.installDeferredCatalogs.mock.calls[0]?.[0];
 
+    expect(isCurrent?.()).toBe(true);
     harness.coordinator.reset();
+    expect(isCurrent?.()).toBe(false);
     harness.resolveInstallation();
 
     await expect(loading).resolves.toBe(true);
@@ -230,20 +233,22 @@ function createHarness(options: HarnessOptions = {}) {
         rejectInstallation = () => reject(options.failure);
       })
     : null;
-  const installDeferredCatalogs = vi.fn(async () => {
-    if (failureGate) {
-      return failureGate;
-    }
-    if (options.failure !== undefined) {
-      throw options.failure;
-    }
-    if (installationGate) {
-      return installationGate;
-    }
-    available = true;
+  const installDeferredCatalogs = vi.fn<(isCurrent?: () => boolean) => Promise<readonly string[]>>(
+    async () => {
+      if (failureGate) {
+        return failureGate;
+      }
+      if (options.failure !== undefined) {
+        throw options.failure;
+      }
+      if (installationGate) {
+        return installationGate;
+      }
+      available = true;
 
-    return ['catalogue partiel'];
-  });
+      return ['catalogue partiel'];
+    },
+  );
   const prepareDeferredCatalogs = vi.fn(async () => {
     if (preparationGate) {
       return preparationGate;

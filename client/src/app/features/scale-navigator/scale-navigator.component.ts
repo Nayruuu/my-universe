@@ -53,11 +53,19 @@ export class ScaleNavigatorComponent {
       return this.i18n.content().scale.blackHole;
     }
 
-    if (lodLevel !== 3) {
-      return defaultLabel;
-    }
+    return target?.type === 'galaxy' && (lodLevel === 2 || lodLevel === 3)
+      ? this.i18n.objectName(target.id, target.name)
+      : defaultLabel;
+  }
 
-    return target?.type === 'galaxy' ? this.i18n.objectName(target.id, target.name) : defaultLabel;
+  protected activeScaleLodLevel(): number {
+    const lodLevel = this.facade.lodLevel();
+    const target = this.facade.objects().find((object) => object.id === this.facade.targetId());
+
+    // The renderer starts streaming the stellar catalogue before the camera has completed its
+    // physical journey from the galactic centre to the Sun. Keep the scale indicator attached to
+    // the galaxy during that overlap instead of announcing a reference-frame jump mid-flight.
+    return lodLevel === 2 && target?.type === 'galaxy' ? 3 : lodLevel;
   }
 
   protected toggleMenu(): void {

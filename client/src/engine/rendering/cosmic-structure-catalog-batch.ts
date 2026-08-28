@@ -8,7 +8,10 @@ import {
   getCosmicMapDetail,
   isCosmicMapLayerEnabled,
 } from './cosmic-map-policy';
-import { createCosmicStructureCatalogVisual } from './cosmic-structure-catalog-visual';
+import {
+  type CosmicStructureCatalogGeometry,
+  createCosmicStructureCatalogVisual,
+} from './cosmic-structure-catalog-visual';
 
 const FADE_START_DISTANCE = 140_000;
 const FULL_OPACITY_DISTANCE = 320_000;
@@ -47,12 +50,14 @@ export class CosmicStructureCatalogBatch {
   private opacity = 0;
   private detail = 0;
   private activePointCount = 0;
+  private visibleDrawCount = 0;
 
   constructor(
     private readonly registry: CosmicStructureCatalogRegistry,
     quality: GraphicQuality = 'high',
+    geometry?: CosmicStructureCatalogGeometry,
   ) {
-    const visual = createCosmicStructureCatalogVisual(registry, this.layers);
+    const visual = createCosmicStructureCatalogVisual(registry, this.layers, geometry);
 
     this.quality = quality;
     this.visibleIndices = visual.visibleIndices;
@@ -83,7 +88,7 @@ export class CosmicStructureCatalogBatch {
       Number(layers.filaments),
       Number(layers.voids),
     );
-    this.refreshVisibility();
+    this.refreshVisibility(true);
   }
 
   public setPixelRatio(pixelRatio: number): void {
@@ -170,26 +175,39 @@ export class CosmicStructureCatalogBatch {
     this.root.clear();
   }
 
-  private refreshVisibility(): void {
+  private refreshVisibility(layersChanged = false): void {
     const drawCount = findThresholdCount(this.revealThresholds, this.detail);
+    const visibleDrawCount = this.opacity > 0.004 ? drawCount : 0;
 
     this.points.geometry.setDrawRange(0, drawCount);
-    this.visibleIndices.fill(0);
-    let activeCount = 0;
-
-    for (let index = 0; index < drawCount; index += 1) {
-      if (!isCosmicMapLayerEnabled(this.renderStructureTypes[index]!, this.layers)) {
-        continue;
-      }
-      this.visibleIndices[index] = 1;
-      activeCount += 1;
-    }
-    this.activePointCount = this.opacity > 0.004 ? activeCount : 0;
+    this.refreshSelectionMask(visibleDrawCount, layersChanged);
     this.points.visible = this.activePointCount > 0;
-    if (!this.points.visible) {
-      this.visibleIndices.fill(0);
-    }
     this.points.userData['activeCount'] = this.activePointCount;
+  }
+
+  private refreshSelectionMask(drawCount: number, layersChanged: boolean): void {
+    if (layersChanged) {
+      this.visibleIndices.fill(0, 0, this.visibleDrawCount);
+      this.visibleDrawCount = 0;
+      this.activePointCount = 0;
+    }
+    // Reveal thresholds are sorted. Only the changed prefix boundary needs work; a stationary
+    // or hidden catalogue must not revisit every structure on every animation frame.
+    for (let index = this.visibleDrawCount; index < drawCount; index += 1) {
+      const visible = Number(
+        isCosmicMapLayerEnabled(this.renderStructureTypes[index]!, this.layers),
+      );
+
+      this.visibleIndices[index] = visible;
+      this.activePointCount += visible;
+    }
+    if (drawCount < this.visibleDrawCount) {
+      for (let index = drawCount; index < this.visibleDrawCount; index += 1) {
+        this.activePointCount -= this.visibleIndices[index]!;
+      }
+      this.visibleIndices.fill(0, drawCount, this.visibleDrawCount);
+    }
+    this.visibleDrawCount = drawCount;
   }
 }
 

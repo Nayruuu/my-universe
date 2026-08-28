@@ -280,6 +280,12 @@ describe('App', () => {
     expect(fixture.nativeElement.querySelector('.app-shell--earth-sky-journey')).not.toBeNull();
     expect(view.earthSkyMounted()).toBe(true);
     expect(fixture.nativeElement.querySelector('#earth-sky-journey')).toBeNull();
+
+    earthSkyViewState.beginReturn();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.app-shell--earth-sky-journey')).not.toBeNull();
+    expect(view.earthSkyMounted()).toBe(true);
   });
 
   it('rend tous les états transitoires du shell', () => {

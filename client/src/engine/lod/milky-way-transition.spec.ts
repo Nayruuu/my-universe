@@ -12,9 +12,18 @@ describe('calculateMilkyWayTransition', () => {
       impostorOpacity: 0,
       detailScale: 1,
     });
-    expect(calculateMilkyWayTransition(-1_000)).toEqual(
-      calculateMilkyWayTransition(MILKY_WAY_TRANSITION_START),
-    );
+    expect(calculateMilkyWayTransition(-1_000)).toEqual({
+      detailOpacity: 1,
+      auraOpacity: 1,
+      impostorOpacity: 0,
+      detailScale: 1,
+    });
+    for (let distance = -1_000; distance <= 1_000_000; distance += 1_000) {
+      const scale = calculateMilkyWayTransition(distance).detailScale;
+
+      expect(scale).toBeGreaterThanOrEqual(0.16);
+      expect(scale).toBeLessThanOrEqual(1);
+    }
   });
 
   it('crossfades the detailed map, aura and distant impostor without a visual gap', () => {

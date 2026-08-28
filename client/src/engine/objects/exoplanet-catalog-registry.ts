@@ -1,10 +1,16 @@
 import * as THREE from 'three';
 import type { SearchEntry, SpaceObject } from '../../data/models/universe.models';
 import type { CoordinateSystem } from '../coordinates/coordinate-system';
+import {
+  CATALOG_PREPARATION_CHUNK_SIZE,
+  finishCatalogPreparation,
+  prepareCatalogIncrementally,
+  yieldCatalogPreparation,
+} from '../core/catalog-preparation';
 import type { ExoplanetCatalog } from '../loaders/exoplanet-catalog';
 import { stableCatalogHash } from './exoplanet-catalog-values';
 import {
-  createExoplanetCatalogPresentation,
+  prepareExoplanetCatalogPresentation,
   type ExoplanetCatalogPresentation,
 } from './exoplanet-catalog-presentation';
 import {
@@ -12,10 +18,20 @@ import {
   ExoplanetObjectFactory,
 } from './exoplanet-object-factory';
 import type { LabelObject } from './label-manager';
+import { prepareExoplanetSpatialModel } from './exoplanet-spatial-model';
 
 export { EXOPLANET_MISSING_DISTANCE_FALLBACK_CONFIDENCE };
 
 type CatalogObjectKind = 'host' | 'planet';
+
+interface PreparedExoplanetRegistry {
+  readonly hostObjectIds: readonly string[];
+  readonly planetObjectIds: readonly string[];
+  readonly hostIndexByObjectId: ReadonlyMap<string, number>;
+  readonly planetIndexByObjectId: ReadonlyMap<string, number>;
+  readonly objectFactory: ExoplanetObjectFactory;
+  readonly presentation: ExoplanetCatalogPresentation;
+}
 
 export class ExoplanetCatalogRegistry {
   public readonly hostObjectIds: readonly string[];
@@ -23,9 +39,8 @@ export class ExoplanetCatalogRegistry {
   public readonly renderPositions: Float32Array;
   public readonly activeObjectCount = 0;
 
-  private readonly hostIndexByObjectId = new Map<string, number>();
-  private readonly planetIndexByObjectId = new Map<string, number>();
-  private readonly linkedObjectIds = new Set<string>();
+  private readonly hostIndexByObjectId: ReadonlyMap<string, number>;
+  private readonly planetIndexByObjectId: ReadonlyMap<string, number>;
   private readonly definitions = new Map<string, SpaceObject>();
   private readonly objectFactory: ExoplanetObjectFactory;
   private readonly presentation: ExoplanetCatalogPresentation;
@@ -34,49 +49,31 @@ export class ExoplanetCatalogRegistry {
     public readonly catalog: ExoplanetCatalog,
     coordinateSystem: CoordinateSystem,
     featuredObjects: readonly SpaceObject[] = [],
+    prepared = finishCatalogPreparation(
+      prepareExoplanetRegistry(catalog, coordinateSystem, featuredObjects),
+    ),
   ) {
-    const featuredHosts = createFeaturedObjectMap(featuredObjects, 'star');
-    const featuredPlanets = createFeaturedObjectMap(featuredObjects, 'exoplanet');
-
-    this.hostObjectIds = catalog.hostNames.map((name) => {
-      const featured = findFeaturedObject(featuredHosts, name);
-
-      if (featured) {
-        this.linkedObjectIds.add(featured.id);
-      }
-
-      return featured?.id ?? createNasaCatalogObjectId('host', name);
-    });
-    this.planetObjectIds = catalog.planetNames.map((name) => {
-      const featured = findFeaturedObject(featuredPlanets, name);
-
-      if (featured) {
-        this.linkedObjectIds.add(featured.id);
-      }
-
-      return featured?.id ?? createNasaCatalogObjectId('planet', name);
-    });
-    this.assertUniqueObjectIds();
-    this.objectFactory = new ExoplanetObjectFactory(
-      catalog,
-      coordinateSystem,
-      this.hostObjectIds,
-      this.planetObjectIds,
-    );
+    this.hostObjectIds = prepared.hostObjectIds;
+    this.planetObjectIds = prepared.planetObjectIds;
+    this.hostIndexByObjectId = prepared.hostIndexByObjectId;
+    this.planetIndexByObjectId = prepared.planetIndexByObjectId;
+    this.objectFactory = prepared.objectFactory;
     this.renderPositions = this.objectFactory.renderPositions;
-    this.presentation = createExoplanetCatalogPresentation(
-      catalog,
-      this.hostObjectIds,
-      this.planetObjectIds,
-      this.linkedObjectIds,
+    this.presentation = prepared.presentation;
+  }
+
+  public static async create(
+    catalog: ExoplanetCatalog,
+    coordinateSystem: CoordinateSystem,
+    featuredObjects: readonly SpaceObject[] = [],
+    yieldControl = yieldCatalogPreparation,
+  ): Promise<ExoplanetCatalogRegistry> {
+    const prepared = await prepareCatalogIncrementally(
+      prepareExoplanetRegistry(catalog, coordinateSystem, featuredObjects, true),
+      yieldControl,
     );
 
-    for (let index = 0; index < catalog.hostCount; index += 1) {
-      this.hostIndexByObjectId.set(this.hostObjectIds[index]!, index);
-    }
-    for (let index = 0; index < catalog.planetCount; index += 1) {
-      this.planetIndexByObjectId.set(this.planetObjectIds[index]!, index);
-    }
+    return new ExoplanetCatalogRegistry(catalog, coordinateSystem, featuredObjects, prepared);
   }
 
   public has(objectId: string): boolean {
@@ -192,14 +189,92 @@ export class ExoplanetCatalogRegistry {
   public getLabelObjects(maximumRank?: number): readonly LabelObject[] {
     return this.presentation.getLabelObjects(maximumRank);
   }
+}
 
-  private assertUniqueObjectIds(): void {
-    const identifiers = [...this.hostObjectIds, ...this.planetObjectIds];
+function* prepareExoplanetRegistry(
+  catalog: ExoplanetCatalog,
+  coordinateSystem: CoordinateSystem,
+  featuredObjects: readonly SpaceObject[],
+  prepareSearch = false,
+): Generator<void, PreparedExoplanetRegistry> {
+  const featuredHosts = yield* prepareFeaturedObjectMap(featuredObjects, 'star');
+  const featuredPlanets = yield* prepareFeaturedObjectMap(featuredObjects, 'exoplanet');
+  const linkedObjectIds = new Set<string>();
+  const identifiers = new Set<string>();
+  const hostIndexByObjectId = new Map<string, number>();
+  const planetIndexByObjectId = new Map<string, number>();
+  const hostObjectIds = yield* prepareObjectIds(
+    catalog.hostNames,
+    'host',
+    featuredHosts,
+    linkedObjectIds,
+    identifiers,
+    hostIndexByObjectId,
+  );
+  const planetObjectIds = yield* prepareObjectIds(
+    catalog.planetNames,
+    'planet',
+    featuredPlanets,
+    linkedObjectIds,
+    identifiers,
+    planetIndexByObjectId,
+  );
+  const spatialModel = yield* prepareExoplanetSpatialModel(catalog, coordinateSystem);
+  const objectFactory = new ExoplanetObjectFactory(
+    catalog,
+    coordinateSystem,
+    hostObjectIds,
+    planetObjectIds,
+    spatialModel,
+  );
+  const presentation = yield* prepareExoplanetCatalogPresentation(
+    catalog,
+    hostObjectIds,
+    planetObjectIds,
+    linkedObjectIds,
+    prepareSearch,
+  );
 
-    if (new Set(identifiers).size !== identifiers.length) {
+  return {
+    hostObjectIds,
+    planetObjectIds,
+    hostIndexByObjectId,
+    planetIndexByObjectId,
+    objectFactory,
+    presentation,
+  };
+}
+
+function* prepareObjectIds(
+  names: readonly string[],
+  kind: CatalogObjectKind,
+  featuredObjects: ReadonlyMap<string, SpaceObject>,
+  linkedObjectIds: Set<string>,
+  identifiers: Set<string>,
+  indices: Map<string, number>,
+): Generator<void, readonly string[]> {
+  const ids: string[] = [];
+
+  for (let index = 0; index < names.length; index += 1) {
+    const name = names[index]!;
+    const featured = findFeaturedObject(featuredObjects, name);
+    const id = featured?.id ?? createNasaCatalogObjectId(kind, name);
+
+    if (identifiers.has(id)) {
       throw new Error('Le catalogue d’exoplanètes contient des identifiants de carte dupliqués.');
     }
+    if (featured) {
+      linkedObjectIds.add(id);
+    }
+    identifiers.add(id);
+    indices.set(id, index);
+    ids.push(id);
+    if ((index + 1) % CATALOG_PREPARATION_CHUNK_SIZE === 0) {
+      yield;
+    }
   }
+
+  return ids;
 }
 
 export function createNasaCatalogObjectId(kind: CatalogObjectKind, name: string): string {
@@ -214,11 +289,12 @@ export function createNasaCatalogObjectId(kind: CatalogObjectKind, name: string)
   return `nea-${kind}-${slug}-${stableCatalogHash(`${kind}:${name}`).toString(36)}`;
 }
 
-function createFeaturedObjectMap(
+function* prepareFeaturedObjectMap(
   objects: readonly SpaceObject[],
   type: 'star' | 'exoplanet',
-): ReadonlyMap<string, SpaceObject> {
+): Generator<void, ReadonlyMap<string, SpaceObject>> {
   const map = new Map<string, SpaceObject>();
+  let work = 0;
 
   for (const object of objects) {
     const isCatalogObject =
@@ -226,11 +302,19 @@ function createFeaturedObjectMap(
       (object.metadata?.['sourceTable'] === 'PSCompPars' ||
         (type === 'star' && object.metadata?.['exoplanetHost'] === true));
 
-    if (!isCatalogObject) {
-      continue;
+    if (isCatalogObject) {
+      map.set(normalizeCatalogName(object.name), object);
+      for (const name of object.aliases ?? []) {
+        map.set(normalizeCatalogName(name), object);
+        work += 1;
+        if (work % CATALOG_PREPARATION_CHUNK_SIZE === 0) {
+          yield;
+        }
+      }
     }
-    for (const name of [object.name, ...(object.aliases ?? [])]) {
-      map.set(normalizeCatalogName(name), object);
+    work += 1;
+    if (work % CATALOG_PREPARATION_CHUNK_SIZE === 0) {
+      yield;
     }
   }
 

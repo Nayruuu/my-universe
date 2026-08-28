@@ -8,6 +8,11 @@ import {
   stableMapPriority,
 } from './cosmic-map-policy';
 import { getCosmicStructureSymbolStyle } from './cosmic-structure-symbol-policy';
+import {
+  CATALOG_PREPARATION_CHUNK_SIZE,
+  finishCatalogPreparation,
+  sortCatalogRecords,
+} from '../core/catalog-preparation';
 
 const STRUCTURE_KIND_CODES = {
   cluster: 0,
@@ -29,15 +34,23 @@ export interface CosmicStructureCatalogVisual {
   readonly renderIndexByObjectId: ReadonlyMap<string, number>;
 }
 
+export interface CosmicStructureCatalogGeometry {
+  readonly geometry: THREE.BufferGeometry;
+  readonly objectIds: readonly string[];
+  readonly revealThresholds: Float32Array;
+  readonly structureTypes: readonly CosmicStructureType[];
+  readonly structureCounts: Readonly<Partial<Record<CosmicStructureType, number>>>;
+  readonly renderIndexByObjectId: ReadonlyMap<string, number>;
+}
+
 export function createCosmicStructureCatalogVisual(
   registry: CosmicStructureCatalogRegistry,
   layers: CosmicMapLayers,
+  pointGeometry = finishCatalogPreparation(prepareCosmicStructureGeometry(registry)),
 ): CosmicStructureCatalogVisual {
   const visibleIndices = new Uint8Array(registry.catalog.count);
-  const pointGeometry = createGeometry(registry);
   const points = new THREE.Points(pointGeometry.geometry, createMaterial());
   const selectionPoint = createSelectionPoint();
-  const renderIndexByObjectId = new Map<string, number>();
 
   points.name = 'calculated-cosmic-structure-symbols';
   points.visible = false;
@@ -52,14 +65,11 @@ export function createCosmicStructureCatalogVisual(
   points.userData['voidRepresentation'] = 'adaptive-catalog-underdensity-volume';
   points.userData['voidBoundaryStyle'] = 'diffuse-fill-without-ring';
   points.userData['landmarkRepresentation'] = 'distinct-wall-basin-attractor-repeller-map-symbols';
-  points.userData['structureCounts'] = countStructures(registry.catalog.structureTypes);
+  points.userData['structureCounts'] = pointGeometry.structureCounts;
   points.userData['objectIds'] = pointGeometry.objectIds;
   points.userData['visibleIndices'] = visibleIndices;
   points.userData['activeCount'] = 0;
   points.userData['layerState'] = { ...layers };
-  for (let index = 0; index < pointGeometry.objectIds.length; index += 1) {
-    renderIndexByObjectId.set(pointGeometry.objectIds[index]!, index);
-  }
 
   return {
     points,
@@ -67,40 +77,39 @@ export function createCosmicStructureCatalogVisual(
     visibleIndices,
     revealThresholds: pointGeometry.revealThresholds,
     structureTypes: pointGeometry.structureTypes,
-    renderIndexByObjectId,
+    renderIndexByObjectId: pointGeometry.renderIndexByObjectId,
   };
 }
 
-function createGeometry(registry: CosmicStructureCatalogRegistry): {
-  geometry: THREE.BufferGeometry;
-  objectIds: readonly string[];
-  revealThresholds: Float32Array;
-  structureTypes: readonly CosmicStructureType[];
-} {
+export function* prepareCosmicStructureGeometry(
+  registry: CosmicStructureCatalogRegistry,
+): Generator<void, CosmicStructureCatalogGeometry> {
   const catalog = registry.catalog;
-  const records: StructureRenderRecord[] = Array.from(
-    { length: catalog.count },
-    (_, catalogIndex) => {
-      const source = catalog.metadata.sources[catalog.sourceIndices[catalogIndex]!]!;
-      const objectId = registry.objectIds[catalogIndex]!;
+  const structureCounts: Partial<Record<CosmicStructureType, number>> = {};
+  let records = new Array<StructureRenderRecord>(catalog.count);
 
-      return {
-        catalogIndex,
-        objectId,
-        structureType: catalog.structureTypes[catalogIndex]!,
-        revealThreshold:
-          source.mapPriority === 'landmark' || catalog.catalogNumericIds[catalogIndex]! <= 1
-            ? 0
-            : getCosmicStructureRevealThreshold(
-                objectId,
-                catalog.structureTypes[catalogIndex]!,
-                source.id,
-              ),
-      };
-    },
-  );
+  for (let catalogIndex = 0; catalogIndex < catalog.count; catalogIndex += 1) {
+    const source = catalog.metadata.sources[catalog.sourceIndices[catalogIndex]!]!;
+    const objectId = registry.objectIds[catalogIndex]!;
+    const structureType = catalog.structureTypes[catalogIndex]!;
 
-  records.sort(
+    structureCounts[structureType] = (structureCounts[structureType] ?? 0) + 1;
+    records[catalogIndex] = {
+      catalogIndex,
+      objectId,
+      structureType,
+      revealThreshold:
+        source.mapPriority === 'landmark' || catalog.catalogNumericIds[catalogIndex]! <= 1
+          ? 0
+          : getCosmicStructureRevealThreshold(objectId, structureType, source.id),
+    };
+    if ((catalogIndex + 1) % CATALOG_PREPARATION_CHUNK_SIZE === 0) {
+      yield;
+    }
+  }
+
+  records = yield* sortCatalogRecords(
+    records,
     (left, right) =>
       left.revealThreshold - right.revealThreshold || left.catalogIndex - right.catalogIndex,
   );
@@ -112,6 +121,7 @@ function createGeometry(registry: CosmicStructureCatalogRegistry): {
   const shapeSeeds = new Float32Array(catalog.count);
   const objectIds = new Array<string>(catalog.count);
   const structureTypes = new Array<CosmicStructureType>(catalog.count);
+  const renderIndexByObjectId = new Map<string, number>();
 
   for (let renderIndex = 0; renderIndex < catalog.count; renderIndex += 1) {
     const record = records[renderIndex]!;
@@ -137,6 +147,10 @@ function createGeometry(registry: CosmicStructureCatalogRegistry): {
     shapeSeeds[renderIndex] = stableMapPriority(`${record.objectId}:shape`);
     objectIds[renderIndex] = record.objectId;
     structureTypes[renderIndex] = structureType;
+    renderIndexByObjectId.set(record.objectId, renderIndex);
+    if ((renderIndex + 1) % CATALOG_PREPARATION_CHUNK_SIZE === 0) {
+      yield;
+    }
   }
   const geometry = new THREE.BufferGeometry();
 
@@ -149,7 +163,14 @@ function createGeometry(registry: CosmicStructureCatalogRegistry): {
   geometry.setDrawRange(0, 0);
   geometry.computeBoundingSphere();
 
-  return { geometry, objectIds, revealThresholds, structureTypes };
+  return {
+    geometry,
+    objectIds,
+    revealThresholds,
+    structureTypes,
+    structureCounts,
+    renderIndexByObjectId,
+  };
 }
 
 interface StructureRenderRecord {
@@ -331,16 +352,4 @@ function createSelectionPoint(): THREE.Points<THREE.BufferGeometry, THREE.Shader
   point.userData['objectId'] = null;
 
   return point;
-}
-
-function countStructures(
-  types: readonly CosmicStructureType[],
-): Partial<Record<CosmicStructureType, number>> {
-  const counts: Partial<Record<CosmicStructureType, number>> = {};
-
-  for (const structureType of types) {
-    counts[structureType] = (counts[structureType] ?? 0) + 1;
-  }
-
-  return counts;
 }

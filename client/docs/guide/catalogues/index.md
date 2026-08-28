@@ -16,6 +16,7 @@ versioned manifest before deployment.
 | Solar System           | 41 objects: Sun, planets, 21 moons, dwarf planets, asteroids, and comets | Local ephemerides and documented JPL orbital providers                                        |
 | Confirmed exoplanets   |                                         6,333 planets around 4,747 hosts | NASA composite catalogue facts; illustrative close-up systems                                 |
 | Stellar catalogue      |                                                10,000 selected HYG stars | Observed J2000 positions and velocities; bounded linear propagation over ±10,000 Julian years |
+| Gaia stellar hierarchy |                        2,923,790 inputs; 133,526 measured-source samples | Calculated 512 pc aggregates; measured J2016.0 samples; incomplete background                 |
 | Constellations         |                                          88 modern figures, 644 segments | Cultural line conventions mapped to HYG identifiers                                           |
 | Historical supernovas  |                                                    6 events and remnants | Documented positions and dates; illustrative visual evolution                                 |
 | Local Group            |                                                              31 galaxies | Catalogue positions with adapted morphology and size                                          |
@@ -60,6 +61,8 @@ display radii derived from published volumes, not observed spherical boundaries.
 - [NASA Exoplanet Archive](https://exoplanetarchive.ipac.caltech.edu/) `PSCompPars` for confirmed
   exoplanets and hosts;
 - [HYG Database v4.1](https://github.com/astronexus/HYG-Database) for the compact stellar field;
+- [Gaia Data Release 3](https://www.cosmos.esa.int/web/gaia/data-release-3)
+  `gaia_source_lite` for the quality-filtered hybrid stellar background;
 - [Stellarium modern sky culture](https://github.com/Stellarium/stellarium/tree/master/skycultures/modern)
   for constellation figures;
 - [McConnachie 2012](https://ui.adsabs.harvard.edu/abs/2012AJ....144....4M/abstract) for Local Group

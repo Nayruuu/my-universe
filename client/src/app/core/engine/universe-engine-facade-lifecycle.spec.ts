@@ -98,6 +98,17 @@ describe('UniverseEngineFacadeLifecycle', () => {
     expect(harness.engine.setTarget).toHaveBeenCalledWith('nasa-planet-kepler-22-b', 42);
   });
 
+  it('restaure l’orientation de caméra d’un lien partageable', async () => {
+    const orientation = { x: 0.2, y: -0.3, z: -0.932738 };
+    const harness = createHarness({
+      navigation: { targetId: 'sun', zoom: 520, orientation },
+    });
+
+    await harness.lifecycle.initialize(document.createElement('div'));
+
+    expect(harness.engine.setTarget).toHaveBeenCalledWith('sun', 520, orientation);
+  });
+
   it('restaure une sélection distincte sans remplacer une sélection identique', async () => {
     const distinct = createHarness({
       navigation: { targetId: 'mars', selectedId: 'venus' },
@@ -280,9 +291,9 @@ class FakeLifecycleEngine implements UniverseEngineFacadeLifecycleEngine {
   public readonly setTimeSpeed = vi.fn();
   public readonly ensureObjectAvailable = vi.fn(async () => true);
   public hasObject = vi.fn((objectId: string) => objectId.length > 0);
-  public readonly setTarget = vi.fn<(objectId: string, zoom?: number) => Promise<void>>(
-    async () => undefined,
-  );
+  public readonly setTarget = vi.fn<
+    (objectId: string, zoom?: number, orientation?: NavigationState['orientation']) => Promise<void>
+  >(async () => undefined);
   public readonly completeTargetTransition = vi.fn();
   public readonly selectObject = vi.fn();
   public readonly start = vi.fn();

@@ -33,6 +33,7 @@ async function elementBox(locator: import('@playwright/test').Locator) {
 }
 
 async function expectTouchTarget(locator: import('@playwright/test').Locator) {
+  await expect(locator).toBeVisible();
   const bounds = await elementBox(locator);
 
   expect(bounds.width).toBeGreaterThanOrEqual(MOBILE_TOUCH_TARGET_SIZE);
@@ -290,13 +291,19 @@ test('le guide de rotation et ses actions restent lisibles sur mobile', async ({
   expect(bounds?.x ?? -1).toBeGreaterThanOrEqual(0);
   expect((bounds?.x ?? 0) + (bounds?.width ?? 0)).toBeLessThanOrEqual(viewport?.width ?? 0);
   await expect(details.getByRole('button', { name: 'Voir la rotation' })).toBeVisible();
-  await expect(details.getByRole('button', { name: 'Orbite · Soleil' })).toBeVisible();
+  await expect(details.locator('.details__actions button')).toHaveCount(1);
+  const orbit = details.locator('.facts').getByRole('button', { name: 'Orbite · Soleil' });
+
+  await expect(orbit).toBeVisible();
   await expect
     .poll(() => readRotationGuideState(page))
     .toMatchObject({
       visible: true,
       objectId: 'earth',
     });
+  await orbit.scrollIntoViewIfNeeded();
+  await orbit.tap();
+  await expect.poll(() => queryParameter(page, 'target')).toBe('sun');
   expect(browserErrors).toEqual([]);
 });
 
@@ -335,6 +342,7 @@ test('les contrôles d’éclipse solaire restent contenus sur mobile', async ({
   const browserErrors = monitorBrowserErrors(page);
 
   await openUniverse(page, universeUrl({ selected: '' }));
+  await page.getByRole('button', { name: 'Déplier les contrôles du temps' }).click();
   await page.getByRole('button', { name: 'Ouvrir les événements astronomiques' }).click();
   const browser = page.getByRole('region', { name: 'Éclipses terrestres' });
   const browserBounds = await browser.boundingBox();
@@ -408,6 +416,13 @@ test('la barre mobile compacte garde tous ses contrôles visibles et tactiles à
   expect(layout.scrollHeight).toBe(layout.viewportHeight);
 
   const timeline = page.getByRole('region', { name: 'Contrôle du temps' });
+
+  await expect(timeline.getByLabel('Vitesse temporelle')).toBeHidden();
+  const compactBounds = await elementBox(timeline);
+
+  expect(compactBounds.height).toBeLessThanOrEqual(70);
+  await expectTouchTarget(timeline.getByRole('button', { name: 'Déplier les contrôles du temps' }));
+  await timeline.getByRole('button', { name: 'Déplier les contrôles du temps' }).click();
   const timelineBounds = await elementBox(timeline);
 
   expect(await timeline.evaluate((element) => element.scrollWidth)).toBeLessThanOrEqual(
@@ -432,6 +447,10 @@ test('la barre mobile compacte garde tous ses contrôles visibles et tactiles à
   );
   await expectTouchTarget(timeline.getByLabel('Vitesse temporelle'));
   await expectTouchTarget(timeline.getByLabel('Date et heure UTC de simulation'));
+  await expectTouchTarget(timeline.getByLabel('Mode temporel'));
+  await expectTouchTarget(timeline.getByRole('button', { name: 'Aujourd’hui', exact: true }));
+  await timeline.getByRole('button', { name: 'Replier les contrôles du temps' }).click();
+  await expect(timeline.getByLabel('Date et heure UTC de simulation')).toBeHidden();
   expect(browserErrors).toEqual([]);
 });
 
@@ -553,7 +572,7 @@ test('un téléphone en paysage conserve les panneaux séparés et des actions t
   await expect(page.locator('app-map-scale')).toBeHidden();
   await expect(page.locator('app-floating-controls .controls')).toBeHidden();
 
-  await details.getByRole('button', { name: 'Fermer', exact: true }).click();
+  await details.getByRole('button', { name: 'Fermer la fiche', exact: true }).click();
   const controls = page.locator('app-floating-controls .controls');
   const mapScale = page.locator('app-map-scale .map-scale');
 
@@ -569,6 +588,7 @@ test('un téléphone en paysage conserve les panneaux séparés et des actions t
   await expectTouchTarget(page.getByRole('button', { name: 'Ouvrir les paramètres' }));
   await expectTouchTarget(page.getByRole('button', { name: 'Ouvrir l’aide' }));
   await expectTouchTarget(timeline.getByRole('button', { name: 'Faire avancer le temps' }));
+  await timeline.getByRole('button', { name: 'Déplier les contrôles du temps' }).click();
   await expectTouchTarget(timeline.getByLabel('Vitesse temporelle'));
   expect(browserErrors).toEqual([]);
 });
@@ -581,6 +601,8 @@ test('les huit traductions conservent une composition mobile sans débordement',
 
   await openUniverse(page, universeUrl({ target: 'earth', selected: '' }));
   const languageSelector = page.locator('.language-selector select');
+
+  await page.getByRole('button', { name: 'Déplier les contrôles du temps' }).click();
 
   for (const language of ['fr', 'en', 'es', 'de', 'it', 'ko', 'ja', 'zh']) {
     await languageSelector.selectOption(language);

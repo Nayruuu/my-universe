@@ -1,4 +1,9 @@
 import type { SearchEntry } from '../../data/models/universe.models';
+import {
+  CATALOG_PREPARATION_CHUNK_SIZE,
+  finishCatalogPreparation,
+  sortCatalogRecords,
+} from '../core/catalog-preparation';
 import type { ExoplanetCatalog } from '../loaders/exoplanet-catalog';
 import {
   compactDefinedValues,
@@ -25,21 +30,32 @@ export function createExoplanetCatalogPresentation(
   planetObjectIds: readonly string[],
   linkedObjectIds: ReadonlySet<string>,
 ): ExoplanetCatalogPresentation {
-  const renderableHostIndices = createRenderableHostIndices(
+  return finishCatalogPreparation(
+    prepareExoplanetCatalogPresentation(catalog, hostObjectIds, planetObjectIds, linkedObjectIds),
+  );
+}
+
+export function* prepareExoplanetCatalogPresentation(
+  catalog: ExoplanetCatalog,
+  hostObjectIds: readonly string[],
+  planetObjectIds: readonly string[],
+  linkedObjectIds: ReadonlySet<string>,
+  prepareSearch = false,
+): Generator<void, ExoplanetCatalogPresentation> {
+  const renderableHostIndices = yield* prepareRenderableHostIndices(
     catalog,
     hostObjectIds,
     linkedObjectIds,
   );
-  let searchEntries: readonly SearchEntry[] | null = null;
+  let searchEntries: readonly SearchEntry[] | null = prepareSearch
+    ? yield* prepareSearchEntries(catalog, hostObjectIds, planetObjectIds, linkedObjectIds)
+    : null;
 
   return {
     renderableHostIndices,
     getSearchEntries: () => {
-      searchEntries ??= createSearchEntries(
-        catalog,
-        hostObjectIds,
-        planetObjectIds,
-        linkedObjectIds,
+      searchEntries ??= finishCatalogPreparation(
+        prepareSearchEntries(catalog, hostObjectIds, planetObjectIds, linkedObjectIds),
       );
 
       return searchEntries;
@@ -49,24 +65,32 @@ export function createExoplanetCatalogPresentation(
   };
 }
 
-function createSearchEntries(
+function* prepareSearchEntries(
   catalog: ExoplanetCatalog,
   hostObjectIds: readonly string[],
   planetObjectIds: readonly string[],
   linkedObjectIds: ReadonlySet<string>,
-): readonly SearchEntry[] {
-  return [
-    ...catalog.hostNames.flatMap((_, index) =>
-      linkedObjectIds.has(hostObjectIds[index]!)
-        ? []
-        : [createHostSearchEntry(catalog, hostObjectIds, index)],
-    ),
-    ...catalog.planetNames.flatMap((_, index) =>
-      linkedObjectIds.has(planetObjectIds[index]!)
-        ? []
-        : [createPlanetSearchEntry(catalog, planetObjectIds, index)],
-    ),
-  ];
+): Generator<void, readonly SearchEntry[]> {
+  const entries: SearchEntry[] = [];
+
+  for (let index = 0; index < catalog.hostCount; index += 1) {
+    if (!linkedObjectIds.has(hostObjectIds[index]!)) {
+      entries.push(createHostSearchEntry(catalog, hostObjectIds, index));
+    }
+    if ((index + 1) % CATALOG_PREPARATION_CHUNK_SIZE === 0) {
+      yield;
+    }
+  }
+  for (let index = 0; index < catalog.planetCount; index += 1) {
+    if (!linkedObjectIds.has(planetObjectIds[index]!)) {
+      entries.push(createPlanetSearchEntry(catalog, planetObjectIds, index));
+    }
+    if ((index + 1) % CATALOG_PREPARATION_CHUNK_SIZE === 0) {
+      yield;
+    }
+  }
+
+  return entries;
 }
 
 function createHostSearchEntry(
@@ -117,14 +141,23 @@ function createPlanetSearchEntry(
   };
 }
 
-function createRenderableHostIndices(
+function* prepareRenderableHostIndices(
   catalog: ExoplanetCatalog,
   hostObjectIds: readonly string[],
   linkedObjectIds: ReadonlySet<string>,
-): readonly number[] {
-  return Array.from({ length: catalog.hostCount }, (_, index) => index)
-    .filter((index) => !linkedObjectIds.has(hostObjectIds[index]!))
-    .sort((left, right) => compareHostRank(catalog, left, right));
+): Generator<void, readonly number[]> {
+  const indices: number[] = [];
+
+  for (let index = 0; index < catalog.hostCount; index += 1) {
+    if (!linkedObjectIds.has(hostObjectIds[index]!)) {
+      indices.push(index);
+    }
+    if ((index + 1) % CATALOG_PREPARATION_CHUNK_SIZE === 0) {
+      yield;
+    }
+  }
+
+  return yield* sortCatalogRecords(indices, (left, right) => compareHostRank(catalog, left, right));
 }
 
 function createLabelObjects(

@@ -88,6 +88,26 @@ describe('TimelineComponent', () => {
     TestBed.resetTestingModule();
   });
 
+  it('déplie les réglages sans modifier le temps et expose leur état accessible', () => {
+    const fixture = TestBed.createComponent(TimelineComponent);
+
+    fixture.detectChanges();
+    const button = fixture.nativeElement.querySelector('.timeline-toggle') as HTMLButtonElement;
+
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+    expect(button.getAttribute('aria-controls')).toBe('timeline-scrub timeline-options');
+    button.click();
+    fixture.detectChanges();
+    expect(button.getAttribute('aria-expanded')).toBe('true');
+    expect(button.getAttribute('aria-label')).toBe('Replier les contrôles du temps');
+    expect(fixture.nativeElement.querySelector('.timeline--expanded')).not.toBeNull();
+    button.click();
+    fixture.detectChanges();
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+    expect(facade.setTime).not.toHaveBeenCalled();
+    expect(facade.togglePlaying).not.toHaveBeenCalled();
+  });
+
   it('borne le curseur à dix ans autour du présent', () => {
     const component = createComponent();
 
@@ -98,6 +118,26 @@ describe('TimelineComponent', () => {
     currentTime.set({ julianDay: component.presentJulianDay + 5_000 });
     expect(component.timelineOffset()).toBe(3_652.5);
     expect(component.epochLabel()).not.toBe('');
+  });
+
+  it('garde la portée scientifique du mode Lumière reçue dans la barre du temps', () => {
+    const fixture = TestBed.createComponent(TimelineComponent);
+
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.received-light-context')).toBeNull();
+
+    displayOptions.update((options) => ({ ...options, temporalMode: 'observable' }));
+    fixture.detectChanges();
+    const context = fixture.nativeElement.querySelector('.received-light-context') as HTMLElement;
+
+    expect(context.textContent).toContain('Lumière reçue');
+    expect(context.textContent).toContain('Retard calculé/extrapolé');
+    expect(context.textContent).toContain('systèmes exoplanétaires documentés');
+    expect(context.getAttribute('aria-live')).toBe('polite');
+
+    displayOptions.update((options) => ({ ...options, temporalMode: 'state' }));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.received-light-context')).toBeNull();
   });
 
   it('délègue tous les contrôles temporels', () => {

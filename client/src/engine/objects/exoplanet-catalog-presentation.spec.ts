@@ -1,7 +1,45 @@
 import type { ExoplanetCatalog } from '../loaders/exoplanet-catalog';
-import { createExoplanetCatalogPresentation } from './exoplanet-catalog-presentation';
+import { prepareCatalogIncrementally } from '../core/catalog-preparation';
+import {
+  createExoplanetCatalogPresentation,
+  prepareExoplanetCatalogPresentation,
+} from './exoplanet-catalog-presentation';
 
 describe('createExoplanetCatalogPresentation', () => {
+  it('conserve le tri natif stable entre lots, y compris les distances et magnitudes absentes', async () => {
+    const count = 1025;
+    const data = {
+      ...catalog(),
+      hostCount: count,
+      hostNames: Array.from(
+        { length: count },
+        (_, index) => ['Même nom', 'Étoile', 'Alpha'][index % 3]!,
+      ),
+      hostDistancesParsec: Float64Array.from({ length: count }, (_, index) =>
+        index % 5 === 0 ? Number.NaN : index % 2,
+      ),
+      hostApparentMagnitudes: Float32Array.from({ length: count }, (_, index) =>
+        index % 7 === 0 ? Number.NaN : index % 3,
+      ),
+    };
+    const ids = Array.from({ length: count }, (_, index) => `host-${index}`);
+    const finite = (value: number) => (Number.isFinite(value) ? value : Number.POSITIVE_INFINITY);
+    const expected = Array.from({ length: count }, (_, index) => index).sort(
+      (left, right) =>
+        finite(data.hostDistancesParsec[left]!) - finite(data.hostDistancesParsec[right]!) ||
+        finite(data.hostApparentMagnitudes[left]!) - finite(data.hostApparentMagnitudes[right]!) ||
+        data.hostNames[left]!.localeCompare(data.hostNames[right]!),
+    );
+    const pause = vi.fn(async () => undefined);
+    const presentation = await prepareCatalogIncrementally(
+      prepareExoplanetCatalogPresentation(data, ids, [], new Set()),
+      pause,
+    );
+
+    expect(pause.mock.calls.length).toBeGreaterThan(3);
+    expect(presentation.renderableHostIndices).toEqual(expected);
+  });
+
   it('builds and caches searchable unlinked objects with filter metadata', () => {
     const presentation = createExoplanetCatalogPresentation(
       catalog(),

@@ -6,6 +6,13 @@ import {
   SpaceObjectType,
 } from '../../data/models/universe.models';
 import { CoordinateSystem } from '../coordinates/coordinate-system';
+import {
+  CATALOG_PREPARATION_CHUNK_SIZE,
+  finishCatalogPreparation,
+  prepareCatalogIncrementally,
+  sortCatalogRecords,
+  yieldCatalogPreparation,
+} from '../core/catalog-preparation';
 import type { CosmicStructureCatalog } from '../loaders/cosmic-structure-catalog';
 import {
   COSMOLOGICAL_REDSHIFT_METADATA_KEY,
@@ -34,11 +41,19 @@ const STRUCTURE_COLORS = {
   repeller: '#72daba',
 } as const satisfies Record<CosmicStructureType, string>;
 
+interface PreparedStructureRegistry {
+  readonly sceneUnitsPerMpc: number;
+  readonly renderPositions: Float32Array;
+  readonly objectIds: readonly string[];
+  readonly indexByObjectId: ReadonlyMap<string, number>;
+  readonly labelRecordIndices: readonly number[];
+}
+
 export class CosmicStructureCatalogRegistry {
   public readonly renderPositions: Float32Array;
   public readonly objectIds: readonly string[];
 
-  private readonly indexByObjectId = new Map<string, number>();
+  private readonly indexByObjectId: ReadonlyMap<string, number>;
   private readonly labelRecordIndices: readonly number[];
   private readonly definitions = new Map<string, SpaceObject>();
   private readonly sceneUnitsPerMpc: number;
@@ -47,23 +62,32 @@ export class CosmicStructureCatalogRegistry {
   constructor(
     public readonly catalog: CosmicStructureCatalog,
     coordinateSystem: CoordinateSystem,
+    prepared = finishCatalogPreparation(prepareStructureRegistry(catalog, coordinateSystem)),
   ) {
-    this.sceneUnitsPerMpc = coordinateSystem.toSceneDistance(1, 'megaparsec', 'cosmic-web');
-    this.renderPositions = new Float32Array(catalog.count * 3);
-    this.objectIds = catalog.identifiers.map((identifier, index) =>
-      createObjectId(catalog.metadata.sources[catalog.sourceIndices[index]!]!.id, identifier),
+    this.sceneUnitsPerMpc = prepared.sceneUnitsPerMpc;
+    this.renderPositions = prepared.renderPositions;
+    this.objectIds = prepared.objectIds;
+    this.labelRecordIndices = prepared.labelRecordIndices;
+    this.indexByObjectId = prepared.indexByObjectId;
+  }
+
+  public static async create(
+    catalog: CosmicStructureCatalog,
+    coordinateSystem: CoordinateSystem,
+    yieldControl = yieldCatalogPreparation,
+  ): Promise<CosmicStructureCatalogRegistry> {
+    const prepared = await prepareCatalogIncrementally(
+      prepareStructureRegistry(catalog, coordinateSystem),
+      yieldControl,
     );
-    this.labelRecordIndices = createLabelRanking(catalog);
+    const registry = new CosmicStructureCatalogRegistry(catalog, coordinateSystem, prepared);
 
-    for (let index = 0; index < catalog.count; index += 1) {
-      const objectId = this.objectIds[index]!;
-      const offset = index * 3;
+    registry.searchEntries = await prepareCatalogIncrementally(
+      registry.prepareSearchEntries(),
+      yieldControl,
+    );
 
-      this.indexByObjectId.set(objectId, index);
-      this.renderPositions[offset] = catalog.positionsMpc[offset]! * this.sceneUnitsPerMpc;
-      this.renderPositions[offset + 1] = catalog.positionsMpc[offset + 1]! * this.sceneUnitsPerMpc;
-      this.renderPositions[offset + 2] = catalog.positionsMpc[offset + 2]! * this.sceneUnitsPerMpc;
-    }
+    return registry;
   }
 
   public has(objectId: string): boolean {
@@ -93,27 +117,7 @@ export class CosmicStructureCatalogRegistry {
   }
 
   public getSearchEntries(): readonly SearchEntry[] {
-    this.searchEntries ??= this.objectIds.map((id, index) => {
-      const source = this.sourceAt(index);
-      const identifier = this.catalog.identifiers[index]!;
-      const structureType = this.catalog.structureTypes[index]!;
-
-      return {
-        id,
-        name: cosmicStructureName(source, identifier),
-        aliases: cosmicStructureAliases(source, identifier),
-        type: toSpaceObjectType(structureType),
-        parentName: `Réseau cosmique · ${source.name}`,
-        keywords: [
-          structureType,
-          source.id,
-          source.name,
-          source.citation,
-          'structure à grande échelle',
-          'catalogue scientifique',
-        ],
-      };
-    });
+    this.searchEntries ??= finishCatalogPreparation(this.prepareSearchEntries());
 
     return this.searchEntries;
   }
@@ -144,6 +148,37 @@ export class CosmicStructureCatalogRegistry {
     const index = this.getIndex(objectId);
 
     return index === null ? null : target.fromArray(this.renderPositions, index * 3);
+  }
+
+  private *prepareSearchEntries(): Generator<void, readonly SearchEntry[]> {
+    const entries: SearchEntry[] = [];
+
+    for (let index = 0; index < this.catalog.count; index += 1) {
+      const source = this.sourceAt(index);
+      const identifier = this.catalog.identifiers[index]!;
+      const structureType = this.catalog.structureTypes[index]!;
+
+      entries.push({
+        id: this.objectIds[index]!,
+        name: cosmicStructureName(source, identifier),
+        aliases: cosmicStructureAliases(source, identifier),
+        type: toSpaceObjectType(structureType),
+        parentName: `Réseau cosmique · ${source.name}`,
+        keywords: [
+          structureType,
+          source.id,
+          source.name,
+          source.citation,
+          'structure à grande échelle',
+          'catalogue scientifique',
+        ],
+      });
+      if ((index + 1) % CATALOG_PREPARATION_CHUNK_SIZE === 0) {
+        yield;
+      }
+    }
+
+    return entries;
   }
 
   private createDefinition(index: number): SpaceObject {
@@ -236,13 +271,41 @@ function createObjectId(sourceId: string, identifier: string): string {
     .replace(/^-|-$/g, '');
 }
 
-function createLabelRanking(catalog: CosmicStructureCatalog): readonly number[] {
-  return Array.from({ length: catalog.count }, (_, index) => index).sort((left, right) => {
-    const scoreDifference =
-      cosmicStructureScore(catalog, right) - cosmicStructureScore(catalog, left);
+function* prepareStructureRegistry(
+  catalog: CosmicStructureCatalog,
+  coordinateSystem: CoordinateSystem,
+): Generator<void, PreparedStructureRegistry> {
+  const sceneUnitsPerMpc = coordinateSystem.toSceneDistance(1, 'megaparsec', 'cosmic-web');
+  const renderPositions = new Float32Array(catalog.count * 3);
+  const objectIds: string[] = [];
+  const indexByObjectId = new Map<string, number>();
+  const scores = new Float64Array(catalog.count);
+  const indices: number[] = [];
 
-    return scoreDifference || left - right;
-  });
+  for (let index = 0; index < catalog.count; index += 1) {
+    const objectId = createObjectId(
+      catalog.metadata.sources[catalog.sourceIndices[index]!]!.id,
+      catalog.identifiers[index]!,
+    );
+    const offset = index * 3;
+
+    objectIds.push(objectId);
+    indexByObjectId.set(objectId, index);
+    renderPositions[offset] = catalog.positionsMpc[offset]! * sceneUnitsPerMpc;
+    renderPositions[offset + 1] = catalog.positionsMpc[offset + 1]! * sceneUnitsPerMpc;
+    renderPositions[offset + 2] = catalog.positionsMpc[offset + 2]! * sceneUnitsPerMpc;
+    scores[index] = cosmicStructureScore(catalog, index);
+    indices.push(index);
+    if ((index + 1) % CATALOG_PREPARATION_CHUNK_SIZE === 0) {
+      yield;
+    }
+  }
+  const labelRecordIndices = yield* sortCatalogRecords(
+    indices,
+    (left, right) => scores[right]! - scores[left]! || left - right,
+  );
+
+  return { sceneUnitsPerMpc, renderPositions, objectIds, indexByObjectId, labelRecordIndices };
 }
 
 function toSpaceObjectType(structureType: CosmicStructureType): SpaceObjectType {

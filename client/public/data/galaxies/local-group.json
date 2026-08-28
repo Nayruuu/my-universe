@@ -1,5 +1,5 @@
 {
-  "version": "2.0.0",
+  "version": "2.1.0",
   "objects": [
     {
       "id": "cosmic-web",
@@ -113,7 +113,7 @@
         "subgroup": "Sous-groupe d’Andromède",
         "mapLabelRank": 0,
         "keywords": "M31 Messier NGC 224 groupe local",
-        "visualAdaptation": "Taille, inclinaison et luminosité adaptées au rendu"
+        "visualAdaptation": "Diamètre documenté conservé à l’échelle du Groupe local ; inclinaison, luminosité et taille minimale à l’écran adaptées au rendu"
       }
     },
     {
@@ -150,7 +150,7 @@
         "halfLightRadiusPc": 110,
         "mapLabelRank": 7,
         "keywords": "M32 Messier 32 NGC 221 Andromède",
-        "visualAdaptation": "Rayon visuel exagéré pour rester sélectionnable"
+        "visualAdaptation": "Diamètre de demi-lumière documenté conservé ; luminosité, taille minimale à l’écran et cible de sélection adaptées à la lisibilité"
       }
     },
     {
@@ -187,7 +187,7 @@
         "halfLightRadiusPc": 590,
         "mapLabelRank": 8,
         "keywords": "M110 Messier 110 Andromède",
-        "visualAdaptation": "Rayon visuel exagéré pour rester sélectionnable"
+        "visualAdaptation": "Diamètre de demi-lumière documenté conservé ; luminosité, taille minimale à l’écran et cible de sélection adaptées à la lisibilité"
       }
     },
     {
@@ -224,7 +224,7 @@
         "halfLightRadiusPc": 623,
         "mapLabelRank": 10,
         "keywords": "NGC 147 Andromède",
-        "visualAdaptation": "Rayon visuel exagéré pour rester sélectionnable"
+        "visualAdaptation": "Diamètre de demi-lumière documenté conservé ; luminosité, taille minimale à l’écran et cible de sélection adaptées à la lisibilité"
       }
     },
     {
@@ -261,7 +261,7 @@
         "halfLightRadiusPc": 458,
         "mapLabelRank": 11,
         "keywords": "NGC 185 Andromède",
-        "visualAdaptation": "Rayon visuel exagéré pour rester sélectionnable"
+        "visualAdaptation": "Diamètre de demi-lumière documenté conservé ; luminosité, taille minimale à l’écran et cible de sélection adaptées à la lisibilité"
       }
     },
     {
@@ -299,7 +299,7 @@
         "absoluteMagnitude": -18.8,
         "mapLabelRank": 1,
         "keywords": "M33 Messier 33 NGC 598 Triangle",
-        "visualAdaptation": "Taille, inclinaison et luminosité adaptées au rendu"
+        "visualAdaptation": "Diamètre documenté conservé à l’échelle du Groupe local ; inclinaison, luminosité et taille minimale à l’écran adaptées au rendu"
       }
     },
     {
@@ -337,7 +337,7 @@
         "halfLightRadiusPc": 612,
         "mapLabelRank": 9,
         "keywords": "IC 10 UGC 192 Andromède",
-        "visualAdaptation": "Rayon visuel exagéré pour rester sélectionnable"
+        "visualAdaptation": "Diamètre de demi-lumière documenté conservé ; luminosité, taille minimale à l’écran et cible de sélection adaptées à la lisibilité"
       }
     },
     {
@@ -364,9 +364,11 @@
         "unit": "kiloparsec"
       },
       "metadata": {
-        "source": "McConnachie 2012, AJ 144:4 · SIMBAD/CDS",
+        "source": "McConnachie 2012, AJ 144:4 · SIMBAD/CDS · NASA Swift UV survey 2013",
         "distanceKpc": 51,
         "distanceLy": 166340,
+        "diameterLy": 14000,
+        "sizeSource": "NASA SVS 11293 · https://svs.gsfc.nasa.gov/11293",
         "galacticLongitudeDegrees": 280.5,
         "galacticLatitudeDegrees": -32.9,
         "morphology": "Irrégulière barrée SB(s)m",
@@ -374,7 +376,7 @@
         "absoluteMagnitude": -18.1,
         "mapLabelRank": 2,
         "keywords": "LMC Nuage Magellan satellite Voie lactée",
-        "visualAdaptation": "Rayon visuel exagéré pour rester lisible"
+        "visualAdaptation": "Diamètre documenté conservé ; cible de sélection agrandie indépendamment"
       }
     },
     {
@@ -401,9 +403,11 @@
         "unit": "kiloparsec"
       },
       "metadata": {
-        "source": "McConnachie 2012, AJ 144:4",
+        "source": "McConnachie 2012, AJ 144:4 · NASA Swift UV survey 2013",
         "distanceKpc": 64,
         "distanceLy": 208740,
+        "diameterLy": 7000,
+        "sizeSource": "NASA SVS 11293 · https://svs.gsfc.nasa.gov/11293",
         "galacticLongitudeDegrees": 302.8,
         "galacticLatitudeDegrees": -44.3,
         "morphology": "Naine irrégulière dIrr",
@@ -411,7 +415,7 @@
         "absoluteMagnitude": -16.8,
         "mapLabelRank": 3,
         "keywords": "SMC Nuage Magellan NGC 292 satellite Voie lactée",
-        "visualAdaptation": "Rayon visuel exagéré pour rester lisible"
+        "visualAdaptation": "Diamètre documenté conservé ; cible de sélection agrandie indépendamment"
       }
     },
     {
@@ -448,7 +452,7 @@
         "halfLightRadiusPc": 1496,
         "mapLabelRank": 5,
         "keywords": "IC 1613 UGC 668 groupe local",
-        "visualAdaptation": "Rayon visuel exagéré pour rester sélectionnable"
+        "visualAdaptation": "Diamètre de demi-lumière documenté conservé ; luminosité, taille minimale à l’écran et cible de sélection adaptées à la lisibilité"
       }
     },
     {
@@ -486,7 +490,7 @@
         "halfLightRadiusPc": 354,
         "mapLabelRank": 4,
         "keywords": "NGC 6822 IC 4895 Barnard groupe local",
-        "visualAdaptation": "Rayon visuel exagéré pour rester sélectionnable"
+        "visualAdaptation": "Diamètre de demi-lumière documenté conservé ; luminosité, taille minimale à l’écran et cible de sélection adaptées à la lisibilité"
       }
     },
     {
@@ -523,7 +527,7 @@
         "halfLightRadiusPc": 2111,
         "mapLabelRank": 6,
         "keywords": "WLM Wolf Lundmark Melotte DDO 221 groupe local",
-        "visualAdaptation": "Rayon visuel exagéré pour rester sélectionnable"
+        "visualAdaptation": "Diamètre de demi-lumière documenté conservé ; luminosité, taille minimale à l’écran et cible de sélection adaptées à la lisibilité"
       }
     },
     {
@@ -560,7 +564,7 @@
         "halfLightRadiusPc": 2587,
         "mapLabelRank": 12,
         "keywords": "Sagittarius dSph galaxie naine satellite Voie lactée",
-        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+        "visualAdaptation": "Diamètre de demi-lumière documenté conservé ; luminosité, taille minimale à l’écran et cible de sélection adaptées à la lisibilité"
       }
     },
     {
@@ -597,7 +601,7 @@
         "halfLightRadiusPc": 710,
         "mapLabelRank": 13,
         "keywords": "Fornax Fourneau galaxie naine satellite Voie lactée",
-        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+        "visualAdaptation": "Diamètre de demi-lumière documenté conservé ; luminosité, taille minimale à l’écran et cible de sélection adaptées à la lisibilité"
       }
     },
     {
@@ -634,7 +638,7 @@
         "halfLightRadiusPc": 251,
         "mapLabelRank": 14,
         "keywords": "Leo I Regulus Dwarf UGC 5470 satellite Voie lactée",
-        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+        "visualAdaptation": "Diamètre de demi-lumière documenté conservé ; luminosité, taille minimale à l’écran et cible de sélection adaptées à la lisibilité"
       }
     },
     {
@@ -671,7 +675,7 @@
         "halfLightRadiusPc": 776,
         "mapLabelRank": 15,
         "keywords": "Andromeda VII Cassiopeia Dwarf satellite M31",
-        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+        "visualAdaptation": "Diamètre de demi-lumière documenté conservé ; luminosité, taille minimale à l’écran et cible de sélection adaptées à la lisibilité"
       }
     },
     {
@@ -708,7 +712,7 @@
         "halfLightRadiusPc": 1176,
         "mapLabelRank": 16,
         "keywords": "Andromeda II And II satellite M31",
-        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+        "visualAdaptation": "Diamètre de demi-lumière documenté conservé ; luminosité, taille minimale à l’écran et cible de sélection adaptées à la lisibilité"
       }
     },
     {
@@ -745,7 +749,7 @@
         "halfLightRadiusPc": 672,
         "mapLabelRank": 17,
         "keywords": "Andromeda I And I satellite M31",
-        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+        "visualAdaptation": "Diamètre de demi-lumière documenté conservé ; luminosité, taille minimale à l’écran et cible de sélection adaptées à la lisibilité"
       }
     },
     {
@@ -783,7 +787,7 @@
         "halfLightRadiusPc": 562,
         "mapLabelRank": 18,
         "keywords": "Pegasus dIrr Pégase UGC 12613 DDO 216 groupe local",
-        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+        "visualAdaptation": "Diamètre de demi-lumière documenté conservé ; luminosité, taille minimale à l’écran et cible de sélection adaptées à la lisibilité"
       }
     },
     {
@@ -821,7 +825,7 @@
         "halfLightRadiusPc": 499,
         "mapLabelRank": 19,
         "keywords": "Leo A Leo III UGC 5364 DDO 69 groupe local",
-        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+        "visualAdaptation": "Diamètre de demi-lumière documenté conservé ; luminosité, taille minimale à l’écran et cible de sélection adaptées à la lisibilité"
       }
     },
     {
@@ -858,7 +862,7 @@
         "halfLightRadiusPc": 162,
         "mapLabelRank": 20,
         "keywords": "UGC 4879 VV 124 périphérie groupe local",
-        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+        "visualAdaptation": "Diamètre de demi-lumière documenté conservé ; luminosité, taille minimale à l’écran et cible de sélection adaptées à la lisibilité"
       }
     },
     {
@@ -895,7 +899,7 @@
         "halfLightRadiusPc": 703,
         "mapLabelRank": 21,
         "keywords": "Cetus Baleine galaxie naine groupe local",
-        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+        "visualAdaptation": "Diamètre de demi-lumière documenté conservé ; luminosité, taille minimale à l’écran et cible de sélection adaptées à la lisibilité"
       }
     },
     {
@@ -933,7 +937,7 @@
         "halfLightRadiusPc": 282,
         "mapLabelRank": 22,
         "keywords": "Sagittarius dIrr SagDIG UKS 1927-177 groupe local",
-        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+        "visualAdaptation": "Diamètre de demi-lumière documenté conservé ; luminosité, taille minimale à l’écran et cible de sélection adaptées à la lisibilité"
       }
     },
     {
@@ -971,7 +975,7 @@
         "halfLightRadiusPc": 458,
         "mapLabelRank": 23,
         "keywords": "Aquarius Verseau DDO 210 groupe local",
-        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+        "visualAdaptation": "Diamètre de demi-lumière documenté conservé ; luminosité, taille minimale à l’écran et cible de sélection adaptées à la lisibilité"
       }
     },
     {
@@ -1009,7 +1013,7 @@
         "halfLightRadiusPc": 454,
         "mapLabelRank": 24,
         "keywords": "Phoenix Phénix galaxie naine groupe local",
-        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+        "visualAdaptation": "Diamètre de demi-lumière documenté conservé ; luminosité, taille minimale à l’écran et cible de sélection adaptées à la lisibilité"
       }
     },
     {
@@ -1046,7 +1050,7 @@
         "halfLightRadiusPc": 283,
         "mapLabelRank": 25,
         "keywords": "Sculptor Sculpteur galaxie naine satellite Voie lactée",
-        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+        "visualAdaptation": "Diamètre de demi-lumière documenté conservé ; luminosité, taille minimale à l’écran et cible de sélection adaptées à la lisibilité"
       }
     },
     {
@@ -1084,7 +1088,7 @@
         "halfLightRadiusPc": 470,
         "mapLabelRank": 26,
         "keywords": "LGS 3 Pisces I Local Group Suspect 3 Andromède",
-        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+        "visualAdaptation": "Diamètre de demi-lumière documenté conservé ; luminosité, taille minimale à l’écran et cible de sélection adaptées à la lisibilité"
       }
     },
     {
@@ -1121,7 +1125,7 @@
         "halfLightRadiusPc": 284,
         "mapLabelRank": 27,
         "keywords": "Tucana Toucan galaxie naine groupe local",
-        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+        "visualAdaptation": "Diamètre de demi-lumière documenté conservé ; luminosité, taille minimale à l’écran et cible de sélection adaptées à la lisibilité"
       }
     },
     {
@@ -1158,7 +1162,7 @@
         "halfLightRadiusPc": 221,
         "mapLabelRank": 28,
         "keywords": "Draco Dragon UGC 10822 DDO 208 satellite Voie lactée",
-        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+        "visualAdaptation": "Diamètre de demi-lumière documenté conservé ; luminosité, taille minimale à l’écran et cible de sélection adaptées à la lisibilité"
       }
     },
     {
@@ -1195,7 +1199,7 @@
         "halfLightRadiusPc": 181,
         "mapLabelRank": 29,
         "keywords": "Ursa Minor Petite Ourse UGC 9749 DDO 199 satellite Voie lactée",
-        "visualAdaptation": "Silhouette et rayon visuel adaptés à la lisibilité"
+        "visualAdaptation": "Diamètre de demi-lumière documenté conservé ; luminosité, taille minimale à l’écran et cible de sélection adaptées à la lisibilité"
       }
     },
     {
@@ -1233,7 +1237,7 @@
         "halfLightRadiusPc": 120,
         "mapLabelRank": 30,
         "keywords": "Leo T galaxie naine groupe local",
-        "visualAdaptation": "Silhouette et rayon visuel fortement exagérés pour la sélection"
+        "visualAdaptation": "Diamètre de demi-lumière documenté conservé ; luminosité, taille minimale à l’écran et cible de sélection adaptées à la lisibilité"
       }
     }
   ]

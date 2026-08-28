@@ -88,6 +88,11 @@ describe('object details catalog presentation', () => {
 
     expect(presentation.apparentMagnitudeLabel(documented)).toBe('-1,46');
     expect(presentation.colorIndexLabel(documented)).toBe('0,009');
+    expect(presentation.colorIndexName(documented)).toBe('Indice B−V');
+    const gaiaSource = object({ metadata: { colorIndexBpRp: 1.236 } });
+
+    expect(presentation.colorIndexLabel(gaiaSource)).toBe('1,236');
+    expect(presentation.colorIndexName(gaiaSource)).toBe('Indice BP−RP');
     expect(presentation.distanceUncertaintyLabel(documented)).toBe('± 0,12 mag');
     expect(presentation.cmbVelocityLabel(documented)).toBe('810 km/s');
     expect(presentation.morphologyLabel(documented)).toBe('Sb');
@@ -100,6 +105,8 @@ describe('object details catalog presentation', () => {
 
   it('n’invente aucune valeur absente du catalogue', () => {
     const missing = object();
+
+    expect(presentation.colorIndexName(missing)).toBe('Indice B−V');
 
     for (const label of [
       presentation.apparentMagnitudeLabel,

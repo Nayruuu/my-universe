@@ -1,5 +1,5 @@
 {
-  "version": "1.4.1",
+  "version": "1.4.2",
   "objects": [
     {
       "id": "milky-way",
@@ -34,7 +34,7 @@
         "spiralStructureSource": "Reid et al. 2019, ApJ 885:131, doi:10.3847/1538-4357/ab4a11",
         "spiralArmCount": 4,
         "spiralPitchDegrees": 13,
-        "visualAdaptation": "Champ de densité galactocentrique illustratif ; disque détaillé à l’échelle galactique, imposteur au Groupe local"
+        "visualAdaptation": "Morphologie procédurale galactocentrique illustrative ; diamètre documenté de 100 000 années-lumière converti continûment entre les référentiels galactique et Groupe local"
       }
     },
     {
@@ -80,7 +80,7 @@
         "galactocentricDistanceKpc": 8.178,
         "galactocentricPositionSource": "GRAVITY Collaboration 2019, A&A 625:L10, doi:10.1051/0004-6361/201935656",
         "galactocentricReferenceFrame": "Centre galactique à l’origine, Soleil sur +X dans le plan galactique ; décalage vertical omis",
-        "visualAdaptation": "Position galactocentrique scientifique convertie vers l’échelle galactique comprimée"
+        "visualAdaptation": "Position galactocentrique scientifique convertie linéairement avec le même facteur que le diamètre de la Voie lactée"
       }
     },
     {

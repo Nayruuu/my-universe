@@ -27,6 +27,8 @@ const ANCHORED_LABEL_TYPES = new Set<SpaceObjectType>([
   'supernova-remnant',
 ]);
 const LABEL_PLACEMENT_OVERSCAN = 8;
+const GALACTIC_CONTEXT_LABEL_FADE_INNER_DISTANCE = 5_000;
+const GALACTIC_CONTEXT_LABEL_FADE_OUTER_DISTANCE = 7_000;
 
 export function getMaximumOrdinaryLabelCount(
   quality: GraphicQuality,
@@ -67,4 +69,27 @@ export function getLabelRenderFlags(object: LabelObject, lodLevel: number): Labe
     solarSystemPrimaryLabel,
     scaleLandmark: isScaleLandmarkAtLevel(object, lodLevel),
   };
+}
+
+/**
+ * Removes Local Group map annotations before the Milky Way becomes an environment. The curve is
+ * presentational only: active labels remain available and astronomical visibility is unchanged.
+ */
+export function calculateGalacticContextLabelOpacity(cameraDistance: number): number {
+  if (Number.isNaN(cameraDistance) || cameraDistance === Number.POSITIVE_INFINITY) {
+    return 1;
+  }
+  if (cameraDistance === Number.NEGATIVE_INFINITY) {
+    return 0;
+  }
+  const progress = Math.max(
+    0,
+    Math.min(
+      1,
+      (cameraDistance - GALACTIC_CONTEXT_LABEL_FADE_INNER_DISTANCE) /
+        (GALACTIC_CONTEXT_LABEL_FADE_OUTER_DISTANCE - GALACTIC_CONTEXT_LABEL_FADE_INNER_DISTANCE),
+    ),
+  );
+
+  return progress * progress * (3 - 2 * progress);
 }

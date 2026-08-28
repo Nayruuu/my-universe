@@ -1,48 +1,60 @@
-import * as THREE from 'three';
-import {
-  getMilkyWayCinematicProfile,
-  MILKY_WAY_ATLAS_URL,
-  MilkyWayVolumeVisual,
-} from './milky-way-volume-visual';
+import { calculateMilkyWaySceneScale } from '../coordinates/galaxy-scale-model';
+import { MilkyWayVolumeVisual } from './milky-way-volume-visual';
 
 describe('MilkyWayVolumeVisual', () => {
-  it('possède seul les couches GPU, le profil photographique et l’atlas', () => {
+  it('ne rend aucune couche volumétrique distincte de la galaxie construite en points', () => {
     const visual = new MilkyWayVolumeVisual();
-    const texture = new THREE.Texture(document.createElement('img'));
-    const textureDispose = vi.spyOn(texture, 'dispose');
-    const base = visual.root.getObjectByName('milky-way-volume-disc-base') as THREE.Mesh<
-      THREE.PlaneGeometry,
-      THREE.ShaderMaterial
-    >;
 
+    expect(visual.root.children).toHaveLength(0);
     expect(visual.root.userData).toMatchObject({
-      atlasUrl: MILKY_WAY_ATLAS_URL,
+      rasterAtlas: 'none',
+      surfaceGeometry: 'none',
       scientificConfidence: 'illustrative',
+      visualStructure: 'retired-volume-placeholder-for-point-built-galaxy',
+      primaryRepresentation: 'deterministic-galactocentric-batched-point-cloud',
       morphologyModel: 'barred-spiral-with-two-major-and-two-minor-arms',
-      samplingTechnique: 'grazing-angle-mip-bias-with-anisotropic-filtering',
+      apparentScaleTreatment: 'shared-canonical-galactic-metric-for-disc-and-solar-position',
+      physicalDiameterLightYears: 100_000,
+      authoringDiameter: 11_400,
+      depthTechnique: 'point-cloud-only',
+      proceduralTechnique: 'none',
+      nearRepresentation: 'same-fixed-galactocentric-points-resolved-by-perspective-and-proximity',
+      transitionRepresentation:
+        'one-galactocentric-point-population-from-exterior-silhouette-to-stellar-traversal',
+      proceduralVolumeOpacityFactor: 0,
+      verticalStructure: 'thin-and-thick-disc-point-distribution',
+      visualThicknessTreatment: 'point-density-envelope-only',
+      interiorContinuity: 'fixed-point-cloud-through-galactic-and-stellar-catalogue-overlay',
+      interiorClarityTreatment: 'same-points-resolve-by-local-proximity',
+      integratedLightTreatment: 'none-separate-volume-retired',
+      exteriorReadabilityTreatment: 'point-density-arms-and-bulge-with-dark-interarm-separation',
     });
-    expect(getMilkyWayCinematicProfile('high').parallaxStrength).toBeGreaterThan(
-      getMilkyWayCinematicProfile('low').parallaxStrength,
-    );
 
-    visual.installAtlas(texture);
     visual.setQuality('high');
-    visual.update(0.8, 0.75, 1.2);
+    const localGroupScale = calculateMilkyWaySceneScale(17_000);
 
-    expect(visual.visibleDiscLayerCount).toBe(3);
-    expect(visual.drawMeshCount).toBe(4);
-    expect(visual.root.scale.toArray()).toEqual([0.75, 0.75, 0.75]);
-    expect(base.material.uniforms['opacity']!.value).toBe(0.8);
-    expect(base.material.uniforms['galaxyRadiance']!.value).toBe(1.2);
-    expect(texture.colorSpace).toBe(THREE.SRGBColorSpace);
-    expect(texture.anisotropy).toBe(16);
-    expect(base.material.vertexShader).toContain('viewFacing');
-    expect(base.material.fragmentShader).toContain('samplingBias');
-    expect(base.material.fragmentShader).toContain('(1.0 - viewFacing) * 5.0');
-    expect(base.material.fragmentShader).toContain('texture2D(atlas, warpedUv, samplingBias)');
+    visual.update(1.2, localGroupScale, true);
+
+    expect(visual.root.visible).toBe(false);
+    expect(visual.visibleSurfaceLayerCount).toBe(0);
+    expect(visual.proceduralVolumeVisible).toBe(false);
+    expect(visual.drawMeshCount).toBe(0);
+    expect(visual.root.scale.x).toBeCloseTo(localGroupScale.modelScale, 8);
+    expect(visual.root.userData).toMatchObject({
+      quality: 'high',
+      worldDiameter: localGroupScale.worldDiameter,
+      physicalWorldDiameter: localGroupScale.physicalWorldDiameter,
+      visualScaleFactor: localGroupScale.visualScaleFactor,
+      visualSceneUnitsPerKiloparsec: localGroupScale.visualSceneUnitsPerKiloparsec,
+      referenceFrameSceneUnitsPerKiloparsec: localGroupScale.referenceFrameSceneUnitsPerKiloparsec,
+      referenceFrameBlend: 'intergalactic-to-galactic',
+      surfaceLayerCount: 0,
+      volumeLayerOpacity: 0,
+      requestedGalaxyRadiance: 1.2,
+      requestedActive: true,
+    });
 
     visual.dispose();
-    expect(textureDispose).toHaveBeenCalledOnce();
     expect(visual.root.children).toHaveLength(0);
   });
 });

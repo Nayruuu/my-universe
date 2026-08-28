@@ -5,7 +5,7 @@ description: Consulta lo que Universe Map ya ha entregado, sus prioridades actua
 
 # Hoja de ruta
 
-_Última revisión: 28 de agosto de 2026._
+_Última revisión: 10 de septiembre de 2026._
 
 Esta página es la hoja de ruta pública de referencia de Universe Map. Describe resultados y criterios
 de validación en lugar de prometer fechas. La precisión científica, una navegación legible, tiempos de
@@ -26,6 +26,14 @@ fotograma estables y una arquitectura web completamente estática limitan cada e
   libre, constelaciones modernas, altitud y acimut, campo de visión de 102° a 2° anclado al puntero,
   461 lugares restaurables desde la URL, geolocalización del navegador consentida y redondeada a
   tres decimales, y contextos de escena locales ilustrativos.
+- El regreso del planetario al mapa 3D dura 2,4 segundos en el mismo renderer, conserva la
+  mirada inicial y convierte la Tierra en pivote. Cualquier gesto interrumpe la animación
+  ilustrativa, que respeta la preferencia de movimiento reducido.
+- Fichas, búsqueda, planificador y línea temporal se adaptan a pantallas estrechas y bajas,
+  con estados compactos y ampliados. El cierre queda en la cabecera y la acción orbital junto
+  a los datos de órbita. Se elimina el aviso naranja redundante, pero permanece el contexto
+  científico. Las pruebas de rueda esperan a que termine la inercia y verifican un nuevo gesto
+  en el límite de distancia, sin cambiar los controles de cámara.
 - Un planificador local bajo demanda ordena la Luna, los planetas y los satélites catalogados visibles
   por altitud y evalúa las 48 estrellas más brillantes del catálogo para proponer hasta ocho visibles.
   Elegir una sugerencia abre sus detalles existentes y vuelve a centrar el cielo. Se aplican el
@@ -34,9 +42,11 @@ fotograma estables y una arquitectura web completamente estática limitan cada e
   crepúsculo USNO, interferencia lunar, un índice de mejor ventana explícitamente ilustrativo y una
   acción que mueve juntos el tiempo y la cámara. El objetivo de la curva puede cambiarse desde el mismo
   catálogo local sin mover el cielo actual; solo esa acción confirma el objetivo, el tiempo compartido
-  y la cámara. Una comparación compacta aplica el mismo cálculo a siete noches consecutivas; al elegir
-  una se pasa directamente a su mejor instante, refinado localmente a cinco minutos. El tiempo en
-  directo, la contaminación lumínica y los obstáculos locales no medidos quedan fuera del modelo.
+  y la cámara. Una comparación compacta aplica el mismo cálculo a siete noches consecutivas. Destaca
+  automáticamente la mejor con un índice ilustrativo comparable sobre 100 y muestra altura,
+  oscuridad, luz lunar y despeje del terreno antes de su acción directa al mejor instante, refinado
+  localmente a cinco minutos. El tiempo en directo, la contaminación lumínica y los obstáculos locales
+  no medidos quedan fuera del modelo.
 - Cada lugar fijo del catálogo dispone de un perfil de obstrucción de 360° calculado con el producto
   autorizado de relieve superficial NOAA/NCEI ETOPO 2022 v1 de 60 segundos de arco. Los perfiles
   compactos se cargan bajo demanda y pueden ocultar estrellas, la Luna, planetas y satélites tras el terreno
@@ -49,8 +59,34 @@ fotograma estables y una arquitectura web completamente estática limitan cada e
   dieciséis trayectorias de elementos medios J2000 siguen marcadas como extrapoladas. Los satélites
   aparecen a partir de un campo de 12°, o de inmediato si son el objetivo, para evitar superposiciones
   en gran angular; el tamaño mínimo de legibilidad sigue marcado como ilustrativo.
-- Las estrellas y la Vía Láctea ganan detalle de forma continua con el zoom. La navegación también
-  elimina objetivos y selecciones que ya no pertenecen al contexto visible.
+- La vista exterior y el recorrido de la Vía Láctea usan la misma nube galactocéntrica fija,
+  sin imagen de galaxia ni túnel ligado a la cámara. Disco y Sol comparten la escala canónica:
+  100.000 años luz de diámetro y 8,178 kpc del Sol al centro. No cambian el recorrido de cámara
+  ni la respuesta de la rueda. Los granos finos muestran paralaje de perspectiva y un lote GPU
+  adicional acotado aporta detalle cercano. Barra dorada, núcleo marfil, brazos blancoazulados y
+  bandas oscuras son densidades y colores ilustrativos, no mediciones Gaia individuales ni luz
+  emitida por el agujero negro.
+- El marco local se despliega de forma invisible entre 3.600 y 2.400 unidades de escena.
+  HYG/Gaia aparecen entre 900 y 90 unidades con sus coordenadas ya fijas. La nube galáctica
+  desaparece entre 220 y 70, mientras planetas y órbitas aparecen entre 240 y 90. El detalle
+  cercano conserva su posición al detenerse y al recorrer el camino inverso.
+- Las galaxias externas también usan nubes fijas con densidad espiral, elíptica o irregular,
+  visibles desde varios ángulos. Las posiciones de catálogo se conservan; puntos internos y
+  colores son ilustrativos. Seleccionar una galaxia conserva su ficha y las interacciones,
+  sin superponer un enorme anillo de selección planetario.
+- Una jerarquía Gaia DR3 representa 2.923.790 fuentes filtradas por calidad mediante agregados
+  calculados distantes de 512 pc y 133.526 muestras de fuentes medidas para la vista general del
+  vecindario estelar. Cada hoja refinada de 512 pc conserva sus 32 fuentes más brillantes y una
+  selección uniforme determinista, hasta 96 puntos. El refinamiento limitado por visibilidad y
+  calidad carga solo las ramas útiles, las valida en Workers de módulo, transfiere arrays tipados
+  sin copias y nunca crea un objeto Three.js por fuente. Las muestras Gaia conservadas mantienen su
+  identificador de fuente y se pueden seleccionar y enfocar directamente desde sus lotes GPU
+  compartidos; sus fichas muestran G y BP−RP medidos y la distancia calculada por inversión de
+  paralaje. Siguen fuera de la búsqueda global y las etiquetas, mientras que las celdas agregadas
+  permanecen anónimas. El campo muestreado es incompleto. Al alejar
+  el zoom, las muestras detalladas se funden en raíces calculadas que siguen visibles de forma
+  discreta hasta el Grupo Local, mientras el volumen local se integra en el disco de la Vía Láctea
+  mediante una escala logarítmica.
 - Las velocidades cartesianas J2000 de HYG propagan ahora el catálogo compartido, el cielo del
   observador y las figuras de constelación, con confianza extrapolada explícita y límite de ±10.000
   años julianos.
@@ -98,18 +134,60 @@ fotograma estables y una arquitectura web completamente estática limitan cada e
   escena; al terminar, la instalación en el hilo principal de registros, búsqueda, geometrías y GPU
   exige una nueva ventana de 1,2 segundos de cámara estable. Cada transición reinicia el plazo, el
   modo observable suspende por completo la instalación de fondo y un objetivo solicitado
-  explícitamente sigue cargándose de inmediato. La campaña limpia de la revisión ya supera sus diez
+  explícitamente sigue cargándose de inmediato. La campaña limpia del 28 de agosto de 2026, revisión `27db0e1`, superó sus diez
   informes. Los recorridos de escala media/CPU 4× se mantienen en 9,3 ms p95 con un peor fotograma de
   66,5 ms; baja/CPU 6× se mantiene en 16,6–16,7 ms p95 con un peor fotograma de 83,4 ms. Los recorridos
   observables resuelven Júpiter 3/3 en ambos perfiles y los recuentos de recursos no derivan.
 
 ## Prioridades actuales
 
-- Mantener el manifiesto simulado limpio aprobado 10/10 como referencia de regresión y repetir la
-  campaña tras cambios importantes de renderizado o catálogo. La evidencia actual no justifica una
-  ruta de precompilación de shaders más pesada ni un fallback de menor fidelidad; la validación física
-  media/baja sigue siendo opcional si aparece hardware adecuado. Los perfiles simulados siguen siendo
-  controles de regresión, no afirmaciones sobre dispositivos.
+- Los ancestros del objeto activo se calculan una vez por fotograma, no por objeto, conservando
+  la prioridad del destino y los cambios del catálogo. Se prueban padres ausentes y ciclos.
+  El caso aislado CPU 6× (503 entradas, 200 actualizaciones) baja de 95,2–98,2 ms a 74,6–80,3 ms,
+  con estados LOD idénticos. Cámara y reglas visuales no cambian; no es una mejora de FPS
+  medida para toda la aplicación.
+  Los recorridos en frío pasan 3/3 por perfil (máximos 66,8 ms low / 100,0 ms medium).
+  Medianas Tempel: 27,0 / 31,2 ms, pero un pico medium de 78,2 ms sigue fuera del presupuesto.
+- El panorama 8K se decodifica de forma asíncrona antes de subirlo a la GPU, conservando resolución
+  y colores. Las transferencias aisladas en Chrome / CPU 6× bajan de 742,7–790,8 ms a 96,2–102,8 ms,
+  con píxeles GPU muestreados idénticos en Chromium, Firefox y WebKit. Al liberar la textura se
+  libera el bitmap, incluso si llega tarde. El precalentamiento espera como máximo 500 ms al
+  panorama opcional, en paralelo con los shaders, para evitar subirlo durante la primera navegación.
+  Siguen pendientes otros picos GPU y la campaña
+  completa sobre un estado limpio.
+  Los recorridos finales pasan 3/3 en low y 2/3 en medium (máximos 66,7 / 100,1 ms), sin cambiar
+  el límite de 100 ms. Medianas Tempel: 26,6 / 28,4 ms; los seis primeros fotogramas visibles
+  quedan por debajo de 33,3 ms. Estas series locales no sustituyen la campaña limpia.
+- Tras la etapa de búsqueda/etiquetas del 11 de septiembre, bajo/CPU 6× y medio/CPU 4× pasan 3/3
+  recorridos dirigidos (máximos de 100,0 y 99,9 ms). Las medianas Tempel son 33,7 ms en bajo
+  (fuera del presupuesto) y 32,6 ms en medio, con 3/3 precargas por perfil. La peor latencia global
+  no mejora respecto a la serie anterior. Quedan picos por fase y la campaña completa en una revisión
+  limpia; estos resultados locales no sustituyen la referencia histórica.
+- La geometría Cosmicflows y los símbolos de grandes estructuras se preparan en pequeños lotes,
+  incluida la ordenación estable y los índices de selección, con publicación completa y limpieza al
+  cancelar. Sus registros también preparan identificadores, posiciones, clasificación y nombres/alias
+  por lotes antes de publicar la caché de búsqueda completa. Posiciones y aspecto no cambian.
+  Los identificadores, posiciones, preparación orbital, clasificación de estrellas anfitrionas y
+  búsquedas de exoplanetas siguen ahora el mismo proceso, conservando vínculos y valores científicos.
+  El índice de teselas estelares también prepara por lotes su tabla de identificadores y sus volúmenes
+  de visibilidad, sin publicar un índice parcial. Las 3.964 celdas Gaia y las 378 combinaciones de vista
+  probadas no cambian. Los nombres y etiquetas HYG se preparan por lotes y se almacenan en caché.
+  La búsqueda y el descubrimiento de exoplanetas se publican juntos al completarse, manteniendo
+  utilizable la versión anterior y descartando trabajo obsoleto tras cambios de datos o idioma.
+  Los valores científicos y el orden de resultados no cambian. Quedan otros procesos estelares,
+  el primer trabajo GPU y la campaña completa sobre una revisión limpia.
+- Primeras optimizaciones CPU: máscaras de selección incrementales, puntuaciones precalculadas
+  y reutilización acotada de palabras clave. Cámara y renderizado no cambian. Los recorridos
+  dirigidos cumplen los presupuestos globales; quedan picos por fase en frío y una campaña sobre
+  una revisión limpia, sin sustituir la referencia histórica 10/10.
+- Confirmar el ajuste visual final de brazos, núcleo y recorrido frente a las referencias.
+  Las pruebas de navegador cubren ángulos, estabilidad espacial y selección de galaxias;
+  la visibilidad técnica no sustituye la aprobación estética.
+- Investigar los excesos de presupuesto de fotograma registrados en los diagnósticos locales
+  del 10 de septiembre y repetir después la campaña sobre una revisión limpia. Los valores
+  10/10 anteriores pertenecen a la referencia histórica del 28 de agosto, no al estado actual
+  sin commit. Los perfiles simulados no prueban el rendimiento de otro equipo; la validación
+  física media/baja sigue siendo opcional.
 
 El planetario sigue siendo una proyección topocéntrica distinta del lugar de observación elegido. El
 mapa temporal Luz recibida usa la Tierra para los cuerpos compatibles del Sistema Solar y el
@@ -117,9 +195,6 @@ baricentro del Sistema Solar para las estrellas HYG y los sistemas exoplanetario
 
 ## Aplazado deliberadamente
 
-- La jerarquía estelar agregada preparada seguirá inactiva hasta que un catálogo más denso necesite
-  una representación visible entre escalas. Activarla exigirá preparación en Web Worker y ningún
-  trabajo invisible de red o GPU.
 - Solo se añadirán nuevas siluetas o mallas de cuerpos irregulares cuando un modelo de forma autorizado
   justifique descarga, decodificación, atribución y coste de renderizado.
 

@@ -18,6 +18,46 @@ export interface ObjectSurfaceContribution {
   readonly maximumDifference: number;
 }
 
+export interface GaiaFramebufferSignature {
+  readonly sampledSourceBatchCount: number;
+  readonly luminousPixelCount: number;
+  readonly horizontalLuminousPixelBins: readonly number[];
+  readonly chromaticPixelCount: number;
+  readonly horizontalChromaticPixelBins: readonly number[];
+  readonly vividChromaticPixelCount: number;
+  readonly vividChromaticPixelGrid: readonly number[];
+}
+
+export interface ChromaticGalacticFramebufferSignature {
+  readonly transitionBatchCount: number;
+  readonly chromaticPixelCount: number;
+  readonly horizontalChromaticPixelBins: readonly number[];
+  readonly vividChromaticPixelCount: number;
+  readonly vividChromaticPixelGrid: readonly number[];
+  readonly prominentChromaticStarCount: number;
+  readonly prominentChromaticStarGrid: readonly number[];
+}
+
+export interface ChromaticGalacticCompositeSignature {
+  readonly transitionBatchCount: number;
+  readonly changedPixelCount: number;
+  readonly horizontalChangedPixelBins: readonly number[];
+  readonly chromaticContributionPixelCount: number;
+  readonly chromaticContributionPixelGrid: readonly number[];
+}
+
+interface IsolatedPointFramebufferSignature {
+  readonly pointBatchCount: number;
+  readonly luminousPixelCount: number;
+  readonly chromaticPixelCount: number;
+  readonly horizontalLuminousPixelBins: readonly number[];
+  readonly horizontalChromaticPixelBins: readonly number[];
+  readonly vividChromaticPixelCount: number;
+  readonly vividChromaticPixelGrid: readonly number[];
+  readonly prominentChromaticStarCount: number;
+  readonly prominentChromaticStarGrid: readonly number[];
+}
+
 interface RuntimeScene {
   readonly scene: object;
 }
@@ -82,6 +122,45 @@ export async function isObservedShapeAttached(page: Page, objectId: string): Pro
 
 export async function readRenderedFrameSignature(page: Page): Promise<RenderedFrameSignature> {
   return page.evaluate(browserReadRenderedFrameSignature);
+}
+
+export async function readGaiaFramebufferSignature(page: Page): Promise<GaiaFramebufferSignature> {
+  const signature = await page.evaluate(browserReadIsolatedPointFramebufferSignature, 'gaia');
+
+  return {
+    sampledSourceBatchCount: signature.pointBatchCount,
+    luminousPixelCount: signature.luminousPixelCount,
+    horizontalLuminousPixelBins: signature.horizontalLuminousPixelBins,
+    chromaticPixelCount: signature.chromaticPixelCount,
+    horizontalChromaticPixelBins: signature.horizontalChromaticPixelBins,
+    vividChromaticPixelCount: signature.vividChromaticPixelCount,
+    vividChromaticPixelGrid: signature.vividChromaticPixelGrid,
+  };
+}
+
+export async function readChromaticGalacticFramebufferSignature(
+  page: Page,
+): Promise<ChromaticGalacticFramebufferSignature> {
+  const signature = await page.evaluate(
+    browserReadIsolatedPointFramebufferSignature,
+    'galactic-transition',
+  );
+
+  return {
+    transitionBatchCount: signature.pointBatchCount,
+    chromaticPixelCount: signature.chromaticPixelCount,
+    horizontalChromaticPixelBins: signature.horizontalChromaticPixelBins,
+    vividChromaticPixelCount: signature.vividChromaticPixelCount,
+    vividChromaticPixelGrid: signature.vividChromaticPixelGrid,
+    prominentChromaticStarCount: signature.prominentChromaticStarCount,
+    prominentChromaticStarGrid: signature.prominentChromaticStarGrid,
+  };
+}
+
+export async function readChromaticGalacticCompositeSignature(
+  page: Page,
+): Promise<ChromaticGalacticCompositeSignature> {
+  return page.evaluate(browserReadChromaticGalacticCompositeSignature);
 }
 
 export async function readObjectSurfaceContribution(
@@ -156,6 +235,378 @@ function browserReadRenderedFrameSignature(): RenderedFrameSignature {
     chromaticPixelRatio: chromaticPixels / sampledPixels,
     meanLuminance,
     luminanceDeviation: Math.sqrt(variance),
+  };
+}
+
+function browserReadIsolatedPointFramebufferSignature(
+  layer: string,
+): IsolatedPointFramebufferSignature {
+  interface RuntimeObject {
+    readonly name: string;
+    visible: boolean;
+    readonly parent: RuntimeObject | null;
+    readonly userData: Record<string, unknown>;
+  }
+
+  interface RuntimeThreeScene extends RuntimeObject {
+    background: unknown | null;
+    traverse(visitor: (object: RuntimeObject) => void): void;
+  }
+
+  interface UniverseSceneState {
+    readonly scene: RuntimeThreeScene;
+  }
+
+  const root = document.querySelector('app-root');
+  const angularDebug = (
+    window as unknown as { ng?: { getComponent(element: Element): object | null } }
+  ).ng;
+  const component = root && angularDebug?.getComponent(root);
+  const facade = component ? (Reflect.get(component, 'facade') as object | undefined) : undefined;
+  const engineClient = facade ? (Reflect.get(facade, 'engine') as object | undefined) : undefined;
+  const engine = engineClient
+    ? ((Reflect.get(engineClient, 'engine') as object | null | undefined) ?? engineClient)
+    : undefined;
+  const renderer = engine
+    ? (Reflect.get(engine, 'renderer') as RuntimeRenderer | undefined)
+    : undefined;
+  const camera = engine ? (Reflect.get(engine, 'camera') as object | undefined) : undefined;
+  const universeScene = engine
+    ? (Reflect.get(engine, 'universeScene') as UniverseSceneState | undefined)
+    : undefined;
+
+  if (!engine || !renderer || !camera || !universeScene) {
+    throw new Error('Runtime de rendu indisponible pour la signature de points isolée.');
+  }
+  const scene = universeScene.scene;
+  const originalBackground = scene.background;
+  const originalVisibility: Array<readonly [RuntimeObject, boolean]> = [];
+  const selectedPointBatches: RuntimeObject[] = [];
+
+  scene.traverse((object) => {
+    originalVisibility.push([object, object.visible]);
+    const selected =
+      layer === 'gaia'
+        ? object.userData['pointRepresentation'] === 'sampled-source'
+        : object.name === 'chromatic-stellar-accents';
+
+    if (object.visible && selected) {
+      selectedPointBatches.push(object);
+    }
+  });
+  const keepVisible = new Set<RuntimeObject>([scene]);
+
+  for (const pointBatch of selectedPointBatches) {
+    let current: RuntimeObject | null = pointBatch;
+
+    while (current) {
+      keepVisible.add(current);
+      current = current.parent;
+    }
+  }
+
+  const { width, height } = renderer.domElement;
+  const pixels = new Uint8Array(width * height * 4);
+  const context = renderer.getContext();
+
+  (engine as RuntimeEngine).stop();
+  try {
+    scene.traverse((object) => {
+      object.visible = keepVisible.has(object);
+    });
+    scene.background = null;
+    renderer.render(scene, camera);
+    context.finish();
+    context.readPixels(0, 0, width, height, context.RGBA, context.UNSIGNED_BYTE, pixels);
+  } finally {
+    for (const [object, visible] of originalVisibility) {
+      object.visible = visible;
+    }
+    scene.background = originalBackground;
+    renderer.render(scene, camera);
+    (engine as RuntimeEngine).start();
+  }
+
+  const horizontalLuminousPixelBins = Array.from({ length: 8 }, () => 0);
+  const horizontalChromaticPixelBins = Array.from({ length: 8 }, () => 0);
+  const vividChromaticPixelGrid = Array.from({ length: 12 }, () => 0);
+  const prominentChromaticStarGrid = Array.from({ length: 12 }, () => 0);
+  let luminousPixelCount = 0;
+  let chromaticPixelCount = 0;
+  let vividChromaticPixelCount = 0;
+  let prominentChromaticStarCount = 0;
+
+  for (let pixelIndex = 0; pixelIndex < width * height; pixelIndex += 1) {
+    const offset = pixelIndex * 4;
+    const red = pixels[offset]!;
+    const green = pixels[offset + 1]!;
+    const blue = pixels[offset + 2]!;
+    const maximumChannel = Math.max(red, green, blue);
+
+    if (maximumChannel < 32) {
+      continue;
+    }
+    const x = pixelIndex % width;
+    const horizontalBin = Math.min(
+      horizontalLuminousPixelBins.length - 1,
+      Math.floor((x / width) * horizontalLuminousPixelBins.length),
+    );
+
+    luminousPixelCount += 1;
+    horizontalLuminousPixelBins[horizontalBin]! += 1;
+    if (maximumChannel - Math.min(red, green, blue) >= 12) {
+      chromaticPixelCount += 1;
+      horizontalChromaticPixelBins[horizontalBin]! += 1;
+      if (maximumChannel >= 72 && maximumChannel - Math.min(red, green, blue) >= 24) {
+        const y = Math.floor(pixelIndex / width);
+        const xGridBin = Math.min(3, Math.floor((x / width) * 4));
+        const yGridBin = Math.min(2, Math.floor((y / height) * 3));
+
+        vividChromaticPixelCount += 1;
+        vividChromaticPixelGrid[yGridBin * 4 + xGridBin]! += 1;
+      }
+    }
+  }
+
+  // A few isolated hot pixels made the former 360-degree regression pass even though a person
+  // could only perceive the broad coloured stars while facing the Galactic disc. Audit connected
+  // luminous footprints as well: a prominent star needs both a vivid core and a visible halo at
+  // least eight framebuffer pixels wide and high. This deliberately measures the visual object
+  // described by the test rather than the mere presence of shader fragments.
+  if (layer === 'galactic-transition') {
+    const visited = new Uint8Array(width * height);
+    const pendingPixels: number[] = [];
+
+    for (let seedPixelIndex = 0; seedPixelIndex < width * height; seedPixelIndex += 1) {
+      if (visited[seedPixelIndex] === 1) {
+        continue;
+      }
+      const seedOffset = seedPixelIndex * 4;
+      const seedMaximumChannel = Math.max(
+        pixels[seedOffset]!,
+        pixels[seedOffset + 1]!,
+        pixels[seedOffset + 2]!,
+      );
+
+      visited[seedPixelIndex] = 1;
+      if (seedMaximumChannel < 10) {
+        continue;
+      }
+
+      pendingPixels.push(seedPixelIndex);
+      let minimumX = seedPixelIndex % width;
+      let maximumX = minimumX;
+      let minimumY = Math.floor(seedPixelIndex / width);
+      let maximumY = minimumY;
+      let peakBrightness = 0;
+      let peakChroma = 0;
+      let peakPixelIndex = seedPixelIndex;
+      let vividCorePixelCount = 0;
+      let componentPixelCount = 0;
+
+      while (pendingPixels.length > 0) {
+        const pixelIndex = pendingPixels.pop()!;
+        const x = pixelIndex % width;
+        const y = Math.floor(pixelIndex / width);
+        const offset = pixelIndex * 4;
+        const red = pixels[offset]!;
+        const green = pixels[offset + 1]!;
+        const blue = pixels[offset + 2]!;
+        const maximumChannel = Math.max(red, green, blue);
+        const chroma = maximumChannel - Math.min(red, green, blue);
+
+        componentPixelCount += 1;
+        minimumX = Math.min(minimumX, x);
+        maximumX = Math.max(maximumX, x);
+        minimumY = Math.min(minimumY, y);
+        maximumY = Math.max(maximumY, y);
+        if (maximumChannel > peakBrightness) {
+          peakBrightness = maximumChannel;
+          peakPixelIndex = pixelIndex;
+        }
+        peakChroma = Math.max(peakChroma, chroma);
+        vividCorePixelCount += maximumChannel >= 64 && chroma >= 18 ? 1 : 0;
+
+        for (let yOffset = -1; yOffset <= 1; yOffset += 1) {
+          const neighborY = y + yOffset;
+
+          if (neighborY < 0 || neighborY >= height) {
+            continue;
+          }
+          for (let xOffset = -1; xOffset <= 1; xOffset += 1) {
+            if (xOffset === 0 && yOffset === 0) {
+              continue;
+            }
+            const neighborX = x + xOffset;
+
+            if (neighborX < 0 || neighborX >= width) {
+              continue;
+            }
+            const neighborPixelIndex = neighborY * width + neighborX;
+
+            if (visited[neighborPixelIndex] === 1) {
+              continue;
+            }
+            visited[neighborPixelIndex] = 1;
+            const neighborOffset = neighborPixelIndex * 4;
+            const neighborMaximumChannel = Math.max(
+              pixels[neighborOffset]!,
+              pixels[neighborOffset + 1]!,
+              pixels[neighborOffset + 2]!,
+            );
+
+            if (neighborMaximumChannel >= 10) {
+              pendingPixels.push(neighborPixelIndex);
+            }
+          }
+        }
+      }
+
+      const footprintWidth = maximumX - minimumX + 1;
+      const footprintHeight = maximumY - minimumY + 1;
+
+      if (
+        footprintWidth < 8 ||
+        footprintHeight < 8 ||
+        componentPixelCount < 28 ||
+        peakBrightness < 80 ||
+        peakChroma < 20 ||
+        vividCorePixelCount < 2
+      ) {
+        continue;
+      }
+      const peakX = peakPixelIndex % width;
+      const peakY = Math.floor(peakPixelIndex / width);
+      const xGridBin = Math.min(3, Math.floor((peakX / width) * 4));
+      const yGridBin = Math.min(2, Math.floor((peakY / height) * 3));
+
+      prominentChromaticStarCount += 1;
+      prominentChromaticStarGrid[yGridBin * 4 + xGridBin]! += 1;
+    }
+  }
+
+  return {
+    pointBatchCount: selectedPointBatches.length,
+    luminousPixelCount,
+    chromaticPixelCount,
+    horizontalLuminousPixelBins,
+    horizontalChromaticPixelBins,
+    vividChromaticPixelCount,
+    vividChromaticPixelGrid,
+    prominentChromaticStarCount,
+    prominentChromaticStarGrid,
+  };
+}
+
+function browserReadChromaticGalacticCompositeSignature(): ChromaticGalacticCompositeSignature {
+  interface RuntimeObject {
+    readonly name: string;
+    visible: boolean;
+  }
+
+  interface RuntimeThreeScene {
+    traverse(callback: (object: RuntimeObject) => void): void;
+  }
+
+  interface UniverseSceneState {
+    readonly scene: RuntimeThreeScene;
+  }
+
+  const root = document.querySelector('app-root');
+  const angularDebug = (
+    window as unknown as { ng?: { getComponent(element: Element): object | null } }
+  ).ng;
+  const component = root && angularDebug?.getComponent(root);
+  const facade = component ? (Reflect.get(component, 'facade') as object | undefined) : undefined;
+  const engineClient = facade ? (Reflect.get(facade, 'engine') as object | undefined) : undefined;
+  const engine = engineClient
+    ? ((Reflect.get(engineClient, 'engine') as object | null | undefined) ?? engineClient)
+    : undefined;
+  const renderer = engine
+    ? (Reflect.get(engine, 'renderer') as RuntimeRenderer | undefined)
+    : undefined;
+  const camera = engine ? (Reflect.get(engine, 'camera') as object | undefined) : undefined;
+  const universeScene = engine
+    ? (Reflect.get(engine, 'universeScene') as UniverseSceneState | undefined)
+    : undefined;
+
+  if (!engine || !renderer || !camera || !universeScene) {
+    throw new Error('Runtime de rendu indisponible pour la contribution chromatique composée.');
+  }
+  const accents: RuntimeObject[] = [];
+
+  universeScene.scene.traverse((object) => {
+    if (object.visible && object.name === 'chromatic-stellar-accents') {
+      accents.push(object);
+    }
+  });
+  const { width, height } = renderer.domElement;
+  const context = renderer.getContext();
+  const readPixels = (): Uint8Array => {
+    const pixels = new Uint8Array(width * height * 4);
+
+    context.finish();
+    context.readPixels(0, 0, width, height, context.RGBA, context.UNSIGNED_BYTE, pixels);
+
+    return pixels;
+  };
+  let visiblePixels: Uint8Array;
+  let hiddenPixels: Uint8Array;
+
+  (engine as RuntimeEngine).stop();
+  try {
+    renderer.render(universeScene.scene, camera);
+    visiblePixels = readPixels();
+    for (const accent of accents) {
+      accent.visible = false;
+    }
+    renderer.render(universeScene.scene, camera);
+    hiddenPixels = readPixels();
+  } finally {
+    for (const accent of accents) {
+      accent.visible = true;
+    }
+    renderer.render(universeScene.scene, camera);
+    (engine as RuntimeEngine).start();
+  }
+  const horizontalChangedPixelBins = Array.from({ length: 8 }, () => 0);
+  const chromaticContributionPixelGrid = Array.from({ length: 12 }, () => 0);
+  let changedPixelCount = 0;
+  let chromaticContributionPixelCount = 0;
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const offset = (y * width + x) * 4;
+      const redDifference = Math.abs(visiblePixels[offset]! - hiddenPixels[offset]!);
+      const greenDifference = Math.abs(visiblePixels[offset + 1]! - hiddenPixels[offset + 1]!);
+      const blueDifference = Math.abs(visiblePixels[offset + 2]! - hiddenPixels[offset + 2]!);
+      const maximumDifference = Math.max(redDifference, greenDifference, blueDifference);
+      const minimumDifference = Math.min(redDifference, greenDifference, blueDifference);
+      const totalDifference = redDifference + greenDifference + blueDifference;
+
+      if (maximumDifference >= 4 && totalDifference >= 9) {
+        changedPixelCount += 1;
+        const horizontalBin = Math.min(7, Math.floor((x / width) * 8));
+
+        horizontalChangedPixelBins[horizontalBin] = horizontalChangedPixelBins[horizontalBin]! + 1;
+      }
+      if (totalDifference >= 14 && maximumDifference - minimumDifference >= 4) {
+        chromaticContributionPixelCount += 1;
+        const column = Math.min(3, Math.floor((x / width) * 4));
+        const row = Math.min(2, Math.floor((y / height) * 3));
+        const cell = row * 4 + column;
+
+        chromaticContributionPixelGrid[cell] = chromaticContributionPixelGrid[cell]! + 1;
+      }
+    }
+  }
+
+  return {
+    transitionBatchCount: accents.length,
+    changedPixelCount,
+    horizontalChangedPixelBins,
+    chromaticContributionPixelCount,
+    chromaticContributionPixelGrid,
   };
 }
 

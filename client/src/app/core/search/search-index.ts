@@ -47,7 +47,7 @@ export class LocalSearchIndex {
     objects: readonly SpaceObject[],
     additionalEntries: readonly SearchEntry[] = [],
   ): void {
-    this.entries = createSearchEntries(objects, additionalEntries).map(indexEntry);
+    this.entries = createSearchEntries(objects, additionalEntries).map(createEntryIndexer());
   }
 
   public async buildProgressively(
@@ -57,6 +57,7 @@ export class LocalSearchIndex {
   ): Promise<boolean> {
     const sourceEntries = createSearchEntries(objects, additionalEntries);
     const indexedEntries = new Array<IndexedSearchEntry>(sourceEntries.length);
+    const indexEntry = createEntryIndexer();
 
     for (let offset = 0; offset < sourceEntries.length; offset += options.chunkSize) {
       if (!options.isCurrent()) {
@@ -126,13 +127,31 @@ function createSearchEntries(
   return [...objectEntries, ...additionalEntries];
 }
 
-function indexEntry(entry: SearchEntry): IndexedSearchEntry {
-  return {
+function createEntryIndexer(): (entry: SearchEntry) => IndexedSearchEntry {
+  // Catalogue keywords repeat thousands of times. Keep a bounded, build-local cache so their
+  // Unicode normalization does not compete with animation, or retain obsolete language data.
+  const keywords = new Map<string, string>();
+  const normalizeKeyword = (value: string): string => {
+    const cached = keywords.get(value);
+
+    if (cached !== undefined) {
+      return cached;
+    }
+    const normalized = normalizeSearchText(value);
+
+    if (keywords.size < 256) {
+      keywords.set(value, normalized);
+    }
+
+    return normalized;
+  };
+
+  return (entry) => ({
     entry,
     normalizedName: normalizeSearchText(entry.name),
     normalizedAliases: entry.aliases.map(normalizeSearchText),
-    normalizedKeywords: (entry.keywords ?? []).map(normalizeSearchText),
-  };
+    normalizedKeywords: (entry.keywords ?? []).map(normalizeKeyword),
+  });
 }
 
 function insertRanked(

@@ -25,6 +25,7 @@ describe('UniverseObjectRuntime', () => {
     runtime.select('earth');
     runtime.setDisplayOptions(options);
     runtime.setEarthObserverCelestialPresentations([]);
+    expect(runtime.updateReferenceFrameScale(120_000)).toBe(false);
     runtime.updateLod(camera, 720, 4, 0.016, true);
     runtime.dispose();
   });
@@ -100,6 +101,7 @@ describe('UniverseObjectRuntime', () => {
     ];
 
     runtime.setEarthObserverCelestialPresentations(celestialPresentations);
+    expect(runtime.updateReferenceFrameScale(120_000)).toBe(true);
     runtime.updateLod(camera, 720, 4, 0.016, true);
 
     expect(primary.setNavigationTarget).toHaveBeenCalledWith(null);
@@ -115,6 +117,7 @@ describe('UniverseObjectRuntime', () => {
     expect(exoplanets.setEarthObserverCelestialPresentations).not.toHaveBeenCalled();
     for (const registry of [primary, streamed, exoplanets]) {
       expect(registry.setDisplayOptions).toHaveBeenCalledWith(options);
+      expect(registry.updateReferenceFrameScale).toHaveBeenCalledWith(120_000);
       expect(registry.updateLod).toHaveBeenCalledWith(camera, 720, 4, 0.016, true);
     }
     expect(runtime.getPickables()).toHaveLength(3);
@@ -149,6 +152,7 @@ interface FakeRegistry {
   readonly setDisplayOptions: ReturnType<typeof vi.fn>;
   readonly setEarthObserverCelestialPresentations: ReturnType<typeof vi.fn>;
   readonly updateLod: ReturnType<typeof vi.fn>;
+  readonly updateReferenceFrameScale: ReturnType<typeof vi.fn>;
   readonly dispose: ReturnType<typeof vi.fn>;
 }
 
@@ -167,6 +171,7 @@ function fakeRegistry(objectId: string, name = objectId): FakeRegistry {
   const setDisplayOptions = vi.fn();
   const setEarthObserverCelestialPresentations = vi.fn();
   const updateLod = vi.fn();
+  const updateReferenceFrameScale = vi.fn(() => true);
   const dispose = vi.fn();
   const registry = {
     has: vi.fn((id: string) => id === objectId),
@@ -180,6 +185,7 @@ function fakeRegistry(objectId: string, name = objectId): FakeRegistry {
     select,
     setDisplayOptions,
     setEarthObserverCelestialPresentations,
+    updateReferenceFrameScale,
     updateLod,
     visibleObjectCount: 2,
     batchedGalaxyCount: 1,
@@ -193,6 +199,7 @@ function fakeRegistry(objectId: string, name = objectId): FakeRegistry {
     setDisplayOptions,
     setEarthObserverCelestialPresentations,
     updateLod,
+    updateReferenceFrameScale,
     dispose,
   };
 }
