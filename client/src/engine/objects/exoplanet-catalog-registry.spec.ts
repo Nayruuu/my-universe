@@ -1,6 +1,7 @@
 import { SpaceObject } from '../../data/models/universe.models';
 import { CoordinateSystem } from '../coordinates/coordinate-system';
 import { ExoplanetCatalog } from '../loaders/exoplanet-catalog';
+import { ExoplanetObjectFactory } from './exoplanet-object-factory';
 import {
   EXOPLANET_MISSING_DISTANCE_FALLBACK_CONFIDENCE,
   ExoplanetCatalogRegistry,
@@ -8,6 +9,140 @@ import {
 } from './exoplanet-catalog-registry';
 
 describe('ExoplanetCatalogRegistry', () => {
+  it.each([0, 2, 511, 512, 513, 1025])(
+    'prépare %i systèmes par lots avec les mêmes données et une recherche déjà prête',
+    async (count) => {
+      const data = largeCatalog(count);
+      const coordinates = new CoordinateSystem();
+      const featured = [
+        featuredObject('linked-host', 'Étoile 0', 'star'),
+        featuredObject('linked-planet', 'Étoile 0 b', 'exoplanet'),
+      ];
+      const expected = new ExoplanetCatalogRegistry(data, coordinates, featured);
+      const host = vi.spyOn(ExoplanetObjectFactory.prototype, 'createHostDefinition');
+      const planet = vi.spyOn(ExoplanetObjectFactory.prototype, 'createPlanetDefinition');
+      const pause = vi.fn(async () => undefined);
+      const registry = await ExoplanetCatalogRegistry.create(data, coordinates, featured, pause);
+
+      expect(pause.mock.calls.length).toBeGreaterThanOrEqual(Math.floor(count / 512) * 8);
+      expect(host).not.toHaveBeenCalled();
+      expect(planet).not.toHaveBeenCalled();
+      expect(registry.activeObjectCount).toBe(0);
+      expect(registry.hostObjectIds).toEqual(expected.hostObjectIds);
+      expect(registry.planetObjectIds).toEqual(expected.planetObjectIds);
+      expect(registry.renderPositions).toEqual(expected.renderPositions);
+      expect(registry.getRenderableHostIndices()).toEqual(expected.getRenderableHostIndices());
+      expect(registry.getLabelObjects(count)).toEqual(expected.getLabelObjects(count));
+      const entries = registry.getSearchEntries();
+
+      expect(entries).toEqual(expected.getSearchEntries());
+      expect(registry.getSearchEntries()).toBe(entries);
+      expect(entries.map(({ id }) => id)).toEqual([
+        ...registry.hostObjectIds.slice(1),
+        ...registry.planetObjectIds.slice(1),
+      ]);
+      for (let index = 0; index < count; index += 1) {
+        const hostId = registry.getHostObjectId(index);
+        const planetId = registry.getPlanetObjectId(index);
+
+        expect(registry.getHostIndex(hostId)).toBe(index);
+        expect(registry.getHostIndex(planetId)).toBe(index);
+        expect(registry.getDefinition(hostId)).toEqual(expected.getDefinition(hostId));
+        expect(registry.getDefinition(planetId)).toEqual(expected.getDefinition(planetId));
+      }
+      host.mockRestore();
+      planet.mockRestore();
+    },
+  );
+
+  it('utilise aussi l’ordonnanceur navigateur par défaut', async () => {
+    const registry = await ExoplanetCatalogRegistry.create(catalog(), new CoordinateSystem());
+
+    expect(registry.getSearchEntries()).toEqual(createRegistry().getSearchEntries());
+  });
+
+  it('interrompt chaque étape sans exposer un registre partiel', async () => {
+    const data = largeCatalog(513);
+    let totalPauses = 0;
+
+    await ExoplanetCatalogRegistry.create(data, new CoordinateSystem(), [], async () => {
+      totalPauses += 1;
+    });
+    expect(totalPauses).toBeGreaterThan(10);
+    for (let cancelAt = 1; cancelAt <= totalPauses; cancelAt += 1) {
+      let pauses = 0;
+      const error = new Error('annulé');
+      const published = vi.fn();
+      const pending = ExoplanetCatalogRegistry.create(
+        data,
+        new CoordinateSystem(),
+        [],
+        async () => {
+          pauses += 1;
+          if (pauses === cancelAt) {
+            throw error;
+          }
+        },
+      ).then(published);
+
+      await expect(pending).rejects.toBe(error);
+      expect(pauses).toBe(cancelAt);
+      expect(published).not.toHaveBeenCalled();
+    }
+  });
+
+  it('prépare les grands ensembles d’alias sans changer la priorité du dernier objet', async () => {
+    const first = {
+      ...featuredObject('first', 'Nearby Host', 'star'),
+      aliases: Array.from({ length: 513 }, (_, index) => `Alias ${index}`),
+    };
+    const last = featuredObject('last', 'Alias 512', 'star');
+    const objects = [
+      ...Array.from({ length: 512 }, (_, index) =>
+        featuredObject(`unrelated-${index}`, `Unrelated ${index}`, 'exoplanet'),
+      ),
+      first,
+      last,
+    ];
+    const data = catalogWith({ hostNames: ['Nearby Host', 'Alias 512'] });
+    const pause = vi.fn(async () => undefined);
+    const registry = await ExoplanetCatalogRegistry.create(
+      data,
+      new CoordinateSystem(),
+      objects,
+      pause,
+    );
+
+    expect(pause.mock.calls.length).toBeGreaterThanOrEqual(3);
+    expect(registry.hostObjectIds).toEqual(['first', 'last']);
+    expect(registry.getSearchEntries()).toEqual(
+      new ExoplanetCatalogRegistry(data, new CoordinateSystem(), objects).getSearchEntries(),
+    );
+  });
+
+  it('rejette aussi les collisions entre hôtes et planètes liés et après un lot', async () => {
+    const objects = [
+      featuredObject('same', 'Nearby Host', 'star'),
+      featuredObject('same', 'Nearby Host b', 'exoplanet'),
+    ];
+
+    await expect(
+      ExoplanetCatalogRegistry.create(catalog(), new CoordinateSystem(), objects),
+    ).rejects.toThrow('identifiants de carte dupliqués');
+    const data = largeCatalog(513);
+    const names = [...data.planetNames];
+
+    names[512] = names[0]!;
+    await expect(
+      ExoplanetCatalogRegistry.create(
+        { ...data, planetNames: names },
+        new CoordinateSystem(),
+        [],
+        async () => undefined,
+      ),
+    ).rejects.toThrow('identifiants de carte dupliqués');
+  });
+
   it('creates stable unique identifiers and links curated definitions by NASA name', () => {
     expect(createNasaCatalogObjectId('host', 'Kepler-452')).toMatch(
       /^nea-host-kepler-452-[a-z0-9]+$/u,
@@ -330,4 +465,64 @@ function catalog(): ExoplanetCatalog {
 
 function catalogWith(overrides: Partial<ExoplanetCatalog>): ExoplanetCatalog {
   return { ...catalog(), ...overrides };
+}
+
+function largeCatalog(count: number): ExoplanetCatalog {
+  const base = catalog();
+  const names = Array.from({ length: count }, (_, index) => `Étoile ${index}`);
+
+  return {
+    ...base,
+    hostCount: count,
+    planetCount: count,
+    hostNames: names,
+    hostAliases: names.map((name) => [name, `  ${name}   NASA`]),
+    hostSpectralTypes: names.map(() => 'G2 V'),
+    hostFirstPlanetIndices: Uint32Array.from({ length: count }, (_, index) => index),
+    hostPlanetCounts: new Uint16Array(count).fill(1),
+    hostStarCounts: new Uint8Array(count).fill(1),
+    hostCircumbinaryFlags: new Uint8Array(count),
+    hostRightAscensionDegrees: Float64Array.from({ length: count }, (_, index) => index % 360),
+    hostDeclinationDegrees: Float64Array.from({ length: count }, (_, index) => (index % 180) - 90),
+    hostDistancesParsec: Float64Array.from({ length: count }, (_, index) =>
+      index % 3 === 0 ? Number.NaN : (index % 7) + 1,
+    ),
+    hostTemperaturesKelvin: new Float32Array(count).fill(5700),
+    hostRadiiSolar: new Float32Array(count).fill(1),
+    hostMassesSolar: Float32Array.from({ length: count }, (_, index) =>
+      index % 2 === 0 ? 1 : Number.NaN,
+    ),
+    hostApparentMagnitudes: Float32Array.from({ length: count }, (_, index) =>
+      index % 5 === 0 ? Number.NaN : index % 3,
+    ),
+    planetNames: names.map((name) => `${name} b`),
+    planetLetters: names.map(() => 'b'),
+    planetDiscoveryMethods: names.map(() => 'Transit'),
+    planetDiscoveryFacilities: names.map(() => 'Kepler'),
+    planetMassProvenances: names.map(() => 'Mass'),
+    planetHostIndices: Uint32Array.from({ length: count }, (_, index) => index),
+    planetOrbitalPeriodsDays: Float64Array.from({ length: count }, (_, index) =>
+      index % 3 === 0 ? Number.NaN : 10,
+    ),
+    planetSemiMajorAxesAu: Float64Array.from({ length: count }, (_, index) =>
+      index % 3 === 1 ? 0.2 : Number.NaN,
+    ),
+    planetRadiiEarth: new Float32Array(count).fill(2.4),
+    planetMassesEarth: new Float32Array(count).fill(6.2),
+    planetEquilibriumTemperaturesKelvin: new Float32Array(count).fill(280),
+    planetEccentricities: new Float32Array(count).fill(0.1),
+    planetInclinationsDegrees: new Float32Array(count).fill(88),
+    planetInsolationsEarth: new Float32Array(count).fill(1.1),
+    planetDiscoveryYears: new Uint16Array(count).fill(2021),
+    planetControversialFlags: new Uint8Array(count),
+    metadata: {
+      ...base.metadata,
+      counts: {
+        hosts: count,
+        planets: count,
+        positionedHosts: Math.floor((count * 2) / 3),
+        positionedPlanets: Math.floor((count * 2) / 3),
+      },
+    },
+  };
 }

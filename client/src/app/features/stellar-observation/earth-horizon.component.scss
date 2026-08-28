@@ -22,7 +22,7 @@
 }
 
 .earth-sky-view__landscape--open {
-  transform: translateY(0);
+  transform: translateY(var(--lift-y, 0));
 }
 
 .earth-sky-view__atmosphere {

@@ -1,7 +1,7 @@
 export interface DeferredCatalogRuntime {
   readonly hasDeferredCatalogs: boolean;
   prepareDeferredCatalogs(): Promise<void>;
-  installDeferredCatalogs(): Promise<readonly string[]>;
+  installDeferredCatalogs(isCurrent?: () => boolean): Promise<readonly string[]>;
 }
 
 export interface UniverseDeferredCatalogCoordinatorBindings {
@@ -117,7 +117,9 @@ export class UniverseDeferredCatalogCoordinator {
 
   private async install(runtime: DeferredCatalogRuntime, revision: number): Promise<void> {
     try {
-      const warnings = await runtime.installDeferredCatalogs();
+      const warnings = await runtime.installDeferredCatalogs(() =>
+        this.isCurrent(runtime, revision),
+      );
 
       if (!this.isCurrent(runtime, revision)) {
         return;

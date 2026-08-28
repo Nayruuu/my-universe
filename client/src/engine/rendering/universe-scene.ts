@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {
   type ConstellationCatalog,
+  type GaiaPresentationStats,
   GraphicQuality,
   type SpaceObject,
   type SpaceTileIndex,
@@ -11,6 +12,8 @@ import {
   type Vector3Like,
 } from '../../data/models/universe.models';
 import type { CoordinateSystem } from '../coordinates/coordinate-system';
+import { type IntergalacticScale } from '../coordinates/intergalactic-scale-model';
+import { calculateStellarNeighborhoodReveal } from '../coordinates/stellar-neighborhood-scale-model';
 import type { StarCatalogRegistry } from '../objects/star-catalog-registry';
 import type { ExoplanetCatalogRegistry } from '../objects/exoplanet-catalog-registry';
 import type { CosmicGroupCatalogRegistry } from '../objects/cosmic-group-catalog-registry';
@@ -31,6 +34,8 @@ import {
   type RenderingPrewarmTarget,
   type TexturePrewarmTarget,
 } from './texture-prewarm-target';
+
+const INITIAL_PANORAMA_PREWARM_BUDGET_MS = 500;
 
 export class UniverseScene {
   public readonly scene = new THREE.Scene();
@@ -99,13 +104,23 @@ export class UniverseScene {
     return texturesReady && materialsReady;
   }
 
-  public prewarmInitialRendering(
+  public async prewarmInitialRendering(
     target: RenderingPrewarmTarget,
     camera: THREE.Camera,
   ): Promise<boolean> {
-    void this.ensureMilkyWayAtlas();
+    // Give the optional panorama a bounded head start alongside shader compilation, so its
+    // asynchronous decode does not normally shift the upload onto the first navigation frame.
+    let timeoutId!: ReturnType<typeof setTimeout>;
+    const panoramaDeadline = new Promise<void>((resolve) => {
+      timeoutId = setTimeout(resolve, INITIAL_PANORAMA_PREWARM_BUDGET_MS);
+    });
+    const panoramaReady = Promise.race([this.prewarmMilkyWayAssets(target), panoramaDeadline]);
+    const materialsReady = await prewarmSceneMaterials(target, this.scene, camera);
 
-    return prewarmSceneMaterials(target, this.scene, camera);
+    await panoramaReady;
+    clearTimeout(timeoutId);
+
+    return materialsReady;
   }
 
   public setPixelRatio(pixelRatio: number): void {
@@ -115,7 +130,15 @@ export class UniverseScene {
   }
 
   public setStellarOrigin(position: Vector3Like): void {
-    this.stellarNeighborhoodRoot.position.set(position.x, position.y, position.z);
+    this.environment.setStellarOrigin(position);
+  }
+
+  public get intergalacticScale(): IntergalacticScale {
+    return this.cosmicCatalogLayers.intergalacticScale;
+  }
+
+  public updateReferenceFrameScale(cameraDistance: number): boolean {
+    return this.cosmicCatalogLayers.updateReferenceFrameScale(cameraDistance);
   }
 
   public async setNearbyGalaxyOverview(
@@ -225,7 +248,12 @@ export class UniverseScene {
     earthObserverActive = false,
     navigationTargetId: string | null = null,
   ): void {
-    const photographicProfile = getPhotographicProfile(lodLevel, this.quality);
+    this.updateReferenceFrameScale(cameraDistance);
+    const photographicProfile = getPhotographicProfile(
+      lodLevel,
+      this.quality,
+      calculateStellarNeighborhoodReveal(cameraDistance),
+    );
 
     this.environment.update(
       lodLevel,
@@ -242,6 +270,8 @@ export class UniverseScene {
       photographicProfile.starRadiance,
       cameraPosition,
       navigationTargetId,
+      cameraDistance,
+      earthObserverActive,
     );
     this.cosmicCatalogLayers.update(
       cameraDistance,
@@ -253,6 +283,14 @@ export class UniverseScene {
   public selectCatalogObject(objectId: string | null): void {
     this.stellarCatalogLayers.selectCatalogObject(objectId);
     this.cosmicCatalogLayers.selectCatalogObject(objectId);
+  }
+
+  public hasStarClusterObject(objectId: string): boolean {
+    return this.stellarCatalogLayers.hasStarClusterObject(objectId);
+  }
+
+  public getStarClusterDefinition(objectId: string): SpaceObject | undefined {
+    return this.stellarCatalogLayers.getStarClusterDefinition(objectId);
   }
 
   public hoverCatalogObject(objectId: string | null): void {
@@ -365,6 +403,10 @@ export class UniverseScene {
 
   public get visibleStarClusterCount(): number {
     return this.stellarCatalogLayers.visibleStarClusterCount;
+  }
+
+  public getGaiaPresentationStats(camera: THREE.Camera): GaiaPresentationStats {
+    return this.stellarCatalogLayers.getGaiaPresentationStats(camera);
   }
 
   public dispose(): void {

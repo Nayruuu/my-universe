@@ -50,6 +50,31 @@ describe('UniverseCatalogRuntime', () => {
     expect(scene.calls()).toEqual([]);
   });
 
+  it('expose une source Gaia chargée dynamiquement sans l’ajouter à la recherche globale', async () => {
+    const scene = sceneHarness();
+    const gaiaSource = {
+      ...staticObject('gaia-dr3-source-123456789', 'Gaia DR3 123456789'),
+      type: 'star' as const,
+      referenceFrame: 'stellar' as const,
+    };
+
+    scene.hasStarClusterObject.mockImplementation((objectId) => objectId === gaiaSource.id);
+    scene.getStarClusterDefinition.mockImplementation((objectId) =>
+      objectId === gaiaSource.id ? gaiaSource : undefined,
+    );
+    const runtime = await createUniverseCatalogRuntime(
+      emptyAssets([]),
+      new CoordinateSystem(),
+      scene.scene,
+    );
+
+    expect(runtime.has(gaiaSource.id)).toBe(true);
+    expect(runtime.isCatalogStar(gaiaSource.id)).toBe(true);
+    expect(runtime.getDefinition(gaiaSource.id)).toBe(gaiaSource);
+    expect(runtime.supportsWheelNavigation(gaiaSource.id)).toBe(false);
+    expect(runtime.getSearchEntries()).toEqual([]);
+  });
+
   it('construit et relie toutes les sources statiques à la scène', async () => {
     const linkedStar = catalogStar();
     const assets: LoadedUniverseAssets = {
@@ -76,7 +101,7 @@ describe('UniverseCatalogRuntime', () => {
       starTileSource: {
         id: 'stellar-tiles',
         url: '/data/stars/index.json',
-        starCatalogId: 'hyg-v41-bright-stars',
+        sourceCatalogId: 'gaia-dr3-bright-high-confidence',
       },
       tempelFilamentSpineSource: {
         id: 'tempel-spines',
@@ -163,6 +188,29 @@ describe('UniverseCatalogRuntime', () => {
     expect(scene.setConstellationCatalog).not.toHaveBeenCalled();
   });
 
+  it('attend la présentation HYG avant de l’installer et réutilise la recherche assemblée', async () => {
+    const gate = deferred<void>();
+    const prepare = vi
+      .spyOn(StarCatalogRegistry.prototype, 'preparePresentation')
+      .mockReturnValueOnce(gate.promise);
+    const scene = sceneHarness();
+    const creation = createUniverseCatalogRuntime(
+      { ...emptyAssets([]), starCatalog: starCatalog() },
+      new CoordinateSystem(),
+      scene.scene,
+    );
+
+    await vi.waitFor(() => expect(prepare).toHaveBeenCalledOnce());
+    expect(scene.setStarCatalog).not.toHaveBeenCalled();
+    gate.resolve();
+    const runtime = await creation;
+    const entries = runtime.getSearchEntries();
+
+    expect(runtime.getSearchEntries()).toBe(entries);
+    expect(scene.setStarCatalog).toHaveBeenCalledOnce();
+    prepare.mockRestore();
+  });
+
   it('installe en parallèle les couches indépendantes du catalogue', async () => {
     const assets: LoadedUniverseAssets = {
       ...emptyAssets([]),
@@ -235,6 +283,9 @@ describe('UniverseCatalogRuntime', () => {
     const scene = sceneHarness();
     const runtime = await createUniverseCatalogRuntime(assets, new CoordinateSystem(), scene.scene);
 
+    const initialSearch = runtime.getSearchEntries();
+
+    expect(runtime.getSearchEntries()).toBe(initialSearch);
     expect(runtime.hasDeferredCatalogs).toBe(true);
     expect(runtime.exoplanetCatalogRegistry).toBeNull();
 
@@ -264,6 +315,9 @@ describe('UniverseCatalogRuntime', () => {
     expect(runtime.cosmicGroupCatalogRegistry).toBeInstanceOf(CosmicGroupCatalogRegistry);
     expect(runtime.cosmicStructureCatalogRegistry).toBeInstanceOf(CosmicStructureCatalogRegistry);
     expect(scene.setExoplanetCatalog).toHaveBeenCalledOnce();
+    expect(runtime.getSearchEntries()).not.toBe(initialSearch);
+    expect(runtime.getSearchEntries()).toBe(runtime.getSearchEntries());
+    expect(runtime.getSearchEntries()).toHaveLength(4);
     expect(scene.setCosmicGroupCatalog).toHaveBeenCalledOnce();
     expect(scene.setCosmicStructureCatalog).toHaveBeenCalledOnce();
     expect(scene.setCosmicWebVolume).toHaveBeenCalledOnce();
@@ -340,6 +394,79 @@ describe('UniverseCatalogRuntime', () => {
     expect(scene.setCosmicWebVolume).not.toHaveBeenCalled();
   });
 
+  it.each([null, 3, 9])(
+    'ne publie les grands registres qu’après leur recherche complète (échec à la pause %s)',
+    async (failureAt) => {
+      const scene = sceneHarness();
+      const coordinates = new CoordinateSystem();
+      const existingStars = new StarCatalogRegistry(starCatalog(), coordinates, []);
+      const initialEntries = existingStars.getSearchEntries();
+      const error = new Error('préparation interrompue');
+      let pauses = 0;
+      const runtime = new UniverseCatalogRuntime({
+        baseObjects: [],
+        starCatalogRegistry: existingStars,
+        exoplanetCatalogRegistry: null,
+        cosmicGroupCatalogRegistry: null,
+        cosmicStructureCatalogRegistry: null,
+        spaceTileManager: null,
+        starTileManager: null,
+        tempelFilamentSpineSource: null,
+        coordinateSystem: coordinates,
+        scene: scene.scene,
+        loadDeferredCatalogs: async () => ({
+          exoplanetCatalog: null,
+          cosmicGroupCatalog: cosmicGroupCatalog(513),
+          cosmicStructureCatalog: cosmicStructureCatalog(513),
+          cosmicWebVolume: null,
+          warnings: [],
+        }),
+        yieldControl: async () => {
+          pauses += 1;
+          expect(runtime.cosmicGroupCatalogRegistry).toBeNull();
+          expect(runtime.cosmicStructureCatalogRegistry).toBeNull();
+          expect(runtime.getSearchEntries()).toEqual(initialEntries);
+          expect(scene.setCosmicGroupCatalog).toHaveBeenCalledTimes(pauses <= 3 ? 0 : 1);
+          expect(scene.setCosmicStructureCatalog).not.toHaveBeenCalled();
+          if (pauses === failureAt) {
+            throw error;
+          }
+        },
+      });
+      const installation = runtime.installDeferredCatalogs();
+
+      expect(runtime.installDeferredCatalogs()).toBe(installation);
+      if (failureAt !== null) {
+        await expect(installation).rejects.toBe(error);
+        expect(pauses).toBe(failureAt);
+        expect(runtime.getSearchEntries()).toEqual(initialEntries);
+        expect(runtime.cosmicGroupCatalogRegistry).toBeNull();
+        expect(runtime.cosmicStructureCatalogRegistry).toBeNull();
+        expect(scene.setCosmicStructureCatalog).not.toHaveBeenCalled();
+      } else {
+        await expect(installation).resolves.toEqual([]);
+        expect(pauses).toBe(9);
+        expect(scene.setCosmicGroupCatalog).toHaveBeenCalledOnce();
+        expect(scene.setCosmicStructureCatalog).toHaveBeenCalledOnce();
+        expect(runtime.getSearchEntries()).toEqual([
+          ...initialEntries,
+          ...new CosmicGroupCatalogRegistry(
+            cosmicGroupCatalog(513),
+            coordinates,
+          ).getSearchEntries(),
+          ...new CosmicStructureCatalogRegistry(
+            cosmicStructureCatalog(513),
+            coordinates,
+          ).getSearchEntries(),
+        ]);
+        expect(runtime.getLabelObjects([], 0, 0, 1).map(({ id }) => id)).toEqual([
+          'cf4-pgc-35',
+          'lss-test-superclusters-sc-1',
+        ]);
+      }
+    },
+  );
+
   it('refuse une installation différée sur un runtime sans dépendances de scène', async () => {
     const runtime = new UniverseCatalogRuntime({
       baseObjects: [],
@@ -363,6 +490,161 @@ describe('UniverseCatalogRuntime', () => {
       'Installation différée indisponible',
     );
   });
+
+  it.each([0, 2, 3, 5, 9])(
+    'interrompt un runtime devenu obsolète à la pause %i sans publier de données',
+    async (cancelAt) => {
+      const scene = sceneHarness();
+      let current = cancelAt !== 0;
+      let pauses = 0;
+      const runtime = new UniverseCatalogRuntime({
+        baseObjects: [],
+        starCatalogRegistry: null,
+        exoplanetCatalogRegistry: null,
+        cosmicGroupCatalogRegistry: null,
+        cosmicStructureCatalogRegistry: null,
+        spaceTileManager: null,
+        starTileManager: null,
+        tempelFilamentSpineSource: null,
+        coordinateSystem: new CoordinateSystem(),
+        scene: scene.scene,
+        loadDeferredCatalogs: async () => ({
+          exoplanetCatalog: null,
+          cosmicGroupCatalog: cosmicGroupCatalog(513),
+          cosmicStructureCatalog: cosmicStructureCatalog(513),
+          cosmicWebVolume: cosmicWebVolume(),
+          warnings: [],
+        }),
+        yieldControl: async () => {
+          pauses += 1;
+          current = pauses !== cancelAt;
+        },
+      });
+
+      await expect(runtime.installDeferredCatalogs(() => current)).rejects.toThrow(
+        'runtime obsolète',
+      );
+      expect(pauses).toBe(cancelAt);
+      expect(runtime.getSearchEntries()).toEqual([]);
+      expect(runtime.cosmicGroupCatalogRegistry).toBeNull();
+      expect(runtime.cosmicStructureCatalogRegistry).toBeNull();
+      expect(scene.setCosmicGroupCatalog).toHaveBeenCalledTimes(cancelAt > 3 ? 1 : 0);
+      expect(scene.setCosmicStructureCatalog).not.toHaveBeenCalled();
+      expect(scene.setCosmicWebVolume).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([1, 2, 3, 'complete'] as const)(
+    'ne rattache pas les exoplanètes à une scène invalidée à l’étape %s',
+    async (cancelAt) => {
+      const scene = sceneHarness();
+      let current = true;
+      let pauses = 0;
+      const create = vi.spyOn(ExoplanetCatalogRegistry, 'create');
+
+      if (cancelAt === 'complete') {
+        create.mockImplementationOnce(async (catalog, coordinates, objects) => {
+          const registry = new ExoplanetCatalogRegistry(catalog, coordinates, objects);
+
+          current = false;
+
+          return registry;
+        });
+      }
+      const runtime = new UniverseCatalogRuntime({
+        baseObjects: Array.from({ length: 512 }, (_, index) =>
+          staticObject(`base-${index}`, `Base ${index}`),
+        ),
+        starCatalogRegistry: null,
+        exoplanetCatalogRegistry: null,
+        cosmicGroupCatalogRegistry: null,
+        cosmicStructureCatalogRegistry: null,
+        spaceTileManager: null,
+        starTileManager: null,
+        tempelFilamentSpineSource: null,
+        coordinateSystem: new CoordinateSystem(),
+        scene: scene.scene,
+        loadDeferredCatalogs: async () => ({
+          exoplanetCatalog: exoplanetCatalog(),
+          cosmicGroupCatalog: null,
+          cosmicStructureCatalog: null,
+          cosmicWebVolume: null,
+          warnings: [],
+        }),
+        yieldControl: async () => {
+          pauses += 1;
+          current = pauses !== cancelAt;
+        },
+      });
+
+      await expect(runtime.installDeferredCatalogs(() => current)).rejects.toThrow(
+        'runtime obsolète',
+      );
+      expect(scene.setExoplanetCatalog).not.toHaveBeenCalled();
+      expect(runtime.exoplanetCatalogRegistry).toBeNull();
+      expect(runtime.getSearchEntries()).toEqual([]);
+      expect(pauses).toBe(cancelAt === 'complete' ? 1 : cancelAt);
+      create.mockRestore();
+    },
+  );
+
+  it.each(['groups', 'structures'] as const)(
+    'vérifie encore le runtime entre le registre %s terminé et son installation',
+    async (kind) => {
+      const scene = sceneHarness();
+      let current = true;
+      const invalidate = () => {
+        current = false;
+      };
+      const preparation =
+        kind === 'groups'
+          ? vi
+              .spyOn(CosmicGroupCatalogRegistry, 'create')
+              .mockImplementationOnce(async (catalog, coordinates) => {
+                const registry = new CosmicGroupCatalogRegistry(catalog, coordinates);
+
+                invalidate();
+
+                return registry;
+              })
+          : vi
+              .spyOn(CosmicStructureCatalogRegistry, 'create')
+              .mockImplementationOnce(async (catalog, coordinates) => {
+                const registry = new CosmicStructureCatalogRegistry(catalog, coordinates);
+
+                invalidate();
+
+                return registry;
+              });
+      const runtime = new UniverseCatalogRuntime({
+        baseObjects: [],
+        starCatalogRegistry: null,
+        exoplanetCatalogRegistry: null,
+        cosmicGroupCatalogRegistry: null,
+        cosmicStructureCatalogRegistry: null,
+        spaceTileManager: null,
+        starTileManager: null,
+        tempelFilamentSpineSource: null,
+        coordinateSystem: new CoordinateSystem(),
+        scene: scene.scene,
+        loadDeferredCatalogs: async () => ({
+          exoplanetCatalog: null,
+          cosmicGroupCatalog: kind === 'groups' ? cosmicGroupCatalog() : null,
+          cosmicStructureCatalog: kind === 'structures' ? cosmicStructureCatalog() : null,
+          cosmicWebVolume: cosmicWebVolume(),
+          warnings: [],
+        }),
+        yieldControl: async () => undefined,
+      });
+
+      await expect(runtime.installDeferredCatalogs(() => current)).rejects.toThrow(
+        'runtime obsolète',
+      );
+      expect(scene.calls()).toEqual([]);
+      expect(runtime.getSearchEntries()).toEqual([]);
+      preparation.mockRestore();
+    },
+  );
 });
 
 function sceneHarness() {
@@ -379,6 +661,10 @@ function sceneHarness() {
   const setCosmicGroupCatalog = vi.fn(() => record('cosmic-groups'));
   const setCosmicStructureCatalog = vi.fn(() => record('cosmic-structures'));
   const setCosmicWebVolume = vi.fn(() => record('cosmic-volume'));
+  const hasStarClusterObject = vi.fn<(objectId: string) => boolean>(() => false);
+  const getStarClusterDefinition = vi.fn<(objectId: string) => SpaceObject | undefined>(
+    () => undefined,
+  );
   const scene = {
     setNearbyGalaxyOverview,
     setStarCatalog,
@@ -387,6 +673,8 @@ function sceneHarness() {
     setCosmicGroupCatalog,
     setCosmicStructureCatalog,
     setCosmicWebVolume,
+    hasStarClusterObject,
+    getStarClusterDefinition,
   } satisfies UniverseCatalogScene;
 
   return {
@@ -399,6 +687,8 @@ function sceneHarness() {
     setCosmicGroupCatalog,
     setCosmicStructureCatalog,
     setCosmicWebVolume,
+    hasStarClusterObject,
+    getStarClusterDefinition,
   };
 }
 
@@ -472,41 +762,45 @@ function starCatalog(): StarCatalog {
   };
 }
 
-function cosmicGroupCatalog(): CosmicGroupCatalog {
+function cosmicGroupCatalog(count = 1): CosmicGroupCatalog {
   return {
-    count: 1,
+    count,
     referenceEpochJulianDay: 2_451_545,
     minimumDistanceMpc: 12.1,
     maximumDistanceMpc: 12.1,
-    positionsMpc: new Float32Array([12.1, 0, 0]),
-    distancesMpc: new Float32Array([12.1]),
-    distanceModulusErrors: new Float32Array([0.1]),
-    velocitiesCmbKmPerSecond: new Int32Array([28]),
-    pgcIds: new Uint32Array([35]),
-    distanceModuli: new Float32Array([30.413]),
+    positionsMpc: Float32Array.from({ length: count * 3 }, (_, index) =>
+      index % 3 === 0 ? 12.1 : 0,
+    ),
+    distancesMpc: new Float32Array(count).fill(12.1),
+    distanceModulusErrors: new Float32Array(count).fill(0.1),
+    velocitiesCmbKmPerSecond: new Int32Array(count).fill(28),
+    pgcIds: Uint32Array.from({ length: count }, (_, index) => 35 + index),
+    distanceModuli: new Float32Array(count).fill(30.413),
     filamentPairs: new Uint32Array(),
   };
 }
 
-function cosmicStructureCatalog(): CosmicStructureCatalog {
+function cosmicStructureCatalog(count = 1): CosmicStructureCatalog {
   return {
-    count: 1,
+    count,
     referenceEpochJulianDay: 2_451_545,
     minimumDistanceMpc: 100,
     maximumDistanceMpc: 100,
-    positionsMpc: new Float32Array([100, 0, 0]),
-    distancesMpc: new Float32Array([100]),
-    radiiMpc: new Float32Array([25]),
-    confidences: new Float32Array([0.98]),
-    densityContrasts: new Float32Array([Number.NaN]),
-    boundaryDistancesMpc: new Float32Array([Number.NaN]),
-    galaxyCounts: new Uint32Array([100]),
-    sourceIndices: new Uint16Array([0]),
-    catalogNumericIds: new Uint16Array([1]),
-    flags: new Uint8Array([0]),
-    identifiers: ['SC-1'],
-    structureTypes: ['supercluster'],
-    metadata: cosmicStructureMetadata(),
+    positionsMpc: Float32Array.from({ length: count * 3 }, (_, index) =>
+      index % 3 === 0 ? 100 : 0,
+    ),
+    distancesMpc: new Float32Array(count).fill(100),
+    radiiMpc: new Float32Array(count).fill(25),
+    confidences: new Float32Array(count).fill(0.98),
+    densityContrasts: new Float32Array(count).fill(Number.NaN),
+    boundaryDistancesMpc: new Float32Array(count).fill(Number.NaN),
+    galaxyCounts: new Uint32Array(count).fill(100),
+    sourceIndices: new Uint16Array(count),
+    catalogNumericIds: Uint16Array.from({ length: count }, (_, index) => index + 1),
+    flags: new Uint8Array(count),
+    identifiers: Array.from({ length: count }, (_, index) => `SC-${index + 1}`),
+    structureTypes: Array.from({ length: count }, () => 'supercluster'),
+    metadata: { ...cosmicStructureMetadata(), recordCount: count },
   };
 }
 

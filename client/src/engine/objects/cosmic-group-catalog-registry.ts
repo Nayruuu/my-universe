@@ -1,6 +1,12 @@
 import * as THREE from 'three';
 import { SearchEntry, SpaceObject } from '../../data/models/universe.models';
 import { CoordinateSystem } from '../coordinates/coordinate-system';
+import {
+  CATALOG_PREPARATION_CHUNK_SIZE,
+  finishCatalogPreparation,
+  prepareCatalogIncrementally,
+  yieldCatalogPreparation,
+} from '../core/catalog-preparation';
 import type { CosmicGroupCatalog } from '../loaders/cosmic-group-catalog';
 import {
   COSMOLOGICAL_REDSHIFT_METADATA_KEY,
@@ -13,11 +19,17 @@ import type { LabelObject } from './label-manager';
 
 const DEFAULT_MAXIMUM_LABEL_RANK = 1_000;
 
+interface PreparedGroupRegistry {
+  readonly renderPositions: Float32Array;
+  readonly objectIds: readonly string[];
+  readonly indexByObjectId: ReadonlyMap<string, number>;
+}
+
 export class CosmicGroupCatalogRegistry {
   public readonly renderPositions: Float32Array;
   public readonly objectIds: readonly string[];
 
-  private readonly indexByObjectId = new Map<string, number>();
+  private readonly indexByObjectId: ReadonlyMap<string, number>;
   private readonly labelRecordIndices: Uint32Array;
   private readonly definitions = new Map<string, SpaceObject>();
   private searchEntries: readonly SearchEntry[] | null = null;
@@ -25,27 +37,35 @@ export class CosmicGroupCatalogRegistry {
   constructor(
     public readonly catalog: CosmicGroupCatalog,
     coordinateSystem: CoordinateSystem,
+    prepared = finishCatalogPreparation(prepareGroupRegistry(catalog, coordinateSystem)),
   ) {
-    this.renderPositions = new Float32Array(catalog.count * 3);
-    this.objectIds = Array.from(
-      { length: catalog.count },
-      (_, index) => `cf4-pgc-${catalog.pgcIds[index]}`,
-    );
+    this.renderPositions = prepared.renderPositions;
+    this.objectIds = prepared.objectIds;
+    this.indexByObjectId = prepared.indexByObjectId;
     this.labelRecordIndices = createProgressiveSampleIndices(
       catalog.count,
       Math.min(catalog.count, DEFAULT_MAXIMUM_LABEL_RANK),
     );
-    const scale = coordinateSystem.toSceneDistance(1, 'megaparsec', 'cosmic-web');
+  }
 
-    for (let index = 0; index < catalog.count; index += 1) {
-      const objectId = this.objectIds[index]!;
-      const offset = index * 3;
+  public static async create(
+    catalog: CosmicGroupCatalog,
+    coordinateSystem: CoordinateSystem,
+    yieldControl = yieldCatalogPreparation,
+  ): Promise<CosmicGroupCatalogRegistry> {
+    const prepared = await prepareCatalogIncrementally(
+      prepareGroupRegistry(catalog, coordinateSystem),
+      yieldControl,
+    );
+    const registry = new CosmicGroupCatalogRegistry(catalog, coordinateSystem, prepared);
 
-      this.indexByObjectId.set(objectId, index);
-      this.renderPositions[offset] = catalog.positionsMpc[offset]! * scale;
-      this.renderPositions[offset + 1] = catalog.positionsMpc[offset + 1]! * scale;
-      this.renderPositions[offset + 2] = catalog.positionsMpc[offset + 2]! * scale;
-    }
+    // Publish only a complete registry, including names/aliases needed by the search event.
+    registry.searchEntries = await prepareCatalogIncrementally(
+      registry.prepareSearchEntries(),
+      yieldControl,
+    );
+
+    return registry;
   }
 
   public has(objectId: string): boolean {
@@ -75,18 +95,7 @@ export class CosmicGroupCatalogRegistry {
   }
 
   public getSearchEntries(): readonly SearchEntry[] {
-    this.searchEntries ??= this.objectIds.map((id, index) => {
-      const pgcId = this.catalog.pgcIds[index]!;
-
-      return {
-        id,
-        name: `Groupe PGC ${pgcId}`,
-        aliases: [`PGC ${pgcId}`],
-        type: 'galaxy-cluster',
-        parentName: 'Réseau cosmique',
-        keywords: ['Cosmicflows-4', 'groupe de galaxies', 'amas', 'PGC'],
-      };
-    });
+    this.searchEntries ??= finishCatalogPreparation(this.prepareSearchEntries());
 
     return this.searchEntries;
   }
@@ -115,6 +124,28 @@ export class CosmicGroupCatalogRegistry {
     const index = this.getIndex(objectId);
 
     return index === null ? null : target.fromArray(this.renderPositions, index * 3);
+  }
+
+  private *prepareSearchEntries(): Generator<void, readonly SearchEntry[]> {
+    const entries: SearchEntry[] = [];
+
+    for (let index = 0; index < this.catalog.count; index += 1) {
+      const pgcId = this.catalog.pgcIds[index]!;
+
+      entries.push({
+        id: this.objectIds[index]!,
+        name: `Groupe PGC ${pgcId}`,
+        aliases: [`PGC ${pgcId}`],
+        type: 'galaxy-cluster',
+        parentName: 'Réseau cosmique',
+        keywords: ['Cosmicflows-4', 'groupe de galaxies', 'amas', 'PGC'],
+      });
+      if ((index + 1) % CATALOG_PREPARATION_CHUNK_SIZE === 0) {
+        yield;
+      }
+    }
+
+    return entries;
   }
 
   private createDefinition(index: number): SpaceObject {
@@ -167,6 +198,32 @@ export class CosmicGroupCatalogRegistry {
       },
     };
   }
+}
+
+function* prepareGroupRegistry(
+  catalog: CosmicGroupCatalog,
+  coordinateSystem: CoordinateSystem,
+): Generator<void, PreparedGroupRegistry> {
+  const renderPositions = new Float32Array(catalog.count * 3);
+  const objectIds: string[] = [];
+  const indexByObjectId = new Map<string, number>();
+  const scale = coordinateSystem.toSceneDistance(1, 'megaparsec', 'cosmic-web');
+
+  for (let index = 0; index < catalog.count; index += 1) {
+    const objectId = `cf4-pgc-${catalog.pgcIds[index]}`;
+    const offset = index * 3;
+
+    objectIds.push(objectId);
+    indexByObjectId.set(objectId, index);
+    renderPositions[offset] = catalog.positionsMpc[offset]! * scale;
+    renderPositions[offset + 1] = catalog.positionsMpc[offset + 1]! * scale;
+    renderPositions[offset + 2] = catalog.positionsMpc[offset + 2]! * scale;
+    if ((index + 1) % CATALOG_PREPARATION_CHUNK_SIZE === 0) {
+      yield;
+    }
+  }
+
+  return { renderPositions, objectIds, indexByObjectId };
 }
 
 function createProgressiveSampleIndices(count: number, targetCount: number): Uint32Array {

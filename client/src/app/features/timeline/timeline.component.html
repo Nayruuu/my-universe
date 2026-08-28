@@ -1,6 +1,7 @@
 @let t = i18n.content();
 <section
   class="timeline"
+  [class.timeline--expanded]="optionsOpen()"
   [class.timeline--eclipse]="facade.timelineSolarEclipse()"
   [attr.aria-label]="t.timeline.aria"
 >
@@ -109,28 +110,42 @@
       </span>
     </div>
 
-    <input
-      class="timeline-range"
-      type="range"
-      min="-3652.5"
-      max="3652.5"
-      step="1"
-      [attr.aria-label]="t.timeline.rangeAria"
-      [value]="timelineOffset()"
-      (input)="changeTimeline($event)"
-    />
-
     <button
       type="button"
-      class="present-button"
-      [title]="t.timeline.todayTitle"
-      (click)="facade.returnToPresent()"
+      class="timeline-toggle"
+      [attr.aria-label]="optionsOpen() ? t.timeline.collapseControls : t.timeline.expandControls"
+      [title]="optionsOpen() ? t.timeline.collapseControls : t.timeline.expandControls"
+      [attr.aria-expanded]="optionsOpen()"
+      aria-controls="timeline-scrub timeline-options"
+      (click)="toggleOptions()"
     >
-      {{ t.timeline.today }}
+      <span aria-hidden="true">⌃</span>
     </button>
+
+    <div class="timeline__scrub" id="timeline-scrub">
+      <input
+        class="timeline-range"
+        type="range"
+        min="-3652.5"
+        max="3652.5"
+        step="1"
+        [attr.aria-label]="t.timeline.rangeAria"
+        [value]="timelineOffset()"
+        (input)="changeTimeline($event)"
+      />
+
+      <button
+        type="button"
+        class="present-button"
+        [title]="t.timeline.todayTitle"
+        (click)="facade.returnToPresent()"
+      >
+        {{ t.timeline.today }}
+      </button>
+    </div>
   </div>
 
-  <div class="timeline__secondary">
+  <div class="timeline__secondary" id="timeline-options">
     <button
       type="button"
       class="events-button"

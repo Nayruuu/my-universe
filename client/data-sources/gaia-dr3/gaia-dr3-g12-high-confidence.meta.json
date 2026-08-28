@@ -1,0 +1,43 @@
+{
+  "sourceCatalog": "gaia-dr3-bright-high-confidence",
+  "source": {
+    "name": "Gaia Data Release 3 · gaia_source_lite",
+    "url": "https://gea.esac.esa.int/archive/",
+    "doi": "10.5270/esa-qa4lep3",
+    "credit": "ESA/Gaia/DPAC",
+    "retrievedAt": "2026-08-28T21:26:58.000Z",
+    "query": "SELECT source_id, ra, dec, parallax, parallax_over_error, phot_g_mean_mag, bp_rp FROM gaiadr3.gaia_source_lite WHERE parallax >= 0.2 AND parallax_over_error >= 10 AND phot_g_mean_mag <= 12 AND bp_rp IS NOT NULL ORDER BY source_id"
+  },
+  "selection": {
+    "maximumDistanceParsec": 5000,
+    "maximumApparentMagnitude": 12,
+    "minimumParallaxOverError": 10
+  },
+  "expectedSourceStarCount": 2923790,
+  "parts": [
+    {
+      "file": "gaia-dr3-g12-high-confidence-part-001.csv",
+      "sourceStarCount": 1218327,
+      "firstSourceId": "7632157690368",
+      "lastSourceId": "3245232724276980224",
+      "inputSha256": "bdd2775d6f42fda85e5cd65727bb27913265054333614753d5c74380a63c472d",
+      "query": "SELECT source_id, ra, dec, parallax, parallax_over_error, phot_g_mean_mag, bp_rp FROM gaiadr3.gaia_source_lite WHERE parallax >= 0.2 AND parallax_over_error >= 10 AND phot_g_mean_mag <= 12 AND bp_rp IS NOT NULL ORDER BY source_id"
+    },
+    {
+      "file": "gaia-dr3-g12-high-confidence-part-002.csv",
+      "sourceStarCount": 1276338,
+      "firstSourceId": "3245233450128860416",
+      "lastSourceId": "5943998656254054656",
+      "inputSha256": "a181071e664a6b63d4a20b8891ab947dca8d2dca81b3c69b1a97a03e90823b89",
+      "query": "SELECT source_id, ra, dec, parallax, parallax_over_error, phot_g_mean_mag, bp_rp FROM gaiadr3.gaia_source_lite WHERE parallax >= 0.2 AND parallax_over_error >= 10 AND phot_g_mean_mag <= 12 AND bp_rp IS NOT NULL AND source_id > 3245232724276980224 ORDER BY source_id"
+    },
+    {
+      "file": "gaia-dr3-g12-high-confidence-part-003.csv",
+      "sourceStarCount": 429125,
+      "firstSourceId": "5943999888854646400",
+      "lastSourceId": "6917527721971537664",
+      "inputSha256": "63a2fa4bb1a67a038a55a3abeeb16c87637d3f30d678d4235a97046c7d135705",
+      "query": "SELECT source_id, ra, dec, parallax, parallax_over_error, phot_g_mean_mag, bp_rp FROM gaiadr3.gaia_source_lite WHERE parallax >= 0.2 AND parallax_over_error >= 10 AND phot_g_mean_mag <= 12 AND bp_rp IS NOT NULL AND source_id > 5943998656254054656 ORDER BY source_id"
+    }
+  ]
+}

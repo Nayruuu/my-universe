@@ -10,6 +10,7 @@ export interface ObjectDetailsCatalogPresentation {
   readonly distanceLabel: (object: SpaceObject) => string | null;
   readonly apparentMagnitudeLabel: (object: SpaceObject) => string | null;
   readonly colorIndexLabel: (object: SpaceObject) => string | null;
+  readonly colorIndexName: (object: SpaceObject) => string;
   readonly catalogIdentifierLabel: (object: SpaceObject) => string | null;
   readonly effectiveRadiusLabel: (object: SpaceObject) => string | null;
   readonly structureLengthLabel: (object: SpaceObject) => string | null;
@@ -62,7 +63,12 @@ export function createObjectDetailsCatalogPresentation(
       return object.id === 'sun' ? context.content().details.distanceFromEarth : null;
     },
     apparentMagnitudeLabel: (object) => formattedNumber(object, 'apparentMagnitude', 2),
-    colorIndexLabel: (object) => formattedNumber(object, 'colorIndexBv', 3),
+    colorIndexLabel: (object) =>
+      formattedNumber(object, 'colorIndexBv', 3) ?? formattedNumber(object, 'colorIndexBpRp', 3),
+    colorIndexName: (object) =>
+      numberMetadata(object, 'colorIndexBpRp') === null
+        ? context.content().details.colorIndex
+        : context.content().details.colorIndexBpRp,
     catalogIdentifierLabel: (object) => {
       const hygId = numberMetadata(object, 'hygId');
 

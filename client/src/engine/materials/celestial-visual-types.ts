@@ -17,6 +17,7 @@ export interface DeferredCelestialResource {
 }
 
 export interface CelestialLodRepresentation {
+  continuousVolume?: ContinuousCelestialVolume;
   nearRoot: THREE.Group | null;
   farSprite: THREE.Sprite | null;
   nearMaterials: ManagedLodMaterial[];
@@ -29,6 +30,15 @@ export interface CelestialLodRepresentation {
   farBaseOpacity: number;
   farBaseDiameter: number;
   farAspectRatio: number;
+}
+
+/** A fixed volume that resolves progressively instead of crossfading to a flat sprite. */
+export interface ContinuousCelestialVolume {
+  updateDetail(
+    apparentRadiusPixels: number,
+    displayedLocalRadius: number,
+    deltaSeconds: number,
+  ): void;
 }
 
 export interface CelestialVisual {

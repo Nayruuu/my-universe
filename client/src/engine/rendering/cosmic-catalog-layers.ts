@@ -5,6 +5,8 @@ import {
   type TempelFilamentSceneInstallationMetrics,
 } from '../../data/models/universe.models';
 import { type CoordinateSystem } from '../coordinates/coordinate-system';
+import { IntergalacticFrameGroup } from '../coordinates/intergalactic-frame-group';
+import { type IntergalacticScale } from '../coordinates/intergalactic-scale-model';
 import { type CosmicWebVolume } from '../loaders/cosmic-web-volume';
 import { type TempelFilamentSpineCatalog } from '../loaders/tempel-filament-spine-catalog';
 import { type CosmicGroupCatalogRegistry } from '../objects/cosmic-group-catalog-registry';
@@ -17,6 +19,7 @@ import { type NearbyGalaxyOverviewBatch } from './nearby-galaxy-overview-batch';
 import { type TempelFilamentSpineBatch } from './tempel-filament-spine-batch';
 import { type CosmicMapLayers, DEFAULT_COSMIC_MAP_LAYERS } from './cosmic-map-policy';
 import { measureTempelFilamentInstallation } from './tempel-filament-installation-performance';
+import { prepareCatalogIncrementally, yieldCatalogPreparation } from '../core/catalog-preparation';
 
 export class CosmicCatalogLayers {
   private cosmicGroupCatalogBatch: CosmicGroupCatalogBatch | null = null;
@@ -29,8 +32,20 @@ export class CosmicCatalogLayers {
   private pixelRatio = 1;
   private photographicRadiance = 1;
   private cosmicMapLayers: CosmicMapLayers = DEFAULT_COSMIC_MAP_LAYERS;
+  private readonly intergalacticFrames: IntergalacticFrameGroup;
+  private cosmicGroupPreparationVersion = 0;
+  private cosmicStructurePreparationVersion = 0;
 
-  constructor(private readonly root: THREE.Group) {}
+  constructor(
+    root: THREE.Group,
+    private readonly yieldPreparation: () => Promise<void> = yieldCatalogPreparation,
+  ) {
+    this.intergalacticFrames = new IntergalacticFrameGroup(root, 'catalog-layers');
+  }
+
+  public get intergalacticScale(): IntergalacticScale {
+    return this.intergalacticFrames.currentScale;
+  }
 
   public setQuality(quality: GraphicQuality): void {
     this.quality = quality;
@@ -62,34 +77,96 @@ export class CosmicCatalogLayers {
     const { NearbyGalaxyOverviewBatch } = await import('./nearby-galaxy-overview-batch');
 
     this.nearbyGalaxyOverviewBatch = new NearbyGalaxyOverviewBatch(entries, coordinateSystem);
-    this.root.add(this.nearbyGalaxyOverviewBatch.points);
+    this.intergalacticFrames.nearbyUniverseRoot.add(this.nearbyGalaxyOverviewBatch.points);
     this.nearbyGalaxyOverviewBatch.setPixelRatio(this.pixelRatio);
     this.nearbyGalaxyOverviewBatch.setPhotographicRadiance(this.photographicRadiance);
   }
 
   public async setCosmicGroupCatalog(registry: CosmicGroupCatalogRegistry): Promise<void> {
-    this.disposeCosmicGroups();
-    const [{ CosmicGroupCatalogBatch }, { LocalVolumeDepthBackdrop }] = await Promise.all([
-      import('./cosmic-group-catalog-batch'),
-      import('./local-volume-depth-backdrop'),
-    ]);
+    const version = ++this.cosmicGroupPreparationVersion;
 
-    this.cosmicGroupCatalogBatch = new CosmicGroupCatalogBatch(registry, this.quality);
-    this.localVolumeDepthBackdrop = new LocalVolumeDepthBackdrop(registry, this.quality);
-    this.cosmicGroupCatalogBatch.setLayers(this.cosmicMapLayers);
-    this.localVolumeDepthBackdrop.setEnabled(this.cosmicMapLayers.groups);
-    this.root.add(this.localVolumeDepthBackdrop.points, this.cosmicGroupCatalogBatch.root);
-    this.applyDisplayConfiguration();
+    try {
+      const [{ CosmicGroupCatalogBatch }, { LocalVolumeDepthBackdrop }, preparation] =
+        await Promise.all([
+          import('./cosmic-group-catalog-batch'),
+          import('./local-volume-depth-backdrop'),
+          import('./cosmic-group-catalog-preparation'),
+        ]);
+
+      this.assertCurrentCosmicGroupPreparation(version);
+      const prepared = await preparation.prepareCosmicGroupCatalog(registry, async () => {
+        await this.yieldPreparation();
+        this.assertCurrentCosmicGroupPreparation(version);
+      });
+
+      if (version !== this.cosmicGroupPreparationVersion) {
+        preparation.disposePreparedCosmicGroupCatalog(prepared);
+
+        return;
+      }
+      this.disposeCosmicGroups();
+      this.cosmicGroupCatalogBatch = new CosmicGroupCatalogBatch(
+        registry,
+        this.quality,
+        prepared.groups,
+      );
+      this.localVolumeDepthBackdrop = new LocalVolumeDepthBackdrop(
+        registry,
+        this.quality,
+        prepared.backdrop,
+      );
+      this.cosmicGroupCatalogBatch.setLayers(this.cosmicMapLayers);
+      this.localVolumeDepthBackdrop.setEnabled(this.cosmicMapLayers.groups);
+      this.intergalacticFrames.cosmicWebRoot.add(
+        this.localVolumeDepthBackdrop.points,
+        this.cosmicGroupCatalogBatch.root,
+      );
+      this.applyDisplayConfiguration();
+    } catch (error) {
+      if (version === this.cosmicGroupPreparationVersion) {
+        throw error;
+      }
+    }
   }
 
   public async setCosmicStructureCatalog(registry: CosmicStructureCatalogRegistry): Promise<void> {
-    this.disposeCosmicStructures();
-    const { CosmicStructureCatalogBatch } = await import('./cosmic-structure-catalog-batch');
+    const version = ++this.cosmicStructurePreparationVersion;
 
-    this.cosmicStructureCatalogBatch = new CosmicStructureCatalogBatch(registry, this.quality);
-    this.cosmicStructureCatalogBatch.setLayers(this.cosmicMapLayers);
-    this.root.add(this.cosmicStructureCatalogBatch.root);
-    this.applyDisplayConfiguration();
+    try {
+      const [{ CosmicStructureCatalogBatch }, { prepareCosmicStructureGeometry }] =
+        await Promise.all([
+          import('./cosmic-structure-catalog-batch'),
+          import('./cosmic-structure-catalog-visual'),
+        ]);
+
+      this.assertCurrentCosmicStructurePreparation(version);
+      const prepared = await prepareCatalogIncrementally(
+        prepareCosmicStructureGeometry(registry),
+        async () => {
+          await this.yieldPreparation();
+          this.assertCurrentCosmicStructurePreparation(version);
+        },
+      );
+
+      if (version !== this.cosmicStructurePreparationVersion) {
+        prepared.geometry.dispose();
+
+        return;
+      }
+      this.disposeCosmicStructures();
+      this.cosmicStructureCatalogBatch = new CosmicStructureCatalogBatch(
+        registry,
+        this.quality,
+        prepared,
+      );
+      this.cosmicStructureCatalogBatch.setLayers(this.cosmicMapLayers);
+      this.intergalacticFrames.cosmicWebRoot.add(this.cosmicStructureCatalogBatch.root);
+      this.applyDisplayConfiguration();
+    } catch (error) {
+      if (version === this.cosmicStructurePreparationVersion) {
+        throw error;
+      }
+    }
   }
 
   public async setCosmicWebVolume(
@@ -105,7 +182,7 @@ export class CosmicCatalogLayers {
       this.quality,
     );
     this.cosmicWebVolumeRenderer.setEnabled(this.cosmicMapLayers.volume);
-    this.root.add(this.cosmicWebVolumeRenderer.mesh);
+    this.intergalacticFrames.cosmicWebRoot.add(this.cosmicWebVolumeRenderer.mesh);
   }
 
   public async setTempelFilamentSpineCatalog(
@@ -121,7 +198,7 @@ export class CosmicCatalogLayers {
         this.tempelFilamentSpineBatch = batch;
         batch.setLayers(this.cosmicMapLayers);
         batch.setPhotographicRadiance(this.photographicRadiance);
-        this.root.add(batch.root);
+        this.intergalacticFrames.cosmicWebRoot.add(batch.root);
       },
     );
 
@@ -150,6 +227,10 @@ export class CosmicCatalogLayers {
     this.cosmicStructureCatalogBatch?.updateDistance(cameraDistance, deltaSeconds);
     this.tempelFilamentSpineBatch?.updateDistance(cameraDistance, deltaSeconds);
     this.nearbyGalaxyOverviewBatch?.updateDistance(cameraDistance, deltaSeconds);
+  }
+
+  public updateReferenceFrameScale(cameraDistance: number): boolean {
+    return this.intergalacticFrames.update(cameraDistance);
   }
 
   public selectCatalogObject(objectId: string | null): void {
@@ -242,11 +323,26 @@ export class CosmicCatalogLayers {
   }
 
   public dispose(): void {
+    this.cosmicGroupPreparationVersion += 1;
+    this.cosmicStructurePreparationVersion += 1;
     this.disposeCosmicGroups();
     this.disposeCosmicStructures();
     this.disposeCosmicWebVolume();
     this.disposeTempelFilamentSpines();
     this.disposeNearbyGalaxyOverview();
+    this.intergalacticFrames.dispose();
+  }
+
+  private assertCurrentCosmicGroupPreparation(version: number): void {
+    if (version !== this.cosmicGroupPreparationVersion) {
+      throw new Error('Préparation Cosmicflows remplacée ou scène libérée.');
+    }
+  }
+
+  private assertCurrentCosmicStructurePreparation(version: number): void {
+    if (version !== this.cosmicStructurePreparationVersion) {
+      throw new Error('Préparation des structures remplacée ou scène libérée.');
+    }
   }
 
   private applyDisplayConfiguration(): void {
@@ -259,12 +355,12 @@ export class CosmicCatalogLayers {
 
   private disposeCosmicGroups(): void {
     if (this.cosmicGroupCatalogBatch) {
-      this.root.remove(this.cosmicGroupCatalogBatch.root);
+      this.cosmicGroupCatalogBatch.root.removeFromParent();
       this.cosmicGroupCatalogBatch.dispose();
       this.cosmicGroupCatalogBatch = null;
     }
     if (this.localVolumeDepthBackdrop) {
-      this.root.remove(this.localVolumeDepthBackdrop.points);
+      this.localVolumeDepthBackdrop.points.removeFromParent();
       this.localVolumeDepthBackdrop.dispose();
       this.localVolumeDepthBackdrop = null;
     }
@@ -274,7 +370,7 @@ export class CosmicCatalogLayers {
     if (!this.cosmicStructureCatalogBatch) {
       return;
     }
-    this.root.remove(this.cosmicStructureCatalogBatch.root);
+    this.cosmicStructureCatalogBatch.root.removeFromParent();
     this.cosmicStructureCatalogBatch.dispose();
     this.cosmicStructureCatalogBatch = null;
   }
@@ -283,7 +379,7 @@ export class CosmicCatalogLayers {
     if (!this.cosmicWebVolumeRenderer) {
       return;
     }
-    this.root.remove(this.cosmicWebVolumeRenderer.mesh);
+    this.cosmicWebVolumeRenderer.mesh.removeFromParent();
     this.cosmicWebVolumeRenderer.dispose();
     this.cosmicWebVolumeRenderer = null;
   }
@@ -292,7 +388,7 @@ export class CosmicCatalogLayers {
     if (!this.tempelFilamentSpineBatch) {
       return;
     }
-    this.root.remove(this.tempelFilamentSpineBatch.root);
+    this.tempelFilamentSpineBatch.root.removeFromParent();
     this.tempelFilamentSpineBatch.dispose();
     this.tempelFilamentSpineBatch = null;
   }
@@ -301,7 +397,7 @@ export class CosmicCatalogLayers {
     if (!this.nearbyGalaxyOverviewBatch) {
       return;
     }
-    this.root.remove(this.nearbyGalaxyOverviewBatch.points);
+    this.nearbyGalaxyOverviewBatch.points.removeFromParent();
     this.nearbyGalaxyOverviewBatch.dispose();
     this.nearbyGalaxyOverviewBatch = null;
   }

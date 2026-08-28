@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { SpaceObject } from '../../../data/models/universe.models';
 import { I18nService } from '../i18n/i18n.service';
+import { LocalSearchIndex } from './search-index';
 import { SearchService } from './search.service';
 import { DEFAULT_EXOPLANET_DISCOVERY_FILTERS } from './search.service';
 
@@ -10,7 +11,11 @@ describe('SearchService', () => {
     TestBed.configureTestingModule({ providers: [SearchService] });
   });
 
-  afterEach(() => TestBed.resetTestingModule());
+  afterEach(() => {
+    TestBed.resetTestingModule();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
 
   it('construit puis interroge l’index local avec les valeurs par défaut', () => {
     const service = TestBed.inject(SearchService);
@@ -265,6 +270,100 @@ describe('SearchService', () => {
     expect(service.revision()).toBe(1);
     expect(service.search('terre')[0]?.id).toBe('earth');
     expect(service.search('ancien catalogue')).toEqual([]);
+  });
+
+  it.each(['complete', 'replace', 'destroy', 'language'] as const)(
+    'préserve la paire recherche/découverte jusqu’à sa publication complète : %s',
+    async (action) => {
+      const service = TestBed.inject(SearchService);
+      const i18n = TestBed.inject(I18nService);
+      const gates: (() => void)[] = [];
+      let discoveryReads = 0;
+      const entries = Array.from({ length: 2_100 }, (_, index) => ({
+        ...exoplanetEntry(`planet-${index}`, 2_100 - index, 1, 'Transit', true),
+        get type(): 'exoplanet' {
+          discoveryReads += 1;
+
+          return 'exoplanet';
+        },
+      }));
+
+      service.setData([featuredExoplanet()]);
+      vi.stubGlobal(
+        'MessageChannel',
+        class {
+          public readonly port1 = {
+            onmessage: null as (() => void) | null,
+            close: () => undefined,
+          };
+          public readonly port2 = {
+            close: () => undefined,
+            postMessage: () => gates.push(() => this.port1.onmessage?.()),
+          };
+        },
+      );
+      service.setData([object('earth', 'Terre')], entries);
+      expect(service.exoplanetCount()).toBe(1);
+      expect(service.revision()).toBe(1);
+
+      for (let tick = 0; tick < 100 && discoveryReads === 0; tick += 1) {
+        gates.shift()?.();
+        await Promise.resolve();
+      }
+      expect(discoveryReads).toBeGreaterThan(0);
+      expect(discoveryReads).toBeLessThan(entries.length);
+      expect(service.revision()).toBe(1);
+      expect(service.exoplanetCount()).toBe(1);
+      expect(service.discoverExoplanets()[0]?.id).toBe('featured-b');
+      expect(service.search('planet-2099')).toEqual([]);
+      if (action === 'replace') {
+        service.setData([object('moon', 'Lune')]);
+      } else if (action === 'destroy') {
+        TestBed.resetTestingModule();
+      } else if (action === 'language') {
+        await i18n.setLanguage('de');
+        TestBed.flushEffects();
+      }
+      for (let tick = 0; tick < 200; tick += 1) {
+        gates.shift()?.();
+        await Promise.resolve();
+      }
+
+      expect(gates).toHaveLength(0);
+      if (action === 'destroy') {
+        expect(service.revision()).toBe(1);
+        expect(service.exoplanetCount()).toBe(1);
+        expect(service.search('featured')[0]?.id).toBe('featured-b');
+      } else if (action === 'replace') {
+        expect(service.revision()).toBe(2);
+        expect(service.exoplanetCount()).toBe(0);
+        expect(service.search('lune')[0]?.id).toBe('moon');
+        expect(service.search('planet-2099')).toEqual([]);
+      } else {
+        expect(service.revision()).toBe(2);
+        expect(service.exoplanetCount()).toBe(2_100);
+        expect(service.search('planet-2099')[0]?.id).toBe('planet-2099');
+        expect(service.discoverExoplanets()[0]?.id).toBe('planet-2099');
+        if (action === 'language') {
+          expect(service.search('erde')[0]?.id).toBe('earth');
+        }
+      }
+    },
+  );
+
+  it('revérifie la génération entre un index terminé et la préparation des découvertes', async () => {
+    const service = TestBed.inject(SearchService);
+
+    vi.spyOn(LocalSearchIndex.prototype, 'buildProgressively').mockResolvedValueOnce(true);
+    service.setData(
+      [],
+      Array.from({ length: 2_001 }, () => exoplanetEntry('old', 1, 1, 'Transit', true)),
+    );
+    service.setData([object('earth', 'Terre')]);
+    await Promise.resolve();
+    expect(service.revision()).toBe(1);
+    expect(service.exoplanetCount()).toBe(0);
+    expect(service.search('terre')[0]?.id).toBe('earth');
   });
 });
 

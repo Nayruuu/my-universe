@@ -7,7 +7,10 @@ import {
   DEFAULT_COSMIC_MAP_LAYERS,
   getCosmicGroupDetail,
 } from './cosmic-map-policy';
-import { createCosmicGroupCatalogVisual } from './cosmic-group-catalog-visual';
+import {
+  createCosmicGroupCatalogVisual,
+  type CosmicGroupCatalogGeometries,
+} from './cosmic-group-catalog-visual';
 
 const COSMIC_FADE_START_DISTANCE = 30_000;
 const COSMIC_FULL_OPACITY_DISTANCE = 300_000;
@@ -132,8 +135,9 @@ export class CosmicGroupCatalogBatch {
   constructor(
     private readonly registry: CosmicGroupCatalogRegistry,
     quality: GraphicQuality = 'high',
+    geometries?: CosmicGroupCatalogGeometries,
   ) {
-    const visual = createCosmicGroupCatalogVisual(registry, this.layers);
+    const visual = createCosmicGroupCatalogVisual(registry, this.layers, geometries);
 
     this.quality = quality;
     this.visibleIndices = visual.visibleIndices;

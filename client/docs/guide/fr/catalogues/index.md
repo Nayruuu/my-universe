@@ -16,6 +16,7 @@ spatiales et mettent à jour le manifeste versionné avant le déploiement.
 | Système solaire        | 41 objets : Soleil, planètes, 21 lunes, planètes naines, astéroïdes et comètes | Éphémérides locales et fournisseurs orbitaux JPL documentés                                    |
 | Exoplanètes confirmées |                                           6 333 planètes autour de 4 747 hôtes | Données NASA composites ; systèmes rapprochés illustratifs                                     |
 | Catalogue stellaire    |                                                             10 000 étoiles HYG | Positions et vitesses J2000 observées ; propagation linéaire bornée à ±10 000 années juliennes |
+| Hiérarchie Gaia        |                               2 923 790 entrées ; 133 526 échantillons mesurés | Agrégats calculés de 512 pc ; échantillons J2016.0 mesurés ; fond incomplet                    |
 | Constellations         |                                              88 figures modernes, 644 segments | Conventions culturelles associées aux identifiants HYG                                         |
 | Supernovas historiques |                                                      6 événements et rémanents | Positions et dates documentées ; évolution visuelle illustrative                               |
 | Groupe local           |                                                                    31 galaxies | Positions cataloguées, morphologie et taille adaptées                                          |
@@ -55,6 +56,8 @@ pas une frontière sphérique observée.
   publié par l’ESA pour les formes observées chargées à la demande ;
 - [NASA Exoplanet Archive](https://exoplanetarchive.ipac.caltech.edu/) `PSCompPars` pour les exoplanètes ;
 - [HYG Database v4.1](https://github.com/astronexus/HYG-Database) pour les étoiles ;
+- [Gaia Data Release 3](https://www.cosmos.esa.int/web/gaia/data-release-3)
+  `gaia_source_lite` pour le fond stellaire hybride et filtré par qualité ;
 - [Stellarium](https://github.com/Stellarium/stellarium/tree/master/skycultures/modern) pour les constellations modernes ;
 - [McConnachie 2012](https://ui.adsabs.harvard.edu/abs/2012AJ....144....4M/abstract) pour le Groupe local ;
 - l’[Updated Nearby Galaxy Catalog](https://ui.adsabs.harvard.edu/abs/2013AJ....145..101K/abstract) ;

@@ -5,6 +5,84 @@ import { StarCatalog } from '../loaders/star-catalog';
 import { StarCatalogRegistry } from './star-catalog-registry';
 
 describe('StarCatalogRegistry', () => {
+  it.each([0, 1, 255, 256, 257, 513])(
+    'prépare %i entrées de présentation par lots avant de publier la recherche',
+    async (count) => {
+      const catalog = createLargeCatalog(count);
+      const registry = new StarCatalogRegistry(catalog, new CoordinateSystem());
+      const positions = registry.renderPositions.slice();
+      const internal = registry as unknown as {
+        searchEntries: unknown;
+        labelCandidates: ReadonlyMap<number, unknown>;
+        definitions: ReadonlyMap<string, unknown>;
+      };
+      let pauses = 0;
+      const preparation = registry.preparePresentation(async () => {
+        pauses += 1;
+        expect(internal.searchEntries).toBeNull();
+        expect(internal.labelCandidates.size).toBe(pauses * 256);
+      });
+
+      expect(registry.preparePresentation()).toBe(preparation);
+      await preparation;
+      expect(pauses).toBe(Math.floor(count / 256));
+      expect(internal.definitions.size).toBe(0);
+      expect(registry.renderPositions).toEqual(positions);
+      expect(registry.getSearchEntries()).toEqual(
+        new StarCatalogRegistry(catalog, new CoordinateSystem()).getSearchEntries(),
+      );
+      const normalize = vi.spyOn(String.prototype, 'normalize');
+      const labels = registry.getLabelObjects([], count);
+
+      expect(normalize).not.toHaveBeenCalled();
+      expect(labels).toHaveLength(count);
+      expect(registry.getLabelObjects([], count)).toEqual(labels);
+      normalize.mockRestore();
+    },
+  );
+
+  it.each([1, 2])('arrête la préparation HYG si la pause %i échoue', async (failureAt) => {
+    const registry = new StarCatalogRegistry(createLargeCatalog(513), new CoordinateSystem());
+    const error = new Error('interrompu');
+    let pauses = 0;
+
+    await expect(
+      registry.preparePresentation(async () => {
+        pauses += 1;
+        if (pauses === failureAt) {
+          throw error;
+        }
+      }),
+    ).rejects.toBe(error);
+    expect(pauses).toBe(failureAt);
+    expect((registry as unknown as { searchEntries: unknown }).searchEntries).toBeNull();
+    // L’API synchrone historique peut toujours produire un résultat complet.
+    expect(registry.getSearchEntries()).toHaveLength(513);
+    expect(registry.getLabelObjects([], 513)).toHaveLength(513);
+  });
+
+  it('réutilise les candidats sans figer les exclusions ni les budgets de labels', async () => {
+    const registry = new StarCatalogRegistry(createCatalog(), new CoordinateSystem());
+    const entries = registry.getSearchEntries();
+
+    await registry.preparePresentation();
+    expect(registry.getSearchEntries()).toBe(entries);
+    expect(registry.getLabelObjects([{ name: '  SÍRIUS ' }])).toHaveLength(1);
+    expect(registry.getLabelObjects([{ name: 'autre', aliases: [' hip 30438 '] }])[0]?.name).toBe(
+      'Sirius',
+    );
+    expect(registry.getLabelObjects([], 1).map(({ name }) => name)).toEqual(['Sirius']);
+    expect(registry.getLabelObjects([], 0)).toEqual([]);
+    expect(registry.getLabelObjects([], 2).map(({ name }) => name)).toEqual(['Sirius', 'Canopus']);
+    const linked = new StarCatalogRegistry(createCatalog(), new CoordinateSystem(), [
+      catalogLinkedSirius(),
+    ]);
+
+    await linked.preparePresentation();
+    expect(linked.getSearchEntries().map(({ name }) => name)).toEqual(['Canopus']);
+    expect(linked.getLabelObjects([]).map(({ name }) => name)).toEqual(['Canopus']);
+  });
+
   it('indexe les étoiles sans créer de représentation Three.js individuelle', () => {
     const registry = new StarCatalogRegistry(createCatalog(), new CoordinateSystem());
 

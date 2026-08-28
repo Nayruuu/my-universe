@@ -26,6 +26,7 @@ describe('UniverseInteractionBootstrap', () => {
     const renderLoop = {} as RenderLoop;
     const bindings = {
       handleCameraSettled: vi.fn(),
+      handleCameraChanged: vi.fn(),
       isObjectVisible: vi.fn(() => true),
       getPickables: vi.fn(() => [new THREE.Object3D()]),
       handlePick: vi.fn(),
@@ -86,6 +87,7 @@ describe('UniverseInteractionBootstrap', () => {
       camera,
       canvas,
       expect.any(Function),
+      expect.any(Function),
     );
     expect(factories.createLabelManager).toHaveBeenCalledWith(
       container,
@@ -97,13 +99,16 @@ describe('UniverseInteractionBootstrap', () => {
     );
 
     const settle = factories.createCameraController.mock.calls[0]![2];
+    const change = factories.createCameraController.mock.calls[0]![3];
     const visibility = factories.createLabelManager.mock.calls[0]![4];
     const selectionArguments = factories.createSelectionManager.mock.calls[0]!;
     const render = factories.createRenderLoop.mock.calls[0]![0];
     const pointer = { x: 0.25, y: -0.5 };
 
     settle(18, 'pinch');
+    change(17);
     expect(bindings.handleCameraSettled).toHaveBeenCalledWith(18, 'pinch');
+    expect(bindings.handleCameraChanged).toHaveBeenCalledWith(17);
     expect(visibility('earth')).toBe(true);
     expect(selectionArguments[2]()).toEqual(bindings.getPickables.mock.results[0]!.value);
     expect(selectionArguments[3](10, 20)).toBe('earth');
@@ -145,6 +150,7 @@ describe('UniverseInteractionBootstrap', () => {
     const bootstrap = new UniverseInteractionBootstrap(
       {
         handleCameraSettled: vi.fn(),
+        handleCameraChanged: vi.fn(),
         isObjectVisible: vi.fn(() => true),
         getPickables: vi.fn(() => []),
         handlePick: vi.fn(),

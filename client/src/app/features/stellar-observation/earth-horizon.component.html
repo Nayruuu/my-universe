@@ -7,7 +7,7 @@
 <div
   class="earth-sky-view__landscape"
   [class.earth-sky-view__landscape--travelling]="phase() === 'travelling'"
-  [class.earth-sky-view__landscape--open]="phase() === 'open'"
+  [class.earth-sky-view__landscape--open]="phase() === 'open' || phase() === 'returning'"
   [class.earth-sky-view__landscape--below]="!currentObservation.isAboveHorizon"
   [class.earth-sky-view__landscape--terrain-obstructed]="
     currentTerrainObstruction !== null &&

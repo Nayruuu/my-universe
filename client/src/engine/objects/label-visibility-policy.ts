@@ -12,25 +12,26 @@ export interface LabelObject {
   readonly id: string;
   readonly name: string;
   readonly type: SpaceObjectType;
+  readonly parentId?: SpaceObject['parentId'];
   readonly visual?: Pick<SpaceObject['visual'], 'visualRadius'>;
   readonly metadata?: SpaceObject['metadata'];
 }
 
 const COSMIC_LABEL_PRIORITY_BASE = 300;
 const MAXIMUM_CATALOG_LABEL_RANKS = {
-  low: [400, 700, 1_000, 0, 0],
-  medium: [800, 1_400, 2_200, 0, 0],
-  high: [1_400, 2_400, 3_000, 0, 0],
+  low: [400, 700, 700, 0, 0],
+  medium: [800, 1_400, 1_400, 0, 0],
+  high: [1_400, 2_400, 2_400, 0, 0],
 } as const satisfies Record<GraphicQuality, readonly number[]>;
 const MAXIMUM_EXOPLANET_HOST_LABEL_RANKS = {
-  low: [1, 2, 3, 0, 0],
-  medium: [2, 4, 5, 0, 0],
+  low: [1, 2, 2, 0, 0],
+  medium: [2, 4, 4, 0, 0],
   high: [4, 8, 8, 0, 0],
 } as const satisfies Record<GraphicQuality, readonly number[]>;
 const MAXIMUM_CONSTELLATION_LABEL_RANKS = {
-  low: [8, 12, 16, 0, 0, 0],
-  medium: [14, 22, 30, 0, 0, 0],
-  high: [20, 32, 44, 0, 0, 0],
+  low: [8, 12, 12, 0, 0, 0],
+  medium: [14, 22, 22, 0, 0, 0],
+  high: [20, 32, 32, 0, 0, 0],
 } as const satisfies Record<GraphicQuality, readonly number[]>;
 const MAXIMUM_COSMIC_LABEL_RANKS = {
   low: 24,
@@ -76,7 +77,7 @@ const SOLAR_SYSTEM_LABEL_TYPES = new Set<SpaceObjectType>([
   'asteroid',
   'comet',
 ]);
-const MAXIMUM_LABELS_BY_LOD = [64, 80, 96, 72, 36, 48, 72] as const;
+const MAXIMUM_LABELS_BY_LOD = [64, 80, 80, 72, 36, 48, 72] as const;
 
 export function getLabelTextColor(object: LabelObject, active: boolean, lodLevel = -1): string {
   if (isSolarSystemLabelAtLevel(object, lodLevel)) {
@@ -115,6 +116,9 @@ export function isLabelVisibleAtLevel(
   if (typeof constellationLabelRank === 'number') {
     return constellationLabelRank < getMaximumConstellationLabelRank(quality, lodLevel, density);
   }
+  if (object.type === 'universe') {
+    return lodLevel === 6;
+  }
   if (object.type === 'galaxy') {
     if (object.id === 'milky-way') {
       return lodLevel >= 3;
@@ -139,6 +143,12 @@ export function isLabelVisibleAtLevel(
   }
   if (object.type === 'supernova' || object.type === 'supernova-remnant') {
     return lodLevel >= 1 && lodLevel <= 3;
+  }
+  if (object.type === 'exoplanet') {
+    return lodLevel <= 2;
+  }
+  if (SOLAR_SYSTEM_LABEL_TYPES.has(object.type)) {
+    return lodLevel <= 2;
   }
 
   return lodLevel <= 1;
@@ -216,7 +226,7 @@ export function getLabelPriority(object: LabelObject, lodLevel: number): number 
   if (object.id === 'sun' || object.id === 'milky-way') {
     return Number.MAX_SAFE_INTEGER;
   }
-  if (lodLevel === 1) {
+  if (lodLevel >= 1 && lodLevel <= 2) {
     if (object.type === 'planet') {
       return -300;
     }
@@ -271,8 +281,25 @@ export function getLabelPriority(object: LabelObject, lodLevel: number): number 
 
 export function isSolarSystemPrimaryLabel(object: LabelObject, lodLevel: number): boolean {
   return (
-    lodLevel === 1 &&
-    (object.type === 'planet' || object.type === 'dwarf-planet' || object.type === 'moon')
+    lodLevel >= 1 && lodLevel <= 2 && (object.type === 'planet' || object.type === 'dwarf-planet')
+  );
+}
+
+/** Secondary satellite names belong to their focused system, not the whole Galactic approach. */
+export function isMoonLabelInActiveSystem(
+  object: LabelObject,
+  activeObjectId: string | null,
+  navigationTargetId: string | null,
+): boolean {
+  if (object.type !== 'moon') {
+    return true;
+  }
+
+  return (
+    object.id === activeObjectId ||
+    object.id === navigationTargetId ||
+    (typeof object.parentId === 'string' &&
+      (object.parentId === activeObjectId || object.parentId === navigationTargetId))
   );
 }
 
@@ -293,13 +320,10 @@ export function isCatalogLabel(object: LabelObject): boolean {
 }
 
 export function requiresDynamicLabelVisibility(object: LabelObject): boolean {
-  if (typeof object.metadata?.['catalogRecordIndex'] === 'number') {
-    return false;
-  }
-
   return (
     isConstellationLabel(object) ||
     typeof object.visual?.visualRadius === 'number' ||
+    typeof object.metadata?.['catalogRecordIndex'] === 'number' ||
     typeof object.metadata?.['exoplanetHostRank'] === 'number' ||
     isCosmicCatalogLabel(object)
   );

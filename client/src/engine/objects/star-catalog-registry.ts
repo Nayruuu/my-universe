@@ -7,6 +7,7 @@ import {
   type UniverseTime,
 } from '../../data/models/universe.models';
 import { CoordinateSystem } from '../coordinates/coordinate-system';
+import { prepareCatalogIncrementally, yieldCatalogPreparation } from '../core/catalog-preparation';
 import {
   equatorialJ2000ToGalacticScene,
   writeEquatorialJ2000ToGalacticScene,
@@ -32,6 +33,12 @@ import { HYG_REFERENCE_POSITION_METADATA_KEYS } from '../simulation/received-lig
 import type { LabelObject } from './label-manager';
 
 const DEFAULT_MAXIMUM_LABEL_RANK = 3_000;
+const PRESENTATION_CHUNK_SIZE = 256;
+
+interface CatalogLabelCandidate {
+  readonly names: readonly string[];
+  readonly label: LabelObject;
+}
 
 export const HYG_STAR_CATALOG_ID = 'hyg-v41-bright-stars';
 
@@ -46,6 +53,8 @@ export class StarCatalogRegistry {
   private readonly definitions = new Map<string, SpaceObject>();
   private readonly resolvedCatalogObjects = new Map<string, SpaceObject>();
   private readonly catalogBackedObjectIds = new Set<string>();
+  private readonly labelCandidates = new Map<number, CatalogLabelCandidate>();
+  private presentationPreparation: Promise<void> | null = null;
   private searchEntries: readonly SearchEntry[] | null = null;
   private stellarObservationCatalog: readonly StellarObservationCatalogEntry[] | null = null;
   private stellarObservationConstellations = new WeakMap<
@@ -162,29 +171,26 @@ export class StarCatalogRegistry {
   }
 
   public getSearchEntries(): readonly SearchEntry[] {
-    this.searchEntries ??= this.catalog.names.flatMap((name, index) => {
+    this.searchEntries ??= this.catalog.names.flatMap((_name, index) => {
       const objectId = this.objectIds[index]!;
 
       if (this.catalogBackedObjectIds.has(objectId)) {
         return [];
       }
 
-      return {
-        id: objectId,
-        name,
-        aliases: this.catalog.aliases[index] ?? [],
-        type: 'star' as const,
-        parentName: 'Voie lactée',
-        keywords: [
-          'HYG',
-          'étoile',
-          'J2000',
-          ...(this.catalog.spectralTypes[index] ? [this.catalog.spectralTypes[index]!] : []),
-        ],
-      };
+      return this.createSearchEntry(index);
     });
 
     return this.searchEntries;
+  }
+
+  public preparePresentation(yieldControl = yieldCatalogPreparation): Promise<void> {
+    this.presentationPreparation ??= prepareCatalogIncrementally(
+      this.preparePresentationSteps(),
+      yieldControl,
+    );
+
+    return this.presentationPreparation;
   }
 
   public getLabelObjects(
@@ -203,20 +209,12 @@ export class StarCatalogRegistry {
       if (this.catalogBackedObjectIds.has(this.objectIds[index]!)) {
         continue;
       }
-      const names = [this.catalog.names[index]!, ...(this.catalog.aliases[index] ?? [])];
+      const candidate = this.getLabelCandidate(index);
 
-      if (names.some((name) => excludedNames.has(normalizeLabelName(name)))) {
+      if (candidate.names.some((name) => excludedNames.has(name))) {
         continue;
       }
-      labels.push({
-        id: this.objectIds[index]!,
-        name: this.catalog.names[index]!,
-        type: 'star',
-        metadata: {
-          apparentMagnitude: this.catalog.apparentMagnitudes[index]!,
-          catalogRecordIndex: index,
-        },
-      });
+      labels.push(candidate.label);
     }
 
     return labels;
@@ -293,6 +291,63 @@ export class StarCatalogRegistry {
     );
 
     return target.set(position.x, position.y, position.z);
+  }
+
+  private *preparePresentationSteps(): Generator<void, void> {
+    const entries: SearchEntry[] = [];
+
+    for (let index = 0; index < this.catalog.count; index += 1) {
+      if (!this.catalogBackedObjectIds.has(this.objectIds[index]!)) {
+        this.getLabelCandidate(index);
+        entries.push(this.createSearchEntry(index));
+      }
+      if ((index + 1) % PRESENTATION_CHUNK_SIZE === 0) {
+        yield;
+      }
+    }
+    this.searchEntries ??= entries;
+  }
+
+  private getLabelCandidate(index: number): CatalogLabelCandidate {
+    const cached = this.labelCandidates.get(index);
+
+    if (cached) {
+      return cached;
+    }
+    const candidate: CatalogLabelCandidate = {
+      names: [this.catalog.names[index]!, ...(this.catalog.aliases[index] ?? [])].map(
+        normalizeLabelName,
+      ),
+      label: {
+        id: this.objectIds[index]!,
+        name: this.catalog.names[index]!,
+        type: 'star',
+        metadata: {
+          apparentMagnitude: this.catalog.apparentMagnitudes[index]!,
+          catalogRecordIndex: index,
+        },
+      },
+    };
+
+    this.labelCandidates.set(index, candidate);
+
+    return candidate;
+  }
+
+  private createSearchEntry(index: number): SearchEntry {
+    return {
+      id: this.objectIds[index]!,
+      name: this.catalog.names[index]!,
+      aliases: this.catalog.aliases[index] ?? [],
+      type: 'star',
+      parentName: 'Voie lactée',
+      keywords: [
+        'HYG',
+        'étoile',
+        'J2000',
+        ...(this.catalog.spectralTypes[index] ? [this.catalog.spectralTypes[index]!] : []),
+      ],
+    };
   }
 
   private createDefinition(index: number): SpaceObject {

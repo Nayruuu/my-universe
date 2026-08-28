@@ -152,6 +152,28 @@ describe('ActiveObjectAdornmentController', () => {
     expect(disposeMaterial).toHaveBeenCalledOnce();
   });
 
+  it('ne dessine pas d’anneau planétaire sur une galaxie sélectionnée, même à courte distance', () => {
+    const { root, entries } = createFixture();
+    const controller = new ActiveObjectAdornmentController(root, entries, 'high');
+
+    controller.select('galaxy');
+    expect(controller.selectionMarker.parent).toBe(entries.get('galaxy')!.node);
+    for (const lodLevel of [3, 2, 1, 0, 1, 3]) {
+      controller.update({
+        selectedId: 'galaxy',
+        navigationTargetId: 'galaxy',
+        solarObserverActive: false,
+        solarEclipsePathActive: false,
+        solarEclipseActive: false,
+        lodLevel,
+      });
+      expect(controller.selectionMarker.visible).toBe(false);
+      expect(controller.rotationGuide.visible).toBe(false);
+    }
+
+    controller.dispose();
+  });
+
   it('retourne des diagnostics sûrs lorsque le guide est détaché ou incomplet', () => {
     const { root, entries } = createFixture();
     const controller = new ActiveObjectAdornmentController(root, entries, 'low');
@@ -201,6 +223,7 @@ function createFixture(): {
     entry(object('bare-spinner', 'planet', 'prograde'), false),
     entry(object('asteroid', 'asteroid'), false),
     entry(object('region', 'region'), false),
+    entry(object('galaxy', 'galaxy'), false),
     entry(object('black-hole', 'black-hole', undefined, { visualRadius: 2 }), false),
   ];
 

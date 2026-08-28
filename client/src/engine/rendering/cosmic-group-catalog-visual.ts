@@ -4,6 +4,8 @@ import { PICKING_LAYER } from '../selection/selection-layers';
 import {
   createCosmicGroupFilamentGeometry,
   createCosmicGroupPointGeometry,
+  type CosmicGroupFilamentGeometry,
+  type CosmicGroupPointGeometry,
 } from './cosmic-group-catalog-geometry';
 import {
   createCosmicGroupFilamentMaterial,
@@ -22,14 +24,23 @@ export interface CosmicGroupCatalogVisual {
   readonly renderIndexByObjectId: ReadonlyMap<string, number>;
 }
 
+export interface CosmicGroupCatalogGeometries {
+  readonly filaments: CosmicGroupFilamentGeometry;
+  readonly points: CosmicGroupPointGeometry;
+}
+
 export function createCosmicGroupCatalogVisual(
   registry: CosmicGroupCatalogRegistry,
   layers: CosmicMapLayers,
+  geometries: CosmicGroupCatalogGeometries = {
+    filaments: createCosmicGroupFilamentGeometry(registry, registry.catalog.filamentPairs),
+    points: createCosmicGroupPointGeometry(registry),
+  },
 ): CosmicGroupCatalogVisual {
   const visibleIndices = new Uint8Array(registry.catalog.count);
   const filamentPairs = registry.catalog.filamentPairs;
-  const filamentGeometry = createCosmicGroupFilamentGeometry(registry, filamentPairs);
-  const pointGeometry = createCosmicGroupPointGeometry(registry);
+  const filamentGeometry = geometries.filaments;
+  const pointGeometry = geometries.points;
   const filaments = new THREE.LineSegments(
     filamentGeometry.geometry,
     createCosmicGroupFilamentMaterial(),

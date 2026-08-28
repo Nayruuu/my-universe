@@ -1,3 +1,5 @@
+import { type StarColorIndexSystem } from '../../data/models/universe.models';
+
 export type RgbColor = readonly [number, number, number];
 
 interface ColorStop {
@@ -5,7 +7,7 @@ interface ColorStop {
   readonly color: RgbColor;
 }
 
-const COLOR_STOPS: readonly ColorStop[] = [
+const JOHNSON_BV_COLOR_STOPS: readonly ColorStop[] = [
   { colorIndex: -0.4, color: [0.57, 0.69, 1] },
   { colorIndex: 0, color: [0.75, 0.84, 1] },
   { colorIndex: 0.4, color: [1, 0.95, 0.83] },
@@ -14,18 +16,37 @@ const COLOR_STOPS: readonly ColorStop[] = [
   { colorIndex: 2, color: [1, 0.3, 0.15] },
 ];
 
-export function colorIndexToRgb(colorIndex: number): RgbColor {
-  const boundedIndex = clamp(
-    colorIndex,
-    COLOR_STOPS[0]!.colorIndex,
-    COLOR_STOPS.at(-1)!.colorIndex,
-  );
+// BP−RP is retained as observed Gaia photometry. These display colors are an illustrative,
+// monotonic palette rather than a claim to reconstruct a calibrated screen spectrum.
+const GAIA_BP_RP_COLOR_STOPS: readonly ColorStop[] = [
+  { colorIndex: -0.5, color: [0.52, 0.66, 1] },
+  { colorIndex: 0, color: [0.68, 0.78, 1] },
+  { colorIndex: 0.5, color: [0.93, 0.93, 1] },
+  { colorIndex: 0.9, color: [1, 0.95, 0.79] },
+  { colorIndex: 1.5, color: [1, 0.75, 0.43] },
+  { colorIndex: 2.5, color: [1, 0.48, 0.23] },
+  { colorIndex: 4, color: [1, 0.3, 0.16] },
+];
 
-  for (let index = 1; index < COLOR_STOPS.length - 1; index += 1) {
-    const right = COLOR_STOPS[index]!;
+export function colorIndexToRgb(colorIndex: number): RgbColor {
+  return interpolateColorIndex(colorIndex, JOHNSON_BV_COLOR_STOPS);
+}
+
+export function stellarColorIndexToRgb(colorIndex: number, system: StarColorIndexSystem): RgbColor {
+  return interpolateColorIndex(
+    colorIndex,
+    system === 'gaia-bp-rp' ? GAIA_BP_RP_COLOR_STOPS : JOHNSON_BV_COLOR_STOPS,
+  );
+}
+
+function interpolateColorIndex(colorIndex: number, stops: readonly ColorStop[]): RgbColor {
+  const boundedIndex = clamp(colorIndex, stops[0]!.colorIndex, stops.at(-1)!.colorIndex);
+
+  for (let index = 1; index < stops.length - 1; index += 1) {
+    const right = stops[index]!;
 
     if (boundedIndex <= right.colorIndex) {
-      const left = COLOR_STOPS[index - 1]!;
+      const left = stops[index - 1]!;
       const progress = (boundedIndex - left.colorIndex) / (right.colorIndex - left.colorIndex);
 
       return [
@@ -36,8 +57,8 @@ export function colorIndexToRgb(colorIndex: number): RgbColor {
     }
   }
 
-  const left = COLOR_STOPS.at(-2)!;
-  const right = COLOR_STOPS.at(-1)!;
+  const left = stops.at(-2)!;
+  const right = stops.at(-1)!;
   const progress = (boundedIndex - left.colorIndex) / (right.colorIndex - left.colorIndex);
 
   return [

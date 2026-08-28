@@ -1,6 +1,7 @@
 import {
   type EngineDebugStats,
   type AdaptiveRenderingStats,
+  type GaiaPresentationStats,
   type TempelFilamentPerformanceStats,
   type UniverseStartupPerformanceStats,
   type Vector3Like,
@@ -56,6 +57,7 @@ export interface UniverseDebugContext {
   readonly zoomAnchor: Pick<ZoomDebugStats, 'anchorType' | 'anchorObjectId'> | null;
   readonly tempelPerformance: TempelFilamentPerformanceStats;
   readonly startupPerformance: UniverseStartupPerformanceStats;
+  readonly gaiaPresentation: GaiaPresentationStats;
 }
 
 export interface UniverseDebugMonitorBindings {
@@ -120,6 +122,7 @@ export class UniverseDebugMonitor {
       activeStarClusters: streamingStats?.activeStarClusters ?? 0,
       cachedStarClusters: streamingStats?.cachedStarClusters ?? 0,
       visibleStarClusters: this.universeScene.visibleStarClusterCount,
+      gaiaPresentation: { ...context.gaiaPresentation },
       cameraPosition: vectorToLike(this.camera.position),
       cameraTarget: context.cameraTarget
         ? vectorToLike(context.cameraTarget)

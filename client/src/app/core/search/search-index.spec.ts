@@ -163,6 +163,47 @@ describe('recherche locale', () => {
     expect(normalizeSearchText('ς')).toBe('ς');
   });
 
+  it('normalise une seule fois les mots-clés répétés entre les lots sans changer la recherche', async () => {
+    const normalize = vi.spyOn(String.prototype, 'normalize');
+    const index = new LocalSearchIndex();
+    const entries = Array.from({ length: 12 }, (_, entryIndex) => ({
+      id: `catalog-${entryIndex}`,
+      name: `Catalogue ${entryIndex}`,
+      aliases: ['α CMa', 'Étoile test'],
+      keywords: ['Relevé scientifique', ''],
+      type: 'star' as const,
+    }));
+
+    await index.buildProgressively([], entries, {
+      chunkSize: 2,
+      isCurrent: () => true,
+      yieldControl: async () => undefined,
+    });
+    expect(normalize.mock.contexts.filter((value) => value === 'relevé scientifique')).toHaveLength(
+      1,
+    );
+    expect(index.search('releve scientifique', 20)).toHaveLength(12);
+    expect(index.search('alpha cma', 20)).toHaveLength(12);
+    expect(index.search('etoile test', 20)).toHaveLength(12);
+    normalize.mockClear();
+    index.build([], entries);
+    expect(normalize.mock.contexts.filter((value) => value === 'relevé scientifique')).toHaveLength(
+      1,
+    );
+  });
+
+  it('reste exact lorsque les mots-clés distincts dépassent le cache borné', () => {
+    const index = new LocalSearchIndex();
+    const keywords = Array.from({ length: 1_000 }, (_, value) => `Clé_${value}`);
+
+    index.build(
+      [],
+      [{ id: 'a', name: 'A', aliases: [], keywords: [...keywords, ...keywords], type: 'star' }],
+    );
+    expect(index.search('cle 999')[0]?.id).toBe('a');
+    expect(index.search('cle 0')[0]?.id).toBe('a');
+  });
+
   it('construit un catalogue volumineux par lots sans exposer un index partiel', async () => {
     const index = new LocalSearchIndex();
     const yields: (() => void)[] = [];

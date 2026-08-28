@@ -1,5 +1,6 @@
 import type {
   AdaptiveRenderingStats,
+  CameraOrientation,
   DisplayOptions,
   GraphicQuality,
   SpaceObject,
@@ -26,6 +27,7 @@ import { currentUniverseTime } from '../../../engine/simulation/time-utils';
 export interface UniverseEngineClient {
   readonly currentTime: UniverseTime;
   readonly cameraDistance: number;
+  readonly cameraOrientation: CameraOrientation | null;
   readonly cameraTransitioning: boolean;
   readonly adaptiveRenderingStats: AdaptiveRenderingStats;
   readonly recommendedQuality: GraphicQuality;
@@ -39,13 +41,13 @@ export interface UniverseEngineClient {
   setTimeSpeed(daysPerSecond: number): void;
   ensureObjectAvailable(objectId: string): Promise<boolean>;
   resolveObject(objectId: string): Promise<SpaceObject | null>;
-  setTarget(objectId: string, zoom?: number): Promise<void>;
+  setTarget(objectId: string, zoom?: number, orientation?: CameraOrientation): Promise<void>;
   prepareEarthObservation(
     objectId: string,
     framing?: EarthObserverFraming,
     selectedObjectId?: string | null,
   ): Promise<void>;
-  exitEarthObservation(): void;
+  exitEarthObservation(animate?: boolean): void;
   setEarthObserverCelestialPresentations(
     presentations: readonly EarthObserverCelestialPresentation[],
   ): void;
@@ -107,6 +109,10 @@ export class LazyUniverseEngineClient implements UniverseEngineClient {
 
   public get cameraDistance(): number {
     return this.engine?.cameraDistance ?? 0;
+  }
+
+  public get cameraOrientation(): CameraOrientation | null {
+    return this.engine?.cameraOrientation ?? null;
   }
 
   public get cameraTransitioning(): boolean {
@@ -192,8 +198,12 @@ export class LazyUniverseEngineClient implements UniverseEngineClient {
     return this.requireEngine().resolveObject(objectId);
   }
 
-  public setTarget(objectId: string, zoom?: number): Promise<void> {
-    return this.requireEngine().setTarget(objectId, zoom);
+  public setTarget(
+    objectId: string,
+    zoom?: number,
+    orientation?: CameraOrientation,
+  ): Promise<void> {
+    return this.requireEngine().setTarget(objectId, zoom, orientation);
   }
 
   public prepareEarthObservation(
@@ -204,8 +214,8 @@ export class LazyUniverseEngineClient implements UniverseEngineClient {
     return this.requireEngine().prepareEarthObservation(objectId, framing, selectedObjectId);
   }
 
-  public exitEarthObservation(): void {
-    this.run((engine) => engine.exitEarthObservation());
+  public exitEarthObservation(animate = false): void {
+    this.run((engine) => engine.exitEarthObservation(animate));
   }
 
   public setEarthObserverCelestialPresentations(

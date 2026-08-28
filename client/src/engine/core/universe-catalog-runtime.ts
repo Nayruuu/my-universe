@@ -23,6 +23,7 @@ import { type LabelObject } from '../objects/label-manager';
 import { type UniverseScene } from '../rendering/universe-scene';
 import { type SpaceTileManager } from '../tiles/space-tile-manager';
 import { type StarTileManager } from '../tiles/star-tile-manager';
+import { yieldCatalogPreparation } from './catalog-preparation';
 
 export type UniverseCatalogScene = Pick<
   UniverseScene,
@@ -33,6 +34,8 @@ export type UniverseCatalogScene = Pick<
   | 'setCosmicGroupCatalog'
   | 'setCosmicStructureCatalog'
   | 'setCosmicWebVolume'
+  | 'hasStarClusterObject'
+  | 'getStarClusterDefinition'
 >;
 
 export interface UniverseCatalogRuntimeState {
@@ -66,6 +69,7 @@ export class UniverseCatalogRuntime {
   private exoplanetRegistry: ExoplanetCatalogRegistry | null;
   private cosmicGroupRegistry: CosmicGroupCatalogRegistry | null;
   private cosmicStructureRegistry: CosmicStructureCatalogRegistry | null;
+  private searchEntries: readonly SearchEntry[] | null = null;
   private readonly coordinateSystem: CoordinateSystem | null;
   private readonly scene: UniverseCatalogScene | null;
   private readonly yieldControl: () => Promise<void>;
@@ -83,7 +87,7 @@ export class UniverseCatalogRuntime {
     this.deferredLoader = state.loadDeferredCatalogs ?? null;
     this.coordinateSystem = state.coordinateSystem ?? null;
     this.scene = state.scene ?? null;
-    this.yieldControl = state.yieldControl ?? yieldToBrowser;
+    this.yieldControl = state.yieldControl ?? yieldCatalogPreparation;
   }
 
   public get exoplanetCatalogRegistry(): ExoplanetCatalogRegistry | null {
@@ -110,7 +114,7 @@ export class UniverseCatalogRuntime {
     await this.loadDeferredCatalogs();
   }
 
-  public installDeferredCatalogs(): Promise<readonly string[]> {
+  public installDeferredCatalogs(isCurrent = () => true): Promise<readonly string[]> {
     if (this.deferredInstallation) {
       return this.deferredInstallation;
     }
@@ -119,7 +123,7 @@ export class UniverseCatalogRuntime {
     }
 
     this.deferredInstallation = this.loadDeferredCatalogs().then((catalogs) =>
-      this.installLoadedDeferredCatalogs(catalogs),
+      this.installLoadedDeferredCatalogs(catalogs, isCurrent),
     );
 
     return this.deferredInstallation;
@@ -128,6 +132,7 @@ export class UniverseCatalogRuntime {
   public has(objectId: string): boolean {
     return (
       this.starCatalogRegistry?.has(objectId) === true ||
+      this.scene?.hasStarClusterObject(objectId) === true ||
       this.exoplanetCatalogRegistry?.has(objectId) === true ||
       this.cosmicGroupCatalogRegistry?.has(objectId) === true ||
       this.cosmicStructureCatalogRegistry?.has(objectId) === true
@@ -135,7 +140,10 @@ export class UniverseCatalogRuntime {
   }
 
   public isCatalogStar(objectId: string): boolean {
-    return this.starCatalogRegistry?.has(objectId) === true;
+    return (
+      this.starCatalogRegistry?.has(objectId) === true ||
+      this.scene?.hasStarClusterObject(objectId) === true
+    );
   }
 
   public isExoplanetHost(objectId: string): boolean {
@@ -153,6 +161,7 @@ export class UniverseCatalogRuntime {
   public getDefinition(objectId: string): SpaceObject | undefined {
     return (
       this.starCatalogRegistry?.getDefinition(objectId) ??
+      this.scene?.getStarClusterDefinition(objectId) ??
       this.exoplanetCatalogRegistry?.getDefinition(objectId) ??
       this.cosmicGroupCatalogRegistry?.getDefinition(objectId) ??
       this.cosmicStructureCatalogRegistry?.getDefinition(objectId)
@@ -160,12 +169,12 @@ export class UniverseCatalogRuntime {
   }
 
   public getSearchEntries(): readonly SearchEntry[] {
-    return [
+    return (this.searchEntries ??= [
       ...(this.starCatalogRegistry?.getSearchEntries() ?? []),
       ...(this.exoplanetCatalogRegistry?.getSearchEntries() ?? []),
       ...(this.cosmicGroupCatalogRegistry?.getSearchEntries() ?? []),
       ...(this.cosmicStructureCatalogRegistry?.getSearchEntries() ?? []),
-    ];
+    ]);
   }
 
   public getLabelObjects(
@@ -184,31 +193,69 @@ export class UniverseCatalogRuntime {
 
   private async installLoadedDeferredCatalogs(
     catalogs: LoadedDeferredUniverseCatalogs,
+    isCurrent: () => boolean,
   ): Promise<readonly string[]> {
+    const assertCurrent = (): void => {
+      if (!isCurrent()) {
+        throw new Error('Installation des catalogues annulée : runtime obsolète.');
+      }
+    };
+    const yieldControl = async (): Promise<void> => {
+      assertCurrent();
+      await this.yieldControl();
+      assertCurrent();
+    };
+
+    assertCurrent();
     const coordinateSystem = this.coordinateSystem;
     const scene = this.scene;
 
     if (!coordinateSystem || !scene) {
       throw new Error('Installation différée indisponible sans scène ni système de coordonnées.');
     }
-    const exoplanets = await this.installDeferredLayer(catalogs.exoplanetCatalog, (catalog) =>
-      initializeExoplanetCatalog(catalog, this.baseObjects, coordinateSystem, scene),
+    const exoplanets = await this.installDeferredLayer(
+      catalogs.exoplanetCatalog,
+      (catalog) =>
+        initializeExoplanetCatalog(
+          catalog,
+          this.baseObjects,
+          coordinateSystem,
+          scene,
+          yieldControl,
+          assertCurrent,
+        ),
+      yieldControl,
     );
-    const cosmicGroups = await this.installDeferredLayer(catalogs.cosmicGroupCatalog, (catalog) =>
-      initializeCosmicGroupCatalog(catalog, coordinateSystem, scene),
+    const cosmicGroups = await this.installDeferredLayer(
+      catalogs.cosmicGroupCatalog,
+      (catalog) =>
+        initializeCosmicGroupCatalog(catalog, coordinateSystem, scene, yieldControl, assertCurrent),
+      yieldControl,
     );
     const cosmicStructures = await this.installDeferredLayer(
       catalogs.cosmicStructureCatalog,
-      (catalog) => initializeCosmicStructureCatalog(catalog, coordinateSystem, scene),
+      (catalog) =>
+        initializeCosmicStructureCatalog(
+          catalog,
+          coordinateSystem,
+          scene,
+          yieldControl,
+          assertCurrent,
+        ),
+      yieldControl,
     );
 
-    await this.installDeferredLayer(catalogs.cosmicWebVolume, (volume) =>
-      initializeCosmicWebVolume(volume, coordinateSystem, scene),
+    await this.installDeferredLayer(
+      catalogs.cosmicWebVolume,
+      (volume) => initializeCosmicWebVolume(volume, coordinateSystem, scene),
+      yieldControl,
     );
 
+    assertCurrent();
     this.exoplanetRegistry = exoplanets;
     this.cosmicGroupRegistry = cosmicGroups;
     this.cosmicStructureRegistry = cosmicStructures;
+    this.searchEntries = null;
     this.deferredCatalogWarnings = catalogs.warnings;
     this.deferredCatalogs = null;
     this.deferredPreparation = null;
@@ -234,19 +281,16 @@ export class UniverseCatalogRuntime {
   private async installDeferredLayer<Catalog, Result>(
     catalog: Catalog | null,
     install: (catalog: Catalog) => Promise<Result>,
+    yieldControl: () => Promise<void>,
   ): Promise<Result | null> {
     if (!catalog) {
       return null;
     }
 
-    await this.yieldControl();
+    await yieldControl();
 
     return install(catalog);
   }
-}
-
-function yieldToBrowser(): Promise<void> {
-  return new Promise((resolve) => globalThis.setTimeout(resolve, 0));
 }
 
 interface StellarCatalogRuntime {
@@ -310,6 +354,9 @@ async function createStellarCatalogRuntime(
       : Promise.resolve({ StarTileManager: null }),
   ]);
   const registry = new StarCatalogRegistry(assets.starCatalog, coordinateSystem, assets.objects);
+
+  await registry.preparePresentation();
+
   const tileManager =
     assets.starTileSource && StarTileManager
       ? new StarTileManager(assets.starTileSource, registry)
@@ -359,13 +406,23 @@ async function initializeExoplanetCatalog(
   objects: readonly SpaceObject[],
   coordinateSystem: CoordinateSystem,
   scene: UniverseCatalogScene,
+  yieldControl = yieldCatalogPreparation,
+  assertCurrent = (): void => undefined,
 ): Promise<ExoplanetCatalogRegistry | null> {
   if (!catalog) {
     return null;
   }
   const { ExoplanetCatalogRegistry } = await import('../objects/exoplanet-catalog-registry');
-  const registry = new ExoplanetCatalogRegistry(catalog, coordinateSystem, objects);
 
+  assertCurrent();
+  const registry = await ExoplanetCatalogRegistry.create(
+    catalog,
+    coordinateSystem,
+    objects,
+    yieldControl,
+  );
+
+  assertCurrent();
   await scene.setExoplanetCatalog(registry);
 
   return registry;
@@ -375,13 +432,18 @@ async function initializeCosmicGroupCatalog(
   catalog: CosmicGroupCatalog | null,
   coordinateSystem: CoordinateSystem,
   scene: UniverseCatalogScene,
+  yieldControl = yieldCatalogPreparation,
+  assertCurrent = (): void => undefined,
 ): Promise<CosmicGroupCatalogRegistry | null> {
   if (!catalog) {
     return null;
   }
   const { CosmicGroupCatalogRegistry } = await import('../objects/cosmic-group-catalog-registry');
-  const registry = new CosmicGroupCatalogRegistry(catalog, coordinateSystem);
 
+  assertCurrent();
+  const registry = await CosmicGroupCatalogRegistry.create(catalog, coordinateSystem, yieldControl);
+
+  assertCurrent();
   await scene.setCosmicGroupCatalog(registry);
 
   return registry;
@@ -391,14 +453,23 @@ async function initializeCosmicStructureCatalog(
   catalog: CosmicStructureCatalog | null,
   coordinateSystem: CoordinateSystem,
   scene: UniverseCatalogScene,
+  yieldControl = yieldCatalogPreparation,
+  assertCurrent = (): void => undefined,
 ): Promise<CosmicStructureCatalogRegistry | null> {
   if (!catalog) {
     return null;
   }
   const { CosmicStructureCatalogRegistry } =
     await import('../objects/cosmic-structure-catalog-registry');
-  const registry = new CosmicStructureCatalogRegistry(catalog, coordinateSystem);
 
+  assertCurrent();
+  const registry = await CosmicStructureCatalogRegistry.create(
+    catalog,
+    coordinateSystem,
+    yieldControl,
+  );
+
+  assertCurrent();
   await scene.setCosmicStructureCatalog(registry);
 
   return registry;

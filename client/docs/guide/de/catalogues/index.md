@@ -16,6 +16,7 @@ vor der Veröffentlichung das versionierte Manifest.
 | Sonnensystem           | Sonne, acht Planeten, ausgewählte Monde und Kleinkörper | Lokale Ephemeriden und dokumentierte Bahnprovider                                                          |
 | Bestätigte Exoplaneten |                           6.333 Planeten um 4.747 Wirte | NASA-Verbunddaten; illustrative Nahsysteme                                                                 |
 | Sternkatalog           |                                       10.000 HYG-Sterne | Beobachtete J2000-Positionen und -Geschwindigkeiten; lineare Fortschreibung über ±10.000 julianische Jahre |
+| Gaia-Sternhierarchie   |       2.923.790 Eingaben; 133.526 gemessene Stichproben | Berechnete 512-pc-Aggregate; gemessene J2016.0-Stichproben; unvollständiger Hintergrund                    |
 | Sternbilder            |                        88 moderne Figuren, 644 Segmente | Kulturelle Konventionen mit HYG-Bezeichnern                                                                |
 | Historische Supernovae |                              6 Ereignisse und Überreste | Dokumentierte Positionen und Daten; illustrative Entwicklung                                               |
 | Lokale Gruppe          |                                             31 Galaxien | Katalogpositionen mit angepasster Morphologie                                                              |
@@ -33,6 +34,8 @@ Worker-Unterstützung verwenden denselben validierten Loader im Hauptthread.
 - [Astronomy Engine](https://github.com/cosinekitty/astronomy) für Planeten und Mond;
 - [NASA Exoplanet Archive](https://exoplanetarchive.ipac.caltech.edu/) für Exoplaneten;
 - [HYG Database v4.1](https://github.com/astronexus/HYG-Database) für Sterne;
+- [Gaia Data Release 3](https://www.cosmos.esa.int/web/gaia/data-release-3)
+  `gaia_source_lite` für den qualitätsgefilterten hybriden Sternhintergrund;
 - [Stellarium](https://github.com/Stellarium/stellarium/tree/master/skycultures/modern) für Sternbilder;
 - [McConnachie 2012](https://ui.adsabs.harvard.edu/abs/2012AJ....144....4M/abstract) für die Lokale Gruppe;
 - [Updated Nearby Galaxy Catalog](https://ui.adsabs.harvard.edu/abs/2013AJ....145..101K/abstract) für das lokale Volumen;

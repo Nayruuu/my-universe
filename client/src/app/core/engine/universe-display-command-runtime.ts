@@ -21,8 +21,6 @@ export interface UniverseDisplayCommandRuntimeBindings {
   getCosmicMapLayers(): CosmicMapLayers;
   setCosmicMapLayers(layers: CosmicMapLayers): void;
   scheduleUrlUpdate(): void;
-  setPerformanceWarning(message: string): void;
-  getObservableWarning(): string;
 }
 
 export class UniverseDisplayCommandRuntime {
@@ -63,9 +61,6 @@ export class UniverseDisplayCommandRuntime {
 
   public setTemporalMode(temporalMode: TemporalMode): void {
     this.updateDisplayOptions({ temporalMode });
-    if (temporalMode === 'observable') {
-      this.bindings.setPerformanceWarning(this.bindings.getObservableWarning());
-    }
   }
 
   public toggleCosmicMapLayer(layer: CosmicMapLayer): void {

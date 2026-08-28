@@ -58,8 +58,8 @@ describe('validation des données statiques', () => {
             id: 'star-tiles',
             url: '/stars/tiles/index.json',
             type: 'star-tile-index',
-            format: 'star-tiles-v2',
-            starCatalogId: 'stars',
+            format: 'star-tiles-v4',
+            sourceCatalogId: 'gaia-dr3-bright-high-confidence',
           },
           {
             id: 'cosmicflows4-groups',
@@ -119,8 +119,8 @@ describe('validation des données statiques', () => {
         id: 'star-tiles',
         url: '/stars/tiles/index.json',
         type: 'star-tile-index',
-        format: 'star-tiles-v2',
-        starCatalogId: 'stars',
+        format: 'star-tiles-v4',
+        sourceCatalogId: 'gaia-dr3-bright-high-confidence',
       },
       {
         id: 'cosmicflows4-groups',
@@ -249,7 +249,7 @@ describe('validation des données statiques', () => {
             url: '/x',
             type: 'star-tile-index',
             format: 'star-tiles-v0',
-            starCatalogId: 'stars',
+            sourceCatalogId: 'gaia-dr3-bright-high-confidence',
           },
         ],
       }),
@@ -262,11 +262,11 @@ describe('validation des données statiques', () => {
             id: 'x',
             url: '/x',
             type: 'star-tile-index',
-            format: 'star-tiles-v2',
+            format: 'star-tiles-v4',
           },
         ],
       }),
-    ).toThrow('Catalogue stellaire manquant');
+    ).toThrow('Catalogue source stellaire manquant');
   });
 
   it('rejette le format de groupes cosmiques sans index de filaments pré-calculé', () => {

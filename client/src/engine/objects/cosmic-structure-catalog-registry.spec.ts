@@ -6,8 +6,77 @@ import {
   CosmicStructureCatalogMetadata,
 } from '../loaders/cosmic-structure-catalog';
 import { CosmicStructureCatalogRegistry } from './cosmic-structure-catalog-registry';
+import { cosmicStructureScore } from './cosmic-structure-catalog-presentation';
 
 describe('CosmicStructureCatalogRegistry', () => {
+  it.each([0, 2, 512, 1025])(
+    'prépare %i détections, leur classement stable et leurs alias sans changer les données',
+    async (count) => {
+      const catalog = createLargeCatalog(count);
+      const coordinates = new CoordinateSystem();
+      const expected = new CosmicStructureCatalogRegistry(catalog, coordinates);
+      const definition = vi.spyOn(CosmicStructureCatalogRegistry.prototype, 'getDefinition');
+      const pause = vi.fn(async () => undefined);
+      const registry = await CosmicStructureCatalogRegistry.create(catalog, coordinates, pause);
+
+      expect(pause.mock.calls.length > 0).toBe(count >= 512);
+      expect(definition).not.toHaveBeenCalled();
+      expect(registry.objectIds).toEqual(expected.objectIds);
+      expect(registry.renderPositions).toEqual(expected.renderPositions);
+      const ranking = Array.from({ length: count }, (_, index) => index).sort(
+        (left, right) =>
+          cosmicStructureScore(catalog, right) - cosmicStructureScore(catalog, left) ||
+          left - right,
+      );
+
+      expect(registry.getLabelObjects(count)).toEqual(expected.getLabelObjects(count));
+      expect(registry.getLabelObjects(count).map(({ id }) => id)).toEqual(
+        ranking.map((index) => registry.objectIds[index]),
+      );
+      const entries = registry.getSearchEntries();
+
+      expect(entries).toEqual(expected.getSearchEntries());
+      expect(registry.getSearchEntries()).toBe(entries);
+      for (const [index, id] of registry.objectIds.entries()) {
+        expect(registry.getIndex(id)).toBe(index);
+      }
+      definition.mockRestore();
+    },
+  );
+
+  it('prépare aussi les noms et alias des repères nommés avec l’ordonnanceur navigateur', async () => {
+    const expected = createNamedLandmarkRegistry();
+    const registry = await CosmicStructureCatalogRegistry.create(
+      expected.catalog,
+      new CoordinateSystem(),
+    );
+
+    expect(registry.getSearchEntries()).toEqual(expected.getSearchEntries());
+  });
+
+  it.each([1, 4, 10])(
+    'ne publie rien si la pause %i échoue pendant l’indexation, le tri ou la recherche',
+    async (pauseIndex) => {
+      const error = new Error('préparation annulée');
+      let calls = 0;
+      const published = vi.fn();
+      const pending = CosmicStructureCatalogRegistry.create(
+        createLargeCatalog(1025),
+        new CoordinateSystem(),
+        async () => {
+          calls += 1;
+          if (calls === pauseIndex) {
+            throw error;
+          }
+        },
+      ).then(published);
+
+      await expect(pending).rejects.toBe(error);
+      expect(calls).toBe(pauseIndex);
+      expect(published).not.toHaveBeenCalled();
+    },
+  );
+
   it('indexe les détections de catalogues dans le référentiel cosmique', () => {
     const registry = createRegistry();
 
@@ -204,6 +273,30 @@ function createCatalog(): CosmicStructureCatalog {
     identifiers: ['239+027+0091', 'CMASS-North-60'],
     structureTypes: ['supercluster', 'void'],
     metadata: createMetadata(),
+  };
+}
+
+function createLargeCatalog(count: number): CosmicStructureCatalog {
+  const catalog = createCatalog();
+
+  return {
+    ...catalog,
+    count,
+    positionsMpc: Float32Array.from({ length: count * 3 }, (_, index) => (index % 29) - 14.5),
+    distancesMpc: new Float32Array(count).fill(100),
+    radiiMpc: Float32Array.from({ length: count }, (_, index) => index % 7),
+    confidences: new Float32Array(count).fill(0.9),
+    densityContrasts: new Float32Array(count).fill(Number.NaN),
+    boundaryDistancesMpc: new Float32Array(count).fill(Number.NaN),
+    galaxyCounts: Uint32Array.from({ length: count }, (_, index) => index % 13),
+    sourceIndices: Uint16Array.from({ length: count }, (_, index) => index % 2),
+    catalogNumericIds: Uint16Array.from({ length: count }, (_, index) => index),
+    flags: new Uint8Array(count),
+    identifiers: Array.from({ length: count }, (_, index) => `Détection + ${index}`),
+    structureTypes: Array.from({ length: count }, (_, index) =>
+      index % 2 ? 'void' : 'supercluster',
+    ),
+    metadata: { ...catalog.metadata, recordCount: count },
   };
 }
 

@@ -43,6 +43,7 @@ describe('LazyUniverseEngineClient', () => {
 
     expect(loader).not.toHaveBeenCalled();
     expect(engine.cameraDistance).toBe(0);
+    expect(engine.cameraOrientation).toBeNull();
     expect(engine.cameraTransitioning).toBe(false);
     expect(engine.adaptiveRenderingStats).toEqual({
       status: 'warming',
@@ -98,6 +99,7 @@ describe('LazyUniverseEngineClient', () => {
       initialPitchOffsetDegrees: 24,
       pitchLimits,
     };
+    const orientation = { x: 0.2, y: -0.3, z: -0.932738 };
 
     engine.start();
     engine.resize(1280, 720);
@@ -106,7 +108,7 @@ describe('LazyUniverseEngineClient', () => {
     engine.setTimeSpeed(2);
     await engine.ensureObjectAvailable('earth');
     await engine.resolveObject('earth');
-    await engine.setTarget('earth', 12);
+    await engine.setTarget('earth', 12, orientation);
     await engine.prepareEarthObservation('sirius', observerFraming, null);
     engine.exitEarthObservation();
     engine.completeTargetTransition();
@@ -132,13 +134,17 @@ describe('LazyUniverseEngineClient', () => {
     expect(fake.engine.setTimeSpeed).toHaveBeenCalledWith(2);
     expect(fake.engine.ensureObjectAvailable).toHaveBeenCalledWith('earth');
     expect(fake.engine.resolveObject).toHaveBeenCalledWith('earth');
-    expect(fake.engine.setTarget).toHaveBeenCalledWith('earth', 12);
+    expect(fake.engine.setTarget).toHaveBeenCalledWith('earth', 12, orientation);
+    expect(engine.cameraOrientation).toEqual(fake.engine.cameraOrientation);
     expect(fake.engine.prepareEarthObservation).toHaveBeenCalledWith(
       'sirius',
       observerFraming,
       null,
     );
     expect(fake.engine.exitEarthObservation).toHaveBeenCalledOnce();
+    expect(fake.engine.exitEarthObservation).toHaveBeenLastCalledWith(false);
+    engine.exitEarthObservation(true);
+    expect(fake.engine.exitEarthObservation).toHaveBeenLastCalledWith(true);
     expect(fake.engine.completeTargetTransition).toHaveBeenCalledOnce();
     expect(fake.engine.viewRotation).toHaveBeenCalledWith('earth');
     expect(fake.engine.viewOrbit).toHaveBeenCalledWith('earth');
@@ -314,6 +320,7 @@ function createFakeEngine(): FakeEngineHarness {
   const engine: UniverseEngineClient = {
     currentTime: { julianDay: 2_461_210 },
     cameraDistance: 42,
+    cameraOrientation: { x: 0.2, y: -0.3, z: -0.932738 },
     cameraTransitioning: false,
     adaptiveRenderingStats: {
       status: 'stable',

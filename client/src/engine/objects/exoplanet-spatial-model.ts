@@ -1,5 +1,9 @@
 import type { CoordinateSystem } from '../coordinates/coordinate-system';
 import { equatorialJ2000ToGalacticScene } from '../coordinates/galactic-reference-frame';
+import {
+  CATALOG_PREPARATION_CHUNK_SIZE,
+  finishCatalogPreparation,
+} from '../core/catalog-preparation';
 import type { ExoplanetCatalog } from '../loaders/exoplanet-catalog';
 import { isPositiveFiniteCatalogValue } from './exoplanet-catalog-values';
 
@@ -31,10 +35,25 @@ export function createExoplanetSpatialModel(
   catalog: ExoplanetCatalog,
   coordinateSystem: CoordinateSystem,
 ): ExoplanetSpatialModel {
-  const galacticPositions = createGalacticPositions(catalog);
-  const renderPositions = createRenderPositions(catalog, coordinateSystem, galacticPositions);
-  const resolvedOrbits = createResolvedOrbits(catalog);
-  const orbitDistanceScales = createOrbitDistanceScales(catalog, coordinateSystem, resolvedOrbits);
+  return finishCatalogPreparation(prepareExoplanetSpatialModel(catalog, coordinateSystem));
+}
+
+export function* prepareExoplanetSpatialModel(
+  catalog: ExoplanetCatalog,
+  coordinateSystem: CoordinateSystem,
+): Generator<void, ExoplanetSpatialModel> {
+  const galacticPositions = yield* prepareGalacticPositions(catalog);
+  const renderPositions = yield* prepareRenderPositions(
+    catalog,
+    coordinateSystem,
+    galacticPositions,
+  );
+  const resolvedOrbits = yield* prepareResolvedOrbits(catalog);
+  const orbitDistanceScales = yield* prepareOrbitDistanceScales(
+    catalog,
+    coordinateSystem,
+    resolvedOrbits,
+  );
 
   return {
     renderPositions,
@@ -44,7 +63,7 @@ export function createExoplanetSpatialModel(
   };
 }
 
-function createGalacticPositions(catalog: ExoplanetCatalog): Float64Array {
+function* prepareGalacticPositions(catalog: ExoplanetCatalog): Generator<void, Float64Array> {
   const positions = new Float64Array(catalog.hostCount * 3);
 
   for (let index = 0; index < catalog.hostCount; index += 1) {
@@ -61,16 +80,19 @@ function createGalacticPositions(catalog: ExoplanetCatalog): Float64Array {
     });
 
     writePosition(positions, index, galactic);
+    if ((index + 1) % CATALOG_PREPARATION_CHUNK_SIZE === 0) {
+      yield;
+    }
   }
 
   return positions;
 }
 
-function createRenderPositions(
+function* prepareRenderPositions(
   catalog: ExoplanetCatalog,
   coordinateSystem: CoordinateSystem,
   galacticPositions: Float64Array,
-): Float32Array {
+): Generator<void, Float32Array> {
   const positions = new Float32Array(catalog.hostCount * 3);
 
   for (let index = 0; index < catalog.hostCount; index += 1) {
@@ -82,15 +104,27 @@ function createRenderPositions(
     );
 
     writePosition(positions, index, position);
+    if ((index + 1) % CATALOG_PREPARATION_CHUNK_SIZE === 0) {
+      yield;
+    }
   }
 
   return positions;
 }
 
-function createResolvedOrbits(catalog: ExoplanetCatalog): readonly ResolvedExoplanetOrbit[] {
-  return Array.from({ length: catalog.planetCount }, (_, planetIndex) =>
-    resolveOrbit(catalog, planetIndex),
-  );
+function* prepareResolvedOrbits(
+  catalog: ExoplanetCatalog,
+): Generator<void, readonly ResolvedExoplanetOrbit[]> {
+  const orbits: ResolvedExoplanetOrbit[] = [];
+
+  for (let index = 0; index < catalog.planetCount; index += 1) {
+    orbits.push(resolveOrbit(catalog, index));
+    if ((index + 1) % CATALOG_PREPARATION_CHUNK_SIZE === 0) {
+      yield;
+    }
+  }
+
+  return orbits;
 }
 
 function resolveOrbit(catalog: ExoplanetCatalog, planetIndex: number): ResolvedExoplanetOrbit {
@@ -132,13 +166,14 @@ function resolveOrbit(catalog: ExoplanetCatalog, planetIndex: number): ResolvedE
   };
 }
 
-function createOrbitDistanceScales(
+function* prepareOrbitDistanceScales(
   catalog: ExoplanetCatalog,
   coordinateSystem: CoordinateSystem,
   resolvedOrbits: readonly ResolvedExoplanetOrbit[],
-): Float64Array {
+): Generator<void, Float64Array> {
   const scales = new Float64Array(catalog.hostCount);
   const oneAuSceneUnits = coordinateSystem.toSceneDistance(1, 'astronomical-unit', 'stellar');
+  let work = 0;
 
   for (let hostIndex = 0; hostIndex < catalog.hostCount; hostIndex += 1) {
     const firstPlanetIndex = catalog.hostFirstPlanetIndices[hostIndex]!;
@@ -150,12 +185,20 @@ function createOrbitDistanceScales(
         maximumAxis,
         resolvedOrbits[firstPlanetIndex + offset]!.semiMajorAxisAu,
       );
+      work += 1;
+      if (work % CATALOG_PREPARATION_CHUNK_SIZE === 0) {
+        yield;
+      }
     }
     scales[hostIndex] = clamp(
       SYSTEM_MAXIMUM_ORBIT_RADIUS / Math.max(maximumAxis * oneAuSceneUnits, Number.EPSILON),
       MINIMUM_ORBIT_DISTANCE_SCALE,
       MAXIMUM_ORBIT_DISTANCE_SCALE,
     );
+    work += 1;
+    if (work % CATALOG_PREPARATION_CHUNK_SIZE === 0) {
+      yield;
+    }
   }
 
   return scales;

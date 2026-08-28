@@ -91,6 +91,41 @@ describe('OrbitVisualManager', () => {
     expect(activeCandidate.material.color.getHexString()).toBe('123456');
     expect(activeCandidate.userData['active']).toBe(true);
 
+    manager.update(state({ lodLevel: 2, selectedId: 'remote-orbit', navigationTargetId: 'sun' }));
+    const activeRemoteOrbit = orbitLine(fixture.root, 'remote-orbit');
+
+    expect(activeRemoteOrbit.visible).toBe(true);
+    expect(activeRemoteOrbit.userData['overviewReveal']).toBeNull();
+
+    manager.dispose();
+  });
+
+  it('fond les orbites locales sans rupture au passage du seuil stellaire', () => {
+    const fixture = createFixture();
+    const manager = new OrbitVisualManager(fixture.root, fixture.entries, 'low');
+
+    manager.update(state({ lodLevel: 1, stellarNeighborhoodReveal: 0.8 }));
+    const earth = orbitLine(fixture.root, 'earth');
+    const candidate = orbitLine(fixture.root, 'candidate');
+
+    expect(earth.material.opacity).toBeCloseTo(0.29779166, 8);
+    expect(candidate.material.opacity).toBeCloseTo(0.29779166, 8);
+    expect(earth.userData['overviewReveal']).toBeCloseTo(0.48030913, 8);
+    expect(candidate.userData['overviewReveal']).toBeCloseTo(0.48030913, 8);
+
+    manager.update(state({ lodLevel: 2, stellarNeighborhoodReveal: 0.8 }));
+
+    expect(orbitLine(fixture.root, 'earth')).toBe(earth);
+    expect(orbitLine(fixture.root, 'candidate')).toBe(candidate);
+    expect(earth.material.opacity).toBeCloseTo(0.29779166, 8);
+    expect(candidate.material.opacity).toBeCloseTo(0.29779166, 8);
+
+    manager.update(state({ lodLevel: 2, stellarNeighborhoodReveal: 0.3 }));
+    expect(orbitNames(fixture.root)).toEqual([]);
+
+    manager.update(state({ lodLevel: 2, stellarNeighborhoodReveal: 0 }));
+    expect(orbitNames(fixture.root)).toEqual([]);
+
     manager.dispose();
   });
 
@@ -153,6 +188,7 @@ function createFixture(): {
     keplerianObject('earth', 'planet', 'sun'),
     ephemerisObject('moon', 'moon', 'earth'),
     keplerianObject('mars', 'planet', 'sun'),
+    keplerianObject('remote-orbit', 'black-hole', 'sun'),
     illustrativeObject('candidate', 'exoplanet', 'host-star', '#123456'),
     illustrativeObject('colorless-candidate', 'exoplanet', 'host-star'),
     illustrativeObject('orphan', 'comet', 'missing-parent'),

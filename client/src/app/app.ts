@@ -9,6 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { UniverseEngineFacade } from './core/engine/universe-engine.facade';
+import { PanelHeightDirective } from './core/layout/panel-height.directive';
 import { I18nService, isAppLanguage, SUPPORTED_LANGUAGES } from './core/i18n/i18n.service';
 import { SeoService } from './core/seo/seo.service';
 import { KeyboardShortcutService } from './core/settings/keyboard-shortcut.service';
@@ -30,6 +31,7 @@ import { UniverseViewComponent } from './features/universe-view/universe-view.co
   templateUrl: './app.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    PanelHeightDirective,
     UniverseViewComponent,
     UniverseSearchComponent,
     ObjectDetailsComponent,
@@ -46,13 +48,17 @@ export class App implements OnInit, OnDestroy {
   protected readonly i18n = inject(I18nService);
   protected readonly languages = SUPPORTED_LANGUAGES;
   protected readonly navigationHintVisible = signal(true);
+  protected readonly timelineHeight = signal(82);
+  protected readonly detailsHeight = signal(0);
   protected readonly earthSkyViewState = inject(EarthSkyViewState);
   protected readonly earthSkyVisible = computed(
     () =>
       this.earthSkyViewState.phase() === 'open' && this.earthSkyViewState.activeTargetId() !== null,
   );
   protected readonly earthSkyJourneyVisible = computed(
-    () => this.earthSkyViewState.phase() === 'travelling',
+    () =>
+      this.earthSkyViewState.phase() === 'travelling' ||
+      this.earthSkyViewState.phase() === 'returning',
   );
   protected readonly earthSkyMounted = computed(
     () =>

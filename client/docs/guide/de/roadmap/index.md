@@ -5,7 +5,7 @@ description: Erfahren Sie, was Universe Map bereits liefert, welche Verbesserung
 
 # Projektplan
 
-_Zuletzt geprüft: 28. August 2026._
+_Zuletzt geprüft: 10. September 2026._
 
 Diese Seite ist der verbindliche öffentliche Projektplan von Universe Map. Sie beschreibt Ergebnisse
 und Prüfkriterien statt fester Veröffentlichungstermine. Wissenschaftliche Genauigkeit, verständliche
@@ -27,6 +27,14 @@ Schritt.
   moderne Sternbilder, Höhe und Azimut, ein zeigergebundenes Sichtfeld von 102° bis 2°, 461 per URL
   wiederherstellbare Orte, zustimmungsbasierte Browser-Geolokalisierung auf drei Dezimalstellen und
   illustrative lokale Szenenkontexte.
+- Die Rückkehr aus dem Planetarium zur 3D-Karte dauert 2,4 Sekunden auf demselben Renderer,
+  bewahrt die anfängliche Blickrichtung und übergibt den Drehpunkt an die Erde. Eingaben brechen
+  die illustrative Animation sofort ab; reduzierte Bewegung wird respektiert.
+- Responsive Karten, Suche, Planer und Zeitleiste bleiben auf schmalen und flachen Bildschirmen
+  erreichbar. Karten haben kompakte und ausgeklappte Zustände. Schließen bleibt im Kopf, die
+  Bahnaktion steht bei den Bahndaten; der redundante orange Hinweis entfällt, wissenschaftlicher
+  Kontext bleibt erhalten. Mausradtests warten auf das Ende der Trägheit und prüfen eine neue
+  Geste an der Distanzgrenze, ohne die Kamerasteuerung zu verändern.
 - Ein lokaler Planer auf Abruf ordnet sichtbaren Mond, Planeten und katalogisierte Satelliten nach
   Höhe und wertet die 48 hellsten Katalogsterne aus, um bis zu acht sichtbare Sterne vorzuschlagen.
   Eine Auswahl öffnet die vorhandenen Objektdetails und zentriert den Himmel neu. Berechneter Horizont
@@ -35,9 +43,11 @@ Schritt.
   Mondlichtstörung, einem ausdrücklich illustrativen Bestfenster-Index und einer Aktion, die Zeit und
   Kamera gemeinsam verschiebt. Das Kurvenziel kann aus demselben lokalen Katalog ersetzt werden, ohne
   den aktuellen Himmel zu bewegen; erst diese Aktion übernimmt Ziel, gemeinsame Zeit und Kamera.
-  Eine kompakte Übersicht wendet dieselbe Berechnung auf sieben aufeinanderfolgende Nächte an; eine
-  Auswahl wechselt direkt zum lokal auf fünf Minuten verfeinerten besten Zeitpunkt der Nacht.
-  Live-Wetter, Lichtverschmutzung und lokale Hindernisse bleiben außen vor.
+  Eine kompakte Übersicht wendet dieselbe Berechnung auf sieben aufeinanderfolgende Nächte an. Sie
+  hebt automatisch die stärkste Nacht mit einem vergleichbaren illustrativen Index von 100 hervor
+  und zeigt Höhe, Dunkelheit, Mondlicht und Geländefreiheit, bevor die direkte Aktion zum lokal auf
+  fünf Minuten verfeinerten besten Zeitpunkt wechselt. Live-Wetter, Lichtverschmutzung und lokale
+  Hindernisse bleiben außen vor.
 - Für jeden festen Katalogort wird ein 360°-Verdeckungsprofil aus dem maßgeblichen
   NOAA/NCEI-Oberflächenrelief ETOPO 2022 v1 mit 60 Bogensekunden berechnet. Die kompakten Profile
   werden verzögert geladen und können Sterne, Mond, Planeten und Satelliten hinter modelliertem Gelände
@@ -50,8 +60,34 @@ Schritt.
   Positionen sind berechnet, die sechzehn Bahnen aus mittleren J2000-Elementen bleiben als extrapoliert
   gekennzeichnet. Satelliten erscheinen ab einem Sichtfeld von 12° oder sofort als Ziel, um Überlagerung
   im Weitwinkel zu vermeiden; die Mindestgröße zur Lesbarkeit bleibt ausdrücklich illustrativ.
-- Sterne und Milchstraße gewinnen beim Zoomen kontinuierlich Details. Die Navigation entfernt zudem
-  Ziele und Auswahlen, sobald ihr visueller Kontext verschwindet.
+- Außenansicht und Durchquerung der Milchstraße verwenden dieselbe feste galaktozentrische
+  Punktwolke statt einer Galaxienaufnahme oder eines kameragebundenen Tunnels. Scheibe und Sonne
+  teilen die kanonische Skala: 100.000 Lichtjahre Scheibendurchmesser und 8,178 kpc Sonnenabstand
+  vom Zentrum. Der Kameraweg und die Mausradreaktion bleiben unverändert. Feine Körner zeigen
+  echte perspektivische Parallaxe; ein begrenzter zusätzlicher GPU-Batch liefert nahe Details.
+  Goldene Balken, elfenbeinfarbener Kern, blauweiße Arme und dunkle Staubbänder sind illustrative
+  Dichte und Farbe, keine einzelnen Gaia-Messungen oder Strahlung des Schwarzen Lochs.
+- Der lokale Katalograhmen entfaltet sich unsichtbar zwischen 3.600 und 2.400 Szeneneinheiten.
+  HYG/Gaia erscheinen erst zwischen 900 und 90 Einheiten im bereits festen Rahmen. Die galaktische
+  Wolke blendet zwischen 220 und 70, Planeten und Bahnen zwischen 240 und 90 Einheiten über.
+  Der Nahbereich bleibt beim Anhalten und auf dem Rückweg räumlich stabil.
+- Auch äußere Galaxien verwenden feste Punktwolken mit spiralförmiger, elliptischer oder
+  unregelmäßiger Dichte, die aus verschiedenen Richtungen sichtbar sind. Katalogpositionen bleiben
+  erhalten; interne Punkte und Farben sind illustrativ. Ausgewählte Galaxien behalten Karte und
+  Auswahlfunktion, ohne einen übergroßen planetaren Auswahlring über der Wolke.
+- Eine Gaia-DR3-Hierarchie stellt 2.923.790 qualitätsgefilterte Quellen für die Übersicht der
+  stellaren Nachbarschaft als entfernte berechnete 512-pc-Aggregate und 133.526 gemessene
+  Quellstichproben dar. Jedes verfeinerte 512-pc-Blatt behält die 32 hellsten Quellen und eine
+  deterministische gleichmäßige Auswahl mit insgesamt höchstens 96 Punkten. Die nach Sichtfeld und
+  Qualität begrenzte Verfeinerung lädt nur sichtbare Zweige, prüft sie in Modul-Workern, überträgt
+  typisierte Arrays ohne Kopie und erzeugt nie ein Three.js-Objekt je Quelle. Beibehaltene
+  Gaia-Stichproben bewahren ihre Quellenkennung und sind direkt in den gemeinsamen GPU-Batches
+  auswählbar und fokussierbar; ihre Karten zeigen gemessenes G und BP−RP sowie die berechnete
+  inverse Parallaxendistanz. Sie bleiben von globaler Suche und Beschriftungen ausgeschlossen,
+  während aggregierte Zellen anonym bleiben. Das Stichprobenfeld ist unvollständig.
+  Beim Herauszoomen blenden detaillierte Stichproben in berechnete Wurzeln über, die bis zur Lokalen
+  Gruppe dezent sichtbar bleiben, während das lokale Volumen logarithmisch in die Milchstraße
+  skaliert wird.
 - Die kartesischen J2000-Geschwindigkeiten von HYG schreiben nun den gemeinsamen Sternkatalog, den
   Beobachterhimmel und die Sternbildfiguren fort, mit explizit extrapolierter Verlässlichkeit und
   einer Grenze von ±10.000 julianischen Jahren.
@@ -100,18 +136,60 @@ Schritt.
   Szenenressource. Danach benötigt die Installation von Registern, Suche, Geometrie und GPU auf dem
   Hauptthread ein neues 1,2-Sekunden-Fenster mit stabiler Kamera. Transitionen starten die Frist neu,
   der Beobachtungsmodus sperrt die Hintergrundinstallation vollständig, und ein ausdrücklich
-  angefordertes Ziel lädt weiterhin sofort. Die saubere Kampagne der Revision besteht nun alle zehn
+  angefordertes Ziel lädt weiterhin sofort. Die saubere Kampagne vom 28. August 2026, Revision `27db0e1`, bestand alle zehn
   Berichte. Skalenläufe mit mittel/CPU 4× bleiben bei 9,3 ms p95 mit einem schlechtesten Bild von
   66,5 ms; niedrig/CPU 6× bleibt bei 16,6–16,7 ms p95 mit einem schlechtesten Bild von 83,4 ms. Die
   Beobachterläufe lösen Jupiter in beiden Profilen 3/3 auf, und die Ressourcenzahlen driften nicht.
 
 ## Aktuelle Prioritäten
 
-- Das saubere simulierte 10/10-Manifest als Regressionsbaseline beibehalten und die Kampagne nach
-  wesentlichen Änderungen an Rendering oder Katalogen wiederholen. Die aktuellen Nachweise
-  rechtfertigen weder einen aufwendigeren Shader-Vorkompilierungspfad noch einen detailärmeren
-  Fallback; eine physische Mittel-/Niedrig-Validierung bleibt optional, falls geeignete Hardware
-  verfügbar wird. Simulierte Profile bleiben Regressionswächter, keine Geräteaussagen.
+- Die Vorfahren des aktiven Objekts werden einmal pro Frame statt pro Objekt ermittelt;
+  Zielpriorität und Katalogänderungen bleiben erhalten. Fehlende Eltern und Zyklen sind getestet.
+  Der isolierte CPU-6×-Test (503 Einträge, 200 Aktualisierungen) sinkt von 95,2–98,2 ms auf
+  74,6–80,3 ms bei identischen LOD-Zuständen. Kamera und Darstellungsregeln bleiben unverändert;
+  daraus folgt kein gemessener FPS-Gewinn für die gesamte Anwendung.
+  Kaltstarts bestehen 3/3 pro Profil (maximal 66,8 ms low / 100,0 ms medium). Tempel-Mediane:
+  27,0 / 31,2 ms; ein medium-Spitzenwert von 78,2 ms liegt weiterhin über dem Budget.
+- Das 8K-Panorama wird vor dem GPU-Upload asynchron dekodiert; Auflösung und Farben bleiben
+  unverändert. Isolierte Uploads unter Chrome / CPU 6× sinken von 742,7–790,8 ms auf
+  96,2–102,8 ms. Die abgetasteten GPU-Pixel sind in Chromium, Firefox und WebKit identisch.
+  Beim Freigeben der Textur wird auch die Bitmap freigegeben, einschließlich verspäteter Ladevorgänge.
+  Das anfängliche Vorwärmen wartet parallel zur Shader-Kompilierung höchstens 500 ms auf das
+  optionale Panorama, damit der lokale Upload nicht in die erste Navigation fällt.
+  Weitere GPU-Spitzen und die vollständige Kampagne auf einem sauberen Stand bleiben offen.
+  Die abschließenden Kaltstarts bestehen 3/3 in low und 2/3 in medium (maximal 66,7 / 100,1 ms)
+  bei unverändertem 100-ms-Limit. Tempel-Mediane: 26,6 / 28,4 ms; alle sechs ersten sichtbaren
+  Frames liegen unter 33,3 ms. Diese kleinen lokalen Serien ersetzen keine saubere Gesamtkampagne.
+- Nach dem Such-/Label-Schritt vom 11. September bestehen niedrig/CPU 6× und mittel/CPU 4×
+  jeweils 3/3 gezielte Läufe (maximal 100,0 und 99,9 ms). Tempel-Mediane liegen bei 33,7 ms niedrig
+  (über Budget) und 32,6 ms mittel, mit 3/3 erfolgreichen Vorladungen je Profil. Die maximale
+  Frame-Latenz verbessert sich gegenüber der vorherigen Serie nicht. Phasenspitzen und die saubere
+  Gesamtkampagne bleiben offen; diese lokalen Ergebnisse ersetzen die historische Baseline nicht.
+- Cosmicflows-Geometrie und Symbole großräumiger Strukturen werden einschließlich stabiler Sortierung
+  und Auswahlindizes in kleinen kooperativen Schritten vorbereitet und gemeinsam übernommen;
+  abgebrochene Arbeit wird freigegeben. Auch ihre Register bereiten IDs, Positionen, Rangfolgen und
+  Suchnamen/Aliasse schrittweise vor, bevor der vollständige Suchcache verfügbar wird. Positionen
+  und Darstellung bleiben gleich. Auch Exoplaneten-IDs, Positionen, Bahnvorbereitung, Wirtsrangfolge
+  und Sucheinträge werden nun schrittweise vorbereitet; Referenzverknüpfungen und wissenschaftliche
+  Werte bleiben erhalten. Der Sternkachelindex bereitet auch ID-Zuordnung und Sichtbarkeitsvolumen
+  schrittweise vor und wird erst vollständig bereitgestellt. Alle 3.964 Gaia-Zellen und 378 getesteten
+  Ansichtskombinationen bleiben identisch. HYG-Namen und Labels werden nun schrittweise vorbereitet
+  und zwischengespeichert. Suche und Exoplanetenentdeckung werden gemeinsam vollständig veröffentlicht;
+  die vorherige Version bleibt nutzbar, veraltete Arbeit nach Daten- oder Sprachwechseln wird verworfen.
+  Wissenschaftliche Werte und Ergebnisreihenfolge bleiben gleich. Weitere Sternverarbeitung,
+  erste GPU-Arbeit und die saubere Gesamtkampagne bleiben offen.
+- Erste CPU-Optimierungen sind umgesetzt: inkrementelle Auswahlmasken, vorberechnete Rangwerte
+  und begrenzte Wiederverwendung normalisierter Suchbegriffe. Kamera und Darstellung bleiben gleich.
+  Gezielte Skalendurchläufe erfüllen die Gesamtbudgets; Spitzen einzelner Kaltstartphasen und eine
+  neue Kampagne auf sauberer Revision bleiben offen. Die historische 10/10-Baseline bleibt bestehen.
+- Die endgültige visuelle Abstimmung von Armen, Kern und Durchquerung anhand der Referenzen
+  bestätigen. Browserprüfungen decken Perspektiven, räumliche Stabilität und Galaxienauswahl ab;
+  technische Sichtbarkeit ersetzt keine gestalterische Freigabe.
+- Die bei den lokalen Diagnosen vom 10. September erfassten Frame-Budgetüberschreitungen
+  untersuchen und danach eine Kampagne auf sauberer Revision wiederholen. Die oben genannten
+  10/10-Werte stammen aus der historischen Baseline vom 28. August, nicht aus dem aktuellen
+  uncommitteten Arbeitsstand. Simulierte Profile sind keine Hardware-Nachweise; eine physische
+  Mittel-/Niedrig-Validierung bleibt optional.
 
 Das Planetarium bleibt eine getrennte topozentrische Projektion des gewählten Beobachtungsorts. Die
 zeitliche Karte Empfangenes Licht verwendet für unterstützte Körper des Sonnensystems die Erde und
@@ -119,9 +197,6 @@ für HYG-Sterne sowie dokumentierte Exoplanetensysteme das Baryzentrum des Sonne
 
 ## Bewusst zurückgestellt
 
-- Die vorbereitete aggregierte Sternhierarchie bleibt inaktiv, bis ein dichterer Quellkatalog eine
-  sichtbare Darstellung über Skalen benötigt. Eine Aktivierung muss die Vorbereitung in einen Web
-  Worker verlagern und unsichtbare Netzwerk- oder GPU-Arbeit vermeiden.
 - Weitere Silhouetten oder Polygonmodelle unregelmäßiger Körper werden nur mit einem maßgeblichen
   Formmodell ergänzt, das Download, Dekodierung, Quellenangabe und Renderkosten rechtfertigt.
 

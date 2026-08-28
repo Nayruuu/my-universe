@@ -1,9 +1,38 @@
 import { CoordinateSystem } from '../coordinates/coordinate-system';
 import { equatorialJ2000ToGalacticScene } from '../coordinates/galactic-reference-frame';
 import type { ExoplanetCatalog } from '../loaders/exoplanet-catalog';
-import { createExoplanetSpatialModel } from './exoplanet-spatial-model';
+import { prepareCatalogIncrementally } from '../core/catalog-preparation';
+import {
+  createExoplanetSpatialModel,
+  prepareExoplanetSpatialModel,
+} from './exoplanet-spatial-model';
 
 describe('createExoplanetSpatialModel', () => {
+  it('borne aussi le travail à l’intérieur d’un système très fourni', async () => {
+    const data = {
+      ...catalog(),
+      planetCount: 601,
+      hostFirstPlanetIndices: new Uint32Array([0, 600]),
+      hostPlanetCounts: new Uint16Array([600, 1]),
+      planetHostIndices: Uint32Array.from({ length: 601 }, (_, index) => (index < 600 ? 0 : 1)),
+      planetOrbitalPeriodsDays: new Float64Array(601).fill(10),
+      planetSemiMajorAxesAu: Float64Array.from({ length: 601 }, (_, index) => (index + 1) / 100),
+    };
+    const coordinates = new CoordinateSystem();
+    const expected = createExoplanetSpatialModel(data, coordinates);
+    const pause = vi.fn(async () => undefined);
+    const model = await prepareCatalogIncrementally(
+      prepareExoplanetSpatialModel(data, coordinates),
+      pause,
+    );
+
+    expect(pause).toHaveBeenCalledTimes(2);
+    expect(model.renderPositions).toEqual(expected.renderPositions);
+    expect(model.getGalacticPosition(1)).toEqual(expected.getGalacticPosition(1));
+    expect(model.getOrbitDistanceScale(0)).toBe(expected.getOrbitDistanceScale(0));
+    expect(model.getResolvedOrbit(600)).toEqual(expected.getResolvedOrbit(600));
+  });
+
   it('maps published and fallback host distances into the Galactic reference frame', () => {
     const model = createExoplanetSpatialModel(catalog(), new CoordinateSystem());
     const expectedNearby = equatorialJ2000ToGalacticScene({ x: 10, y: 0, z: 0 });

@@ -14,6 +14,7 @@ import type {
 import {
   EARTH_OBSERVATION_TIMELINE_CHART_HEIGHT,
   EARTH_OBSERVATION_TIMELINE_CHART_WIDTH,
+  selectBestEarthObservationForecastNight,
   type EarthObservationTimeline,
 } from './earth-observation-timeline';
 
@@ -38,6 +39,9 @@ export class EarthObservationPlannerComponent {
   protected readonly chartHeight = EARTH_OBSERVATION_TIMELINE_CHART_HEIGHT;
   protected readonly targetSearchTypes: readonly SpaceObjectType[] = ['star', 'planet', 'moon'];
   protected readonly excludedTargetIds: readonly string[] = ['sun', 'earth'];
+  protected readonly recommendedNight = computed(() =>
+    selectBestEarthObservationForecastNight(this.forecast()),
+  );
   private readonly shortTimeFormatter = computed(
     () =>
       new Intl.DateTimeFormat(this.i18n.locale(), {

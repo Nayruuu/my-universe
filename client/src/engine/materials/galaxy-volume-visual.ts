@@ -1,23 +1,22 @@
 import * as THREE from 'three';
-import { GalaxyVisualShape, GraphicQuality, SpaceObject } from '../../data/models/universe.models';
-import { PICKING_LAYER } from '../selection/selection-layers';
+import type {
+  GalaxyVisualShape,
+  GraphicQuality,
+  SpaceObject,
+} from '../../data/models/universe.models';
+import { getGalaxyRenderScale } from '../coordinates/galaxy-scale-model';
+import type { ContinuousCelestialVolume } from './celestial-visual-types';
 
+const MINIMUM_PARTICLES = 1_024;
 const PARTICLE_BUDGETS = {
-  low: 360,
-  medium: 900,
-  high: 2_200,
+  low: 16_384,
+  medium: 65_536,
+  high: 131_072,
 } as const satisfies Record<GraphicQuality, number>;
 
-const MORPHOLOGY_INDEX = {
-  spiral: 0,
-  elliptical: 1,
-  irregular: 2,
-} as const satisfies Record<GalaxyVisualShape, number>;
-
-export interface GalaxyVolumeVisual {
+export interface GalaxyVolumeVisual extends ContinuousCelestialVolume {
   root: THREE.Group;
   materials: readonly THREE.Material[];
-  pickables: readonly THREE.Object3D[];
 }
 
 export function getGalaxyParticleBudget(quality: GraphicQuality): number {
@@ -28,224 +27,130 @@ export function createGalaxyVolumeVisual(
   object: SpaceObject,
   quality: GraphicQuality,
 ): GalaxyVolumeVisual {
+  const scaleModel = getGalaxyRenderScale(object);
   const shape = object.visual.galaxyShape ?? 'elliptical';
-  const axisRatio = THREE.MathUtils.clamp(object.visual.galaxyAxisRatio ?? 0.72, 0.16, 1);
-  const rotation = THREE.MathUtils.degToRad(object.visual.galaxyRotationDegrees ?? 0);
-  const primaryColor = new THREE.Color(object.visual.color ?? '#b7c9e5');
-  const secondaryColor = new THREE.Color(object.visual.secondaryColor ?? '#e2c391');
-  const seed = hashString(object.id) / 4_294_967_296;
+  const seed = hashString(object.id);
+  const coolColor = new THREE.Color('#c4d5ec').lerp(
+    new THREE.Color(object.visual.color ?? '#b7c9e5'),
+    0.18,
+  );
+  const warmColor = new THREE.Color('#f7d6a0').lerp(
+    new THREE.Color(object.visual.secondaryColor ?? '#e2c391'),
+    0.22,
+  );
   const root = new THREE.Group();
+  const material = createGalaxyGrainMaterial();
+  const createGeometry = (count: number): THREE.BufferGeometry =>
+    createGalaxyGrainGeometry(shape, count, seed, coolColor, warmColor);
+  const grains = new THREE.Points(createGeometry(MINIMUM_PARTICLES), material);
+  const viewport = new THREE.Vector4();
+  let activeCount = MINIMUM_PARTICLES;
 
   root.name = `${object.id}-galaxy-near-volume`;
-  root.scale.setScalar(object.visual.visualRadius);
+  root.scale.setScalar(scaleModel.renderDiameter / 2);
+  root.userData['renderDiameter'] = scaleModel.renderDiameter;
+  root.userData['diameterTreatment'] = scaleModel.diameterTreatment;
   root.rotation.order = 'ZXY';
-  root.rotation.x = Math.acos(axisRatio);
-  root.rotation.z = rotation;
-
-  const diskMaterial = createGalaxyDiskMaterial(shape, primaryColor, secondaryColor, seed);
-  const disk = new THREE.Mesh(new THREE.PlaneGeometry(2.08, 2.08), diskMaterial);
-
-  disk.name = `${object.id}-galaxy-structured-disk`;
-  disk.layers.enable(PICKING_LAYER);
-  disk.userData['objectId'] = object.id;
-  disk.userData['scientificConfidence'] = object.scientificConfidence;
-  disk.userData['appearanceConfidence'] = 'illustrative';
-  disk.userData['visualStyle'] = 'procedural-structured-galaxy-disk';
-  disk.renderOrder = 3;
-  root.add(disk);
-
-  const starMaterial = createGalaxyStarMaterial();
-  const stars = new THREE.Points(
-    createGalaxyStarGeometry(
-      shape,
-      getGalaxyParticleBudget(quality),
-      seed,
-      primaryColor,
-      secondaryColor,
-    ),
-    starMaterial,
+  root.rotation.x = Math.acos(
+    THREE.MathUtils.clamp(object.visual.galaxyAxisRatio ?? 0.72, 0.16, 1),
   );
-
-  stars.name = `${object.id}-galaxy-stellar-volume`;
-  stars.userData['scientificConfidence'] = object.scientificConfidence;
-  stars.userData['appearanceConfidence'] = 'illustrative';
-  stars.userData['visualStyle'] = 'volumetric-galaxy-star-field';
-  stars.renderOrder = 4;
-  root.add(stars);
+  root.rotation.z = THREE.MathUtils.degToRad(object.visual.galaxyRotationDegrees ?? 0);
+  grains.name = `${object.id}-galaxy-stellar-volume`;
+  grains.userData['scientificConfidence'] = 'illustrative';
+  grains.userData['appearanceConfidence'] = 'illustrative';
+  grains.userData['visualStyle'] = 'continuous-galaxy-grain-volume';
+  grains.userData['morphology'] = shape;
+  grains.userData['sourceTreatment'] = 'seeded-density-samples-not-individual-observed-stars';
+  grains.renderOrder = 4;
+  grains.onBeforeRender = (renderer) => {
+    renderer.getCurrentViewport(viewport);
+    material.uniforms['viewportHeight']!.value = viewport.w;
+    material.uniforms['pixelRatio']!.value = Math.min(renderer.getPixelRatio(), 2);
+  };
+  root.add(grains);
 
   return {
     root,
-    materials: [diskMaterial, starMaterial],
-    pickables: [disk],
+    materials: [material],
+    updateDetail(apparentRadiusPixels, displayedLocalRadius, deltaSeconds) {
+      const targetCount = THREE.MathUtils.clamp(
+        apparentRadiusPixels * apparentRadiusPixels * 4,
+        MINIMUM_PARTICLES,
+        getGalaxyParticleBudget(quality),
+      );
+
+      activeCount = THREE.MathUtils.lerp(
+        activeCount,
+        targetCount,
+        1 - Math.exp(-4 * Math.max(0, deltaSeconds)),
+      );
+      const drawCount = Math.ceil(activeCount);
+      const capacity = Math.min(
+        getGalaxyParticleBudget(quality),
+        2 ** Math.ceil(Math.log2(drawCount)),
+      );
+
+      // Reallocate before rendering, never from onBeforeRender: the renderer may already
+      // have captured the previous geometry there. Stable prefixes preserve every old grain.
+      if (
+        capacity > grains.geometry.getAttribute('position').count ||
+        capacity * 4 < grains.geometry.getAttribute('position').count
+      ) {
+        const previous = grains.geometry;
+
+        grains.geometry = createGeometry(capacity);
+        previous.dispose();
+      }
+      grains.geometry.setDrawRange(0, drawCount);
+      material.uniforms['activeCount']!.value = activeCount;
+      root.scale.setScalar(displayedLocalRadius);
+    },
   };
 }
 
-function createGalaxyDiskMaterial(
-  shape: GalaxyVisualShape,
-  primaryColor: THREE.Color,
-  secondaryColor: THREE.Color,
-  seed: number,
-): THREE.ShaderMaterial {
-  const material = new THREE.ShaderMaterial({
-    uniforms: {
-      primaryColor: { value: primaryColor },
-      secondaryColor: { value: secondaryColor },
-      morphology: { value: MORPHOLOGY_INDEX[shape] },
-      seed: { value: seed },
-      layerOpacity: { value: 0.84 },
-    },
-    vertexShader: `
-      varying vec2 vUv;
-      varying float vInteriorFade;
-
-      void main() {
-        vUv = uv;
-        float volumeRadius = length(modelViewMatrix[0].xyz);
-        float centerDistance = length((modelViewMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz);
-        vInteriorFade = smoothstep(volumeRadius * 0.28, volumeRadius * 0.82, centerDistance);
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `,
-    fragmentShader: `
-      uniform vec3 primaryColor;
-      uniform vec3 secondaryColor;
-      uniform float morphology;
-      uniform float seed;
-      uniform float layerOpacity;
-      varying vec2 vUv;
-      varying float vInteriorFade;
-
-      float galaxyHash(vec2 point) {
-        return fract(sin(dot(point, vec2(127.1, 311.7)) + seed * 91.7) * 43758.5453);
-      }
-
-      float galaxyNoise(vec2 point) {
-        vec2 cell = floor(point);
-        vec2 local = fract(point);
-        local = local * local * (3.0 - 2.0 * local);
-        return mix(
-          mix(galaxyHash(cell), galaxyHash(cell + vec2(1.0, 0.0)), local.x),
-          mix(
-            galaxyHash(cell + vec2(0.0, 1.0)),
-            galaxyHash(cell + vec2(1.0, 1.0)),
-            local.x
-          ),
-          local.y
-        );
-      }
-
-      float galaxyFbm(vec2 point) {
-        float value = 0.0;
-        float amplitude = 0.5;
-        for (int octave = 0; octave < 4; octave += 1) {
-          value += galaxyNoise(point) * amplitude;
-          point = mat2(1.6, -1.2, 1.2, 1.6) * point + 3.17;
-          amplitude *= 0.5;
-        }
-        return value;
-      }
-
-      void main() {
-        vec2 point = (vUv - vec2(0.5)) * 2.0;
-        float radius = length(point);
-        if (radius > 1.0) {
-          discard;
-        }
-
-        float angle = atan(point.y, point.x);
-        float fineStructure = galaxyFbm(point * 18.0 + seed * 7.0);
-        float broadStructure = galaxyFbm(point * 4.2 - seed * 5.0);
-        float spiralWave = 0.5 + 0.5 * cos(
-          angle * 2.0 - radius * 13.5 + broadStructure * 1.2 + seed * 6.2831853
-        );
-        float spiralDensity = pow(spiralWave, 3.4);
-        float dustWave = 0.5 + 0.5 * cos(
-          angle * 2.0 - radius * 13.5 + 0.55 + seed * 6.2831853
-        );
-        float dustLane = 1.0 - smoothstep(0.58, 0.86, dustWave) *
-          smoothstep(0.18, 0.48, radius) * 0.72;
-        float exponentialDisk = exp(-2.85 * radius);
-        float spiralBody = exponentialDisk *
-          (0.28 + spiralDensity * 1.08 + fineStructure * 0.22) * dustLane;
-        float ellipticalBody = exp(-2.7 * pow(max(radius, 0.0001), 0.62)) *
-          (0.8 + fineStructure * 0.14);
-        float irregularBody = smoothstep(
-          0.74,
-          0.28,
-          radius + (broadStructure - 0.5) * 0.62
-        ) * (0.48 + fineStructure * 0.72);
-        float body = morphology < 0.5
-          ? spiralBody
-          : morphology < 1.5
-            ? ellipticalBody
-            : irregularBody;
-        float core = exp(-15.0 * radius) * (morphology > 1.5 ? 0.35 : 1.0);
-        float starKnots = pow(max(fineStructure - 0.56, 0.0), 2.0) *
-          smoothstep(0.9, 0.2, radius);
-        float edge = 1.0 - smoothstep(0.76, 1.0, radius);
-        float alpha = (body * 0.86 + core * 0.94 + starKnots * 0.46) * edge *
-          vInteriorFade;
-
-        if (alpha < 0.012) {
-          discard;
-        }
-
-        vec3 coolDisk = mix(primaryColor, vec3(0.58, 0.76, 1.0), 0.32);
-        vec3 warmCore = mix(secondaryColor, vec3(1.0, 0.88, 0.66), 0.46);
-        vec3 color = mix(coolDisk, warmCore, clamp(core * 1.4 + starKnots * 0.4, 0.0, 1.0));
-        color *= 0.72 + body * 0.58 + core * 0.72;
-        gl_FragColor = vec4(color, clamp(alpha * layerOpacity, 0.0, 0.96));
-      }
-    `,
-    transparent: true,
-    opacity: 0.84,
-    blending: THREE.NormalBlending,
-    depthWrite: false,
-    side: THREE.DoubleSide,
-    toneMapped: false,
-  });
-
-  material.userData['visualStyle'] = 'procedural-structured-galaxy-disk';
-
-  return material;
-}
-
-function createGalaxyStarGeometry(
+function createGalaxyGrainGeometry(
   shape: GalaxyVisualShape,
   count: number,
   seed: number,
-  primaryColor: THREE.Color,
-  secondaryColor: THREE.Color,
+  coolColor: THREE.Color,
+  warmColor: THREE.Color,
 ): THREE.BufferGeometry {
   const positions = new Float32Array(count * 3);
   const colors = new Float32Array(count * 3);
   const sizes = new Float32Array(count);
-  const random = mulberry32(Math.floor(seed * 4_294_967_295));
-  const armCount = 2 + (Math.floor(seed * 97) % 3);
+  const alphas = new Float32Array(count);
+  const indices = new Float32Array(count);
+  const random = mulberry32(seed);
+  const arms = 2 + (seed % 2) * 2;
+  const phase = (seed / 4_294_967_296) * Math.PI * 2;
+  const color = new THREE.Color();
 
   for (let index = 0; index < count; index += 1) {
     const point =
       shape === 'spiral'
-        ? random() < 0.18
-          ? createEllipticalPoint(random).multiplyScalar(0.46)
-          : createSpiralPoint(index, armCount, random)
+        ? random() < 0.24
+          ? createEllipticalPoint(random).multiplyScalar(0.28)
+          : createSpiralPoint(arms, phase, random)
         : shape === 'elliptical'
           ? createEllipticalPoint(random)
-          : createIrregularPoint(random);
-    const offset = index * 3;
-    const radius = Math.hypot(point.x, point.y, point.z);
-    const color = primaryColor
-      .clone()
-      .lerp(secondaryColor, Math.max(0, 1 - radius) * 0.58)
-      .lerp(new THREE.Color(0xffffff), random() * 0.22);
+          : createIrregularPoint(phase, random);
+    const radius = point.length();
+    const warmth =
+      shape === 'elliptical'
+        ? 0.68 + random() * 0.28
+        : shape === 'irregular'
+          ? random() * 0.3
+          : 1 - THREE.MathUtils.smoothstep(radius, 0.04, 0.48);
 
-    positions[offset] = point.x;
-    positions[offset + 1] = point.y;
-    positions[offset + 2] = point.z;
-    colors[offset] = color.r;
-    colors[offset + 1] = color.g;
-    colors[offset + 2] = color.b;
-    sizes[index] = 0.82 + random() * 1.68 + Math.max(0, 0.35 - radius) * 1.45;
+    color
+      .copy(coolColor)
+      .lerp(warmColor, warmth)
+      .multiplyScalar(0.82 + random() * 0.28);
+    point.toArray(positions, index * 3);
+    color.toArray(colors, index * 3);
+    sizes[index] = 0.006 + Math.pow(random(), 3) * 0.01;
+    alphas[index] = (0.36 + random() * 0.34) * (1 - THREE.MathUtils.smoothstep(radius, 0.75, 1));
+    indices[index] = index;
   }
 
   const geometry = new THREE.BufferGeometry();
@@ -253,28 +158,34 @@ function createGalaxyStarGeometry(
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   geometry.setAttribute('pointSize', new THREE.BufferAttribute(sizes, 1));
+  geometry.setAttribute('pointAlpha', new THREE.BufferAttribute(alphas, 1));
+  geometry.setAttribute('sampleIndex', new THREE.BufferAttribute(indices, 1));
+  geometry.setDrawRange(0, count);
   geometry.computeBoundingSphere();
 
   return geometry;
 }
 
-function createSpiralPoint(index: number, armCount: number, random: () => number): THREE.Vector3 {
-  const radius = Math.pow(random(), 0.58);
-  const arm = index % armCount;
+function createSpiralPoint(arms: number, phase: number, random: () => number): THREE.Vector3 {
+  const radius = 0.02 + Math.pow(random(), 0.82) * 0.98;
+  const arm = Math.floor(random() * arms);
+  const interArm = random() < 0.42;
   const angle =
-    (arm / armCount) * Math.PI * 2 +
-    radius * Math.PI * 3.9 +
-    (random() - 0.5) * (0.22 + radius * 0.58);
-  const thickness = (random() + random() - 1) * (0.055 + (1 - radius) * 0.045);
+    phase +
+    (arm / arms) * Math.PI * 2 +
+    Math.log(radius + 0.16) * 3.1 +
+    Math.sin(radius * 23 + phase) * 0.075 +
+    (random() + random() - 1) * (interArm ? 3.8 : 0.36 + radius * 0.58);
+  const thickness = (random() + random() - 1) * (0.018 + (1 - radius) * 0.035);
 
   return new THREE.Vector3(Math.cos(angle) * radius, Math.sin(angle) * radius, thickness);
 }
 
 function createEllipticalPoint(random: () => number): THREE.Vector3 {
-  const radius = Math.pow(random(), 0.62);
+  const radius = Math.pow(random(), 0.92);
   const longitude = random() * Math.PI * 2;
   const latitudeSine = random() * 2 - 1;
-  const latitudeRadius = Math.sqrt(Math.max(0, 1 - latitudeSine * latitudeSine));
+  const latitudeRadius = Math.sqrt(1 - latitudeSine * latitudeSine);
 
   return new THREE.Vector3(
     Math.cos(longitude) * latitudeRadius * radius,
@@ -283,54 +194,65 @@ function createEllipticalPoint(random: () => number): THREE.Vector3 {
   );
 }
 
-function createIrregularPoint(random: () => number): THREE.Vector3 {
-  const cluster = Math.floor(random() * 4);
-  const centers = [
-    [-0.36, -0.1, 0.04],
-    [0.22, -0.28, -0.03],
-    [0.34, 0.31, 0.02],
-    [-0.08, 0.35, -0.02],
-  ] as const;
-  const center = centers[cluster]!;
-  const spread = 0.2 + random() * 0.22;
+function createIrregularPoint(phase: number, random: () => number): THREE.Vector3 {
+  const clusterAngle = phase + Math.floor(random() * 5) * 2.399_963;
+  const spread = 0.18 + random() * 0.35;
 
   return new THREE.Vector3(
-    center[0] + (random() + random() - 1) * spread,
-    center[1] + (random() + random() - 1) * spread,
-    center[2] + (random() + random() - 1) * spread * 0.38,
+    Math.cos(clusterAngle) * 0.42 + (random() + random() - 1) * spread,
+    Math.sin(clusterAngle) * 0.31 + (random() + random() - 1) * spread,
+    Math.sin(clusterAngle * 2) * 0.08 + (random() + random() - 1) * spread * 0.45,
   );
 }
 
-function createGalaxyStarMaterial(): THREE.ShaderMaterial {
+function createGalaxyGrainMaterial(): THREE.ShaderMaterial {
   const material = new THREE.ShaderMaterial({
     uniforms: {
-      pixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
+      pixelRatio: { value: 1 },
+      viewportHeight: { value: 1 },
+      activeCount: { value: MINIMUM_PARTICLES },
       layerOpacity: { value: 0.82 },
     },
     vertexShader: `
       attribute float pointSize;
+      attribute float pointAlpha;
+      attribute float sampleIndex;
       uniform float pixelRatio;
+      uniform float viewportHeight;
+      uniform float activeCount;
       varying vec3 vColor;
+      varying float vAlpha;
 
       void main() {
+        vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
+        float worldScale = length(modelMatrix[0].xyz);
+        float focalPixels = viewportHeight * projectionMatrix[1][1] * 0.5;
+        float rasterDiameter = 3.8 * pixelRatio;
+        float projectedDiameter = pointSize * worldScale * focalPixels / max(-viewPosition.z, 0.001);
+        float coverage = min(1.0, pow(projectedDiameter / rasterDiameter, 2.0));
+        float sampleWeight = 1.0 - smoothstep(activeCount * 0.82, activeCount, sampleIndex);
+        float densityCompensation = 65536.0 / (activeCount * 0.91);
+        // Euclidean proximity, not camera depth: rotating cannot erase a hemisphere.
+        float passageOpacity = smoothstep(0.003, 0.035, length(viewPosition.xyz) / worldScale);
         vColor = color;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        gl_PointSize = max(1.0, pointSize * pixelRatio);
+        vAlpha = pointAlpha * coverage * sampleWeight * densityCompensation * passageOpacity;
+        gl_Position = projectionMatrix * viewPosition;
+        gl_PointSize = rasterDiameter;
       }
     `,
     fragmentShader: `
       uniform float layerOpacity;
       varying vec3 vColor;
+      varying float vAlpha;
 
       void main() {
-        float radius = length(gl_PointCoord - vec2(0.5)) * 2.0;
-        if (radius > 1.0) {
+        vec2 point = gl_PointCoord * 2.0 - 1.0;
+        float radiusSquared = dot(point, point);
+        if (radiusSquared > 1.0) {
           discard;
         }
-        float stellarCore = 1.0 - smoothstep(0.0, 0.24, radius);
-        float stellarHalo = pow(max(0.0, 1.0 - radius), 2.1);
-        float alpha = (stellarHalo * 0.42 + stellarCore * 0.68) * layerOpacity;
-        gl_FragColor = vec4(vColor * (0.68 + stellarCore * 0.82), alpha);
+        float grain = exp(-radiusSquared * 5.0) * (1.0 - smoothstep(0.64, 1.0, radiusSquared));
+        gl_FragColor = vec4(vColor, min(0.92, grain * vAlpha * layerOpacity));
       }
     `,
     transparent: true,
@@ -341,7 +263,7 @@ function createGalaxyStarMaterial(): THREE.ShaderMaterial {
     toneMapped: false,
   });
 
-  material.userData['visualStyle'] = 'volumetric-galaxy-star-field';
+  material.userData['visualStyle'] = 'continuous-galaxy-grain-volume';
 
   return material;
 }

@@ -23,6 +23,7 @@ export interface SpaceTileView {
   readonly projectionScaleY: number;
   readonly cameraPosition: THREE.Vector3;
   readonly worldOffset: THREE.Vector3;
+  readonly referenceFrameScale?: number;
   readonly frustum: THREE.Frustum;
 }
 
@@ -80,6 +81,7 @@ export function createSpaceTileView(
   lodLevel: number,
   quality: GraphicQuality,
   worldOffset: THREE.Vector3,
+  referenceFrameScale = 1,
 ): SpaceTileView {
   const projectionView = new THREE.Matrix4().multiplyMatrices(
     camera.projectionMatrix,
@@ -93,6 +95,7 @@ export function createSpaceTileView(
     projectionScaleY: camera.projectionMatrix.elements[5]!,
     cameraPosition: camera.position.clone(),
     worldOffset: worldOffset.clone(),
+    referenceFrameScale: Math.max(0.000_001, referenceFrameScale),
     frustum: new THREE.Frustum().setFromProjectionMatrix(projectionView),
   };
 }
@@ -181,19 +184,22 @@ function compareCandidates(left: TileCandidate, right: TileCandidate): number {
 }
 
 function isVisible(node: SpaceTileRenderNode, view: SpaceTileView): boolean {
+  const referenceFrameScale = view.referenceFrameScale ?? 1;
   const sphere = new THREE.Sphere(
-    node.center.clone().add(view.worldOffset),
-    Math.max(node.radius, 0.001),
+    node.center.clone().multiplyScalar(referenceFrameScale).add(view.worldOffset),
+    Math.max(node.radius * referenceFrameScale, 0.001),
   );
 
   return view.frustum.intersectsSphere(sphere);
 }
 
 function projectedDiameterPixels(node: SpaceTileRenderNode, view: SpaceTileView): number {
-  const worldCenter = node.center.clone().add(view.worldOffset);
-  const surfaceDistance = Math.max(1, view.cameraPosition.distanceTo(worldCenter) - node.radius);
+  const referenceFrameScale = view.referenceFrameScale ?? 1;
+  const worldCenter = node.center.clone().multiplyScalar(referenceFrameScale).add(view.worldOffset);
+  const worldRadius = node.radius * referenceFrameScale;
+  const surfaceDistance = Math.max(1, view.cameraPosition.distanceTo(worldCenter) - worldRadius);
 
-  return (node.radius * view.projectionScaleY * view.viewportHeight) / surfaceDistance;
+  return (worldRadius * view.projectionScaleY * view.viewportHeight) / surfaceDistance;
 }
 
 function sampleAxis(minimum: number, maximum: number): readonly number[] {

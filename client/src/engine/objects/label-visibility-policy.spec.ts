@@ -5,11 +5,34 @@ import {
   getMaximumCatalogLabelRank,
   getMaximumLabelCount,
   isLabelVisibleAtLevel,
+  isMoonLabelInActiveSystem,
   isScaleLandmarkAtLevel,
   type LabelObject,
 } from './label-visibility-policy';
 
 describe('label visibility policy', () => {
+  it('ne confond pas le repère du réseau cosmique avec le bulbe galactique', () => {
+    const cosmicWeb = createObject('cosmic-web', 'universe');
+
+    for (const level of [0, 1, 2, 3, 4, 5]) {
+      expect(isLabelVisibleAtLevel(cosmicWeb, level)).toBe(false);
+    }
+    expect(isLabelVisibleAtLevel(cosmicWeb, 6)).toBe(true);
+  });
+
+  it('réserve les noms des lunes au système sélectionné ou ciblé sans empêcher un accès direct', () => {
+    const titan = { ...createObject('titan', 'moon'), parentId: 'saturn' };
+
+    expect(isMoonLabelInActiveSystem(createObject('earth', 'planet'), null, null)).toBe(true);
+    expect(isMoonLabelInActiveSystem(titan, null, null)).toBe(false);
+    expect(isMoonLabelInActiveSystem(titan, 'sun', 'sun')).toBe(false);
+    expect(isMoonLabelInActiveSystem(titan, 'saturn', 'sun')).toBe(true);
+    expect(isMoonLabelInActiveSystem(titan, 'earth', 'saturn')).toBe(true);
+    expect(isMoonLabelInActiveSystem(titan, 'titan', 'sun')).toBe(true);
+    expect(isMoonLabelInActiveSystem(titan, null, 'titan')).toBe(true);
+    expect(isMoonLabelInActiveSystem(createObject('moon', 'moon'), null, null)).toBe(false);
+  });
+
   it('préserve les repères permanents quand la carte change d’échelle', () => {
     const sun = createObject('sun', 'star');
     const milkyWay = createObject('milky-way', 'galaxy');
@@ -22,7 +45,7 @@ describe('label visibility policy', () => {
 
   it('conserve les budgets de densité par qualité et niveau de détail', () => {
     expect(getMaximumLabelCount('low', 2, 'minimal')).toBe(14);
-    expect(getMaximumLabelCount('high', 2, 'dense')).toBe(144);
+    expect(getMaximumLabelCount('high', 2, 'dense')).toBe(120);
     expect(getMaximumCatalogLabelRank('medium', 1, 'balanced')).toBe(1_400);
   });
 
@@ -39,6 +62,15 @@ describe('label visibility policy', () => {
 
     expect(getLabelTextColor(earth, false, 1)).toBe('#43b4dd');
     expect(getLabelTextColor(earth, true, 1)).toBe('#9ae8ff');
+    expect(isLabelVisibleAtLevel(earth, 2)).toBe(true);
+    expect(isLabelVisibleAtLevel(earth, 3)).toBe(false);
+  });
+
+  it('prolonge les exoplanètes vedettes pendant le fondu du voisinage local', () => {
+    const exoplanet = createObject('kepler-b', 'exoplanet');
+
+    expect(isLabelVisibleAtLevel(exoplanet, 2)).toBe(true);
+    expect(isLabelVisibleAtLevel(exoplanet, 3)).toBe(false);
   });
 
   it('réserve la vue planétaire aux planètes, à la Lune terrestre puis aux étoiles', () => {

@@ -65,7 +65,11 @@ export class LabelCanvasPainter {
     selected: boolean,
     hovered: boolean,
     lodLevel = -1,
+    opacity = 1,
   ): void {
+    const previousGlobalAlpha = this.context.globalAlpha;
+
+    this.context.globalAlpha = clampOpacity(opacity);
     const width = rectangle.right - rectangle.left;
     const height = rectangle.bottom - rectangle.top;
     const radius = height / 2;
@@ -118,6 +122,7 @@ export class LabelCanvasPainter {
       rectangle.top + height / 2 + 0.5,
       width - 14,
     );
+    this.context.globalAlpha = previousGlobalAlpha;
   }
 
   public drawAnchor(
@@ -127,7 +132,11 @@ export class LabelCanvasPainter {
     selected: boolean,
     hovered: boolean,
     solarSystemLabel = false,
+    opacity = 1,
   ): void {
+    const previousGlobalAlpha = this.context.globalAlpha;
+
+    this.context.globalAlpha = clampOpacity(opacity);
     const labelX = (rectangle.left + rectangle.right) / 2;
     const emphasized = selected || hovered;
 
@@ -154,5 +163,10 @@ export class LabelCanvasPainter {
         ? 'rgba(157, 220, 255, 0.96)'
         : 'rgba(208, 226, 244, 0.72)';
     this.context.fill();
+    this.context.globalAlpha = previousGlobalAlpha;
   }
+}
+
+function clampOpacity(opacity: number): number {
+  return Math.max(0, Math.min(1, opacity));
 }

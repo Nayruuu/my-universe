@@ -28,6 +28,14 @@ export interface NavigationAlignmentState {
   floatingOriginDistance: number;
 }
 
+export interface GalacticDiveState {
+  targetId: string | null;
+  distance: number;
+  progress: number;
+  pathError: number;
+  galaxyToSunDistance: number;
+}
+
 interface ObjectRuntimeState<Registry> {
   getRegistry(objectId: string): Registry | null;
 }
@@ -67,6 +75,35 @@ export async function openUniverse(page: Page, url: string): Promise<void> {
 
 export async function waitForCameraSettled(page: Page, timeout = 20_000): Promise<void> {
   await expect.poll(() => isCameraSettled(page), { timeout }).toBe(true);
+}
+
+export async function waitForCameraPoseStable(page: Page): Promise<void> {
+  let previous = await readCameraInteractionState(page);
+  let stableSamples = 0;
+
+  // Ending a drag ends the pointer interaction, not OrbitControls' frame-based inertia.
+  // Observe the actual pose instead of assuming a fixed wall-clock delay drains that inertia.
+  await expect
+    .poll(
+      async () => {
+        const current = await readCameraInteractionState(page);
+        const stable = (['position', 'target', 'direction'] as const).every(
+          (key) =>
+            Math.hypot(
+              current[key].x - previous[key].x,
+              current[key].y - previous[key].y,
+              current[key].z - previous[key].z,
+            ) < 1e-6,
+        );
+
+        stableSamples = stable && !current.transitioning ? stableSamples + 1 : 0;
+        previous = current;
+
+        return stableSamples;
+      },
+      { intervals: [100], timeout: 20_000 },
+    )
+    .toBeGreaterThanOrEqual(3);
 }
 
 export async function readCameraInteractionState(page: Page): Promise<CameraInteractionState> {
@@ -199,6 +236,63 @@ export async function readNavigationAlignmentState(page: Page): Promise<Navigati
       targetId,
       targetError: objectPosition ? controlsTarget.distanceTo(objectPosition) : 0,
       floatingOriginDistance: engine.floatingOriginManager.accumulatedOrigin.length(),
+    };
+  });
+}
+
+export async function readGalacticDiveState(page: Page): Promise<GalacticDiveState> {
+  return page.evaluate(() => {
+    interface VectorState {
+      clone(): VectorState;
+      sub(vector: VectorState): VectorState;
+      addScaledVector(vector: VectorState, scale: number): VectorState;
+      dot(vector: VectorState): number;
+      lengthSq(): number;
+      distanceTo(vector: VectorState): number;
+    }
+
+    interface EngineState {
+      targetId: string | null;
+      cameraController: {
+        readonly distanceToTarget: number;
+        readonly controls: { readonly target: VectorState };
+      } | null;
+      getWorldPosition(objectId: string): VectorState | null;
+    }
+
+    const root = document.querySelector('app-root');
+    const angularDebug = (
+      window as unknown as {
+        ng?: { getComponent(element: Element): object | null };
+      }
+    ).ng;
+    const component = root && angularDebug?.getComponent(root);
+    const facade = component ? (Reflect.get(component, 'facade') as object | undefined) : undefined;
+    const engineClient = facade ? (Reflect.get(facade, 'engine') as object | undefined) : undefined;
+    const engine = engineClient
+      ? ((Reflect.get(engineClient, 'engine') as EngineState | null | undefined) ??
+        (engineClient as EngineState))
+      : undefined;
+    const controller = engine?.cameraController;
+    const galaxy = engine?.getWorldPosition('milky-way');
+    const sun = engine?.getWorldPosition('sun');
+
+    if (!engine || !controller || !galaxy || !sun) {
+      throw new Error('État de plongée galactique indisponible.');
+    }
+    const axis = sun.clone().sub(galaxy);
+    const galaxyToSunDistanceSquared = axis.lengthSq();
+    const targetFromGalaxy = controller.controls.target.clone().sub(galaxy);
+    const progress =
+      galaxyToSunDistanceSquared > 0 ? targetFromGalaxy.dot(axis) / galaxyToSunDistanceSquared : 0;
+    const expectedTarget = galaxy.clone().addScaledVector(axis, progress);
+
+    return {
+      targetId: engine.targetId,
+      distance: controller.distanceToTarget,
+      progress,
+      pathError: controller.controls.target.distanceTo(expectedTarget),
+      galaxyToSunDistance: Math.sqrt(galaxyToSunDistanceSquared),
     };
   });
 }

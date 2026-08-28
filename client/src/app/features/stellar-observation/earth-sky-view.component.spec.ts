@@ -16,6 +16,7 @@ import {
   type EarthObserverZoomAtDetail,
 } from '../../../engine/camera/earth-observer-camera-control';
 import type { EarthObserverFraming } from '../../../engine/camera/earth-observer-orientation';
+import { EARTH_OBSERVER_DEPARTURE_EVENT } from '../../../engine/camera/earth-observer-departure';
 import { EARTH_OBSERVER_LOCATIONS } from '../../../engine/simulation/earth-observer-location';
 import type { SolarSystemSkyObservation } from '../../../engine/simulation/solar-system-sky';
 import { UniverseEngineFacade } from '../../core/engine/universe-engine.facade';
@@ -57,6 +58,7 @@ describe('EarthSkyViewComponent', () => {
       ) => Promise<void>
     >(() => Promise.resolve()),
     exitEarthObservation: vi.fn(),
+    isCameraTransitioning: vi.fn(() => false),
     setEarthObserverCelestialPresentations: vi.fn(),
     getStellarObservationCatalog: vi.fn(() => [
       {
@@ -101,6 +103,7 @@ describe('EarthSkyViewComponent', () => {
     });
     currentTime.set({ julianDay: 2_461_055.416_666_7 });
     vi.clearAllMocks();
+    facade.isCameraTransitioning.mockReturnValue(false);
     terrainHorizonLoad.mockResolvedValue(null);
     await TestBed.configureTestingModule({
       imports: [EarthSkyViewComponent],
@@ -162,6 +165,75 @@ describe('EarthSkyViewComponent', () => {
     expect(facade.exitEarthObservation).toHaveBeenCalledOnce();
     expect(facade.setTemporalMode).toHaveBeenCalledWith('state');
     expect(viewState.activeTargetId()).toBeNull();
+  });
+
+  it('garde l’horizon pendant le recul et ne ferme la vue qu’à l’arrivée', () => {
+    facade.isCameraTransitioning.mockReturnValue(true);
+    const fixture = TestBed.createComponent(EarthSkyViewComponent);
+    const state = TestBed.inject(EarthSkyViewState);
+
+    fixture.detectChanges();
+    const detail: EarthObserverViewState = {
+      active: true,
+      pitchOffsetDegrees: -12,
+      azimuthOffsetDegrees: 18,
+      verticalFieldOfViewDegrees: 64,
+    };
+
+    window.dispatchEvent(new CustomEvent(EARTH_OBSERVER_VIEW_EVENT, { detail }));
+    fixture.detectChanges();
+    const view = fixture.nativeElement.querySelector('#earth-sky-view') as HTMLElement;
+    const landscape = view.querySelector('.earth-sky-view__landscape') as HTMLElement;
+    const horizonY = landscape.style.getPropertyValue('--horizon-y');
+
+    (view.querySelector('.earth-sky-view__close') as HTMLButtonElement).click();
+    window.dispatchEvent(
+      new CustomEvent(EARTH_OBSERVER_VIEW_EVENT, { detail: { ...detail, active: false } }),
+    );
+    fixture.detectChanges();
+
+    expect(facade.exitEarthObservation).toHaveBeenLastCalledWith(true);
+    expect(state.phase()).toBe('returning');
+    expect(view.getAttribute('aria-busy')).toBe('true');
+    expect(view.querySelector('.earth-sky-view__close')).toBeNull();
+    expect(landscape.classList).toContain('earth-sky-view__landscape--open');
+    expect(landscape.style.getPropertyValue('--horizon-y')).toBe(horizonY);
+    expect(view.style.opacity).toBe('1');
+
+    window.dispatchEvent(
+      new CustomEvent(EARTH_OBSERVER_DEPARTURE_EVENT, { detail: { active: true, progress: 0.2 } }),
+    );
+    fixture.detectChanges();
+    expect(view.style.opacity).toBe('0.5');
+    expect(view.style.getPropertyValue('--lift-y')).toBe('11vh');
+    expect(state.phase()).toBe('returning');
+
+    window.dispatchEvent(
+      new CustomEvent(EARTH_OBSERVER_DEPARTURE_EVENT, { detail: { active: true, progress: 0.8 } }),
+    );
+    fixture.detectChanges();
+    expect(view.style.opacity).toBe('0');
+    window.dispatchEvent(
+      new CustomEvent(EARTH_OBSERVER_DEPARTURE_EVENT, { detail: { active: false, progress: 1 } }),
+    );
+    expect(state.phase()).toBe('closed');
+
+    state.open('sirius', 'Sirius');
+    window.dispatchEvent(
+      new CustomEvent(EARTH_OBSERVER_DEPARTURE_EVENT, { detail: { active: false, progress: 1 } }),
+    );
+    expect(state.phase()).toBe('open');
+    fixture.detectChanges();
+    expect(view.style.opacity).toBe('1');
+    expect(view.style.getPropertyValue('--lift-y')).toBe('0');
+    const removeListener = vi.spyOn(window, 'removeEventListener');
+
+    fixture.destroy();
+    expect(removeListener).toHaveBeenCalledWith(
+      EARTH_OBSERVER_DEPARTURE_EVENT,
+      expect.any(Function),
+    );
+    removeListener.mockRestore();
   });
 
   it('charge le relief mesuré à la demande et masque les astres derrière celui-ci', async () => {
@@ -450,14 +522,28 @@ describe('EarthSkyViewComponent', () => {
       const nights = Array.from(
         fixture.nativeElement.querySelectorAll('[data-planner-night-index]'),
       ) as HTMLButtonElement[];
+      const recommendation = fixture.nativeElement.querySelector(
+        '[data-planner-recommendation]',
+      ) as HTMLElement;
+      const recommendedNights = nights.filter((night) => night.dataset['recommended'] === 'true');
       const secondNight = forecast?.[1];
 
       expect(forecast).toHaveLength(7);
       expect(nights).toHaveLength(7);
+      expect(recommendedNights).toHaveLength(1);
       expect(fixture.nativeElement.textContent).toContain('Comparaison sur 7 nuits');
       expect(fixture.nativeElement.textContent).toContain('Calcul astronomique sans météo');
+      expect(recommendation.textContent).toContain('Meilleure nuit');
+      expect(recommendation.textContent).toContain('hauteur utile');
+      expect(recommendation.textContent).toContain('Hauteur');
+      expect(recommendation.textContent).toContain('Soleil');
+      expect(recommendation.textContent).toContain('Gêne lunaire');
+      expect(recommendation.textContent).toContain('/100');
+      expect(recommendation.querySelector('[data-planner-recommendation-go-to]')).not.toBeNull();
+      expect(recommendedNights[0]?.textContent).toContain('Recommandée');
       expect(nights[0]?.textContent).toContain('Gêne lunaire');
       expect(nights[0]?.textContent).toContain('Idéal à');
+      expect(nights.every((night) => night.textContent?.includes('/100'))).toBe(true);
       expect(
         new Set(
           nights.map(
@@ -481,6 +567,33 @@ describe('EarthSkyViewComponent', () => {
     } finally {
       window.removeEventListener(EARTH_OBSERVER_LOOK_AT_EVENT, handleLookAt);
     }
+  });
+
+  it('rejoint directement la nuit recommandée depuis la synthèse', () => {
+    const fixture = TestBed.createComponent(EarthSkyViewComponent);
+    const component = fixture.componentInstance as unknown as SkyViewAccess;
+
+    fixture.detectChanges();
+    (
+      fixture.nativeElement.querySelector('.earth-sky-view__planner-toggle') as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    const forecast = component.observationForecast()!;
+    const recommendedNightButton = fixture.nativeElement.querySelector(
+      '[data-planner-night-index][data-recommended="true"]',
+    ) as HTMLButtonElement;
+    const recommendationButton = fixture.nativeElement.querySelector(
+      '[data-planner-recommendation-go-to]',
+    ) as HTMLButtonElement;
+    const recommendedNight = forecast[Number(recommendedNightButton.dataset['plannerNightIndex'])]!;
+
+    recommendationButton.click();
+    fixture.detectChanges();
+
+    expect(facade.setTime).toHaveBeenCalledWith(recommendedNight.bestPoint!.time);
+    expect(facade.selectObject).toHaveBeenCalledWith('sirius');
+    expect(fixture.nativeElement.querySelector('.earth-observation-planner')).toBeNull();
   });
 
   it('prévisualise une autre étoile sans déplacer le ciel puis la rejoint au meilleur instant', async () => {

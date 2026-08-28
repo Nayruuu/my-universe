@@ -13,6 +13,7 @@ describe('URL partageable', () => {
     selectedId: 'moon',
     julianDay: dateToJulianDay(new Date('2026-07-27T10:00:00.000Z')),
     zoom: 4.2,
+    orientation: { x: 3, y: 0, z: -4 },
     mode: 'state',
     quality: 'medium',
     labelDensity: 'dense',
@@ -36,6 +37,7 @@ describe('URL partageable', () => {
     expect(url.searchParams.get('target')).toBe('earth');
     expect(url.searchParams.get('selected')).toBe('moon');
     expect(url.searchParams.get('zoom')).toBe('4.20');
+    expect(url.searchParams.get('orientation')).toBe('0.600000,0.000000,-0.800000');
     expect(url.searchParams.get('labels')).toBe('0');
     expect(url.searchParams.get('density')).toBe('dense');
     expect(url.searchParams.get('constellations')).toBe('0');
@@ -51,6 +53,7 @@ describe('URL partageable', () => {
     expect(parsed.targetId).toBe(state.targetId);
     expect(parsed.selectedId).toBe(state.selectedId);
     expect(parsed.julianDay).toBeCloseTo(state.julianDay, 6);
+    expect(parsed.orientation).toEqual({ x: 0.6, y: 0, z: -0.8 });
     expect(parsed.quality).toBe('medium');
     expect(parsed.labelDensity).toBe('dense');
     expect(parsed.view).toBe('planetarium');
@@ -83,7 +86,7 @@ describe('URL partageable', () => {
     expect(
       parseNavigationState(
         new URL(
-          'https://example.test/?target=&selected=&time=incorrect&zoom=0&mode=other&quality=ultra&density=packed&orbits=0&constellations=1&labels=1&view=other&observer=',
+          'https://example.test/?target=&selected=&time=incorrect&zoom=0&orientation=0,0,0&mode=other&quality=ultra&density=packed&orbits=0&constellations=1&labels=1&view=other&observer=',
         ),
       ),
     ).toEqual({
@@ -133,6 +136,22 @@ describe('URL partageable', () => {
     expect(url.searchParams.get('orbits')).toBe('0');
     expect(url.searchParams.get('constellations')).toBe('1');
     expect(url.searchParams.get('labels')).toBe('1');
+  });
+
+  it('normalise une orientation valide et retire une ancienne valeur si elle est invalide', () => {
+    const parsed = parseNavigationState(new URL('https://example.test/?orientation=2,-1,2'));
+
+    expect(parsed.orientation).toEqual({ x: 2 / 3, y: -1 / 3, z: 2 / 3 });
+    expect(
+      parseNavigationState(new URL('https://example.test/?orientation=1,2')).orientation,
+    ).toBeUndefined();
+
+    const url = serializeNavigationState(
+      { ...state, orientation: { x: Number.NaN, y: 0, z: 1 } },
+      new URL('https://example.test/?orientation=1,0,0'),
+    );
+
+    expect(url.searchParams.has('orientation')).toBe(false);
   });
 
   it('écrit périodiquement même lorsque les mises à jour sont continues', () => {
@@ -186,6 +205,7 @@ describe('URL partageable', () => {
 
     delete legacyState.view;
     delete legacyState.observerLocationId;
+    delete legacyState.orientation;
     const url = serializeNavigationState(
       legacyState,
       new URL('https://example.test/?view=planetarium&observer=paris'),

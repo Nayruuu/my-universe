@@ -94,7 +94,7 @@ describe('UniverseNavigationRuntime', () => {
 
     harness.runtime.adoptTarget('earth');
     harness.controller.zoomBy.mockImplementation(() => {
-      harness.controller.distanceToTarget = 9_600;
+      harness.controller.distanceToTarget = 3_600;
     });
     harness.runtime.zoomBy(harness.controller, 1.5);
 
@@ -109,19 +109,24 @@ describe('UniverseNavigationRuntime', () => {
     const harness = createHarness();
 
     harness.runtime.adoptTarget('milky-way');
-    harness.controller.distanceToTarget = 9_600;
+    harness.controller.distanceToTarget = 3_600;
     harness.controller.semanticZoomActive = true;
+    let initialGuidedAnchor: THREE.Vector3 | null = null;
+
+    harness.controller.adoptZoomAnchor.mockImplementationOnce((position: THREE.Vector3) => {
+      initialGuidedAnchor = position.clone();
+    });
     harness.controller.zoomSemantically.mockImplementationOnce(() => {
       harness.controller.distanceToTarget = 1_400;
       harness.controller.inwardZoomActive = true;
     });
     expect(harness.runtime.handleSemanticZoomIntent(harness.controller, 'milky-way', -480)).toBe(
-      'zoom-current-target',
+      'bypass-wheel-target',
     );
     expect(harness.runtime.targetId).toBe('sun');
-    expect(harness.controller.adoptZoomAnchor).toHaveBeenCalledWith(
-      harness.positions.get('milky-way'),
-    );
+    expect(initialGuidedAnchor).not.toBeNull();
+    expect(initialGuidedAnchor!.x).toBeGreaterThan(harness.positions.get('sun')!.x);
+    expect(initialGuidedAnchor!.x).toBeLessThan(harness.positions.get('milky-way')!.x);
 
     harness.controller.inwardZoomActive = true;
     harness.runtime.handleSemanticZoomIntent(harness.controller, 'sun', 120);
@@ -132,7 +137,11 @@ describe('UniverseNavigationRuntime', () => {
       harness.definitions.get('sun'),
     );
     expect(harness.controller.transitionReferenceFrame).not.toHaveBeenCalled();
-    expect(harness.controller.adoptZoomPointer).toHaveBeenLastCalledWith(0, 0);
+    expect(harness.controller.adoptZoomPointer).not.toHaveBeenCalled();
+    expect(harness.runtime.lastZoomAnchor).toEqual({
+      anchorType: 'target',
+      anchorObjectId: 'sun',
+    });
   });
 
   it('utilise le curseur au dézoom puis adopte l’objet visé au zoom avant', () => {
@@ -159,6 +168,9 @@ describe('UniverseNavigationRuntime', () => {
     expect(harness.controller.trackTarget).toHaveBeenCalledWith(
       harness.positions.get('mars'),
       harness.definitions.get('mars'),
+    );
+    expect(harness.controller.trackTarget.mock.invocationCallOrder[0]).toBeLessThan(
+      harness.controller.adoptZoomAnchor.mock.invocationCallOrder[0]!,
     );
     expect(harness.runtime.targetId).toBe('mars');
   });
@@ -488,6 +500,55 @@ describe('UniverseNavigationRuntime', () => {
     expect(harness.controller.adoptZoomPointer).toHaveBeenLastCalledWith(pointer.x, pointer.y);
   });
 
+  it('attend une nouvelle rafale avant de traverser la butée atteinte au pointeur', () => {
+    const harness = createHarness();
+    const pointer = { x: 0.109_375, y: 0.265_384_615_384_615_33 };
+
+    harness.controller.distanceToTarget = 0.752_152_610_959_856_4;
+    harness.controller.atMinimumNavigationDistance = false;
+    harness.runtime.handleSemanticZoomIntent(
+      harness.controller,
+      null,
+      -12.393_471_667_736_222,
+      pointer,
+      true,
+      true,
+    );
+
+    expect(harness.controller.zoomSemantically).toHaveBeenLastCalledWith(
+      -12.393_471_667_736_222,
+      1,
+      false,
+    );
+
+    harness.controller.atMinimumNavigationDistance = true;
+    harness.runtime.handleSemanticZoomIntent(
+      harness.controller,
+      null,
+      -18.714_973_875_118_524,
+      pointer,
+      false,
+      false,
+    );
+
+    expect(harness.controller.zoomSemantically).toHaveBeenLastCalledWith(
+      -18.714_973_875_118_524,
+      1,
+      false,
+    );
+
+    harness.runtime.handleSemanticZoomIntent(
+      harness.controller,
+      null,
+      -18.714_973_875_118_524,
+      pointer,
+      false,
+      true,
+    );
+
+    expect(harness.controller.zoomSemantically).toHaveBeenLastCalledWith(-18.714_973_875_118_524);
+  });
+
   it('contourne une interception indisponible, en transition ou depuis le ciel observable', () => {
     const harness = createHarness();
 
@@ -531,6 +592,459 @@ describe('UniverseNavigationRuntime', () => {
 
     expect(harness.controller.adoptZoomAnchor).toHaveBeenCalledWith(harness.positions.get('earth'));
     expect(harness.controller.adoptZoomPointer).not.toHaveBeenCalled();
+  });
+
+  it('fait converger le pivot vers le Soleil sans saut lors du changement de référentiel', () => {
+    const harness = createHarness();
+    const galaxy = harness.positions.get('milky-way')!;
+    const sun = harness.positions.get('sun')!;
+
+    harness.runtime.adoptTarget('milky-way');
+    harness.controller.distanceToTarget = 3_600;
+    harness.controller.semanticZoomActive = true;
+    harness.runtime.follow(harness.controller);
+
+    const [guidedPosition, viewElevation, viewElevationMode] =
+      harness.controller.follow.mock.lastCall!;
+    const galaxyToSun = sun.clone().sub(galaxy);
+    const arrivalProgress =
+      guidedPosition.clone().sub(galaxy).dot(galaxyToSun) / galaxyToSun.lengthSq();
+
+    expect(guidedPosition).not.toBe(galaxy);
+    expect(guidedPosition.x).toBeGreaterThan(Math.min(galaxy.x, sun.x));
+    expect(guidedPosition.x).toBeLessThan(Math.max(galaxy.x, sun.x));
+    expect(arrivalProgress).toBeGreaterThan(0);
+    expect(arrivalProgress).toBeLessThan(0.12);
+    expect(viewElevation).toBeCloseTo(0.45, 8);
+    expect(viewElevationMode).toBe('distance');
+
+    harness.controller.distanceToTarget = 2_300;
+    harness.runtime.synchronizeContext(harness.controller, 2, true);
+    const [adoptedPosition] = harness.controller.adoptReferenceFrame.mock.lastCall!;
+
+    expect(adoptedPosition).not.toBe(sun);
+    expect(adoptedPosition.x).toBeGreaterThan(Math.min(galaxy.x, sun.x));
+    expect(adoptedPosition.x).toBeLessThan(Math.max(galaxy.x, sun.x));
+  });
+
+  it('termine un centrage sur la Voie lactée sans lancer la chorégraphie avant la molette', () => {
+    const harness = createHarness();
+    const galaxy = harness.positions.get('milky-way')!;
+
+    harness.runtime.adoptTarget('milky-way');
+    harness.controller.distanceToTarget = 3_600;
+    harness.controller.semanticZoomActive = false;
+    harness.runtime.follow(harness.controller);
+
+    expect(harness.controller.follow).toHaveBeenCalledWith(galaxy);
+  });
+
+  it('active la chorégraphie pendant une plongée continue même hors étape sémantique', () => {
+    const harness = createHarness();
+    const galaxy = harness.positions.get('milky-way')!;
+
+    harness.runtime.adoptTarget('milky-way');
+    harness.controller.distanceToTarget = 3_600;
+    harness.controller.semanticZoomActive = false;
+    harness.controller.inwardZoomActive = true;
+    harness.runtime.follow(harness.controller);
+
+    const [guidedPosition, viewElevation, viewElevationMode] =
+      harness.controller.follow.mock.lastCall!;
+
+    expect(guidedPosition).not.toEqual(galaxy);
+    expect(viewElevation).toBeCloseTo(0.45, 8);
+    expect(viewElevationMode).toBe('distance');
+  });
+
+  it('rafraîchit le guide galactique avant chaque image sans retargeter les autres vues', () => {
+    const harness = createHarness();
+
+    harness.runtime.updateCameraGuide(null);
+    expect(harness.controller.follow).not.toHaveBeenCalled();
+
+    harness.runtime.adoptTarget('earth');
+    harness.controller.inwardZoomActive = true;
+    harness.runtime.updateCameraGuide(harness.controller);
+    expect(harness.controller.follow).not.toHaveBeenCalled();
+
+    harness.runtime.adoptTarget('milky-way');
+    harness.controller.distanceToTarget = 4_200;
+    harness.runtime.updateCameraGuide(harness.controller);
+
+    expect(harness.controller.follow).toHaveBeenCalledWith(
+      expect.any(THREE.Vector3),
+      expect.any(Number),
+      'distance',
+    );
+  });
+
+  it('revient au centre galactique si la position du référentiel stellaire manque', () => {
+    const harness = createHarness();
+    const galaxy = harness.positions.get('milky-way')!;
+
+    harness.runtime.adoptTarget('milky-way');
+    harness.positions.delete('sun');
+    harness.controller.distanceToTarget = 3_600;
+    harness.runtime.follow(harness.controller);
+
+    expect(harness.controller.follow).toHaveBeenCalledOnce();
+    expect(harness.controller.follow).toHaveBeenCalledWith(galaxy);
+  });
+
+  it('garde la trajectoire galactique à cadence normale quand la molette vise le vide', () => {
+    const harness = createHarness();
+
+    harness.runtime.adoptTarget('milky-way');
+    harness.controller.distanceToTarget = 3_600;
+
+    expect(
+      harness.runtime.handleSemanticZoomIntent(
+        harness.controller,
+        null,
+        -120,
+        { x: -0.6, y: 0.35 },
+        true,
+      ),
+    ).toBe('zoom-pointer');
+
+    const [guidedAnchor] = harness.controller.adoptZoomAnchor.mock.lastCall!;
+
+    expect(guidedAnchor).not.toBe(harness.positions.get('milky-way'));
+    expect(harness.controller.adoptZoomPointer).not.toHaveBeenCalled();
+    expect(harness.controller.zoomSemantically).toHaveBeenCalledWith(-120, 1);
+    expect(harness.runtime.lastZoomAnchor).toEqual({
+      anchorType: 'target',
+      anchorObjectId: 'milky-way',
+    });
+  });
+
+  it('ignore une cible sous le curseur à la borne extérieure arrondie de la plongée', () => {
+    const harness = createHarness();
+
+    harness.runtime.adoptTarget('milky-way');
+    harness.controller.distanceToTarget = 17_000 + 1e-9;
+
+    expect(
+      harness.runtime.handleSemanticZoomIntent(
+        harness.controller,
+        'mars',
+        -120,
+        { x: 0, y: 0 },
+        true,
+      ),
+    ).toBe('bypass-wheel-target');
+    expect(harness.runtime.targetId).toBe('milky-way');
+    expect(harness.controller.trackTarget).not.toHaveBeenCalledWith(
+      harness.positions.get('mars'),
+      harness.definitions.get('mars'),
+    );
+    expect(harness.controller.adoptZoomAnchor).toHaveBeenCalled();
+    expect(harness.controller.adoptZoomPointer).not.toHaveBeenCalled();
+  });
+
+  it('adopte une autre galaxie explicitement visée avant de résoudre le guidage galactique', () => {
+    const harness = createHarness();
+
+    harness.runtime.adoptTarget('local-group');
+    harness.controller.distanceToTarget = 17_000;
+    expect(harness.runtime.handleSemanticZoomIntent(harness.controller, 'andromeda', -120)).toBe(
+      'adopt-wheel-target',
+    );
+    expect(harness.runtime.targetId).toBe('andromeda');
+    expect(harness.controller.trackTarget).toHaveBeenCalledWith(
+      harness.positions.get('andromeda'),
+      harness.definitions.get('andromeda'),
+    );
+    expect(harness.runtime.resolveContext(3).targetId).toBe('andromeda');
+    harness.controller.distanceToTarget = 3_600;
+    harness.controller.inwardZoomActive = true;
+    harness.runtime.updateCameraGuide(harness.controller);
+    expect(harness.controller.follow).not.toHaveBeenCalled();
+    expect(
+      harness.runtime.handleSemanticZoomIntent(
+        harness.controller,
+        'andromeda',
+        -120,
+        { x: -0.6, y: 0.2 },
+        false,
+      ),
+    ).toBe('zoom-current-target');
+    expect(harness.runtime.lastZoomAnchor).toEqual({
+      anchorType: 'object',
+      anchorObjectId: 'andromeda',
+    });
+    expect(harness.controller.adoptZoomAnchor).toHaveBeenLastCalledWith(
+      harness.positions.get('andromeda'),
+    );
+  });
+
+  it('ne confond pas une ancienne capture de galaxie avec une nouvelle destination', () => {
+    const harness = createHarness();
+
+    harness.runtime.adoptTarget('milky-way');
+    harness.controller.distanceToTarget = 3_600;
+    expect(
+      harness.runtime.handleSemanticZoomIntent(
+        harness.controller,
+        'andromeda',
+        -120,
+        { x: 0, y: 0 },
+        false,
+      ),
+    ).toBe('bypass-wheel-target');
+    expect(harness.runtime.targetId).toBe('milky-way');
+    expect(harness.controller.trackTarget).not.toHaveBeenCalled();
+
+    expect(harness.runtime.handleSemanticZoomIntent(harness.controller, 'andromeda', -120)).toBe(
+      'adopt-wheel-target',
+    );
+    expect(harness.runtime.targetId).toBe('andromeda');
+  });
+
+  it.each(['earth', 'mars', 'hyg-17661'])(
+    'retrouve la destination locale %s après un aller-retour galactique',
+    (objectId) => {
+      const harness = createHarness();
+
+      harness.runtime.adoptTarget(objectId);
+      harness.controller.zoomSemantically.mockImplementationOnce(() => {
+        harness.controller.semanticZoomActive = true;
+        harness.controller.distanceToTarget = 3_600;
+      });
+      harness.runtime.handleSemanticZoomIntent(harness.controller, 'milky-way', 480);
+      expect(harness.runtime.targetId).toBe('milky-way');
+      harness.runtime.handleSemanticZoomIntent(harness.controller, 'milky-way', -120);
+      harness.controller.distanceToTarget = 520;
+      harness.runtime.synchronizeContext(harness.controller, 1, true);
+      harness.controller.zoomSemantically.mockImplementationOnce(() => {
+        harness.controller.distanceToTarget = 4.8;
+        harness.controller.semanticZoomActive = false;
+      });
+      harness.runtime.handleSemanticZoomIntent(
+        harness.controller,
+        'milky-way',
+        -480,
+        { x: 0, y: 0 },
+        false,
+      );
+      expect(harness.runtime.targetId).toBe(objectId);
+      expect(harness.controller.adoptZoomAnchor).toHaveBeenLastCalledWith(
+        harness.positions.get(objectId),
+      );
+      expect(harness.controller.trackTarget).not.toHaveBeenCalled();
+      expect(harness.controller.transitionReferenceFrame).not.toHaveBeenCalled();
+
+      // Continue the same capture after the semantic journey has ended, including object motion.
+      harness.positions.get(objectId)!.add(new THREE.Vector3(1, 2, 3));
+      harness.runtime.handleSemanticZoomIntent(
+        harness.controller,
+        'milky-way',
+        -120,
+        { x: 0, y: 0 },
+        false,
+      );
+      expect(harness.runtime.lastZoomAnchor).toEqual({
+        anchorType: 'target',
+        anchorObjectId: objectId,
+      });
+      expect(harness.controller.adoptZoomAnchor).toHaveBeenLastCalledWith(
+        harness.positions.get(objectId),
+      );
+    },
+  );
+
+  it.each(['sun', 'milky-way', null])(
+    'n’invente pas un retour sur Terre pour un départ depuis %s',
+    (objectId) => {
+      const harness = createHarness();
+
+      if (objectId) {
+        harness.runtime.adoptTarget(objectId);
+      }
+      harness.controller.zoomSemantically.mockImplementationOnce(() => {
+        harness.controller.semanticZoomActive = true;
+      });
+      harness.runtime.handleSemanticZoomIntent(harness.controller, null, 120);
+      harness.controller.distanceToTarget = 400;
+      harness.runtime.handleSemanticZoomIntent(harness.controller, null, -120);
+      expect(harness.runtime.lastZoomAnchor?.anchorObjectId).not.toBe('earth');
+    },
+  );
+
+  it.each(['restore', 'adopt', 'release', 'reset', 'zoom-button', 'ended', 'missing-destination'])(
+    'abandonne la destination du retour sémantique après %s',
+    (action) => {
+      const harness = createHarness();
+
+      harness.runtime.adoptTarget('earth');
+      harness.controller.zoomSemantically.mockImplementationOnce(() => {
+        harness.controller.semanticZoomActive = true;
+      });
+      harness.runtime.handleSemanticZoomIntent(harness.controller, null, 120);
+      harness.runtime.handleSemanticZoomIntent(harness.controller, null, 120);
+      switch (action) {
+        case 'restore':
+          harness.runtime.restoreTarget('earth');
+          break;
+        case 'adopt':
+          harness.runtime.adoptTarget('mars');
+          break;
+        case 'release':
+          harness.runtime.releaseTarget(harness.controller);
+          break;
+        case 'reset':
+          harness.runtime.reset();
+          break;
+        case 'zoom-button':
+          harness.runtime.zoomBy(harness.controller, 1);
+          break;
+        case 'ended':
+          harness.controller.semanticZoomActive = false;
+          harness.runtime.handleSemanticZoomIntent(harness.controller, null, 0);
+          harness.controller.semanticZoomActive = true;
+          break;
+        case 'missing-destination':
+          harness.positions.delete('earth');
+          break;
+      }
+      harness.runtime.handleSemanticZoomIntent(harness.controller, null, -120);
+      expect(harness.runtime.lastZoomAnchor).toEqual({
+        anchorType: 'pointer',
+        anchorObjectId: null,
+      });
+    },
+  );
+
+  it.each(['milky-way', 'mars', null])(
+    'garde le Soleil à la sortie de la plongée malgré l’ancienne capture %s',
+    (capturedObjectId) => {
+      const harness = createHarness();
+      const pointer = { x: -0.3, y: 0.1 };
+
+      harness.runtime.adoptTarget('milky-way');
+      harness.controller.distanceToTarget = 600;
+      harness.runtime.handleSemanticZoomIntent(harness.controller, capturedObjectId, -120, pointer);
+      harness.controller.distanceToTarget = 500;
+      harness.runtime.synchronizeContext(harness.controller, 2, true);
+      harness.runtime.handleSemanticZoomIntent(
+        harness.controller,
+        capturedObjectId,
+        -120,
+        pointer,
+        false,
+      );
+
+      expect(harness.runtime.targetId).toBe('sun');
+      expect(harness.runtime.lastZoomAnchor).toEqual({
+        anchorType: 'target',
+        anchorObjectId: 'sun',
+      });
+      expect(harness.controller.adoptZoomAnchor).toHaveBeenLastCalledWith(
+        harness.positions.get('sun'),
+      );
+      expect(harness.controller.adoptZoomPointer).not.toHaveBeenCalled();
+      expect(harness.controller.trackTarget).not.toHaveBeenCalled();
+      expect(harness.controller.zoomSemantically.mock.lastCall).toEqual(
+        capturedObjectId === null ? [-120, ACTIVE_TARGET_POINTER_ZOOM_MAXIMUM_MULTIPLIER] : [-120],
+      );
+
+      harness.controller.atMinimumNavigationDistance = true;
+      harness.runtime.handleSemanticZoomIntent(
+        harness.controller,
+        capturedObjectId,
+        -120,
+        pointer,
+        false,
+      );
+      expect(harness.controller.releaseTarget).not.toHaveBeenCalled();
+      harness.controller.atMinimumNavigationDistance = false;
+
+      harness.positions.get('sun')!.add(new THREE.Vector3(1, -2, 3));
+      harness.runtime.handleSemanticZoomIntent(
+        harness.controller,
+        capturedObjectId,
+        120,
+        pointer,
+        false,
+      );
+      expect(harness.controller.adoptZoomAnchor).toHaveBeenLastCalledWith(
+        harness.positions.get('sun'),
+      );
+      expect(harness.controller.adoptZoomPointer).not.toHaveBeenCalled();
+
+      expect(harness.controller.zoomSemantically).toHaveBeenLastCalledWith(
+        120,
+        ACTIVE_TARGET_POINTER_ZOOM_MAXIMUM_MULTIPLIER,
+      );
+
+      harness.runtime.handleSemanticZoomIntent(harness.controller, 'mars', -120, pointer, true);
+      expect(harness.runtime.targetId).toBe('mars');
+      expect(harness.controller.trackTarget).toHaveBeenLastCalledWith(
+        harness.positions.get('mars'),
+        harness.definitions.get('mars'),
+      );
+    },
+  );
+
+  it.each([
+    'restore',
+    'adopt',
+    'release',
+    'reset',
+    'zoom-button',
+    'outer-exit',
+    'missing-destination',
+  ])('abandonne l’ancre galactique retenue après %s', (action) => {
+    const harness = createHarness();
+
+    harness.runtime.adoptTarget('milky-way');
+    harness.controller.distanceToTarget = 600;
+    harness.runtime.handleSemanticZoomIntent(harness.controller, 'milky-way', -120);
+    harness.controller.distanceToTarget = 400;
+    harness.runtime.synchronizeContext(harness.controller, 2, true);
+
+    switch (action) {
+      case 'restore':
+        harness.runtime.restoreTarget('sun');
+        break;
+      case 'adopt':
+        harness.runtime.adoptTarget('sun');
+        break;
+      case 'release':
+        harness.runtime.releaseTarget(harness.controller);
+        break;
+      case 'reset':
+        harness.runtime.reset();
+        break;
+      case 'zoom-button':
+        harness.runtime.zoomBy(harness.controller, 1);
+        break;
+      case 'outer-exit':
+        harness.controller.distanceToTarget = 17_001;
+        harness.runtime.handleSemanticZoomIntent(
+          harness.controller,
+          null,
+          120,
+          { x: 0, y: 0 },
+          false,
+        );
+        harness.controller.distanceToTarget = 400;
+        break;
+      case 'missing-destination':
+        harness.positions.delete('sun');
+        break;
+    }
+    harness.runtime.handleSemanticZoomIntent(
+      harness.controller,
+      null,
+      -120,
+      { x: 0.2, y: 0.1 },
+      false,
+    );
+
+    expect(harness.runtime.lastZoomAnchor).toEqual({ anchorType: 'pointer', anchorObjectId: null });
+    expect(harness.controller.adoptZoomPointer).toHaveBeenLastCalledWith(0.2, 0.1);
   });
 
   it('conserve l’ancre de la rafale sans réadopter l’objet après un changement hiérarchique', () => {
@@ -588,6 +1102,7 @@ function createHarness(): {
       object('nearby-universe', 'Univers proche', 'region', 'cosmic-web', 'nearby-universe'),
     ],
     ['cosmic-web', object('cosmic-web', 'Réseau cosmique', 'universe', undefined, 'cosmic-web')],
+    ['andromeda', object('andromeda', 'Andromède', 'galaxy', 'local-group', 'galactic')],
   ]);
   const positions = new Map(
     [...definitions.keys()].map((objectId, index) => [

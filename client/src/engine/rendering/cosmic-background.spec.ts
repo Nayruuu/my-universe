@@ -9,7 +9,7 @@ describe('fond cosmique continu', () => {
   it('définit une palette sombre distincte aux principales échelles', () => {
     const planetary = sampleCosmicBackground(4.8, createCosmicBackgroundSample());
     const stellar = sampleCosmicBackground(1_400, createCosmicBackgroundSample());
-    const galactic = sampleCosmicBackground(9_600, createCosmicBackgroundSample());
+    const galactic = sampleCosmicBackground(3_600, createCosmicBackgroundSample());
     const localGroup = sampleCosmicBackground(17_000, createCosmicBackgroundSample());
     const cosmic = sampleCosmicBackground(420_000, createCosmicBackgroundSample());
 
@@ -32,11 +32,11 @@ describe('fond cosmique continu', () => {
     const beforeBoundary = sampleCosmicBackground(11_999, createCosmicBackgroundSample());
     const afterBoundary = sampleCosmicBackground(12_001, createCosmicBackgroundSample());
     const midpoint = sampleCosmicBackground(
-      Math.sqrt(1_400 * 9_600),
+      Math.sqrt(1_400 * 3_600),
       createCosmicBackgroundSample(),
     );
     const stellar = sampleCosmicBackground(1_400, createCosmicBackgroundSample());
-    const galactic = sampleCosmicBackground(9_600, createCosmicBackgroundSample());
+    const galactic = sampleCosmicBackground(3_600, createCosmicBackgroundSample());
 
     expect(colorDistance(beforeBoundary.upperColor, afterBoundary.upperColor)).toBeLessThan(0.001);
     expect(Math.abs(beforeBoundary.hazeStrength - afterBoundary.hazeStrength)).toBeLessThan(0.001);
@@ -61,7 +61,7 @@ describe('fond cosmique continu', () => {
     const background = new CosmicBackground();
     const material = background.mesh.material;
     const initialUpper = uniformColor(material, 'upperColor').clone();
-    const target = sampleCosmicBackground(9_600, createCosmicBackgroundSample());
+    const target = sampleCosmicBackground(3_600, createCosmicBackgroundSample());
 
     expect(background.mesh.name).toBe('scale-aware-cosmic-background');
     expect(background.mesh.renderOrder).toBeLessThan(0);
@@ -77,13 +77,13 @@ describe('fond cosmique continu', () => {
     expect(material.fragmentShader).toContain('accentColor');
     expect(background.mesh.geometry.getAttribute('position').count).toBe(6);
 
-    background.update(9_600, 1 / 60);
+    background.update(3_600, 1 / 60);
     const transitioningUpper = uniformColor(material, 'upperColor');
 
     expect(colorDistance(transitioningUpper, initialUpper)).toBeGreaterThan(0);
     expect(colorDistance(transitioningUpper, target.upperColor)).toBeGreaterThan(0);
 
-    background.update(9_600, 10);
+    background.update(3_600, 10);
     expect(colorDistance(uniformColor(material, 'upperColor'), target.upperColor)).toBeLessThan(
       0.000_001,
     );
@@ -96,11 +96,11 @@ describe('fond cosmique continu', () => {
     const mediumDetail = uniformNumber(material, 'detailStrength');
 
     background.setQuality('low');
-    background.update(9_600, 10);
+    background.update(3_600, 10);
     expect(uniformNumber(material, 'detailStrength')).toBeLessThan(mediumDetail);
 
     background.setQuality('high');
-    background.update(9_600, 10);
+    background.update(3_600, 10);
     expect(uniformNumber(material, 'detailStrength')).toBeGreaterThan(mediumDetail);
   });
 

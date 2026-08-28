@@ -41,7 +41,7 @@ describe('UniverseInitializationBootstrap', () => {
       harness.sceneRuntime.catalogRuntime.spaceTileManager,
       harness.sceneRuntime.catalogRuntime.starTileManager,
       expect.any(Object),
-      { streamStarTiles: false },
+      { streamStarTiles: true },
     );
     expect(runtime.rendering).toBe(harness.rendering);
     expect(runtime.sceneRuntime).toBe(harness.sceneRuntime);
