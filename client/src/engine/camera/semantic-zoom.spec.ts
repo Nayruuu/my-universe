@@ -5,7 +5,7 @@ describe('SemanticZoomJourney', () => {
     const journey = new SemanticZoomJourney();
     let distance = 4.8;
 
-    for (const expected of [520, 1_400, 9_600, 17_000, 120_000, 420_000, 600_000]) {
+    for (const expected of [520, 1_400, 3_600, 17_000, 120_000, 420_000, 600_000]) {
       const step = journey.step(distance, 480);
 
       expect(step.handled).toBe(true);
@@ -14,7 +14,7 @@ describe('SemanticZoomJourney', () => {
     }
     expect(journey.active).toBe(true);
 
-    for (const expected of [420_000, 120_000, 17_000, 9_600, 1_400, 520, 4.8]) {
+    for (const expected of [420_000, 120_000, 17_000, 3_600, 1_400, 520, 4.8]) {
       const step = journey.step(distance, -480);
 
       expect(step.handled).toBe(true);

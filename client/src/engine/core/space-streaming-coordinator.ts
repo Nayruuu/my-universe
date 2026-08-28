@@ -41,6 +41,8 @@ export interface SpaceStreamingFrame {
   readonly transitioning: boolean;
   readonly targetId: string | null;
   readonly selectedId: string | null;
+  readonly referenceFrameScale?: number;
+  readonly stellarNeighborhoodReveal?: number;
 }
 
 export interface SpaceStreamingCallbacks {
@@ -76,7 +78,7 @@ export class SpaceStreamingCoordinator {
   private spaceSynchronizationRunning = false;
   private starSynchronizationRunning = false;
   private spaceSynchronizationAccumulator = SYNCHRONIZATION_INTERVAL_SECONDS;
-  private starSynchronizationAccumulator = SYNCHRONIZATION_INTERVAL_SECONDS;
+  private starSynchronizationAccumulator = 0;
   private lastSpaceContextKey: string | null = null;
   private lastStarLod = -1;
   private lastStarWarning: string | null = null;
@@ -187,6 +189,7 @@ export class SpaceStreamingCoordinator {
         frame.lodLevel,
         frame.quality,
         frame.worldOffset,
+        frame.referenceFrameScale,
       ),
       retainedObjectIds: retainedIds,
     };
@@ -202,9 +205,16 @@ export class SpaceStreamingCoordinator {
       return;
     }
     this.starSynchronizationAccumulator += deltaSeconds;
+    if (frame.transitioning) {
+      return;
+    }
+    const firstView = this.lastStarLod === -1;
     const lodChanged = frame.lodLevel !== this.lastStarLod;
 
-    if (!lodChanged && this.starSynchronizationAccumulator < SYNCHRONIZATION_INTERVAL_SECONDS) {
+    if (
+      (firstView || !lodChanged) &&
+      this.starSynchronizationAccumulator < SYNCHRONIZATION_INTERVAL_SECONDS
+    ) {
       return;
     }
     this.lastStarLod = frame.lodLevel;
@@ -216,6 +226,7 @@ export class SpaceStreamingCoordinator {
       frame.lodLevel,
       frame.quality,
       frame.worldOffset,
+      frame.stellarNeighborhoodReveal,
     );
     if (!this.starSynchronizationRunning) {
       void this.drainStarTiles(manager);
@@ -246,6 +257,8 @@ export class SpaceStreamingCoordinator {
 
   private async drainStarTiles(manager: StarTileStream): Promise<void> {
     this.starSynchronizationRunning = true;
+    let unpublishedTiles: readonly StarClusterTile[] | null = null;
+
     try {
       while (this.pendingStarTileView) {
         const view = this.pendingStarTileView;
@@ -255,8 +268,14 @@ export class SpaceStreamingCoordinator {
           const result = await manager.synchronize(view);
 
           this.lastStarWarning = null;
-          if (result.changed && this.pendingStarTileView === null && this.isCurrent()) {
-            await this.callbacks.onStarTilesChanged(result.tiles);
+          if (result.changed || unpublishedTiles !== null) {
+            unpublishedTiles = result.tiles;
+          }
+          if (unpublishedTiles !== null && this.pendingStarTileView === null && this.isCurrent()) {
+            const tiles = unpublishedTiles;
+
+            unpublishedTiles = null;
+            await this.callbacks.onStarTilesChanged(tiles);
           }
         } catch (error) {
           const reason = errorReason(error);

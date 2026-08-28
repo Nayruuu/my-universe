@@ -19,6 +19,7 @@ export interface CameraZoomControls {
 }
 
 export interface CameraZoomOptions {
+  readonly allowMinimumTraversal?: boolean;
   readonly logarithmicRateMultiplier?: number;
   readonly traverseMinimum?: boolean;
 }
@@ -50,6 +51,7 @@ export class CameraZoomController {
     private readonly camera: THREE.PerspectiveCamera,
     private readonly controls: CameraZoomControls,
     private readonly onSettled: (distance: number) => void,
+    private readonly canSynchronizeControlsImmediately: () => boolean = () => true,
   ) {}
 
   public get active(): boolean {
@@ -181,7 +183,10 @@ export class CameraZoomController {
       }
       factor = Math.exp(remainingLogarithmicAmount);
     }
-    this.setDistance(this.distanceToTarget * factor, options?.traverseMinimum === true);
+    this.setDistance(
+      this.distanceToTarget * factor,
+      options?.traverseMinimum === true && options.allowMinimumTraversal !== false,
+    );
   }
 
   public zoomSemantically(deltaY: number, options?: CameraZoomOptions): void {
@@ -192,6 +197,7 @@ export class CameraZoomController {
       return;
     }
     const traverseMinimum = options?.traverseMinimum === true;
+    const allowMinimumTraversal = traverseMinimum && options?.allowMinimumTraversal !== false;
     const logarithmicRateMultiplier = options?.logarithmicRateMultiplier ?? 1;
     const beforeDistance = this.distanceToTarget;
     const requestedAnchor = this.anchorActive ? this.anchor.clone() : null;
@@ -250,7 +256,7 @@ export class CameraZoomController {
 
       const inwardAnchor = this.resolveZoomPivot();
 
-      this.applyDistance(deltaY, semanticDistance, traverseMinimum);
+      this.applyDistance(deltaY, semanticDistance, allowMinimumTraversal);
       if (
         !traverseMinimum &&
         remainingSemanticDeltaY < 0 &&
@@ -270,7 +276,7 @@ export class CameraZoomController {
     this.applyDistance(
       deltaY,
       requestedDistance * zoomScaleFromWheelDelta(remainingDeltaY * logarithmicRateMultiplier),
-      traverseMinimum,
+      allowMinimumTraversal,
     );
     if (!traverseMinimum && deltaY < 0 && this.distanceToTarget < beforeDistance) {
       this.recordInwardZoom(
@@ -395,7 +401,7 @@ export class CameraZoomController {
       this.camera.position.add(this.targetOffset);
       this.controls.target.copy(this.camera.position).add(this.viewOffset);
       this.anchorActive = false;
-      this.controls.update();
+      this.synchronizeControlsImmediately();
       this.onSettled(this.distanceToTarget);
 
       return this.targetOffset.lengthSq() > Number.EPSILON;
@@ -415,7 +421,7 @@ export class CameraZoomController {
         .setLength(targetDistance);
       this.camera.position.copy(this.controls.target).add(this.targetOffset);
     }
-    this.controls.update();
+    this.synchronizeControlsImmediately();
     this.onSettled(this.distanceToTarget);
 
     return false;
@@ -488,7 +494,7 @@ export class CameraZoomController {
     this.camera.position.sub(undo.translation);
     this.controls.target.copy(this.camera.position).add(this.viewOffset);
     this.anchorActive = false;
-    this.controls.update();
+    this.synchronizeControlsImmediately();
     this.onSettled(this.distanceToTarget);
 
     return undo;
@@ -506,5 +512,11 @@ export class CameraZoomController {
       maximumDistance: this.controls.maxDistance,
       status: 'ignored',
     };
+  }
+
+  private synchronizeControlsImmediately(): void {
+    if (this.canSynchronizeControlsImmediately()) {
+      this.controls.update();
+    }
   }
 }

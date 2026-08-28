@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { GraphicQuality, SpaceObject } from '../../data/models/universe.models';
 import type { CoordinateSystem } from '../coordinates/coordinate-system';
+import { IntergalacticFrameGroup } from '../coordinates/intergalactic-frame-group';
 import {
   createCelestialVisual,
   createCelestialVisualAssets,
@@ -14,6 +15,9 @@ export interface BuiltObjectRegistry {
   readonly entries: Map<string, ObjectRegistryEntry>;
   readonly pickables: THREE.Object3D[];
   readonly registryRoot: THREE.Group;
+  readonly intergalacticFrames: IntergalacticFrameGroup;
+  readonly galacticFrameRoot: THREE.Group;
+  readonly stellarNeighborhoodRoot: THREE.Group;
   readonly farObjectBatch: FarObjectBatch;
   readonly batchedGalaxyTotal: number;
 }
@@ -30,10 +34,25 @@ export function buildObjectRegistry(
   const entries = new Map<string, ObjectRegistryEntry>();
   const pickables: THREE.Object3D[] = [];
   const registryRoot = new THREE.Group();
+  const intergalacticFrames = new IntergalacticFrameGroup(registryRoot, 'object-registry');
+  const galacticFrameRoot = new THREE.Group();
+  const stellarNeighborhoodRoot = new THREE.Group();
   const farObjectBatch = new FarObjectBatch(plan.farObjects, quality);
 
   registryRoot.name = 'astronomical-object-registry';
+  galacticFrameRoot.name = 'object-registry-galactic-frame';
+  galacticFrameRoot.userData['referenceFrame'] = 'galactic';
+  galacticFrameRoot.userData['scaleTreatment'] = 'continuous-galactic-metric';
+  galacticFrameRoot.userData['sceneUnitsPerKiloparsec'] = coordinateSystem.toSceneDistance(
+    1,
+    'kiloparsec',
+    'galactic',
+  );
+  stellarNeighborhoodRoot.name = 'object-registry-stellar-neighborhood-frame';
+  stellarNeighborhoodRoot.userData['referenceFrame'] = 'stellar';
+  stellarNeighborhoodRoot.userData['scaleTreatment'] = 'shared-galactic-to-stellar-transition';
   spaceRoot.add(registryRoot);
+  registryRoot.add(galacticFrameRoot);
   registryRoot.add(farObjectBatch.points);
   pickables.push(farObjectBatch.points);
 
@@ -64,15 +83,44 @@ export function buildObjectRegistry(
 
   for (const [objectId, entry] of entries) {
     const parentId = plan.renderParentById.get(objectId);
-    const parent = parentId ? entries.get(parentId)?.node : undefined;
+    const parentEntry = parentId ? entries.get(parentId) : undefined;
+    const crossesReferenceFrame =
+      parentEntry !== undefined &&
+      parentEntry.definition.referenceFrame !== entry.definition.referenceFrame;
+    const referenceFrameRoot =
+      entry.definition.referenceFrame === 'galactic'
+        ? galacticFrameRoot
+        : intergalacticFrames.getRoot(entry.definition.referenceFrame);
+    const stellarNeighborhoodParent =
+      entry.definition.referenceFrame === 'stellar' &&
+      entry.definition.parentId === 'milky-way' &&
+      entries.has('sun')
+        ? stellarNeighborhoodRoot
+        : null;
+    const parent =
+      stellarNeighborhoodParent ??
+      (referenceFrameRoot && (!parentEntry || crossesReferenceFrame)
+        ? referenceFrameRoot
+        : parentEntry?.node);
 
     (parent ?? registryRoot).add(entry.node);
+  }
+
+  const sun = entries.get('sun');
+
+  if (sun) {
+    sun.node.add(stellarNeighborhoodRoot);
+  } else {
+    registryRoot.add(stellarNeighborhoodRoot);
   }
 
   return {
     entries,
     pickables,
     registryRoot,
+    intergalacticFrames,
+    galacticFrameRoot,
+    stellarNeighborhoodRoot,
     farObjectBatch,
     batchedGalaxyTotal: plan.batchedGalaxyTotal,
   };

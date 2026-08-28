@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { type GraphicQuality } from '../../data/models/universe.models';
+import { type GraphicQuality, type Vector3Like } from '../../data/models/universe.models';
+import { MILKY_WAY_NAVIGATION_DISTANCE } from '../camera/navigation-scales';
 import { dampValue } from '../lod/screen-space-lod';
 import {
   applyLocalSpaceVisualProfile,
@@ -25,15 +26,23 @@ export interface LocalSpaceEnvironmentSample {
   solarCoronaDiameter: number;
 }
 
-const MAXIMUM_DISTANCE = 9_600;
+const MAXIMUM_DISTANCE = MILKY_WAY_NAVIGATION_DISTANCE;
 const LOCAL_APPEARANCE_START = 120;
 const LOCAL_APPEARANCE_END = 420;
 const GALACTIC_BAND_PLANETARY_OPACITY = 0.4;
 const GALACTIC_BAND_STELLAR_OPACITY = 0.5;
-const GALACTIC_BAND_FADE_START = 2_800;
-const GALACTIC_BAND_FADE_END = 7_200;
-const LOCAL_OBSERVER_FADE_START = 2_400;
-const LOCAL_OBSERVER_FADE_END = 7_200;
+// The camera-centred panorama is used only by the Earth-observer presentation. Its distance curve
+// is kept separate from the navigable galactocentric volume so map navigation never overlays a
+// photographic sky sphere on the same branch being crossed by the camera.
+const GALACTIC_BAND_INTERIOR_FADE_START = 650;
+const GALACTIC_BAND_INTERIOR_FADE_END = 1_150;
+const GALACTIC_BAND_OBSERVER_FADE_START = 1_400;
+const GALACTIC_BAND_OBSERVER_FADE_END = 3_600;
+const GALACTIC_BAND_PANORAMA_BLEND_START = 600;
+const GALACTIC_BAND_PANORAMA_BLEND_END = 900;
+const GALACTIC_BAND_DAMPING_RATE = 4.4;
+const LOCAL_OBSERVER_FADE_START = 1_400;
+const LOCAL_OBSERVER_FADE_END = 2_600;
 const ZODIACAL_LIGHT_OPACITY = 0.24;
 const ZODIACAL_FADE_START = 850;
 const ZODIACAL_FADE_END = 2_600;
@@ -91,6 +100,48 @@ export function getLocalSpaceObserverOpacity(observerDistance: number): number {
   );
 }
 
+/**
+ * Wider observer envelope used only by the integrated Galactic band in Earth-observer mode.
+ * The panorama remains illustrative away from the Solar position. Solar-system-only layers
+ * continue to use the stricter local observer envelope.
+ */
+export function getLocalGalacticBandObserverOpacity(observerDistance: number): number {
+  return (
+    1 -
+    smoothstep(
+      GALACTIC_BAND_OBSERVER_FADE_START,
+      GALACTIC_BAND_OBSERVER_FADE_END,
+      normalizeDistance(observerDistance),
+    )
+  );
+}
+
+export function calculateLocalMilkyWayInteriorReveal(cameraDistance: number): number {
+  const distance = Math.max(GALACTIC_BAND_INTERIOR_FADE_START, normalizeDistance(cameraDistance));
+  const exteriorProgress = smoothstep(
+    Math.log(GALACTIC_BAND_INTERIOR_FADE_START),
+    Math.log(GALACTIC_BAND_INTERIOR_FADE_END),
+    Math.log(distance),
+  );
+
+  return 1 - exteriorProgress;
+}
+
+/**
+ * Crossfades the procedural component of the Earth-observer sky to the observed ESO panorama.
+ * Normal 3D map navigation does not render either component of this camera-centred sphere.
+ */
+export function calculateLocalMilkyWayPanoramaBlend(cameraDistance: number): number {
+  const distance = Math.max(GALACTIC_BAND_PANORAMA_BLEND_START, normalizeDistance(cameraDistance));
+  const proceduralProgress = smoothstep(
+    Math.log(GALACTIC_BAND_PANORAMA_BLEND_START),
+    Math.log(GALACTIC_BAND_PANORAMA_BLEND_END),
+    Math.log(distance),
+  );
+
+  return 1 - proceduralProgress;
+}
+
 export function sampleLocalSpaceEnvironment(
   cameraDistance: number,
   target: LocalSpaceEnvironmentSample,
@@ -104,19 +155,25 @@ export function sampleLocalSpaceEnvironment(
     return resetSample(target);
   }
   const stellarBlend = smoothstep(90, 1_400, distance);
-  const galacticFade = 1 - smoothstep(GALACTIC_BAND_FADE_START, GALACTIC_BAND_FADE_END, distance);
+  const galacticInteriorReveal = calculateLocalMilkyWayInteriorReveal(distance);
   const zodiacalFade = 1 - smoothstep(ZODIACAL_FADE_START, ZODIACAL_FADE_END, distance);
   const coronaFade = 1 - smoothstep(SOLAR_CORONA_FADE_START, SOLAR_CORONA_FADE_END, distance);
   const observerOpacity = getLocalSpaceObserverOpacity(observerDistance);
+  const galacticBandObserverOpacity = getLocalGalacticBandObserverOpacity(observerDistance);
 
-  target.galacticBandOpacity =
-    THREE.MathUtils.lerp(
-      GALACTIC_BAND_PLANETARY_OPACITY,
-      GALACTIC_BAND_STELLAR_OPACITY,
-      stellarBlend,
-    ) *
-    galacticFade *
-    observerOpacity;
+  // In the navigable 3D map the galactocentric density volume now remains present through the
+  // local branch, so a camera-centred photograph would reintroduce the very reference-frame cut
+  // this journey is designed to remove. The observed panorama is reserved for Earth observation,
+  // where a distant celestial sphere is the physically meaningful presentation.
+  target.galacticBandOpacity = earthObserverActive
+    ? THREE.MathUtils.lerp(
+        GALACTIC_BAND_PLANETARY_OPACITY,
+        GALACTIC_BAND_STELLAR_OPACITY,
+        stellarBlend,
+      ) *
+      galacticInteriorReveal *
+      galacticBandObserverOpacity
+    : 0;
   target.zodiacalLightOpacity = earthObserverActive
     ? 0
     : appearance * ZODIACAL_LIGHT_OPACITY * zodiacalFade * observerOpacity;
@@ -160,6 +217,7 @@ export class LocalSpaceEnvironment {
   private panorama: THREE.Texture | null = null;
   private panoramaPromise: Promise<boolean> | null = null;
   private panoramaLoadStatus: LocalMilkyWayPanoramaStatus = 'idle';
+  private readonly observerWorldPosition = new THREE.Vector3();
   private elapsedSeconds = 0;
   private disposed = false;
 
@@ -181,6 +239,19 @@ export class LocalSpaceEnvironment {
     this.root.userData['drawMeshCount'] = 0;
     this.root.userData['observerDistance'] = 0;
     this.root.userData['observerLocalityOpacity'] = 1;
+    this.root.userData['galacticBandTransitionDistanceRange'] = [
+      GALACTIC_BAND_INTERIOR_FADE_START,
+      GALACTIC_BAND_INTERIOR_FADE_END,
+    ];
+    this.root.userData['galacticBandTransitionCurve'] = 'log-distance-smoothstep';
+    this.root.userData['galacticBandObserverDistanceRange'] = [
+      GALACTIC_BAND_OBSERVER_FADE_START,
+      GALACTIC_BAND_OBSERVER_FADE_END,
+    ];
+    this.root.userData['galacticBandPanoramaBlendDistanceRange'] = [
+      GALACTIC_BAND_PANORAMA_BLEND_START,
+      GALACTIC_BAND_PANORAMA_BLEND_END,
+    ];
     this.root.add(this.galacticBand, this.zodiacalLight, this.solarCorona);
     this.setQuality(this.quality);
   }
@@ -247,10 +318,16 @@ export class LocalSpaceEnvironment {
     starRadiance = 1,
     observerDistance = 0,
     earthObserverActive = false,
+    observerPosition?: Vector3Like,
   ): void {
+    this.synchronizeGalacticBandWithObserver(observerPosition);
     sampleLocalSpaceEnvironment(cameraDistance, this.target, observerDistance, earthObserverActive);
     this.root.userData['observerDistance'] = normalizeDistance(observerDistance);
     this.root.userData['observerLocalityOpacity'] = getLocalSpaceObserverOpacity(observerDistance);
+    const panoramaBlend = calculateLocalMilkyWayPanoramaBlend(cameraDistance);
+
+    this.galacticBandMaterial.uniforms['panoramaBlend']!.value = panoramaBlend;
+    this.root.userData['galacticBandPanoramaBlend'] = panoramaBlend;
     if (deltaSeconds <= 0) {
       return;
     }
@@ -261,7 +338,7 @@ export class LocalSpaceEnvironment {
     this.galacticBandOpacity = dampValue(
       this.galacticBandOpacity,
       this.target.galacticBandOpacity,
-      4.8,
+      GALACTIC_BAND_DAMPING_RATE,
       deltaSeconds,
     );
     this.zodiacalLightOpacity = earthObserverActive
@@ -311,6 +388,14 @@ export class LocalSpaceEnvironment {
     this.root.userData['drawMeshCount'] = this.drawMeshCount;
   }
 
+  private synchronizeGalacticBandWithObserver(observerPosition?: Vector3Like): void {
+    if (!observerPosition) {
+      return;
+    }
+    this.observerWorldPosition.set(observerPosition.x, observerPosition.y, observerPosition.z);
+    this.galacticBand.position.copy(this.root.worldToLocal(this.observerWorldPosition));
+  }
+
   private installPanorama(texture: THREE.Texture): boolean {
     if (this.disposed) {
       texture.dispose();
@@ -346,7 +431,7 @@ function normalizeDistance(cameraDistance: number): number {
   if (Number.isNaN(cameraDistance) || cameraDistance <= 0) {
     return 0;
   }
-  if (!Number.isFinite(cameraDistance) || cameraDistance >= MAXIMUM_DISTANCE) {
+  if (!Number.isFinite(cameraDistance)) {
     return MAXIMUM_DISTANCE;
   }
 

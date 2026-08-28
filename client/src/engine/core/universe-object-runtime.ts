@@ -112,6 +112,16 @@ export class UniverseObjectRuntime {
     }
   }
 
+  public updateReferenceFrameScale(cameraDistance: number): boolean {
+    let changed = false;
+
+    for (const registry of this.registries) {
+      changed = registry.updateReferenceFrameScale(cameraDistance) || changed;
+    }
+
+    return changed;
+  }
+
   public get visibleObjectCount(): number {
     return this.registries.reduce((total, registry) => total + registry.visibleObjectCount, 0);
   }

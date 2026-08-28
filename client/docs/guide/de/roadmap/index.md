@@ -5,7 +5,7 @@ description: Erfahren Sie, was Universe Map bereits liefert, welche Verbesserung
 
 # Projektplan
 
-_Zuletzt geprüft: 28. August 2026._
+_Zuletzt geprüft: 3. September 2026._
 
 Diese Seite ist der verbindliche öffentliche Projektplan von Universe Map. Sie beschreibt Ergebnisse
 und Prüfkriterien statt fester Veröffentlichungstermine. Wissenschaftliche Genauigkeit, verständliche
@@ -35,9 +35,11 @@ Schritt.
   Mondlichtstörung, einem ausdrücklich illustrativen Bestfenster-Index und einer Aktion, die Zeit und
   Kamera gemeinsam verschiebt. Das Kurvenziel kann aus demselben lokalen Katalog ersetzt werden, ohne
   den aktuellen Himmel zu bewegen; erst diese Aktion übernimmt Ziel, gemeinsame Zeit und Kamera.
-  Eine kompakte Übersicht wendet dieselbe Berechnung auf sieben aufeinanderfolgende Nächte an; eine
-  Auswahl wechselt direkt zum lokal auf fünf Minuten verfeinerten besten Zeitpunkt der Nacht.
-  Live-Wetter, Lichtverschmutzung und lokale Hindernisse bleiben außen vor.
+  Eine kompakte Übersicht wendet dieselbe Berechnung auf sieben aufeinanderfolgende Nächte an. Sie
+  hebt automatisch die stärkste Nacht mit einem vergleichbaren illustrativen Index von 100 hervor
+  und zeigt Höhe, Dunkelheit, Mondlicht und Geländefreiheit, bevor die direkte Aktion zum lokal auf
+  fünf Minuten verfeinerten besten Zeitpunkt wechselt. Live-Wetter, Lichtverschmutzung und lokale
+  Hindernisse bleiben außen vor.
 - Für jeden festen Katalogort wird ein 360°-Verdeckungsprofil aus dem maßgeblichen
   NOAA/NCEI-Oberflächenrelief ETOPO 2022 v1 mit 60 Bogensekunden berechnet. Die kompakten Profile
   werden verzögert geladen und können Sterne, Mond, Planeten und Satelliten hinter modelliertem Gelände
@@ -51,7 +53,45 @@ Schritt.
   gekennzeichnet. Satelliten erscheinen ab einem Sichtfeld von 12° oder sofort als Ziel, um Überlagerung
   im Weitwinkel zu vermeiden; die Mindestgröße zur Lesbarkeit bleibt ausdrücklich illustrativ.
 - Sterne und Milchstraße gewinnen beim Zoomen kontinuierlich Details. Die Navigation entfernt zudem
-  Ziele und Auswahlen, sobald ihr visueller Kontext verschwindet.
+  Ziele und Auswahlen, sobald ihr visueller Kontext verschwindet. Beim Eintritt in die Milchstraße
+  wandert der Kameradrehpunkt kontinuierlich vom galaktischen Zentrum zur Sonne, während äußeres
+  Volumen, Sternkatalog und lokales Panoramaband ohne Bezugssystem-Schnitt überblenden.
+- Die strukturelle Kalibrierung der Milchstraße trennt nun ihre kanonische physische und räumliche
+  Metrik von der ausdrücklich illustrativen Lichthülle. Beim galaktischen Eintritt erreicht diese
+  Hülle das Vierfache des kanonischen Durchmessers und wächst über die vollständige logarithmische
+  Annäherung; Kameradistanzen, Mausradreaktion, Auswahl und Katalogpositionen bleiben unverändert.
+  Damit die Durchquerung ohne Verlangsamung der Kamera wahrnehmbar wird, enthält dieselbe gebündelte
+  Punktwolke 140.000 deterministische, illustrative Spuren: 28.000 bleiben in der galaktozentrischen
+  dicken Scheibe verteilt, 56.000 bilden eine gekrümmte rotationssymmetrische Eintrittshülle und
+  56.000 einen schmaleren Kern für nahe Vorbeiflüge. Jede Qualitätsstufe deckt dessen vollständigen
+  Radius und alle Azimute ab, sodass entlang der Route keine leeren Abschnitte entstehen. Alle
+  Positionen bleiben statisch; nur die nächsten Sprites werden kurz gestreckt, solange sich der
+  Kameraabstand ändert, und werden im Stillstand wieder rund. Ihre scheinbare Bewegung entsteht durch
+  Kameratranslation und Perspektive, nicht durch eine unabhängige Partikelbewegung. Während der Durchquerung treten der Volumenschleier
+  und weiche Morphologiepartikel nun vor entfernten Spuren zurück. Dadurch bleiben seltenere, schärfere
+  Sterne in Kameranähe statt eines gleichmäßigen staubigen Korns. Die Beschriftungen der Galaxien der
+  Lokalen Gruppe blenden vor der dichten Durchquerung aus, während das aktive Ziel lesbar bleibt. Die
+  Spuren sind keine einzeln katalogisierten Sterne. Der weiße Volumenanteil wird nun ausdrücklich als
+  illustrative integrierte Strahlung unaufgelöster Sterne behandelt, nicht als Staub: Der durchgehende
+  Sockel zwischen den Armen ist reduziert, während Arme, Filamente und Haufen durch dunkle Lücken
+  getrennte Lichtakzente behalten. Der folgende Farbpass trennt nun warm-elfenbeinfarbene integrierte
+  Strahlung, saphirblaue junge Sterne, einen bernsteinfarbenen Kern, seltene magentafarbene H-II-Akzente
+  und nahezu schwarzen Staub. Ein zurückhaltender Sockel aus saphirblauen, elfenbeinfarbenen,
+  bernsteinfarbenen und roten Punktsternen schließt außerdem den Übergang zwischen 1.400 und 2.800
+  Einheiten, ohne einen diffusen Staubschleier wiederherzustellen. Diese Population bleibt ausdrücklich
+  prozedural und dekorativ und besteht nicht aus einzeln katalogisierten Quellen. Eine nach Tiefe
+  gewichtete Luminanzpassage hebt nun die Kerne einzelner Sterne an, am stärksten bei den Spuren für
+  nahe Vorbeiflüge, ohne den Volumenschleier oder das Schwarz zwischen den Sternen aufzuhellen.
+- Eine Gaia-DR3-Hierarchie stellt 2.923.790 qualitätsgefilterte Quellen für die Übersicht der
+  stellaren Nachbarschaft als entfernte berechnete 512-pc-Aggregate und 133.526 gemessene
+  Quellstichproben dar. Jedes verfeinerte 512-pc-Blatt behält die 32 hellsten Quellen und eine
+  deterministische gleichmäßige Auswahl mit insgesamt höchstens 96 Punkten. Die nach Sichtfeld und
+  Qualität begrenzte Verfeinerung lädt nur sichtbare Zweige, prüft sie in Modul-Workern, überträgt
+  typisierte Arrays ohne Kopie und erzeugt nie ein Three.js-Objekt je Quelle. Exakte Suche, Namen,
+  Auswahl und Fokus bleiben HYG-basiert; Gaia-Stichproben sind ausdrücklich anonym und unvollständig.
+  Beim Herauszoomen blenden detaillierte Stichproben in berechnete Wurzeln über, die bis zur Lokalen
+  Gruppe dezent sichtbar bleiben, während das lokale Volumen logarithmisch in die Milchstraße
+  skaliert wird.
 - Die kartesischen J2000-Geschwindigkeiten von HYG schreiben nun den gemeinsamen Sternkatalog, den
   Beobachterhimmel und die Sternbildfiguren fort, mit explizit extrapolierter Verlässlichkeit und
   einer Grenze von ±10.000 julianischen Jahren.
@@ -107,6 +147,11 @@ Schritt.
 
 ## Aktuelle Prioritäten
 
+- Die visuelle Kalibrierung der Milchstraße anhand der Referenzsequenz abschließen. Da die Korrekturen
+  für Innenraumklarheit, getrennte integrierte Strahlung, Farbpalette und stellaren Übergang umgesetzt
+  sind, wird als Nächstes der strukturelle Kontrast von Staubbändern und Kern abgestimmt; danach folgen
+  Prüfungen aller drei Qualitätsprofile und Rendering-Benchmarks. Die kanonischen physischen Distanzen
+  bleiben unverändert.
 - Das saubere simulierte 10/10-Manifest als Regressionsbaseline beibehalten und die Kampagne nach
   wesentlichen Änderungen an Rendering oder Katalogen wiederholen. Die aktuellen Nachweise
   rechtfertigen weder einen aufwendigeren Shader-Vorkompilierungspfad noch einen detailärmeren
@@ -119,9 +164,6 @@ für HYG-Sterne sowie dokumentierte Exoplanetensysteme das Baryzentrum des Sonne
 
 ## Bewusst zurückgestellt
 
-- Die vorbereitete aggregierte Sternhierarchie bleibt inaktiv, bis ein dichterer Quellkatalog eine
-  sichtbare Darstellung über Skalen benötigt. Eine Aktivierung muss die Vorbereitung in einen Web
-  Worker verlagern und unsichtbare Netzwerk- oder GPU-Arbeit vermeiden.
 - Weitere Silhouetten oder Polygonmodelle unregelmäßiger Körper werden nur mit einem maßgeblichen
   Formmodell ergänzt, das Download, Dekodierung, Quellenangabe und Renderkosten rechtfertigt.
 

@@ -5,7 +5,7 @@ description: See what Universe Map has delivered, what is being improved now, an
 
 # Roadmap
 
-_Last reviewed: 28 August 2026._
+_Last reviewed: 3 September 2026._
 
 This page is the canonical public roadmap for Universe Map. It describes outcomes and evidence gates
 rather than promising release dates. Scientific accuracy, readable navigation, stable frame time,
@@ -34,9 +34,10 @@ and a fully static browser architecture remain constraints for every item.
   illustrative best-window index, and an action that moves both shared time and camera. The curve
   target can be replaced from the same local catalogue without moving the current sky; only that
   action commits the target, shared time, and camera. A compact comparison applies the same
-  calculation to seven consecutive nights; selecting one moves directly to that night's best instant,
-  locally refined to five-minute resolution. Live weather, light pollution, and unsurveyed local
-  obstacles remain outside the model.
+  calculation to seven consecutive nights. It automatically highlights the strongest night with a
+  comparable illustrative index out of 100 and exposes altitude, darkness, moonlight, and terrain
+  clearance before its direct action moves to the best instant, locally refined to five-minute
+  resolution. Live weather, light pollution, and unsurveyed local obstacles remain outside the model.
 - Every fixed catalogue location has a 360° obstruction profile calculated from the authoritative
   NOAA/NCEI ETOPO 2022 v1 60-arc-second surface-relief product. The compact profiles load lazily and
   can hide stars, the Moon, planets, and satellites behind modelled terrain; buildings, vegetation,
@@ -51,7 +52,44 @@ and a fully static browser architecture remain constraints for every item.
   readability floor remains explicitly illustrative.
 - Stellar points and the Milky Way now gain useful detail continuously under zoom instead of relying
   on a fixed pixel footprint. Navigation also clears stale targets and selections when their visual
-  context disappears.
+  context disappears. During Galactic entry, the camera pivot travels continuously from the
+  Galactic centre to the Sun while the external volume, stellar catalogue, and local panoramic band
+  cross-fade without a reference-frame cut. This reversible path starts in the nearby Universe and
+  does not launch a camera recenter at hierarchy changes. The Gaia volume now stays compact throughout the external
+  approach and unfolds into its readable projection only after the camera enters the disc; Galactic
+  brightness also remains bounded across viewing inclinations.
+- The structural Milky Way calibration now separates its canonical physical and coordinate metric
+  from its explicitly illustrative luminous envelope. At Galactic entry, that envelope reaches four times
+  the canonical diameter and grows over the complete logarithmic approach, while camera distances,
+  wheel response, picking, and catalogue placement remain unchanged. To make the crossing perceptible
+  without slowing the camera, the same batched point cloud includes 140,000 deterministic,
+  illustrative tracers: 28,000 remain spread through the galactocentric thick disc, 56,000 form a
+  curved rotationally symmetric entry shell, and 56,000 form a narrower near-passage core. Every
+  quality tier covers the complete radius and azimuth of that core, avoiding empty stretches along
+  the route. All positions remain static; only the closest sprites acquire a short trail while the
+  camera distance changes and become round again at rest. Their apparent sweep is the perspective cue
+  produced while the camera crosses the continuously scaled illustrative Galactic frame. During that crossing, the
+  ray-marched veil and soft morphology particles now recede before distant tracers, leaving rarer,
+  sharper proximity stars instead of a uniform dusty grain. Local Group galaxy annotations now fade
+  before the dense crossing while the active target remains readable. The tracers are not catalogued
+  individual stars. The white volume component is now explicitly treated as illustrative integrated
+  light from unresolved stars, not dust: its continuous inter-arm pedestal is reduced while arms,
+  filaments, and clumps retain separated highlights and dark gaps. The following colour pass now
+  separates warm-ivory integrated light, sapphire young stars, an amber core, sparse magenta H II
+  accents, and near-black dust. A restrained sapphire/ivory/amber/red point-star floor also closes
+  the 1,400–2,800-unit handoff without restoring a diffuse dusty veil. These stars remain an
+  explicitly procedural, decorative population rather than individually catalogued sources. A
+  depth-weighted luminance pass now lifts discrete stellar cores, strongest for near-passage tracers,
+  while preserving the ray-marched veil and black inter-star field at their previous levels.
+- A Gaia DR3 hierarchy turns 2,923,790 quality-filtered sources into distant calculated 512 pc
+  aggregates and 133,526 measured-source samples for the stellar-neighborhood overview. Each
+  refined 512 pc leaf retains its 32 brightest sources plus a deterministic uniform selection, up
+  to 96 points. Frustum- and quality-bounded refinement fetches only visible branches, validates
+  them in module Workers, transfers typed arrays without copying, and never creates one Three.js
+  object per source. Exact search, labels, selection, and focus remain on HYG; Gaia samples are
+  explicitly anonymous and incomplete. Under zoom-out, detailed samples cross-fade into calculated
+  roots, which remain as a restrained bridge through the Local Group while the local volume follows
+  a logarithmic scale blend into the Milky Way disc.
 - HYG J2000 Cartesian velocities now propagate the shared star catalogue, observer sky, and
   constellation figures through time with explicit extrapolated confidence and a ±10,000-Julian-year
   validity clamp.
@@ -104,6 +142,10 @@ and a fully static browser architecture remain constraints for every item.
 
 ## Current priorities
 
+- Finish the Milky Way visual calibration against the reference passage. With the interior-clarity,
+  integrated-light, colour-palette, and stellar-handoff passes in place, the next pass tunes the
+  structural contrast of dust lanes and the core before checking all three quality profiles and
+  rendering benchmarks. Canonical physical distances remain unchanged.
 - Keep the clean 10/10 simulated manifest as the regression baseline and repeat it after material
   rendering or catalogue changes. The current evidence does not justify a heavier shader-precompile
   path or a lower-fidelity fallback. Physical validation remains optional if suitable medium/low
@@ -115,9 +157,6 @@ Solar System barycentre for HYG stars and documented exoplanet systems.
 
 ## Deliberately deferred
 
-- The prepared stellar aggregate hierarchy stays dormant until a denser source catalogue needs a
-  visible cross-scale representation. Any activation must move preparation to a Web Worker and avoid
-  invisible network or GPU work.
 - Additional irregular-body silhouettes or polygonal models will only ship when an authoritative
   shape product justifies the download, decoding, attribution, and rendering cost.
 

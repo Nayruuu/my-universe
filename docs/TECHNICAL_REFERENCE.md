@@ -32,7 +32,8 @@ being forced back onto the terrestrial route.
 - orbital paths, date-dependent IAU axial orientations, atmospheres, and Saturn's rings;
 - a highlighted selected orbit in the dedicated orbital view;
 - an axial guide, equatorial rotation ring, moving halo, and rotation-period information;
-- named nearby or notable stars plus 10,000 observed stars from HYG Database v4.1;
+- named nearby or notable stars plus 10,000 exact observed HYG v4.1 stars and a hybrid cross-scale
+  hierarchy derived from 2,923,790 quality-filtered Gaia DR3 sources;
 - six searchable historical supernovas and remnants with documented J2000 positions, direct source
   links, date-aware illustrative appearance, and event replay where the first-light epoch is known;
 - 6,333 NASA Exoplanet Archive confirmed planets around 4,747 hosts, with a local discovery panel,
@@ -41,7 +42,8 @@ being forced back onto the terrestrial route.
 - Sagittarius A*, Cygnus X-1, and Gaia BH1 as searchable black holes with activity-aware visual
   profiles and catalogue-backed physical facts;
 - all 88 modern constellation figures as an optional 644-segment illustrative layer;
-- an illustrative Milky Way generated with `BufferGeometry`;
+- an illustrative Milky Way generated from one ray-marched `Data3DTexture` and one batched
+  `BufferGeometry`;
 - 31 catalogue-backed Local Group galaxies around the procedural Milky Way, organized into Milky
   Way satellites, Andromeda satellites, and isolated members;
 - 720 observed galaxies beyond the Local Group, indexed across five curated regions and 110
@@ -220,6 +222,16 @@ distances are compressed to keep the prototype navigable, while intergalactic po
 kiloparsec or megaparsec transforms. `FloatingOriginManager` recenters the scene whenever a distant
 target would exceed the renderer's precision threshold.
 
+The three linear intergalactic authoring frames are reconciled by one calculated world metric before
+rendering. It equals 10,000 scene units per megaparsec at the Local Group landmark, 4,000 at the
+nearby-Universe landmark, and 200 at the cosmic-web landmark, with smooth logarithmic interpolation
+between those camera distances. Nested reference-frame roots apply the same factor to catalogue
+positions, documented galaxy diameters, focused object visuals, the nearby-galaxy overview, cosmic
+groups, filaments, and the density volume. Consequently, M31 at 0.783 Mpc, M81 at 3.63 Mpc, and M87
+at 17.219 Mpc retain distance ratios of approximately 1:4.64:21.99 throughout the semantic zoom.
+Minimum pixel diameters remain an explicitly illustrative readability treatment and never alter an
+object's position or documented physical diameter.
+
 At Solar System overview LOD, existing orbit materials switch to the shared warm semantic accent and
 62% opacity without allocating geometry or adding draw calls, while the active orbit uses a brighter
 92% treatment.
@@ -228,38 +240,126 @@ At Solar System overview LOD, existing orbit materials switch to the shared warm
 
 The Sun is stored in the Galactic frame at `R0 = 8.178 kpc` on scene +X. HYG J2000 equatorial
 vectors are rotated into the Galactic basis before their compressed stellar positions are attached
-to that Solar origin. Floating-origin shifts therefore never change the physical Sun-to-center
-relationship.
+to that Solar origin. The Galactic root itself remains linear at 90 scene units per kiloparsec and
+uses a canonical continuous scale conversion when the camera crosses into the Local Group and
+beyond. The Sun, stellar catalogues, map scale, and Milky Way picking proxy all retain that metric;
+floating-origin shifts never change the physical Sun-to-center relationship. Only the explicitly
+illustrative luminous envelope uses the separate immersive scale described below.
 
 The close Milky Way layer combines two explicitly illustrative representations centered at the
-origin. A deterministic `BufferGeometry` mixes a diffuse disc, a barred bulge, and four noisy
-logarithmic arm families with a rounded 13-degree pitch. A deferred 1254-pixel emission atlas adds
-continuous stellar light and dust lanes across three slightly rotated planes at different Galactic
-heights. Its revised morphology uses two dominant open arms and two shorter fragmented families;
-the shader applies bounded domain warping and offset dust rifts to prevent a ring-like reading. A
-shaded ellipsoid supplies the central bulge's thickness, so an orbiting camera observes parallax
-instead of a single flat card. Low, medium, and high quality expose one, two, or three disc planes
-respectively; the bulge remains the fourth and final high-quality mesh.
+origin. A deterministic 192 × 48 × 192 RGBA `Data3DTexture` encodes emissive clouds, absorbing dust,
+sapphire young regions, pink H II-like knots, and core warmth. Its shader maps those channels to
+warm-ivory integrated light, sapphire nurseries, an amber bar and nucleus, magenta H II accents, and
+near-black dust. Its hierarchy emphasizes two continuous
+major arms and two narrower, fragmented secondary arms around an elongated warm bar. The white
+component represents integrated light from unresolved stars, not dust. Its low-density inter-arm
+pedestal is deliberately reduced, while higher-density arms, filaments, and clumps retain separated
+highlights and dark gaps. Leading-edge spiral rifts and paired bar lanes absorb enough light to remain
+nearly black instead of reading as another luminous cloud. One box mesh ray-marches that field in 8,
+16, or 32 bounded steps according to quality, producing real parallax and extinction without a
+close-range raster image. A bounded
+inclination compensation keeps the same density field legible from face-on, oblique, edge-on, and
+underside views: it gives the thick envelope priority at grazing angles rather than rotating or
+billboarding the galaxy, so
+the physically flattened silhouette still changes with the camera angle. The overview
+deliberately opens the 13-degree structural arm reference to a documented 22-degree visual pitch so
+the spiral remains legible at screen scale; this is a display adaptation, not a new measurement.
+One deterministic `BufferGeometry`, aligned to that adapted morphology, adds actual vertical depth
+through a single GPU point batch mixing the diffuse disc, bar, arm populations, and sparse colored
+stellar nurseries. The density field shapes its own warm central bar and vertical envelope without
+a separate halo mesh. Consequently, an orbiting or entering camera reads a barred spiral outside
+the disc and an enveloping stellar band inside it instead of magnified source pixels or a dominant
+spherical halo.
 
-Each disc shader also derives the projected camera direction in its local tangent frame and samples
-the atlas at three shallow depth offsets. The resulting view-dependent parallax is graded toward
-cool blue-white arms and a warm core, while local luminance differences carve absorptive dust lanes.
-A soft analytical glow is limited before ACES tone mapping, and the brightest core values are
-compressed locally to preserve texture detail. Quality profiles continuously scale parallax, dust,
-glow, color grading, texture anisotropy, and visible depth count; they never allocate an additional
-post-processing pass or mesh.
+Between the galactic overview and the stellar-neighborhood catalogue, the ray-marched box and the
+batched point field overlap through bounded opacity responses instead of switching at one viewing-angle
+threshold. Their visibility is calculated from the Galactic center, avoiding a false edge-on fade as
+the camera approaches. This residual footprint disappears continuously before Solar-System scale,
+where the 360-degree local Milky Way band becomes the relevant representation. It is a cinematic
+continuity treatment, not an observed change in Galactic surface brightness.
 
-The arm count follows the maser-parallax reconstruction of Reid et al. (2019), but the generated
-atlas, phase, width, bar orientation, colors, vertical thickness, and particle density remain visual
-adaptations. No arm geometry is parented to or generated from the Sun. The atlas loads from
-planetary through galactic scales. Once ready, grazing-angle mip filtering suppresses magnified
-source texels while a low-opacity deterministic point batch restores scale-stable stellar detail.
-A failed request leaves that same point model as a usable fallback.
+The camera-centred distant-star batch also keeps a restrained floor between 2,800 and 1,400 scene
+units, then yields continuously to the stellar-neighborhood reveal. Its sapphire, ivory, amber, and
+red point palette is an explicitly procedural, decorative proxy for unresolved spectral variety,
+not a catalogue or a measured local population. This closes the otherwise empty visual handoff
+without raising the diffuse density field or introducing another fog layer. The backdrop point cores
+and Galactic detail receive separate luminance gains; morphology, broad-disc, entry-shell, and
+near-passage points rise progressively in exposure while the ray-marched density and black inter-star
+field retain their previous levels.
 
-The exact HYG batch and its spatial aggregates remain searchable and focusable but are not drawn in
-the galactic view. Their labels and constellation overlays are hidden there as well. This prevents
-the catalogue's finite heliocentric selection volume from appearing as a physical spherical
-overdensity. The layered detail and its distant impostor still cross-fade from camera distance.
+The edge-on silhouette deliberately separates two vertical scales. The local stellar sample keeps
+the 1,100-unit containment thickness used by the transition model, while the ray-marched visual
+envelope spans 4,200 authoring units and carries a broader low-density component. Its inclination
+compensation keeps that volume, rather than a razor-thin additive line, responsible for the profile.
+This explicit illustrative exaggeration improves immersion from arbitrary camera angles; it does not
+change the 100,000-light-year diameter, stored stellar positions, or any intergalactic distance.
+
+The camera follows that same continuity contract. From the 4,800-unit pre-entry framing to the
+1,400-unit stellar-neighbourhood framing, its orbit pivot moves on a quintic smootherstep of
+logarithmic distance from the Galactic center to the Sun while the camera receives the identical
+translation. A view-elevation choreography remains active through the 17,000-to-520 corridor: it
+opens the external disc, reaches the Galactic overview angle at 3,600 units, then dives toward the
+plane. View direction and zoom distance therefore remain continuous, and the Milky Way stays the
+displayed navigation context until the Sun is reached. The wheel-rate multiplier remains exactly
+`1` throughout, including wheel hits on the Galactic mesh; perceived travel comes from the enlarged
+illustrative envelope and static parallax tracers, not a slowed camera. Parent hierarchy changes in
+that corridor do not start the generic 320 ms reference-frame camera animation. The reverse gesture
+evaluates the same path in the opposite direction.
+
+No raster galaxy atlas participates in the external view. The ray-marched volume and batched stellar
+detail share one 11,400-unit authoring domain. The canonical conversion of the
+documented 100,000-light-year diameter remains about 2,759 scene units in the Galactic frame and 307
+in the Local Group frame. For navigation readability, the explicitly illustrative luminous envelope
+reaches a diameter of about 11,038 scene units (a 5,519-unit radius) at the 3,600-unit entry point, a
+`4×` enlargement over the canonical diameter. Its curve uses the complete logarithmic approach
+instead of reaching the endpoint early: the distant silhouette stays compact, while the larger close
+envelope gives the interior passage more visual distance. Galactic coordinates, catalogue placement,
+picking, map scale, camera distance, and wheel response remain canonical. The close density field
+costs one box mesh at every quality, and the stellar volume remains one batched `Points` object.
+To prevent the interior from reading as uniform dust, the external ray-marched opacity now fades
+over the 4,000-to-260-unit approach. A much lighter illustrative continuity veil peaks at `0.16`
+around 520 units, falls to zero at 1,800 units, and retains a `0.0736` floor below 5 units only while
+the Galactic or stellar semantic layer remains active. The batched detail likewise retains a
+`0.4032` opacity floor below 70 units. Between 3,600 and 1,750 units, soft morphology particles are
+progressively suppressed; close-range clarity reinforces crisp morphology while keeping its softest
+cloud particles at a lower contribution. Broad-disc, entry-shell, and near-passage tracers remain
+almost invisible at long range, then resolve across distinct depth planes inside 1,100, 2,300, and
+420 units from the camera, respectively. Near-passage tracers use short, motion-gated radial trails only
+while the camera distance changes; the trail vanishes at rest. Their sprite core is deliberately
+sharper than the surrounding cloud particles. This visual clarity treatment changes neither particle
+positions nor the camera trajectory. The density field applies the same semantic distinction: white
+is illustrative unresolved stellar light, its inter-arm floor is suppressed, and dark separation is
+preserved between structured highlights. Quality profiles continuously scale ray-march steps, dust
+absorption, emissive brightness, and the 60,000/140,000/280,000 total Galactic-detail draw range. Of
+those entries, 30,000/70,000/140,000 retain the previous morphology distribution. No profile allocates
+a post-processing pass or one Three.js object per star.
+
+The arm count follows the maser-parallax reconstruction of Reid et al. (2019). The visual hierarchy
+also takes inspiration from NASA/JPL's [two-major-arm Milky Way overview](https://science.nasa.gov/resource/the-milky-way-galaxy/)
+and the [VISTA-informed central-bulge impression](https://www.eso.org/public/images/eso1339g/).
+The cool young populations, warm old bar, pink star-forming clouds, and dark dust rifts follow the
+visual grammar visible in Hubble's [barred spiral NGC 1300](https://science.nasa.gov/asset/hubble/spiral-galaxy-ngc-1300/).
+These are visual references only: phase, width, fragmentation, bar orientation, colors, vertical
+thickness, dust, and particle density remain illustrative adaptations. No arm geometry is parented
+to or generated from the Sun. The observed local-sky panorama still loads during prewarming, but
+its readiness cannot change the external procedural representation.
+
+The exact HYG batch remains searchable and focusable but is not drawn in the galactic view. Its
+labels and constellation overlays are hidden there as well. Gaia measured samples are restricted to
+the stellar-neighborhood overview and have no individual search or focus identity. Calculated root
+aggregates replace them at galactic scale and fade to a low-opacity bridge through the Local Group.
+That bridge converts the catalogue's documented 5 kpc query radius from the readable logarithmic
+stellar projection into the same linear kiloparsec metric as the 100,000-light-year Galactic disc.
+Its origin follows the Sun continuously at `R0 = 8.178 kpc`, while an explicitly illustrative
+vertical morph fits the aggregate inside the procedural disc thickness. For map readability, its
+galactic-overview root uses a documented contextual scale of `0.085`: the complete local selection
+therefore spans less than 11% of the illustrative luminous envelope at the 3,600-unit entry point.
+Its opacity and spatial deployment then progress together from 3,600 to 700 units, so the local
+stars expand continuously into the readable stellar projection while the camera crosses the
+procedural disc. The scene catalogue and object registry copy this
+reference-frame transform exactly; only their purely presentational opacity is damped. This
+contextual root transform does not alter the stored Gaia positions or inflate the physical Galactic
+diameter.
 
 ### Black-hole layer
 
@@ -360,7 +460,9 @@ catalogued apparent axis ratio. Low, medium, and high quality allocate 360, 900,
 without creating individual stellar scene objects. The disk also fades while the camera enters its
 adapted radius, preventing the former full-screen translucent rectangle. This is a navigation and
 appearance model rather than a resolved observation: object positions and catalogue metadata retain
-their source confidence, while morphology, orientation, particle placement, and scale remain
+their source confidence. A documented `diameterLy` is converted linearly in the object's reference
+frame; the legacy visual radius remains only as a fallback for entries without a published diameter,
+while morphology, orientation, particle placement, luminosity, and minimum screen size remain
 illustrative.
 
 ### Nearby-Universe tile layer
@@ -595,7 +697,7 @@ and selection lines reproduce the complete published spine. Axis brightness is i
 three published metrics; the halo is tagged `illustrative`, and its width is not a physical filament
 diameter.
 
-## HYG stellar catalogue
+## Stellar catalogues: exact HYG entries and the Gaia hierarchy
 
 The dense observed field comes from
 [HYG Database v4.1](https://github.com/astronexus/HYG-Database), licensed under
@@ -609,13 +711,13 @@ compact string table preserves display names, alternate designations, and spectr
 browser parser validates the signature, version, dimensions, frame, values, UTF-8 strings, and
 magnitude order before exposing typed arrays to rendering.
 
-All dense stars share one `THREE.Points` and one `BufferGeometry`. The 10,000 entries remain
+All exact HYG stars share one `THREE.Points` and one `BufferGeometry`. The 10,000 entries remain
 available to search and focus at every scale and graphics quality. Their exact compressed points,
-aggregate cells, constellation lines, and stellar labels are all hidden from the Milky Way scale
-onward to avoid collapsing the local catalogue into an artificial bright sphere. Coordinates and
-magnitudes are observed data; distance compression, screen size, and the visual B−V conversion
-remain rendering adaptations. Each point uses its magnitude to derive a perceptual GPU footprint
-and opacity. Per-vertex profile, cell-scale, contrast, corona, spot, and deterministic-seed
+constellation lines, and stellar labels are hidden from the Milky Way scale onward to avoid
+collapsing the local catalogue into an artificial bright sphere. Coordinates and magnitudes are
+observed data; distance compression, screen size, and the visual B−V conversion remain rendering
+adaptations. Each point uses its magnitude to derive a perceptual GPU footprint and opacity.
+Per-vertex profile, cell-scale, contrast, corona, spot, and deterministic-seed
 attributes let the same fragment shader reveal a procedural photosphere whenever a point becomes
 large enough on screen. It combines that surface with a Moffat-like point-spread profile, a
 temperature-colored envelope, a near-white emissive core, a restrained Airy ring, and diffraction
@@ -645,12 +747,16 @@ derived from the central 60 degrees of ESO/S. Brunier's observed 6000×3000 full
 shader presents it across 32 degrees of latitude, which keeps the panorama distant while retaining
 enough off-plane context for the Solar System overview. Linear mipmap-free sampling avoids excess
 upload memory, and a feathered angular window hides the crop boundary without a second texture. The
-Galactic Center is fixed to local scene direction `[-1, 0, 0]`; it never follows the camera. A
-−32-degree pitch and −6.5-degree roll create the default diagonal map composition. These two angles
-are explicitly tagged `illustrative`, rather than being described as an astrometric sky orientation.
-The sphere is visible at planetary distance, then
-cross-fades with the external galaxy between 2,800 and 7,200 adapted zoom units. A second
-heliocentric locality fade runs from 2,400 to 7,200 adapted units measured between the camera and
+Galactic Center is fixed to local scene direction `[-1, 0, 0]`; it never follows the camera. The
+panorama source already places the Galactic plane on its horizontal axis. The sphere therefore
+keeps its identity rotation in the engine's heliocentric Galactic basis: its equator lies on scene
+`Y = 0`, its north pole follows scene `+Y`, and its center longitude follows scene `-X`, exactly like
+the external procedural disc. Its apparent screen angle is produced only by the camera viewpoint,
+not by a decorative pitch or roll. The sphere is absent from the external view, then fades in over
+a deliberately long logarithmic 2,600-to-520-unit interval. Its low-opacity beginning overlaps the
+aligned external disc without forming a second plane, while the stellar catalogue follows its
+coextensive 3,600-to-700-unit expansion. A second
+heliocentric locality fade runs from 1,400 to 2,600 adapted units measured between the camera and
 the Solar-neighborhood origin. It therefore removes the Earth-observed panorama when the camera
 focuses a remote galaxy at close range instead of letting that local sky follow the target. A flat ecliptic shader
 approximates zodiacal dust scattering, and a procedurally generated sprite supplies the
@@ -668,22 +774,74 @@ swapping a black clear color at an LOD boundary. The shader is one opaque two-tr
 quality-dependent fine detail, and is explicitly tagged `illustrative`; its wisps and rifts are
 atmosphere, not catalogued astronomical structures.
 
-The manifest also declares a prepared stellar spatial source. Its static index describes 26 root
-nodes bounded by 640-parsec cubes and 85 child nodes bounded by 320-parsec cubes; the generated
-dataset contains 160/40-parsec calculated aggregates in 34 request packs. The source descriptor and
-selection/cache implementation are retained as groundwork for a future catalogue denser than HYG.
+The manifest also declares a Gaia Data Release 3 spatial source derived from
+`gaiadr3.gaia_source_lite`. Its 2,923,790 input rows satisfy `parallax >= 0.2 mas`,
+`parallax_over_error >= 10`, `phot_g_mean_mag <= 12`, and a non-null BP−RP colour. Positions use the
+Gaia ICRS reference epoch J2016.0 (`JD 2457388.5`), inverse parallax provides the input distance, and
+the query is bounded to 5 kpc. These criteria deliberately favour bright sources with reliable
+positive parallaxes; the result is neither volume-complete nor a census of all stars within 5 kpc.
+The Gaia layer is therefore a sourced local-light distribution, not an exhaustive stellar map.
 
-The current product configuration intentionally disables synchronization of that source. Both LOD
-representations had become fully transparent after the external Milky Way atlas replaced the old
-artificial stellar sphere, so requesting and parsing their packs only produced invisible CPU and GPU
-work. No `/data/stars/tiles/` request, aggregate geometry, or cross-fade batch is now created during
-navigation. The exact 10,000-entry HYG batch, labels, constellations, search coordinates, and the
-volumetric Milky Way remain unchanged.
+The static two-depth hierarchy contains 127 root nodes bounded by 2,048-parsec cubes and 3,837 child
+nodes bounded by 512-parsec cubes. Root tiles aggregate into 512-parsec cells. Each child retains at
+most 96 real Gaia sources: its 32 brightest entries plus up to 64 entries ranked by a stable
+`source_id` hash. This bounded, input-order-independent rule yields 133,526 measured samples, while
+135 request packs keep the complete deployed snapshot near 18 MiB. The index, parent/child
+relations, pack metadata, representations, sampling contract, and counts are validated before scene
+installation.
+Navigation LODs 2 through 4 activate synchronization. The hierarchy itself uses tile LOD 4 for root
+overviews and tile LOD 3 for child detail. In the stellar neighborhood, frustum culling retains
+visible roots, then screen diameter and graphics quality refine at most 2, 4, or 8 roots. The Milky
+Way and Local Group retain only visible root aggregates; their opacity decreases continuously across
+the documented 3,600–17,000 scene-unit galactic transition. The 3,600-unit Milky Way framing keeps
+the documented 100,000-light-year diameter at approximately 42° in the canonical reference frame,
+while its explicitly illustrative luminous envelope reaches approximately 114°. Its 5,519-unit
+visual radius therefore already surrounds the camera at that Galactic waypoint, leaving a
+substantial interior crossing before the Solar arrival. This immersive enlargement is a navigation
+treatment, not a change to the measured diameter, Galactic coordinates, or camera motion.
+The high-quality granular layer remains a single `THREE.Points` batch with 280,000 entries: 140,000
+retain the barred-spiral morphology distribution, 28,000 are deterministic illustrative tracers
+spread through the broad thick disc, 56,000 form a curved rotationally symmetric entry shell, and
+56,000 form a narrower near-passage core. Each quality prefix contains a complete jittered
+radius-by-azimuth lattice for that core, calibrated to the reversible Galactic entry-height profile;
+low and medium quality therefore retain full route coverage rather than inheriting random holes.
+Groups of five morphology samples, one broad-disc tracer, two entry-shell tracers, and two
+near-passage tracers preserve the prior morphology density at every quality level while sustaining
+several readable depth planes. All tracers are static in the galactocentric frame. A bounded
+distance-aware point-size and opacity treatment suppresses distant tracers and reveals rarer,
+sharper stars only near the camera. The closest plane adds a short radial sprite trail while camera
+distance is changing and returns to a round point at rest. The soft morphology population
+simultaneously recedes through the interior, preventing the batch from becoming a uniform dusty
+grain. The tracers receive no independent particle animation: their sweep is the perspective cue
+produced while the camera crosses the continuously scaled illustrative Galactic frame. They are not
+catalogued individual stars, and the Galactic approach keeps its unit camera-rate multiplier. Ordinary Local
+Group galaxy annotations fade from full opacity at 7,000 units to zero at 5,000 units; the active
+target remains readable, and astronomical visibility is unchanged.
+From 3,600 to 420 units, the 5-kpc Gaia neighborhood unfolds smoothly from its compact Galactic
+context into the readable stellar reference frame. The camera pivot reaches the Sun at 1,400 units,
+then measured Gaia detail appears progressively from 1,100 to 520 units. Entering the nearby Universe
+clears the active set. No Gaia request is made in the planetarium, planetary or Solar-System close
+views.
 
-The preparation script computes arithmetic position centroids, summed-flux apparent magnitudes, and
-flux-weighted B−V indices while verifying that all 10,000 source entries remain represented. The
-derived cells carry `calculated` confidence and `illustrative-aggregation` visual semantics; they do
-not alter exact search results, labels, selection, or focused-star coordinates.
+Index and pack requests use module Workers when available. JSON validation and conversion to typed
+arrays happen off the main thread, and the five buffers of every tile are transferred without
+copying. The main-thread loader is retained as a capability fallback. Parsed packs use a bounded
+24-pack least-recently-used cache. A changed visible selection creates one aggregate root and, when
+refined, one sampled-source `THREE.Points` representation. At most one outgoing representation is
+retained alongside the active set; cross-scale transitions prefer the outgoing representation of a
+different type, then dispose its geometry and material after the fade. The implementation never
+creates a Three.js object per Gaia source.
+
+The preparation script streams the partitioned CSV source instead of retaining millions of rows in
+memory. It computes arithmetic ICRS position centroids, summed-flux Gaia G apparent magnitudes, and
+G-flux-weighted BP−RP indices for root aggregates while retaining exact catalogue position and
+photometry for sampled child sources. It also verifies source order, partition boundaries, SHA-256
+hashes, the global count, and sampling determinism. Per-sample density weights account for sources
+not retained in the bounded leaf without changing the sample position. The BP−RP colour palette is
+preserved in each core, while a restrained cool halo distinguishes the catalogue from HYG and the
+procedural background. Point footprint, halo tint, density weighting, and opacity remain visual
+adaptations. Gaia runtime points have no individual identity, label, selection, time propagation, or
+focus action and never alter the exact HYG search results or featured-star coordinates.
 
 Catalogue point sizes increase smoothly toward closer LODs while preserving magnitude ordering.
 Selecting or targeting one HYG entry repositions a single reusable detail group: it begins as a
@@ -722,10 +880,12 @@ npm run data:stars
 ```
 
 Detailed provenance and import instructions are stored in
-`client/public/data/stars/hyg-v41.meta.json` and `client/data-sources/README.md`. A binary-catalogue
-error does not prevent startup: the engine reports a degraded state and preserves the other named
-objects and procedural background. Catalogue-linked featured stars and constellations remain
-unavailable because their scientific positions deliberately share that binary source.
+`client/public/data/stars/hyg-v41.meta.json`, `client/data-sources/README.md`, and
+`client/data-sources/gaia-dr3/README.md`. A binary-catalogue error does not prevent startup: the
+engine reports a degraded state and preserves the other named objects and procedural background.
+Catalogue-linked featured stars and constellations remain unavailable because their scientific
+positions deliberately share that binary source. A Gaia index or pack failure only removes the
+optional hierarchical background and does not affect HYG search, focus, or constellations.
 
 ### Constellation line layer
 
@@ -979,12 +1139,16 @@ Moon altitude, and target–Moon separation to identify a convenient window. Its
 previewed target, sets the shared simulation time, and recentres the existing camera on the sampled
 target coordinates. A compact astronomical comparison reuses the identical noon-to-noon calculation
 for seven consecutive nights. Each card exposes the interpolated best window, refined best instant,
-maximum altitude, and lunar interference; selecting it commits that night's refined instant through
-the same target, time, and camera action. The calculation runs only while the panel is open; its
-samples are reused until the local solar date, target, location, or terrain changes. Current-list suggestions remain geometric and
-the convenience index is not a visibility forecast: live weather, atmospheric transparency, light
-pollution, and unsurveyed local obstacles are outside the model. The view is not a historical
-reconstruction, a weather service, or a professional observation-planning tool.
+maximum altitude, lunar interference, and a comparable illustrative index out of 100. The strongest
+raw index is selected automatically, with the earlier local night breaking an exact tie. Its summary
+shows the sampled target altitude, Sun altitude, lunar interference, and calculated terrain or
+geometric-horizon clearance. Either the summary action or an individual card commits that night's
+refined instant through the same target, time, and camera action. The calculation runs only while the
+panel is open; its samples are reused until the local solar date, target, location, or terrain changes.
+Current-list suggestions remain geometric and the convenience index is not a visibility forecast:
+live weather, atmospheric transparency, light pollution, and unsurveyed local obstacles are outside
+the model. The view is not a historical reconstruction, a weather service, or a professional
+observation-planning tool.
 
 ## Eclipse model
 
@@ -1037,15 +1201,23 @@ Contact labels follow the local-circumstances definitions documented by
   geometry, and low quality omits the innermost emission layer;
 - Milky Way particles retain a bounded screen-space size even when the camera enters the disc;
 - one galactocentric point batch combines the diffuse disc, central bar, and four illustrative
-  logarithmic arm families without creating Solar-centered geometry;
-- one deferred 1254-pixel emission atlas spans up to three offset galactic planes plus one shaded
-  ellipsoidal bulge, producing bounded parallax with two to four meshes according to quality;
-- camera distance drives the detail, scale, and galaxy-impostor weights across the complete Milky
-  Way-to-Local Group interval, while time damping removes visible opacity or scale jumps;
+  logarithmic arm families without creating Solar-centered geometry, drawing 6,000, 14,000, or
+  28,000 particles according to quality;
+- one analytic texture-free spiral surface supplies photographic face-on structure, granular
+  stellar knots, and broken dust lanes at arbitrary display resolution; a complementary
+  ray-marched density volume supplies central thickness and oblique depth, with fewer samples and
+  lower opacity face-on;
+- the external Milky Way uses no raster atlas or duplicate impostor; its invisible picking proxy
+  follows the same physical diameter without contributing color;
+- camera distance drives detail opacity and the continuous 90-to-10 scene-units-per-kiloparsec
+  conversion across the complete Milky Way-to-Local Group interval;
 - all 10,000 observed HYG stars persist in one GPU batch while remaining available to search and
   focus, but exact points, constellation lines, and labels stop before galactic scale;
-- the dormant stellar aggregate source is not synchronized by the production runtime, preventing
-  invisible pack requests, parsing, sorting, and GPU point-batch allocation;
+- 2,923,790 quality-filtered Gaia DR3 sources contribute 133,526 measured-source samples in the
+  stellar-neighborhood overview and visible 512-parsec aggregates through the Local Group; bounded
+  refinement, a 24-pack parsed cache, Worker decoding, transferable typed arrays, at most two active
+  point batches plus one outgoing fade batch, and a logarithmic local-to-galactic scale blend prevent
+  per-source scene objects and a hard disappearance at galactic boundaries;
 - all 644 constellation links share one optional, LOD-faded base batch plus one reusable highlight
   batch;
 - one reusable GPU marker, adaptive halo, and close-range volume materialize the active HYG entry;
@@ -1151,10 +1323,10 @@ Contact labels follow the local-circumstances definitions documented by
   repeats it. It checks geometry, texture, draw-call and garbage-collected JavaScript heap drift
   against bounded budgets. The initial two-cycle desktop/high baseline remained at 90 geometries,
   18 textures and 35 draw calls, with a 0.10 MiB heap drift;
-- Milky Way atlas and 8K local-panorama requests begin during initial scene prewarming. Initial
-  scene materials are compiled before the map becomes interactive, while the two texture uploads
-  continue through a non-blocking GPU prewarm. Loading failure keeps the procedural fallback
-  instead of preventing startup;
+- Milky Way distant-atlas and 8K local-panorama requests begin during initial scene prewarming.
+  Initial procedural materials are compiled before the map becomes interactive, while the two
+  texture uploads continue through a non-blocking GPU prewarm. Loading failure keeps the complete
+  close procedural galaxy and removes only the distant photographic blend;
 - `npm run benchmark:frames` records every animation-frame interval over an Earth → Milky Way →
   nearby universe → cosmic web → Earth journey, reports p95, p99, maximum and long-frame ratio, and
   isolates regressions by transition phase. It begins only once the map controls are interactive,
@@ -1492,20 +1664,24 @@ observed with Node 24 on macOS. This does not affect generated application outpu
 - eclipses and occultations outside Earth's frame are not catalogued;
 - HYG stellar positions apply bounded uniform rectilinear space motion from J2000 velocities, but do
   not model parallax, Galactic acceleration, unresolved binary motion, or catalogue-uncertainty
-  growth; dates beyond ±10,000 Julian years clamp to the nearest model boundary, while the prepared
-  aggregate star tiles remain calculated J2000 representations;
+  growth; dates beyond ±10,000 Julian years clamp to the nearest model boundary. Gaia aggregates
+  and measured samples remain static J2016.0 representations: they do not apply source-level proper
+  motion and must not be interpreted as precise individual positions at the selected date;
 - the exoplanet layer is a complete static `PSCompPars` snapshot for 2026-08-05, not a live mirror;
   it must be regenerated to reflect later NASA additions or revisions, and 27 hosts without a
   published distance use a clearly identified 1,000 pc illustrative map depth;
 - exoplanet periods and semi-major axes are catalogue-backed, but displayed orbital phases,
   orientation, separation, illumination, and procedural surfaces are illustrative; the map does not
   reconstruct transit epochs, true anomalies, weather, or observed planetary surfaces;
-- the Milky Way is a hybrid illustrative reconstruction combining a generated emission atlas with
-  procedural geometry; it is not an external observation of our Galaxy;
+- the Milky Way is an illustrative procedural reconstruction rather than an external observation;
+  its 100,000-light-year diameter is catalogue-backed, but its arm shape, dust, color, and stellar
+  density are not;
 - black-hole silhouettes, lensing cues, accretion emission, and jets are illustrative and strongly
   enlarged; the local framebuffer distortion is an artistic radial approximation, and the
   prototype does not perform relativistic ray tracing;
-- galaxy positions are static at their reference epoch, with strongly adapted visual dimensions;
+- galaxy positions are static at their reference epoch; documented major-galaxy diameters are
+  linear in their declared reference frame, while morphology, luminosity, minimum screen size, and
+  the fallback dimensions of undocumented dwarfs remain adapted;
 - the nearby-Universe layer is dense only within the 1.5–11 Mpc Local Volume selection; Virgo remains
   a five-object editorial extension;
 - the Cosmicflows-4 layer contains calculated group distances rather than every galaxy; its point

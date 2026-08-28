@@ -5,7 +5,7 @@ description: Scopri ciò che Universe Map ha già rilasciato, le priorità attua
 
 # Roadmap
 
-_Ultima revisione: 28 agosto 2026._
+_Ultima revisione: 3 settembre 2026._
 
 Questa pagina è la roadmap pubblica di riferimento di Universe Map. Descrive risultati e criteri di
 verifica invece di promettere date. Accuratezza scientifica, navigazione leggibile, tempi di frame
@@ -34,9 +34,10 @@ stabili e architettura completamente statica nel browser vincolano ogni sviluppo
   finestra migliore esplicitamente illustrativo e un’azione che sposta insieme tempo e camera. Il
   bersaglio della curva può essere sostituito dallo stesso catalogo locale senza muovere il cielo
   corrente; solo quell’azione conferma bersaglio, tempo condiviso e camera. Un confronto compatto
-  applica lo stesso calcolo a sette notti consecutive; sceglierne una porta direttamente al suo miglior
-  istante, raffinato localmente a cinque minuti. Meteo in tempo reale, inquinamento luminoso e ostacoli
-  locali non rilevati restano fuori dal modello.
+  applica lo stesso calcolo a sette notti consecutive. Evidenzia automaticamente la migliore con un
+  indice illustrativo comparabile su 100 e mostra altezza, oscurità, luce lunare e margine dal rilievo
+  prima dell’azione diretta verso l’istante migliore, raffinato localmente a cinque minuti. Meteo in
+  tempo reale, inquinamento luminoso e ostacoli locali non rilevati restano fuori dal modello.
 - Ogni luogo fisso del catalogo dispone di un profilo di ostruzione a 360° calcolato dal prodotto
   autorevole di rilievo superficiale NOAA/NCEI ETOPO 2022 v1 a 60 secondi d’arco. I profili compatti
   vengono caricati su richiesta e possono nascondere stelle, Luna, pianeti e satelliti dietro il terreno
@@ -50,7 +51,43 @@ stabili e architettura completamente statica nel browser vincolano ogni sviluppo
   o subito quando sono il bersaglio, per evitare sovrapposizioni nel grandangolo; la soglia minima di
   leggibilità resta esplicitamente illustrativa.
 - Stelle e Via Lattea acquisiscono dettaglio in modo continuo durante lo zoom. La navigazione elimina
-  anche bersagli e selezioni quando il loro contesto visivo scompare.
+  anche bersagli e selezioni quando il loro contesto visivo scompare. Entrando nella Galassia, il
+  perno della camera avanza continuamente dal centro galattico al Sole mentre volume esterno,
+  catalogo stellare e fascia panoramica locale sfumano senza un taglio di sistema di riferimento.
+- La calibrazione strutturale della Via Lattea separa ora la metrica fisica e spaziale canonica
+  dall’inviluppo luminoso esplicitamente illustrativo. All’ingresso galattico, l’inviluppo raggiunge
+  quattro volte il diametro canonico e cresce per l’intero avvicinamento logaritmico, senza cambiare
+  distanze della camera, risposta della rotellina, picking o posizioni dei cataloghi. Per rendere
+  percepibile l’attraversamento senza rallentare la camera, la stessa nuvola di punti raggruppata
+  include 140.000 traccianti deterministici e illustrativi: 28.000 restano distribuiti nel disco spesso
+  galattocentrico, 56.000 formano un inviluppo d’ingresso curvo e simmetrico attorno all’asse galattico
+  e 56.000 compongono un nucleo più stretto per i passaggi ravvicinati. Ogni livello di qualità copre
+  l’intero raggio e tutti gli azimut del nucleo, evitando tratti vuoti lungo il percorso. Tutte le
+  posizioni restano statiche; solo gli sprite più vicini si allungano brevemente mentre cambia la
+  distanza della camera e tornano rotondi quando questa si ferma. Il loro scorrimento apparente deriva
+  dalla traslazione e dalla prospettiva della camera, non da un moto indipendente delle particelle. Durante l’attraversamento, il velo
+  volumetrico e le particelle morfologiche morbide ora arretrano prima dei traccianti lontani, lasciando
+  stelle di prossimità più rare e nitide invece di una grana polverosa uniforme. Le etichette delle
+  galassie del Gruppo Locale svaniscono prima dell’attraversamento denso, mentre il bersaglio attivo
+  resta leggibile. I traccianti non sono singole stelle catalogate. La componente bianca del volume è
+  ora trattata esplicitamente come luce integrata illustrativa di stelle non risolte, non come polvere:
+  il fondo continuo tra i bracci è ridotto, mentre bracci, filamenti e ammassi mantengono luci separate
+  da intervalli scuri. La fase cromatica successiva separa ora la luce integrata avorio caldo, le stelle
+  giovani color zaffiro, il nucleo ambrato, rari accenti H II magenta e la polvere quasi nera. Un fondo
+  contenuto di stelle puntiformi zaffiro, avorio, ambra e rosse colma inoltre il passaggio tra 1.400 e
+  2.800 unità senza ripristinare un velo di polvere diffuso. Questa popolazione resta esplicitamente
+  procedurale e decorativa, non un insieme di sorgenti catalogate singolarmente. Un passaggio di
+  luminanza ponderato sulla profondità aumenta ora i nuclei delle stelle puntiformi, soprattutto per i
+  traccianti di passaggio ravvicinato, senza schiarire il velo volumetrico né il nero tra le stelle.
+- Una gerarchia Gaia DR3 rappresenta 2.923.790 sorgenti filtrate per qualità mediante aggregati
+  calcolati lontani da 512 pc e 133.526 campioni di sorgenti misurate per la panoramica del vicinato
+  stellare. Ogni foglia raffinata da 512 pc conserva le 32 sorgenti più luminose e una selezione
+  uniforme deterministica, fino a 96 punti. Il raffinamento limitato da visibilità e qualità carica
+  solo i rami utili, li valida in Worker modulo, trasferisce array tipizzati senza copie e non crea
+  mai un oggetto Three.js per sorgente. Ricerca esatta, nomi, selezione e messa a fuoco restano basati
+  su HYG; i campioni Gaia sono esplicitamente anonimi e incompleti. Allontanando lo zoom, i campioni
+  dettagliati sfumano nelle radici calcolate, che restano discretamente visibili fino al Gruppo
+  Locale, mentre il volume locale si fonde nel disco della Via Lattea con una scala logaritmica.
 - Le velocità cartesiane J2000 di HYG propagano ora il catalogo condiviso, il cielo dell’osservatore
   e le figure delle costellazioni, con affidabilità estrapolata esplicita e limite di ±10.000 anni
   giuliani.
@@ -105,6 +142,11 @@ stabili e architettura completamente statica nel browser vincolano ogni sviluppo
 
 ## Priorità attuali
 
+- Completare la calibrazione visiva della Via Lattea rispetto al passaggio di riferimento. Con le fasi
+  di chiarezza interna, separazione della luce integrata, palette cromatica e raccordo stellare già in
+  opera, la successiva regolerà il contrasto strutturale delle bande di polvere e del nucleo prima di
+  verificare tutti e tre i profili di qualità e i benchmark di rendering. Le distanze fisiche canoniche
+  resteranno invariate.
 - Conservare il manifesto simulato pulito riuscito 10/10 come baseline di regressione e ripetere la
   campagna dopo modifiche sostanziali al rendering o ai cataloghi. Le prove attuali non giustificano
   né un percorso di precompilazione degli shader più pesante né un fallback meno fedele; la
@@ -117,9 +159,6 @@ solare per le stelle HYG e i sistemi esoplanetari documentati.
 
 ## Rinviato deliberatamente
 
-- La gerarchia stellare aggregata preparata resta inattiva finché un catalogo più denso non richiede
-  una rappresentazione visibile tra le scale. L’attivazione dovrà spostare la preparazione in un Web
-  Worker ed evitare lavoro invisibile di rete o GPU.
 - Nuove sagome o mesh di corpi irregolari saranno aggiunte solo quando un modello di forma autorevole
   giustificherà download, decodifica, attribuzione e costo di rendering.
 

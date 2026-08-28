@@ -20,4 +20,15 @@ describe('CoordinateSystem.writeRenderPosition', () => {
 
     expect(target).toEqual(new Float32Array(3));
   });
+
+  it('conserve linéairement les 8,178 kpc du Soleil dans le disque galactique', () => {
+    const coordinates = new CoordinateSystem();
+    const sun = coordinates.toRenderPosition([8.178, 0, 0], 'kiloparsec', 'galactic');
+
+    // GRAVITY Collaboration 2019, A&A 625:L10: R0 = 8.178 kpc.
+    expect(sun.x).toBeCloseTo(736.02, 8);
+    expect(sun.y).toBe(0);
+    expect(sun.z).toBe(0);
+    expect(sun.x).toBeLessThan(coordinates.toSceneDistance(50_000, 'light-year', 'galactic'));
+  });
 });

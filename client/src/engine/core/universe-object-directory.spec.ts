@@ -53,7 +53,7 @@ describe('UniverseObjectDirectory', () => {
       'constellation',
       'catalog-label',
     ]);
-    expect(harness.catalog.getLabelObjects).toHaveBeenCalledWith(expect.any(Array), 4_500, 12, 108);
+    expect(harness.catalog.getLabelObjects).toHaveBeenCalledWith(expect.any(Array), 3_600, 12, 108);
   });
 
   it('construit les données de recherche sans dupliquer les objets déjà chargés', () => {

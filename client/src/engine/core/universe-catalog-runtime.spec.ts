@@ -76,7 +76,7 @@ describe('UniverseCatalogRuntime', () => {
       starTileSource: {
         id: 'stellar-tiles',
         url: '/data/stars/index.json',
-        starCatalogId: 'hyg-v41-bright-stars',
+        sourceCatalogId: 'gaia-dr3-bright-high-confidence',
       },
       tempelFilamentSpineSource: {
         id: 'tempel-spines',

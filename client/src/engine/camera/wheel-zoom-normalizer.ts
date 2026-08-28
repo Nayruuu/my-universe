@@ -16,11 +16,17 @@ export interface WheelZoomInputMetadata {
   readonly rawDeltaY: number;
   readonly deltaMode: number;
   readonly continuesWheelAnchor?: boolean;
+  readonly continuesWheelGesture?: boolean;
 }
 
 export class WheelZoomNormalizer {
   private lastDirection: -1 | 1 | null = null;
   private lastTimestamp = Number.NEGATIVE_INFINITY;
+  private lastInputContinuesGesture = false;
+
+  public get continuesGesture(): boolean {
+    return this.lastInputContinuesGesture;
+  }
 
   public normalize(
     rawDeltaY: number,
@@ -28,6 +34,7 @@ export class WheelZoomNormalizer {
     timestamp: number,
     viewportHeight: number,
   ): number {
+    this.lastInputContinuesGesture = false;
     if (!Number.isFinite(rawDeltaY) || rawDeltaY === 0) {
       return 0;
     }
@@ -48,6 +55,7 @@ export class WheelZoomNormalizer {
 
     this.lastDirection = direction;
     this.lastTimestamp = timestamp;
+    this.lastInputContinuesGesture = continuesGesture;
 
     return softLimitWheelDelta(pixelDelta, maximumDelta);
   }
@@ -55,6 +63,7 @@ export class WheelZoomNormalizer {
   public reset(): void {
     this.lastDirection = null;
     this.lastTimestamp = Number.NEGATIVE_INFINITY;
+    this.lastInputContinuesGesture = false;
   }
 }
 

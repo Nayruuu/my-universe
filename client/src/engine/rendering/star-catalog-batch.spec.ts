@@ -1,5 +1,9 @@
 import * as THREE from 'three';
 import { CoordinateSystem } from '../coordinates/coordinate-system';
+import {
+  STELLAR_NEIGHBORHOOD_REVEAL_END,
+  STELLAR_NEIGHBORHOOD_REVEAL_START,
+} from '../coordinates/stellar-neighborhood-scale-model';
 import { StarCatalog } from '../loaders/star-catalog';
 import { colorIndexToRgb } from '../materials/star-color';
 import { CATALOG_STAR_VISUAL_RADIUS, StarCatalogRegistry } from '../objects/star-catalog-registry';
@@ -33,6 +37,7 @@ describe('StarCatalogBatch', () => {
 
     batch.setDrawLimit(2_000);
     batch.setPixelRatio(1.5);
+    batch.updateLod(1, 1);
     batch.updateLod(2, 1);
 
     expect(batch.points.geometry.drawRange.count).toBe(2_000);
@@ -86,6 +91,41 @@ describe('StarCatalogBatch', () => {
 
     batch.select('hyg-6000');
     expect(batch.activeDetail.visible).toBe(true);
+    batch.dispose();
+  });
+
+  it('fait émerger le catalogue HYG à l’intérieur de la galaxie sans boule détachée', () => {
+    const batch = createBatch(6_000);
+
+    batch.updateLod(2, 10, undefined, STELLAR_NEIGHBORHOOD_REVEAL_END);
+    expect(batch.visibleCount).toBe(0);
+    expect(batch.points.userData['stellarNeighborhoodReveal']).toBe(0);
+    expect(batch.isObjectVisibleForLabels('hyg-1')).toBe(false);
+
+    const transitionMiddle = Math.sqrt(
+      STELLAR_NEIGHBORHOOD_REVEAL_START * STELLAR_NEIGHBORHOOD_REVEAL_END,
+    );
+
+    batch.updateLod(2, 10, undefined, transitionMiddle);
+    expect(batch.visibleCount).toBe(6_000);
+    const stellarOpacity = batch.points.material.uniforms['catalogOpacity']!.value as number;
+    const stellarPointScale = batch.points.material.uniforms['pointScale']!.value as number;
+
+    expect(stellarOpacity).toBeGreaterThan(0);
+    expect(stellarOpacity).toBeLessThan(1);
+    expect(batch.isObjectVisibleForLabels('hyg-1')).toBe(true);
+
+    batch.updateLod(1, 10, undefined, transitionMiddle);
+    expect(batch.points.material.uniforms['catalogOpacity']!.value).toBeCloseTo(stellarOpacity, 5);
+    expect(batch.points.material.uniforms['pointScale']!.value).toBeCloseTo(stellarPointScale, 5);
+
+    batch.updateLod(3, 10, undefined, transitionMiddle);
+    expect(batch.points.material.uniforms['catalogOpacity']!.value).toBeCloseTo(stellarOpacity, 5);
+    expect(batch.points.material.uniforms['pointScale']!.value).toBeCloseTo(stellarPointScale, 5);
+
+    batch.updateLod(2, 10, undefined, STELLAR_NEIGHBORHOOD_REVEAL_START);
+    expect(batch.points.userData['stellarNeighborhoodReveal']).toBe(1);
+    expect(batch.points.material.uniforms['catalogOpacity']!.value).toBeCloseTo(0.82, 5);
     batch.dispose();
   });
 

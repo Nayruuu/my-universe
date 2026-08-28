@@ -196,9 +196,9 @@ Credit: ESO/S. Brunier.
 The runtime asset retains the central 60 degrees of source latitude, applies a restrained cinematic
 grade, and resamples it with a high-quality Lanczos filter before quality-95 WebP encoding. The
 sphere shader presents those pixels across a 32-degree angular band, feathers its edges, and keeps
-the Galactic Center fixed to local scene direction `[-1, 0, 0]`. The sphere is pitched and rolled so
-the band crosses the default Solar System map diagonally; that orientation is a disclosed
-illustrative composition, not an astrometric sky projection. Mipmaps are disabled because the sky is
-direction sampled at a stable apparent distance, avoiding additional GPU memory and upload work.
+the Galactic Center fixed to local scene direction `[-1, 0, 0]`. The source's horizontal Galactic
+plane remains on the sphere equator, aligned with scene `Y = 0`; the camera viewpoint alone
+determines its screen angle. Mipmaps are disabled because the sky is direction sampled at a stable
+apparent distance, avoiding additional GPU memory and upload work.
 The source pixels are observational, while the crop, grade, opacity, angular scale, and presentation
 remain `illustrative`.

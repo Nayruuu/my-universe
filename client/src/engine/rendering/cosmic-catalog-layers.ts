@@ -5,6 +5,8 @@ import {
   type TempelFilamentSceneInstallationMetrics,
 } from '../../data/models/universe.models';
 import { type CoordinateSystem } from '../coordinates/coordinate-system';
+import { IntergalacticFrameGroup } from '../coordinates/intergalactic-frame-group';
+import { type IntergalacticScale } from '../coordinates/intergalactic-scale-model';
 import { type CosmicWebVolume } from '../loaders/cosmic-web-volume';
 import { type TempelFilamentSpineCatalog } from '../loaders/tempel-filament-spine-catalog';
 import { type CosmicGroupCatalogRegistry } from '../objects/cosmic-group-catalog-registry';
@@ -29,8 +31,15 @@ export class CosmicCatalogLayers {
   private pixelRatio = 1;
   private photographicRadiance = 1;
   private cosmicMapLayers: CosmicMapLayers = DEFAULT_COSMIC_MAP_LAYERS;
+  private readonly intergalacticFrames: IntergalacticFrameGroup;
 
-  constructor(private readonly root: THREE.Group) {}
+  constructor(root: THREE.Group) {
+    this.intergalacticFrames = new IntergalacticFrameGroup(root, 'catalog-layers');
+  }
+
+  public get intergalacticScale(): IntergalacticScale {
+    return this.intergalacticFrames.currentScale;
+  }
 
   public setQuality(quality: GraphicQuality): void {
     this.quality = quality;
@@ -62,7 +71,7 @@ export class CosmicCatalogLayers {
     const { NearbyGalaxyOverviewBatch } = await import('./nearby-galaxy-overview-batch');
 
     this.nearbyGalaxyOverviewBatch = new NearbyGalaxyOverviewBatch(entries, coordinateSystem);
-    this.root.add(this.nearbyGalaxyOverviewBatch.points);
+    this.intergalacticFrames.nearbyUniverseRoot.add(this.nearbyGalaxyOverviewBatch.points);
     this.nearbyGalaxyOverviewBatch.setPixelRatio(this.pixelRatio);
     this.nearbyGalaxyOverviewBatch.setPhotographicRadiance(this.photographicRadiance);
   }
@@ -78,7 +87,10 @@ export class CosmicCatalogLayers {
     this.localVolumeDepthBackdrop = new LocalVolumeDepthBackdrop(registry, this.quality);
     this.cosmicGroupCatalogBatch.setLayers(this.cosmicMapLayers);
     this.localVolumeDepthBackdrop.setEnabled(this.cosmicMapLayers.groups);
-    this.root.add(this.localVolumeDepthBackdrop.points, this.cosmicGroupCatalogBatch.root);
+    this.intergalacticFrames.cosmicWebRoot.add(
+      this.localVolumeDepthBackdrop.points,
+      this.cosmicGroupCatalogBatch.root,
+    );
     this.applyDisplayConfiguration();
   }
 
@@ -88,7 +100,7 @@ export class CosmicCatalogLayers {
 
     this.cosmicStructureCatalogBatch = new CosmicStructureCatalogBatch(registry, this.quality);
     this.cosmicStructureCatalogBatch.setLayers(this.cosmicMapLayers);
-    this.root.add(this.cosmicStructureCatalogBatch.root);
+    this.intergalacticFrames.cosmicWebRoot.add(this.cosmicStructureCatalogBatch.root);
     this.applyDisplayConfiguration();
   }
 
@@ -105,7 +117,7 @@ export class CosmicCatalogLayers {
       this.quality,
     );
     this.cosmicWebVolumeRenderer.setEnabled(this.cosmicMapLayers.volume);
-    this.root.add(this.cosmicWebVolumeRenderer.mesh);
+    this.intergalacticFrames.cosmicWebRoot.add(this.cosmicWebVolumeRenderer.mesh);
   }
 
   public async setTempelFilamentSpineCatalog(
@@ -121,7 +133,7 @@ export class CosmicCatalogLayers {
         this.tempelFilamentSpineBatch = batch;
         batch.setLayers(this.cosmicMapLayers);
         batch.setPhotographicRadiance(this.photographicRadiance);
-        this.root.add(batch.root);
+        this.intergalacticFrames.cosmicWebRoot.add(batch.root);
       },
     );
 
@@ -150,6 +162,10 @@ export class CosmicCatalogLayers {
     this.cosmicStructureCatalogBatch?.updateDistance(cameraDistance, deltaSeconds);
     this.tempelFilamentSpineBatch?.updateDistance(cameraDistance, deltaSeconds);
     this.nearbyGalaxyOverviewBatch?.updateDistance(cameraDistance, deltaSeconds);
+  }
+
+  public updateReferenceFrameScale(cameraDistance: number): boolean {
+    return this.intergalacticFrames.update(cameraDistance);
   }
 
   public selectCatalogObject(objectId: string | null): void {
@@ -247,6 +263,7 @@ export class CosmicCatalogLayers {
     this.disposeCosmicWebVolume();
     this.disposeTempelFilamentSpines();
     this.disposeNearbyGalaxyOverview();
+    this.intergalacticFrames.dispose();
   }
 
   private applyDisplayConfiguration(): void {
@@ -259,12 +276,12 @@ export class CosmicCatalogLayers {
 
   private disposeCosmicGroups(): void {
     if (this.cosmicGroupCatalogBatch) {
-      this.root.remove(this.cosmicGroupCatalogBatch.root);
+      this.cosmicGroupCatalogBatch.root.removeFromParent();
       this.cosmicGroupCatalogBatch.dispose();
       this.cosmicGroupCatalogBatch = null;
     }
     if (this.localVolumeDepthBackdrop) {
-      this.root.remove(this.localVolumeDepthBackdrop.points);
+      this.localVolumeDepthBackdrop.points.removeFromParent();
       this.localVolumeDepthBackdrop.dispose();
       this.localVolumeDepthBackdrop = null;
     }
@@ -274,7 +291,7 @@ export class CosmicCatalogLayers {
     if (!this.cosmicStructureCatalogBatch) {
       return;
     }
-    this.root.remove(this.cosmicStructureCatalogBatch.root);
+    this.cosmicStructureCatalogBatch.root.removeFromParent();
     this.cosmicStructureCatalogBatch.dispose();
     this.cosmicStructureCatalogBatch = null;
   }
@@ -283,7 +300,7 @@ export class CosmicCatalogLayers {
     if (!this.cosmicWebVolumeRenderer) {
       return;
     }
-    this.root.remove(this.cosmicWebVolumeRenderer.mesh);
+    this.cosmicWebVolumeRenderer.mesh.removeFromParent();
     this.cosmicWebVolumeRenderer.dispose();
     this.cosmicWebVolumeRenderer = null;
   }
@@ -292,7 +309,7 @@ export class CosmicCatalogLayers {
     if (!this.tempelFilamentSpineBatch) {
       return;
     }
-    this.root.remove(this.tempelFilamentSpineBatch.root);
+    this.tempelFilamentSpineBatch.root.removeFromParent();
     this.tempelFilamentSpineBatch.dispose();
     this.tempelFilamentSpineBatch = null;
   }
@@ -301,7 +318,7 @@ export class CosmicCatalogLayers {
     if (!this.nearbyGalaxyOverviewBatch) {
       return;
     }
-    this.root.remove(this.nearbyGalaxyOverviewBatch.points);
+    this.nearbyGalaxyOverviewBatch.points.removeFromParent();
     this.nearbyGalaxyOverviewBatch.dispose();
     this.nearbyGalaxyOverviewBatch = null;
   }

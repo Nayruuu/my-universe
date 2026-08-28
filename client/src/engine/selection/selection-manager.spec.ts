@@ -178,6 +178,34 @@ describe('SelectionManager', () => {
     expect(findRaycast).toHaveBeenCalledTimes(2);
   });
 
+  it('ne change pas de cible avec la roulette pendant un glissement de caméra', () => {
+    const access = manager as unknown as SelectionManagerAccess;
+    const findRaycast = vi.spyOn(access, 'findRaycastObjectAt').mockReturnValue('earth');
+
+    dispatchPointer(canvas, 'pointerdown', { button: 0, clientX: 120, clientY: 90 });
+    dispatchPointer(canvas, 'pointermove', { button: 0, clientX: 180, clientY: 120 });
+    getLabelObjectAt.mockClear();
+
+    const simultaneousWheel = dispatchWheel(canvas, -1, 180, 120, 1_000);
+
+    expect(simultaneousWheel.defaultPrevented).toBe(true);
+    expect(semanticZoom).toHaveBeenLastCalledWith(
+      null,
+      -1,
+      { x: -0.55, y: 0.6 },
+      { rawDeltaY: -1, deltaMode: 0 },
+    );
+    expect(getLabelObjectAt).not.toHaveBeenCalled();
+    expect(findRaycast).not.toHaveBeenCalled();
+    expect(access.navigationLock).toBeNull();
+
+    dispatchPointer(canvas, 'pointerup', { button: 0, clientX: 180, clientY: 120 });
+    dispatchWheel(canvas, -1, 180, 120, 1_016);
+
+    expect(semanticZoom.mock.lastCall?.[0]).toBe('sirius');
+    expect(access.navigationLock).toEqual({ objectId: 'sirius', x: 180, y: 120 });
+  });
+
   it('verrouille l’objet trouvé au début de chaque rafale tout en conservant sa capture', () => {
     const access = manager as unknown as SelectionManagerAccess;
     const intersectObjects = vi.spyOn(access.raycaster, 'intersectObjects');
@@ -206,7 +234,12 @@ describe('SelectionManager', () => {
         x: -0.6975,
         y: 0.6966666666666667,
       },
-      { rawDeltaY: 1, deltaMode: 0, continuesWheelAnchor: true },
+      {
+        rawDeltaY: 1,
+        deltaMode: 0,
+        continuesWheelAnchor: true,
+        continuesWheelGesture: true,
+      },
     );
     expect(access.navigationLock).toEqual({ objectId: null, x: 120, y: 90 });
 
@@ -244,7 +277,7 @@ describe('SelectionManager', () => {
         x: -0.75,
         y: 0.75,
       },
-      { rawDeltaY: -1, deltaMode: 0 },
+      { rawDeltaY: -1, deltaMode: 0, continuesWheelGesture: true },
     );
     expect(access.navigationLock).toEqual({ objectId: 'earth', x: 100, y: 75 });
 
@@ -257,7 +290,12 @@ describe('SelectionManager', () => {
         x: -0.75,
         y: 0.75,
       },
-      { rawDeltaY: -1, deltaMode: 0, continuesWheelAnchor: true },
+      {
+        rawDeltaY: -1,
+        deltaMode: 0,
+        continuesWheelAnchor: true,
+        continuesWheelGesture: true,
+      },
     );
     const lockBeforePause = access.navigationLock;
 
@@ -285,7 +323,7 @@ describe('SelectionManager', () => {
         x: -0.55,
         y: 0.8,
       },
-      { rawDeltaY: -1, deltaMode: 0 },
+      { rawDeltaY: -1, deltaMode: 0, continuesWheelGesture: true },
     );
     const overlay = document.createElement('div');
 
@@ -300,7 +338,12 @@ describe('SelectionManager', () => {
         x: -0.55,
         y: 0.8,
       },
-      { rawDeltaY: -1, deltaMode: 0, continuesWheelAnchor: true },
+      {
+        rawDeltaY: -1,
+        deltaMode: 0,
+        continuesWheelAnchor: true,
+        continuesWheelGesture: true,
+      },
     );
 
     const delayedOverlayWheel = dispatchWheel(overlay, -1, 180, 60, 4_750);
@@ -359,7 +402,12 @@ describe('SelectionManager', () => {
       null,
       expect.closeTo(-13.3084258668, 10),
       { x: 0, y: 0 },
-      { rawDeltaY: -375, deltaMode: 0, continuesWheelAnchor: true },
+      {
+        rawDeltaY: -375,
+        deltaMode: 0,
+        continuesWheelAnchor: true,
+        continuesWheelGesture: true,
+      },
     );
 
     dispatchWheel(canvas, 3, 400, 300, 1_032, 1);
@@ -387,7 +435,7 @@ describe('SelectionManager', () => {
       null,
       expect.closeTo(-13.3084258668, 10),
       { x: -0.5, y: 0.6666666666666667 },
-      { rawDeltaY: -749, deltaMode: 0 },
+      { rawDeltaY: -749, deltaMode: 0, continuesWheelGesture: true },
     );
 
     manager.clearNavigationLock();
@@ -396,7 +444,7 @@ describe('SelectionManager', () => {
       null,
       expect.closeTo(-13.3084258668, 10),
       { x: -0.5, y: 0.6666666666666667 },
-      { rawDeltaY: -749, deltaMode: 0 },
+      { rawDeltaY: -749, deltaMode: 0, continuesWheelGesture: true },
     );
   });
 

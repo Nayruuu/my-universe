@@ -171,8 +171,13 @@ export class SelectionManager {
     event.preventDefault();
     event.stopImmediatePropagation();
 
-    const continuesWheelAnchor = this.navigationLock !== null;
-    const objectId = this.resolveWheelAnchor(event);
+    // A held pointer means OrbitControls currently owns the camera gesture. Raycasting a wheel
+    // target while that pointer moves can adopt a different star or galaxy between two drag
+    // frames, which reads as a camera cut. Keep the wheel centred on the existing camera pivot;
+    // object-directed navigation resumes after the pointer is released.
+    const pointerGestureActive = this.activePointers.size > 0;
+    const continuesWheelAnchor = !pointerGestureActive && this.navigationLock !== null;
+    const objectId = pointerGestureActive ? null : this.resolveWheelAnchor(event);
     const normalizedDeltaY = this.wheelZoomNormalizer.normalize(
       event.deltaY,
       event.deltaMode,
@@ -188,6 +193,7 @@ export class SelectionManager {
         rawDeltaY: event.deltaY,
         deltaMode: event.deltaMode,
         ...(continuesWheelAnchor ? { continuesWheelAnchor: true } : {}),
+        ...(this.wheelZoomNormalizer.continuesGesture ? { continuesWheelGesture: true } : {}),
       },
     );
 

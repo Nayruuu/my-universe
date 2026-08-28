@@ -1,47 +1,59 @@
 import * as THREE from 'three';
 import { type GraphicQuality } from '../../data/models/universe.models';
-import {
-  calculateMilkyWayTransition,
-  MILKY_WAY_TRANSITION_START,
-} from '../lod/milky-way-transition';
+import { calculateMilkyWaySceneScale } from '../coordinates/galaxy-scale-model';
 import { dampValue } from '../lod/screen-space-lod';
-import { MILKY_WAY_ATLAS_URL, MilkyWayVolumeVisual } from './milky-way-volume-visual';
-import { prewarmTexture, type TexturePrewarmTarget } from './texture-prewarm-target';
-
-export { getMilkyWayCinematicProfile, MILKY_WAY_ATLAS_URL } from './milky-way-volume-visual';
-export type { MilkyWayCinematicProfile } from './milky-way-volume-visual';
+import { MilkyWayVolumeVisual } from './milky-way-volume-visual';
 
 export interface MilkyWayVolumeSample {
   opacity: number;
-  scale: number;
+  immersionOpacity: number;
 }
 
-export type MilkyWayAtlasStatus = 'idle' | 'loading' | 'ready' | 'failed';
-export type MilkyWayAtlasLoader = (url: string) => Promise<THREE.Texture>;
+export type MilkyWayAtlasStatus = 'procedural';
 
-const VOLUME_FADE_START = 2_200;
-const VOLUME_FADE_END = 6_500;
+const VOLUME_FADE_START = 260;
+const VOLUME_FADE_END = 4_000;
+const VOLUME_OVERVIEW_FADE_START = 170_000;
+const VOLUME_OVERVIEW_FADE_END = 300_000;
 const MAXIMUM_VOLUME_OPACITY = 0.92;
-const TRANSITION_AURA_OPACITY_FACTOR = 0.38;
+const IMMERSION_OUTER_FADE_START = 520;
+const IMMERSION_OUTER_FADE_END = 1_800;
+const IMMERSION_NEAR_FADE_START = 5;
+const IMMERSION_NEAR_FADE_END = 520;
+const MAXIMUM_IMMERSION_OPACITY = 0.16;
+const MINIMUM_ACTIVE_IMMERSION_PRESENCE = 0.46;
 
 export function createMilkyWayVolumeSample(): MilkyWayVolumeSample {
-  return { opacity: 0, scale: 1 };
+  return { opacity: 0, immersionOpacity: 0 };
 }
 
 export function sampleMilkyWayVolume(
   cameraDistance: number,
   target: MilkyWayVolumeSample,
 ): MilkyWayVolumeSample {
-  const distance = normalizeDistance(cameraDistance);
+  if (!Number.isFinite(cameraDistance) || cameraDistance < 0) {
+    target.opacity = 0;
+    target.immersionOpacity = 0;
+
+    return target;
+  }
+  const distance = cameraDistance;
   const entryOpacity = smoothstep(VOLUME_FADE_START, VOLUME_FADE_END, distance);
-  const transition = calculateMilkyWayTransition(distance);
-  const transitionOpacity = Math.max(
-    transition.detailOpacity,
-    transition.auraOpacity * TRANSITION_AURA_OPACITY_FACTOR,
+  const overviewOpacity =
+    1 - smoothstep(VOLUME_OVERVIEW_FADE_START, VOLUME_OVERVIEW_FADE_END, distance);
+  const immersionEntry =
+    1 - smoothstep(IMMERSION_OUTER_FADE_START, IMMERSION_OUTER_FADE_END, distance);
+  const immersionExit = lerp(
+    MINIMUM_ACTIVE_IMMERSION_PRESENCE,
+    1,
+    smoothstep(IMMERSION_NEAR_FADE_START, IMMERSION_NEAR_FADE_END, distance),
   );
 
-  target.opacity = MAXIMUM_VOLUME_OPACITY * entryOpacity * transitionOpacity;
-  target.scale = distance < MILKY_WAY_TRANSITION_START ? 1 : transition.detailScale;
+  target.opacity = MAXIMUM_VOLUME_OPACITY * entryOpacity * overviewOpacity;
+  // Illustrative interior lighting only: keep a restrained floor while this semantic layer stays
+  // active so a free camera cannot fall between the density volume and the local stellar view.
+  // Canonical Galactic coordinates remain unchanged.
+  target.immersionOpacity = MAXIMUM_IMMERSION_OPACITY * immersionEntry * immersionExit;
 
   return target;
 }
@@ -51,18 +63,16 @@ export class MilkyWayVolume {
 
   private readonly sample = createMilkyWayVolumeSample();
   private readonly visual = new MilkyWayVolumeVisual();
-  private atlasPromise: Promise<boolean> | null = null;
-  private status: MilkyWayAtlasStatus = 'idle';
   private opacity = 0;
-  private scale = 1;
+  private immersionOpacity = 0;
   private disposed = false;
 
-  constructor(private readonly loadAtlas: MilkyWayAtlasLoader = loadMilkyWayAtlas) {
+  constructor() {
     this.root = this.visual.root;
   }
 
   public get atlasStatus(): MilkyWayAtlasStatus {
-    return this.status;
+    return 'procedural';
   }
 
   public get visibleDiscLayerCount(): number {
@@ -73,46 +83,34 @@ export class MilkyWayVolume {
     return this.visual.drawMeshCount;
   }
 
+  public get proceduralVolumeVisible(): boolean {
+    return this.visual.proceduralVolumeVisible;
+  }
+
   public setQuality(quality: GraphicQuality): void {
     this.visual.setQuality(quality);
   }
 
-  public async ensureAtlas(): Promise<boolean> {
-    if (this.disposed || this.status === 'failed') {
-      return false;
-    }
-    if (this.status === 'ready') {
-      return true;
-    }
-    if (this.atlasPromise) {
-      return this.atlasPromise;
-    }
-
-    this.status = 'loading';
-    this.atlasPromise = this.loadAtlas(MILKY_WAY_ATLAS_URL)
-      .then((texture) => this.installAtlas(texture))
-      .catch(() => {
-        this.status = 'failed';
-
-        return false;
-      });
-
-    return this.atlasPromise;
-  }
-
-  public async prewarmAtlas(target: TexturePrewarmTarget): Promise<boolean> {
-    if (!(await this.ensureAtlas())) {
-      return false;
-    }
-
-    return prewarmTexture(target, this.visual.atlasTexture!);
-  }
-
-  public update(cameraDistance: number, deltaSeconds: number, galaxyRadiance = 1): void {
-    sampleMilkyWayVolume(cameraDistance, this.sample);
+  public update(
+    cameraDistance: number,
+    deltaSeconds: number,
+    galaxyRadiance = 1,
+    active = true,
+  ): void {
+    sampleMilkyWayVolume(active ? cameraDistance : Number.NaN, this.sample);
     this.opacity = dampValue(this.opacity, this.sample.opacity, 5, deltaSeconds);
-    this.scale = dampValue(this.scale, this.sample.scale, 6, deltaSeconds);
-    this.visual.update(this.opacity, this.scale, galaxyRadiance);
+    this.immersionOpacity = dampValue(
+      this.immersionOpacity,
+      this.sample.immersionOpacity,
+      5,
+      deltaSeconds,
+    );
+    this.visual.update(
+      this.opacity,
+      this.immersionOpacity,
+      galaxyRadiance,
+      calculateMilkyWaySceneScale(cameraDistance),
+    );
   }
 
   public dispose(): void {
@@ -122,36 +120,14 @@ export class MilkyWayVolume {
     this.disposed = true;
     this.visual.dispose();
   }
-
-  private installAtlas(texture: THREE.Texture): boolean {
-    if (this.disposed) {
-      texture.dispose();
-      this.status = 'failed';
-
-      return false;
-    }
-
-    this.visual.installAtlas(texture);
-    this.status = 'ready';
-
-    return true;
-  }
-}
-
-function loadMilkyWayAtlas(url: string): Promise<THREE.Texture> {
-  return new THREE.TextureLoader().loadAsync(url);
-}
-
-function normalizeDistance(cameraDistance: number): number {
-  if (!Number.isFinite(cameraDistance)) {
-    return cameraDistance === Number.POSITIVE_INFINITY ? Number.MAX_VALUE : 0;
-  }
-
-  return Math.max(0, cameraDistance);
 }
 
 function smoothstep(minimum: number, maximum: number, value: number): number {
   const progress = Math.max(0, Math.min(1, (value - minimum) / (maximum - minimum)));
 
   return progress * progress * (3 - 2 * progress);
+}
+
+function lerp(start: number, end: number, progress: number): number {
+  return start + (end - start) * progress;
 }

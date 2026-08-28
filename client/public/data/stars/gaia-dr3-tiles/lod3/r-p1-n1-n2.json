@@ -1,0 +1,1130 @@
+{
+  "version": "4.0.0",
+  "sourceCatalog": "gaia-dr3-bright-high-confidence",
+  "referenceEpochJulianDay": 2457388.5,
+  "magnitudeBand": "gaia-g",
+  "colorIndexSystem": "gaia-bp-rp",
+  "tiles": [
+    {
+      "id": "c-p4-n1-n5",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 10,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 10,
+      "cellCoordinates": [
+        19, -1, -18, 17, -3, -20, 18, -3, -18, 17, -3, -17, 17, -4, -18, 18, -3, -20, 19, -4, -20,
+        17, -4, -18, 16, -3, -20, 17, -3, -18
+      ],
+      "positionsParsec": [
+        2439.024140512572, -109.09234784300862, -2299.555425214763, 2250.5873259045757,
+        -258.9051438818308, -2464.3757076653806, 2328.408798071796, -308.2508143651358,
+        -2300.467511431998, 2302.62949231913, -335.5385420349363, -2111.579193431429,
+        2196.496808481357, -456.86384839668887, -2252.807793808751, 2317.3869175833515,
+        -340.727251670607, -2440.0889826857983, 2519.880764981516, -469.572070520181,
+        -2466.6056189956003, 2217.1375852749334, -406.8386791635742, -2235.219363666508,
+        2049.616053471323, -308.14531709402735, -2532.164809779489, 2245.785886156261,
+        -324.4008945584933, -2201.882218474577
+      ],
+      "starCounts": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      "apparentMagnitudes": [
+        9.644507, 10.512027, 10.727876, 10.84335, 10.947384, 11.086918, 11.120654, 11.770556,
+        11.889505, 11.97451
+      ],
+      "colorIndices": [
+        1.5619612, 1.3168526, 1.9402742, 1.2814636, 1.1892481, 1.5189047, 1.6497326, 1.4636192,
+        1.1377497, 1.3087273
+      ]
+    },
+    {
+      "id": "c-p4-n1-n6",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 4,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 4,
+      "cellCoordinates": [18, -2, -21, 17, -1, -21, 17, -2, -23, 17, -1, -22],
+      "positionsParsec": [
+        2414.556121799089, -162.43002782511724, -2655.448606534968, 2215.7174588326184,
+        -76.64783697723082, -2580.025485242182, 2180.0389012920964, -133.71323611774255,
+        -2894.4019879027915, 2198.078707803689, -29.793967676905684, -2727.347932787343
+      ],
+      "starCounts": [1, 1, 1, 1],
+      "apparentMagnitudes": [11.20408, 11.396027, 11.735886, 11.878974],
+      "colorIndices": [1.5912066, 1.4177113, 1.2176123, 1.5277567]
+    },
+    {
+      "id": "c-p4-n1-n7",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 4,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 4,
+      "cellCoordinates": [18, -3, -28, 17, -2, -26, 17, -1, -27, 19, -4, -26],
+      "positionsParsec": [
+        2420.0398453427024, -373.7581766321685, -3479.827334372124, 2296.329488542178,
+        -151.97232886097476, -3206.73848792537, 2200.775362236006, -115.42862028917071,
+        -3396.393552537665, 2446.377337737188, -491.5377700491073, -3261.036350273194
+      ],
+      "starCounts": [1, 1, 1, 1],
+      "apparentMagnitudes": [10.738452, 11.387956, 11.508786, 11.961932],
+      "colorIndices": [2.5926447, 1.2620716, 1.1545086, 1.1303434]
+    },
+    {
+      "id": "c-p4-n1-n8",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 4,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 4,
+      "cellCoordinates": [19, -2, -31, 19, -3, -29, 16, -4, -31, 17, -3, -29],
+      "positionsParsec": [
+        2525.647498345376, -227.6989461643221, -3851.219211240943, 2508.880812766738,
+        -369.8739846336419, -3596.159620292795, 2080.001294672357, -406.5609651088979,
+        -3878.7912054554677, 2259.4611409006143, -366.9717660064645, -3684.278463849412
+      ],
+      "starCounts": [1, 1, 1, 1],
+      "apparentMagnitudes": [10.751465, 10.957412, 11.198323, 11.862696],
+      "colorIndices": [1.5803509, 2.203354, 1.4430695, 2.3055925]
+    },
+    {
+      "id": "c-p4-n2-n5",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 13,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 13,
+      "cellCoordinates": [
+        17, -7, -19, 16, -8, -17, 18, -7, -18, 19, -8, -17, 18, -6, -18, 18, -8, -20, 19, -7, -18,
+        16, -8, -19, 16, -8, -19, 16, -5, -19, 18, -5, -17, 17, -5, -17, 17, -8, -17
+      ],
+      "positionsParsec": [
+        2207.282566404517, -779.6191840020506, -2403.3130326052737, 2091.528260025969,
+        -901.5765433825959, -2064.5404987866546, 2312.190035371585, -876.22511325299,
+        -2284.7090350474105, 2540.410113601696, -922.4020913678701, -2084.40160910621,
+        2307.0372716428355, -682.2079804257178, -2238.2828844109836, 2428.273686969501,
+        -963.3006400337111, -2523.1234312401875, 2527.49988881801, -804.2639909206847,
+        -2228.854161409652, 2081.321500243012, -943.5551246443661, -2394.427301029391,
+        2096.261706745935, -996.9993332910581, -2420.900734129387, 2137.9752534522045,
+        -574.4050729252804, -2328.432798889806, 2393.6243010837725, -583.2525169434409,
+        -2166.326969991109, 2246.8707492791773, -547.3005062804849, -2125.2540423109267,
+        2187.9453060038973, -1003.5172292854099, -2048.927999505954
+      ],
+      "starCounts": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      "apparentMagnitudes": [
+        10.444264, 11.0054035, 11.024316, 11.154927, 11.230299, 11.292246, 11.563269, 11.640556,
+        11.706868, 11.752624, 11.858095, 11.865547, 11.871866
+      ],
+      "colorIndices": [
+        1.35221, 1.6596241, 1.7202129, 1.1725874, 1.3402376, 1.413949, 1.4897633, 1.4174423,
+        1.6282005, 1.1947756, 0.9829407, 1.039053, 1.462553
+      ]
+    },
+    {
+      "id": "c-p4-n2-n6",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 7,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 7,
+      "cellCoordinates": [
+        16, -8, -23, 17, -7, -21, 19, -7, -21, 18, -7, -23, 17, -7, -22, 16, -7, -21, 18, -6, -23
+      ],
+      "positionsParsec": [
+        2110.785832574533, -1021.2965984468747, -2857.9839195057234, 2235.212856003267,
+        -768.3148304818134, -2566.7845684357694, 2466.056983356766, -797.5182531922027,
+        -2677.683624789603, 2367.370128752775, -852.1807128163139, -2915.1384568329026,
+        2202.08634762908, -878.9703664922399, -2796.9944176551303, 2143.5901542843203,
+        -888.9888599082394, -2674.940603616417, 2339.4096605639334, -696.755470985775,
+        -2940.3658968691807
+      ],
+      "starCounts": [1, 1, 1, 1, 1, 1, 1],
+      "apparentMagnitudes": [
+        10.271199, 11.082156, 11.114663, 11.282962, 11.341914, 11.44126, 11.7924385
+      ],
+      "colorIndices": [1.945158, 1.3352318, 1.4484968, 1.3369036, 1.2654352, 1.765688, 1.3255615]
+    },
+    {
+      "id": "c-p4-n2-n7",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 3,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 3,
+      "cellCoordinates": [18, -6, -28, 17, -6, -25, 16, -7, -26],
+      "positionsParsec": [
+        2423.840096867358, -714.6309834026584, -3509.5484684013736, 2301.6253234031874,
+        -745.8983753755942, -3165.660813612546, 2071.146612551718, -784.5259179849927,
+        -3266.370033633862
+      ],
+      "starCounts": [1, 1, 1],
+      "apparentMagnitudes": [10.224084, 10.627493, 11.112927],
+      "colorIndices": [1.6697044, 2.4602613, 1.4603701]
+    },
+    {
+      "id": "c-p4-n2-n8",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 3,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 3,
+      "cellCoordinates": [16, -5, -32, 16, -6, -29, 17, -5, -32],
+      "positionsParsec": [
+        2099.7325630473074, -622.6487282728575, -4076.7628243363206, 2159.145407588643,
+        -648.5759044624816, -3622.082333453324, 2201.206507517092, -636.5450124891688,
+        -3987.4791656977727
+      ],
+      "starCounts": [1, 1, 1],
+      "apparentMagnitudes": [10.654529, 11.351961, 11.6273155],
+      "colorIndices": [1.3732529, 1.3325977, 1.3689814]
+    },
+    {
+      "id": "c-p4-n3-n5",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 16,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 16,
+      "cellCoordinates": [
+        16, -9, -19, 16, -11, -18, 16, -12, -17, 17, -10, -19, 19, -10, -18, 16, -10, -17, 19, -11,
+        -19, 17, -10, -17, 19, -10, -20, 17, -9, -17, 19, -9, -18, 16, -11, -17, 18, -11, -20, 17,
+        -11, -18, 18, -11, -20, 19, -11, -20
+      ],
+      "positionsParsec": [
+        2060.45477722532, -1081.8265852409977, -2319.5507967003814, 2136.2561014000644,
+        -1282.2803024889895, -2299.3774979647274, 2056.3109420473993, -1422.0063307528783,
+        -2151.0111583917633, 2202.2413436742, -1153.279337053559, -2408.8788893516385,
+        2497.6896494216617, -1175.3875769620038, -2290.259877622722, 2147.4398058470156,
+        -1169.7173914714867, -2150.120963094133, 2540.803140486428, -1339.073505829927,
+        -2372.700839204285, 2277.5622003186363, -1260.4936683888832, -2111.2956959884104,
+        2534.732084304479, -1170.9899466118045, -2550.0605476354053, 2244.6947706580777,
+        -1030.90672579746, -2161.200025624623, 2451.0415718433414, -1035.1263652941102,
+        -2298.3744535722262, 2073.389498017726, -1313.2981423321085, -2106.4437789535114,
+        2376.201301998858, -1314.3776419055378, -2539.1663901748693, 2178.455192931362,
+        -1397.128978699492, -2294.8664523149155, 2429.7648177058986, -1298.797478091388,
+        -2466.6663007006728, 2534.9178921382895, -1372.4390272700498, -2465.9977028615704
+      ],
+      "starCounts": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      "apparentMagnitudes": [
+        10.388735, 10.508812, 10.649865, 10.666112, 10.674912, 10.746671, 10.800777, 10.873436,
+        11.062029, 11.245786, 11.283587, 11.336827, 11.423515, 11.44026, 11.660226, 11.666093
+      ],
+      "colorIndices": [
+        1.4299917, 1.5315104, 2.2139654, 1.4781227, 1.7437468, 1.3095894, 1.8316555, 1.4560509,
+        1.7090712, 1.1648531, 1.363349, 2.0704718, 1.6451464, 1.7258148, 1.494071, 1.6587143
+      ]
+    },
+    {
+      "id": "c-p4-n3-n6",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 7,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 7,
+      "cellCoordinates": [
+        18, -9, -21, 16, -12, -22, 19, -11, -23, 17, -12, -22, 16, -9, -22, 19, -11, -22, 19, -12,
+        -23
+      ],
+      "positionsParsec": [
+        2410.629839340774, -1131.3060614756519, -2565.820866443154, 2077.084928177823,
+        -1486.4842594886507, -2749.7425635627665, 2512.5419637298696, -1301.0062525946005,
+        -2942.0417015935245, 2266.225820038516, -1501.4985029379204, -2719.075373524496,
+        2076.4606033072646, -1079.435653438602, -2709.2606745271455, 2456.9209142363966,
+        -1387.5813988359653, -2794.2864979663564, 2552.8328688758756, -1428.0008641874037,
+        -2884.5933175415676
+      ],
+      "starCounts": [1, 1, 1, 1, 1, 1, 1],
+      "apparentMagnitudes": [
+        10.105165, 10.8115225, 11.095066, 11.349676, 11.446008, 11.654219, 11.936509
+      ],
+      "colorIndices": [1.6916189, 1.3838072, 1.6997414, 1.285491, 1.3140249, 1.4374628, 1.4741392]
+    },
+    {
+      "id": "c-p4-n3-n7",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 8,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 8,
+      "cellCoordinates": [
+        16, -9, -27, 19, -12, -28, 16, -10, -28, 16, -9, -25, 18, -12, -28, 16, -12, -26, 18, -12,
+        -27, 18, -11, -26
+      ],
+      "positionsParsec": [
+        2135.756182526425, -1083.25607207675, -3336.138357712986, 2481.7772285288797,
+        -1512.9354732342565, -3542.7096953447844, 2153.6477679904638, -1234.0882992143772,
+        -3465.3676853886363, 2165.77408658969, -1084.7310559248435, -3149.976197481118,
+        2318.515354221259, -1517.6424255426057, -3565.968863032458, 2156.294416041646,
+        -1469.667197927815, -3327.941314355884, 2403.304824017841, -1467.9874264244836,
+        -3337.1796940657996, 2352.6388497700655, -1403.2765192262445, -3237.780267859141
+      ],
+      "starCounts": [1, 1, 1, 1, 1, 1, 1, 1],
+      "apparentMagnitudes": [
+        10.707786, 10.973775, 11.032475, 11.0626335, 11.320215, 11.323356, 11.858635, 11.866753
+      ],
+      "colorIndices": [
+        2.0399208, 2.2973356, 1.6602087, 1.5475321, 1.632926, 1.3365707, 1.2216892, 1.6093111
+      ]
+    },
+    {
+      "id": "c-p4-n3-n8",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 4,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 4,
+      "cellCoordinates": [17, -9, -29, 18, -12, -30, 17, -9, -29, 18, -11, -29],
+      "positionsParsec": [
+        2213.6664777449055, -1077.8544927451564, -3677.4094675967694, 2426.9528994274738,
+        -1472.4151076481648, -3726.113611410473, 2201.80902334225, -1028.8400562695906,
+        -3656.887597075355, 2426.0975748398755, -1301.4708517688284, -3685.459439824235
+      ],
+      "starCounts": [1, 1, 1, 1],
+      "apparentMagnitudes": [11.477522, 11.576605, 11.737589, 11.983999],
+      "colorIndices": [1.3298063, 1.4926529, 1.5753479, 1.1994705]
+    },
+    {
+      "id": "c-p4-n4-n5",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 15,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 15,
+      "cellCoordinates": [
+        19, -14, -18, 19, -14, -20, 17, -14, -19, 18, -15, -19, 17, -15, -17, 18, -14, -20, 18, -14,
+        -18, 16, -15, -19, 19, -14, -19, 16, -13, -20, 19, -16, -18, 16, -16, -18, 19, -15, -18, 16,
+        -16, -17, 18, -14, -19
+      ],
+      "positionsParsec": [
+        2463.490577370852, -1786.610925812924, -2207.8857849292153, 2557.9890290381854,
+        -1737.0953790754409, -2517.6557816898826, 2183.0031757660563, -1745.126325912112,
+        -2426.561795438288, 2365.873075449832, -1901.9157066841155, -2384.355709156377,
+        2240.7514245386665, -1897.7334098250326, -2058.5624590543707, 2379.5789296893554,
+        -1724.1821509850372, -2506.844827977232, 2359.1544392486526, -1691.7749999484026,
+        -2302.885550582439, 2100.6472736757864, -1919.0155170766031, -2353.721061869707,
+        2447.4378116014677, -1767.5359598364773, -2314.087606154145, 2123.39542055991,
+        -1632.2173142381828, -2532.1949663076643, 2456.544696085624, -1990.3452415115191,
+        -2258.5895744027116, 2152.3924570733157, -1996.660475560381, -2249.503329131765,
+        2527.060823143741, -1879.6152825561046, -2293.044627915062, 2162.601740312912,
+        -1996.5926821156777, -2155.5110088463935, 2409.7447531870125, -1719.3159420197662,
+        -2384.758449328209
+      ],
+      "starCounts": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      "apparentMagnitudes": [
+        10.310441, 10.349809, 10.513638, 10.632604, 10.771349, 11.034632, 11.102359, 11.244815,
+        11.398427, 11.576588, 11.692498, 11.751793, 11.78973, 11.882602, 11.918989
+      ],
+      "colorIndices": [
+        1.6238756, 1.508995, 2.8150644, 2.2898483, 1.9478073, 2.265337, 2.0528545, 1.3561716,
+        1.3627491, 1.3865604, 1.8200054, 1.6095705, 1.8093739, 1.5429554, 1.764987
+      ]
+    },
+    {
+      "id": "c-p4-n4-n6",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 8,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 8,
+      "cellCoordinates": [
+        18, -13, -23, 17, -13, -21, 17, -13, -22, 18, -16, -22, 17, -15, -24, 18, -15, -21, 16, -16,
+        -22, 19, -15, -23
+      ],
+      "positionsParsec": [
+        2364.9343217266996, -1627.6377766268347, -2891.0234192705243, 2291.903843935191,
+        -1538.9583320645515, -2683.1591278213164, 2184.4684886250643, -1554.8504932124513,
+        -2750.3804027689257, 2388.1124230763394, -1996.533920800361, -2792.0964654520726,
+        2253.098710856281, -1801.1361413409693, -2964.99828936752, 2305.4339286062577,
+        -1815.2723624408093, -2583.6426875006127, 2056.990809923509, -2032.4143645300483,
+        -2737.664924211535, 2497.832157735265, -1911.3717476639936, -2857.2022052241277
+      ],
+      "starCounts": [1, 1, 1, 1, 1, 1, 1, 1],
+      "apparentMagnitudes": [
+        10.264564, 11.267893, 11.507451, 11.603186, 11.632966, 11.6540365, 11.72279, 11.969958
+      ],
+      "colorIndices": [
+        1.5706158, 2.0135126, 1.3930817, 1.3203411, 1.1797104, 1.6290827, 1.6119108, 1.6150188
+      ]
+    },
+    {
+      "id": "c-p4-n4-n7",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 11,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 11,
+      "cellCoordinates": [
+        18, -16, -26, 18, -14, -26, 19, -13, -25, 16, -14, -27, 16, -14, -25, 19, -14, -28, 19, -15,
+        -27, 18, -13, -27, 18, -13, -28, 16, -16, -26, 18, -16, -26
+      ],
+      "positionsParsec": [
+        2327.6762609689863, -1941.6098709910486, -3206.717061509775, 2396.14363709619,
+        -1715.0407588925, -3317.6720456936864, 2486.4917539647968, -1562.5482332851288,
+        -3081.1533458600147, 2135.2135075261563, -1772.198104787922, -3354.2252281233696,
+        2160.5721052575204, -1761.7091969672604, -3195.773729343604, 2524.2732011201197,
+        -1791.1974926501546, -3566.8634474319583, 2474.7059557449356, -1822.1718824020404,
+        -3404.9947217979493, 2366.056402013479, -1613.9872506259976, -3355.5150117755206,
+        2431.5379110999315, -1590.0149053012879, -3494.986600620691, 2067.571139245986,
+        -1960.9460433791041, -3281.478227560767, 2409.5624729364995, -1972.8165703258783,
+        -3302.8465519481374
+      ],
+      "starCounts": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      "apparentMagnitudes": [
+        10.153592, 10.373266, 10.872493, 11.082612, 11.3709345, 11.582638, 11.7274885, 11.827611,
+        11.842629, 11.956414, 11.984756
+      ],
+      "colorIndices": [
+        1.8042393, 1.7667217, 2.193162, 1.9963198, 1.5743675, 1.5708666, 1.7040491, 1.414607,
+        1.290514, 1.6366386, 1.1596727
+      ]
+    },
+    {
+      "id": "c-p4-n4-n8",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 2,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 2,
+      "cellCoordinates": [18, -15, -29, 16, -15, -31],
+      "positionsParsec": [
+        2350.575091516778, -1822.4043568978059, -3673.2864192745446, 2106.1830854650125,
+        -1900.065784691822, -3946.1628587764303
+      ],
+      "starCounts": [1, 1],
+      "apparentMagnitudes": [10.789751, 11.250781],
+      "colorIndices": [2.02592, 1.7937489]
+    },
+    {
+      "id": "c-p5-n1-n5",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 6,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 6,
+      "cellCoordinates": [
+        22, -4, -19, 21, -1, -18, 20, -3, -19, 22, -2, -17, 22, -1, -19, 20, -1, -19
+      ],
+      "positionsParsec": [
+        2913.9431231980666, -395.4423294089201, -2420.008576590068, 2723.4394130853098,
+        -77.78853729932052, -2234.6733363851217, 2576.889529810804, -355.4559738082295,
+        -2369.0697655841614, 2895.8053518372226, -224.67739080180297, -2107.7040070688577,
+        2854.8521432223374, -65.68484443899825, -2331.1466681068587, 2600.975356617298,
+        -40.678993015891116, -2357.8817244522593
+      ],
+      "starCounts": [1, 1, 1, 1, 1, 1],
+      "apparentMagnitudes": [11.061758, 11.062953, 11.428105, 11.691084, 11.747071, 11.889732],
+      "colorIndices": [1.2807503, 1.2579279, 1.3700933, 1.582552, 1.4048281, 1.2813578]
+    },
+    {
+      "id": "c-p5-n1-n7",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 1,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 1,
+      "cellCoordinates": [22, -2, -25],
+      "positionsParsec": [2913.0403967466104, -210.82867449651647, -3193.7950573768553],
+      "starCounts": [1],
+      "apparentMagnitudes": [10.624952],
+      "colorIndices": [1.5796089]
+    },
+    {
+      "id": "c-p5-n1-n8",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 1,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 1,
+      "cellCoordinates": [22, -1, -32],
+      "positionsParsec": [2866.6855229285243, -63.45909268025695, -4043.6413688686534],
+      "starCounts": [1],
+      "apparentMagnitudes": [11.233453],
+      "colorIndices": [1.4293375]
+    },
+    {
+      "id": "c-p5-n2-n5",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 9,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 9,
+      "cellCoordinates": [
+        21, -6, -18, 20, -7, -19, 23, -8, -17, 21, -5, -19, 22, -7, -17, 22, -8, -17, 23, -6, -18,
+        21, -8, -19, 21, -5, -17
+      ],
+      "positionsParsec": [
+        2745.4475321021646, -685.7168660253706, -2219.4209384888813, 2640.9478587441977,
+        -839.7622480374267, -2362.948351650241, 2972.586246991058, -978.9483837475676,
+        -2091.361621155105, 2759.2250898514717, -519.9554513662883, -2329.187770824614,
+        2910.064887147198, -801.6046053632483, -2073.34761129344, 2866.2854404450695,
+        -915.0875365171117, -2154.502614876105, 3014.9418284562257, -729.5770373831962,
+        -2260.469159693623, 2740.1250356343994, -1023.2363370118826, -2385.492437035574,
+        2714.35445312113, -542.9321519479511, -2055.770656710007
+      ],
+      "starCounts": [1, 1, 1, 1, 1, 1, 1, 1, 1],
+      "apparentMagnitudes": [
+        10.283544, 10.72648, 10.752921, 10.901993, 10.971243, 11.130466, 11.206311, 11.734053,
+        11.961361
+      ],
+      "colorIndices": [
+        1.4227781, 2.297018, 1.4462662, 1.3259115, 1.744237, 1.7996511, 1.4435215, 1.4121122,
+        1.313879
+      ]
+    },
+    {
+      "id": "c-p5-n2-n6",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 5,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 5,
+      "cellCoordinates": [22, -8, -24, 20, -5, -24, 22, -8, -24, 20, -8, -22, 23, -5, -23],
+      "positionsParsec": [
+        2901.8933924995267, -941.690997613598, -2946.5016997251123, 2654.3041246317557,
+        -534.0908069198858, -3023.311016039466, 2831.2106518793976, -917.5003534621674,
+        -3064.805866368288, 2563.000572780672, -1009.8435501151904, -2771.824523582788,
+        2990.121410253286, -620.9934318004163, -2901.6255523693853
+      ],
+      "starCounts": [1, 1, 1, 1, 1],
+      "apparentMagnitudes": [11.079699, 11.114051, 11.690981, 11.81563, 11.91936],
+      "colorIndices": [1.8836412, 1.7535009, 1.2114925, 1.239665, 1.0784931]
+    },
+    {
+      "id": "c-p5-n2-n7",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 1,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 1,
+      "cellCoordinates": [20, -6, -25],
+      "positionsParsec": [2686.071399299511, -730.0200619228832, -3145.648942095144],
+      "starCounts": [1],
+      "apparentMagnitudes": [11.962423],
+      "colorIndices": [1.1006794]
+    },
+    {
+      "id": "c-p5-n2-n8",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 2,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 2,
+      "cellCoordinates": [22, -7, -32, 20, -5, -32],
+      "positionsParsec": [
+        2850.848210902626, -773.192841921126, -3971.1472116671575, 2687.959888886753,
+        -541.4645823060004, -4068.8522312156456
+      ],
+      "starCounts": [1, 1],
+      "apparentMagnitudes": [11.172759, 11.626227],
+      "colorIndices": [1.5152636, 1.5660982]
+    },
+    {
+      "id": "c-p5-n3-n5",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 7,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 7,
+      "cellCoordinates": [
+        20, -9, -18, 21, -9, -19, 23, -12, -20, 21, -11, -19, 23, -9, -17, 20, -10, -18, 21, -9, -18
+      ],
+      "positionsParsec": [
+        2641.714911882348, -1039.0994503376846, -2302.42553676492, 2697.7656191424494,
+        -1038.3042465168585, -2360.763352238655, 3004.329311877483, -1418.8097294496158,
+        -2475.4924399702395, 2733.7777103180856, -1343.0615667607274, -2398.258672105708,
+        2999.2532568775264, -1060.196666965258, -2138.442895928578, 2608.9869645346657,
+        -1210.7686905704616, -2276.9359273505875, 2704.6129913260083, -1150.1608621477023,
+        -2211.2896880004682
+      ],
+      "starCounts": [1, 1, 1, 1, 1, 1, 1],
+      "apparentMagnitudes": [
+        10.766136, 11.106198, 11.298629, 11.353449, 11.364256, 11.858532, 11.96577
+      ],
+      "colorIndices": [1.5126162, 2.0389433, 1.255065, 1.6788826, 1.5003653, 1.5141039, 1.3663912]
+    },
+    {
+      "id": "c-p5-n3-n6",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 8,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 8,
+      "cellCoordinates": [
+        22, -11, -22, 23, -10, -23, 21, -12, -21, 20, -9, -23, 21, -12, -23, 20, -11, -22, 20, -12,
+        -22, 22, -9, -23
+      ],
+      "positionsParsec": [
+        2872.117052955656, -1405.393411856266, -2733.226908701549, 2973.035625766423,
+        -1250.3279786462729, -2902.354965966803, 2752.3294203705996, -1470.7345761988872,
+        -2569.1684003207997, 2579.1343205758235, -1095.655888177062, -2890.531678969169,
+        2756.9677107548587, -1417.4997045693692, -2854.451159223372, 2627.8992811434377,
+        -1311.6420037287526, -2730.865889510546, 2578.8503042455945, -1453.9981468665635,
+        -2698.3825184205984, 2894.4936084338037, -1115.5897024262952, -2902.6995772040127
+      ],
+      "starCounts": [1, 1, 1, 1, 1, 1, 1, 1],
+      "apparentMagnitudes": [
+        10.305735, 10.644605, 10.997225, 11.020215, 11.376666, 11.689983, 11.8372, 11.849009
+      ],
+      "colorIndices": [
+        1.5314941, 1.701438, 1.482171, 1.3998718, 1.3480444, 1.2812805, 1.3812838, 1.114543
+      ]
+    },
+    {
+      "id": "c-p5-n4-n5",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 9,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 9,
+      "cellCoordinates": [
+        23, -16, -19, 20, -16, -19, 21, -16, -19, 22, -15, -18, 20, -16, -19, 20, -13, -19, 22, -13,
+        -19, 22, -14, -17, 21, -14, -18
+      ],
+      "positionsParsec": [
+        3044.877173089949, -1979.8327873251128, -2338.7000674978904, 2566.2975478154763,
+        -1920.179045857594, -2393.2719399865236, 2701.222661522548, -1977.445045468261,
+        -2400.838153485705, 2846.5832873372547, -1894.9862136236911, -2238.4604922289,
+        2627.4876518081714, -1941.1400873998696, -2422.0086096016207, 2590.3103463163093,
+        -1610.6014926155012, -2332.8125112200173, 2911.4844905065866, -1550.3716446774988,
+        -2327.07883326486, 2838.0138277086476, -1666.7424480016125, -2049.1828673926443,
+        2696.017779097499, -1768.1795870361752, -2293.5721896587042
+      ],
+      "starCounts": [1, 1, 1, 1, 1, 1, 1, 1, 1],
+      "apparentMagnitudes": [
+        11.024182, 11.290545, 11.488186, 11.541748, 11.7721405, 11.833561, 11.948496, 11.980762,
+        11.997696
+      ],
+      "colorIndices": [
+        1.4248619, 1.2302504, 1.411541, 1.7099543, 1.4253111, 1.5607653, 1.5104408, 1.1920576,
+        1.3135548
+      ]
+    },
+    {
+      "id": "c-p5-n4-n6",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 1,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 1,
+      "cellCoordinates": [21, -16, -22],
+      "positionsParsec": [2814.3135173497485, -1989.2828850254018, -2800.389659288185],
+      "starCounts": [1],
+      "apparentMagnitudes": [10.903299],
+      "colorIndices": [1.7101536]
+    },
+    {
+      "id": "c-p5-n4-n7",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 1,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 1,
+      "cellCoordinates": [20, -15, -27],
+      "positionsParsec": [2645.6174192523417, -1838.2029660238493, -3336.9834978169124],
+      "starCounts": [1],
+      "apparentMagnitudes": [10.17475],
+      "colorIndices": [1.834095]
+    },
+    {
+      "id": "c-p6-n1-n5",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 2,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 2,
+      "cellCoordinates": [24, -2, -18, 27, -1, -17],
+      "positionsParsec": [
+        3151.8851697936316, -153.66460101018973, -2274.8700976276305, 3534.1313755826773,
+        -86.78503999437523, -2169.8217627158397
+      ],
+      "starCounts": [1, 1],
+      "apparentMagnitudes": [10.2814865, 10.876244],
+      "colorIndices": [1.6041689, 1.3731537]
+    },
+    {
+      "id": "c-p6-n1-n6",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 1,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 1,
+      "cellCoordinates": [24, -4, -23],
+      "positionsParsec": [3075.868988365039, -476.44106427977067, -2820.079727071398],
+      "starCounts": [1],
+      "apparentMagnitudes": [11.847782],
+      "colorIndices": [1.246809]
+    },
+    {
+      "id": "c-p6-n2-n5",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 2,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 2,
+      "cellCoordinates": [25, -6, -18, 26, -7, -20],
+      "positionsParsec": [
+        3207.055696092093, -740.1657382986807, -2189.702234920386, 3383.9145846911697,
+        -769.1339003134852, -2443.435191766596
+      ],
+      "starCounts": [1, 1],
+      "apparentMagnitudes": [11.492456, 11.942572],
+      "colorIndices": [1.2243195, 1.517787]
+    },
+    {
+      "id": "c-p6-n2-n6",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 3,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 3,
+      "cellCoordinates": [26, -7, -21, 26, -8, -24, 24, -7, -23],
+      "positionsParsec": [
+        3371.1499285574223, -834.0863463699344, -2632.1472535931125, 3376.261511713086,
+        -907.8335983241626, -2964.0762859491892, 3096.6097349686784, -794.7129325760403,
+        -2818.219351322033
+      ],
+      "starCounts": [1, 1, 1],
+      "apparentMagnitudes": [10.923726, 11.91399, 11.975235],
+      "colorIndices": [2.06713, 1.2193766, 1.462512]
+    },
+    {
+      "id": "c-p6-n2-n7",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 2,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 2,
+      "cellCoordinates": [24, -5, -26, 24, -8, -28],
+      "positionsParsec": [
+        3198.3957655892145, -568.1448421430442, -3213.3295436190783, 3194.4911009424063,
+        -1022.8585589259917, -3522.581278291269
+      ],
+      "starCounts": [1, 1],
+      "apparentMagnitudes": [10.938379, 11.427433],
+      "colorIndices": [1.7629519, 1.2725439]
+    },
+    {
+      "id": "c-p6-n3-n5",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 3,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 3,
+      "cellCoordinates": [26, -11, -18, 25, -12, -18, 24, -9, -20],
+      "positionsParsec": [
+        3407.8207934279403, -1383.5482621382846, -2194.3232870798643, 3286.5683727715627,
+        -1447.5211121110103, -2296.030899349566, 3145.8634039383, -1122.6816651967847,
+        -2467.8703524247007
+      ],
+      "starCounts": [1, 1, 1],
+      "apparentMagnitudes": [11.336271, 11.552844, 11.572552],
+      "colorIndices": [1.7252502, 1.3857441, 1.1071262]
+    },
+    {
+      "id": "c-p6-n3-n6",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 1,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 1,
+      "cellCoordinates": [24, -10, -21],
+      "positionsParsec": [3096.9651321867946, -1163.1583258293817, -2582.197714859767],
+      "starCounts": [1],
+      "apparentMagnitudes": [11.653704],
+      "colorIndices": [1.5304928]
+    },
+    {
+      "id": "c-p6-n4-n5",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 2,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 2,
+      "cellCoordinates": [25, -14, -17, 25, -15, -18],
+      "positionsParsec": [
+        3308.350648235733, -1670.5257147209688, -2158.8844613062906, 3229.5288903035666,
+        -1860.1160720083694, -2243.051977932306
+      ],
+      "starCounts": [1, 1],
+      "apparentMagnitudes": [10.930829, 11.59329],
+      "colorIndices": [2.2821074, 1.8195562]
+    },
+    {
+      "id": "c-p6-n4-n6",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 1,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 1,
+      "cellCoordinates": [25, -16, -21],
+      "positionsParsec": [3269.381122922846, -2030.3117356984396, -2602.8901235923777],
+      "starCounts": [1],
+      "apparentMagnitudes": [10.937744],
+      "colorIndices": [1.6016092]
+    },
+    {
+      "id": "c-p6-n4-n7",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 1,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 1,
+      "cellCoordinates": [24, -15, -25],
+      "positionsParsec": [3078.183792429793, -1821.200208719783, -3182.6948455179977],
+      "starCounts": [1],
+      "apparentMagnitudes": [11.884765],
+      "colorIndices": [1.36166]
+    },
+    {
+      "id": "c-p7-n1-n5",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 2,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 2,
+      "cellCoordinates": [28, -3, -20, 31, -2, -17],
+      "positionsParsec": [
+        3622.2974588604384, -313.51054460405584, -2473.0135929712374, 4069.1725284667614,
+        -148.1126712298047, -2072.4172541912335
+      ],
+      "starCounts": [1, 1],
+      "apparentMagnitudes": [10.907882, 11.894282],
+      "colorIndices": [1.6150837, 1.5011187]
+    },
+    {
+      "id": "c-p7-n1-n6",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 2,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 2,
+      "cellCoordinates": [30, -4, -23, 29, -2, -23],
+      "positionsParsec": [
+        3844.8146974572446, -440.255910149065, -2887.450694332537, 3739.098263335275,
+        -147.7513229429412, -2851.714504562839
+      ],
+      "starCounts": [1, 1],
+      "apparentMagnitudes": [10.994953, 11.806792],
+      "colorIndices": [2.0852032, 1.176137]
+    },
+    {
+      "id": "c-p7-n2-n6",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 2,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 2,
+      "cellCoordinates": [28, -6, -24, 30, -6, -24],
+      "positionsParsec": [
+        3614.2554112477637, -653.2181349307809, -2992.2141766011114, 3840.602725646375,
+        -703.4016870969818, -3037.050456340986
+      ],
+      "starCounts": [1, 1],
+      "apparentMagnitudes": [11.889182, 11.923358],
+      "colorIndices": [1.2714806, 1.29389]
+    },
+    {
+      "id": "c-p7-n2-n7",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 1,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 1,
+      "cellCoordinates": [29, -7, -25],
+      "positionsParsec": [3758.2972456488, -857.2956605973809, -3166.502499088536],
+      "starCounts": [1],
+      "apparentMagnitudes": [11.813541],
+      "colorIndices": [1.2728968]
+    },
+    {
+      "id": "c-p7-n3-n5",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 1,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 1,
+      "cellCoordinates": [30, -9, -20],
+      "positionsParsec": [3960.3955949275232, -1063.0424032611538, -2531.1141447888986],
+      "starCounts": [1],
+      "apparentMagnitudes": [11.96319],
+      "colorIndices": [1.2308512]
+    },
+    {
+      "id": "c-p7-n4-n5",
+      "parentId": "r-p1-n1-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 1,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 1,
+      "cellCoordinates": [29, -15, -19],
+      "positionsParsec": [3764.6046533560802, -1795.9486737192087, -2431.6752898770837],
+      "starCounts": [1],
+      "apparentMagnitudes": [11.267202],
+      "colorIndices": [1.4270115]
+    }
+  ]
+}

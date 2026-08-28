@@ -1,0 +1,69 @@
+{
+  "version": "4.0.0",
+  "sourceCatalog": "gaia-dr3-bright-high-confidence",
+  "referenceEpochJulianDay": 2457388.5,
+  "magnitudeBand": "gaia-g",
+  "colorIndexSystem": "gaia-bp-rp",
+  "tiles": [
+    {
+      "id": "c-n5-n9-p0",
+      "parentId": "r-n2-n3-p0",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 1,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 1,
+      "cellCoordinates": [-18, -35, 1],
+      "positionsParsec": [-2203.6338279387055, -4466.457876349636, 193.9579526568859],
+      "starCounts": [1],
+      "apparentMagnitudes": [11.985393],
+      "colorIndices": [1.757905]
+    },
+    {
+      "id": "c-n5-n9-p1",
+      "parentId": "r-n2-n3-p0",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 2,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 2,
+      "cellCoordinates": [-19, -33, 5, -19, -33, 4],
+      "positionsParsec": [
+        -2412.2683089317793, -4145.017170083722, 696.2842853336105, -2327.1206654211664,
+        -4202.351766277353, 574.8876231728781
+      ],
+      "starCounts": [1, 1],
+      "apparentMagnitudes": [11.656032, 11.933577],
+      "colorIndices": [1.8479328, 1.9948816]
+    },
+    {
+      "id": "c-n6-n9-p0",
+      "parentId": "r-n2-n3-p0",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 1,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 1,
+      "cellCoordinates": [-21, -34, 0],
+      "positionsParsec": [-2591.5831955237986, -4233.4564496556495, 117.66103367762628],
+      "starCounts": [1],
+      "apparentMagnitudes": [11.606842],
+      "colorIndices": [2.0924015]
+    }
+  ]
+}

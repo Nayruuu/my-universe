@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { type GraphicQuality, type SpaceObject } from '../../data/models/universe.models';
+import { calculateStellarNeighborhoodReveal } from '../coordinates/stellar-neighborhood-scale-model';
+import { calculateGalacticContextLabelOpacity } from '../objects/label-render-policy';
 import {
   type BlackHoleLensingPass,
   projectBlackHoleLensing,
@@ -20,6 +22,7 @@ export interface UniverseFrameRendererBindings {
   getTargetId(): string | null;
   getSelectedId(): string | null;
   getQuality(): GraphicQuality;
+  getCameraDistance(): number;
   labelsAllowed(): boolean;
   isObserverModeActive(): boolean;
   isObserverSkyObject(objectId: string): boolean;
@@ -33,6 +36,8 @@ export interface UniverseFrameRendererBindings {
     readWorldPosition: UniverseFrameWorldPositionReader,
     lodLevel: number,
     activeObjectId: string | null,
+    stellarNeighborhoodReveal: number,
+    galacticContextLabelOpacity: number,
   ): void;
   clearLabels(): void;
 }
@@ -94,7 +99,16 @@ export class UniverseFrameRenderer {
     this.bindings.setLabelsTransitioning(this.bindings.isCameraTransitioning());
 
     if (this.bindings.labelsAllowed()) {
-      this.bindings.renderLabels(camera, this.readWorldPosition, lodLevel, selectedId ?? targetId);
+      const cameraDistance = this.bindings.getCameraDistance();
+
+      this.bindings.renderLabels(
+        camera,
+        this.readWorldPosition,
+        lodLevel,
+        selectedId ?? targetId,
+        calculateStellarNeighborhoodReveal(cameraDistance),
+        calculateGalacticContextLabelOpacity(cameraDistance),
+      );
 
       return;
     }

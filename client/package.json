@@ -50,7 +50,7 @@
     "docs:preview": "vitepress preview docs/guide --port 4204",
     "docs:verify": "node tools/verify-documentation-build.mjs",
     "seo:build": "node tools/generate-localized-seo.mjs",
-    "data:stars": "node tools/import-hyg-stars.mjs && npm run data:star-tiles",
+    "data:stars": "node tools/import-hyg-stars.mjs",
     "data:star-tiles": "node tools/build-star-spatial-index.mjs",
     "data:constellations": "node tools/import-constellations.mjs",
     "data:observer-locations": "node tools/import-earth-observer-locations.mjs",

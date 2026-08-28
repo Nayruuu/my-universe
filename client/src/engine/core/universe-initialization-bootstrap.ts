@@ -112,7 +112,7 @@ export class UniverseInitializationBootstrap {
           },
           onWarning: options.onWarning,
         },
-        { streamStarTiles: false },
+        { streamStarTiles: true },
       );
 
       return {

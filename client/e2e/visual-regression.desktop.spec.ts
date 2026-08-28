@@ -39,7 +39,7 @@ const VISUAL_VIEWS = [
   },
   {
     id: 'milky-way',
-    parameters: { target: 'milky-way', selected: '', zoom: '9600', quality: 'medium' },
+    parameters: { target: 'milky-way', selected: '', zoom: '3600', quality: 'medium' },
     minimumLuminanceDeviation: 2,
   },
   {

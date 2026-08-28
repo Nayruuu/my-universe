@@ -1,5 +1,10 @@
 import * as THREE from 'three';
 import { type GraphicQuality, type Vector3Like } from '../../data/models/universe.models';
+import {
+  calculateStellarNeighborhoodReveal,
+  interpolateStellarNeighborhoodLodValue,
+  STELLAR_NEIGHBORHOOD_REVEAL_END,
+} from '../coordinates/stellar-neighborhood-scale-model';
 import { dampValue } from '../lod/screen-space-lod';
 import { ExoplanetCatalogRegistry } from '../objects/exoplanet-catalog-registry';
 import { createExoplanetHostVisual } from './exoplanet-host-visual';
@@ -91,14 +96,55 @@ export class ExoplanetHostBatch {
     this.points.material.uniforms['radiance']!.value = THREE.MathUtils.clamp(radiance, 0.5, 1.5);
   }
 
-  public updateLod(lodLevel: number, deltaSeconds: number, observerPosition?: Vector3Like): void {
+  public updateLod(
+    lodLevel: number,
+    deltaSeconds: number,
+    observerPosition?: Vector3Like,
+    cameraDistance?: number,
+  ): void {
     const observerBoundaryOpacity = this.getObserverBoundaryOpacity(observerPosition);
-    const targetOpacity = getExoplanetHostTargetOpacity(lodLevel) * observerBoundaryOpacity;
+    const stellarTransitionActive = lodLevel >= 1 && lodLevel <= 3;
+    const transitionDistance =
+      cameraDistance ?? (lodLevel <= 2 ? 0 : STELLAR_NEIGHBORHOOD_REVEAL_END);
+    const transitionOpacity = stellarTransitionActive
+      ? calculateStellarNeighborhoodReveal(transitionDistance)
+      : 1;
+    const transitionStyleReveal =
+      cameraDistance === undefined
+        ? lodLevel <= 1
+          ? 1
+          : lodLevel === 2
+            ? 0.5
+            : 0
+        : transitionOpacity;
+    const lodOpacity = stellarTransitionActive
+      ? interpolateStellarNeighborhoodLodValue(
+          LOD_OPACITIES[1],
+          LOD_OPACITIES[2],
+          LOD_OPACITIES[3],
+          transitionStyleReveal,
+        )
+      : getExoplanetHostTargetOpacity(lodLevel);
+    const targetOpacity = lodOpacity * observerBoundaryOpacity * transitionOpacity;
     const boundedLevel = Math.round(
       THREE.MathUtils.clamp(lodLevel, 0, LOD_POINT_SCALES.length - 1),
     );
-    const targetPointScale = LOD_POINT_SCALES[boundedLevel]!;
-    const targetSignatureStrength = LOD_SIGNATURE_STRENGTHS[boundedLevel]!;
+    const targetPointScale = stellarTransitionActive
+      ? interpolateStellarNeighborhoodLodValue(
+          LOD_POINT_SCALES[1],
+          LOD_POINT_SCALES[2],
+          LOD_POINT_SCALES[3],
+          transitionStyleReveal,
+        )
+      : LOD_POINT_SCALES[boundedLevel]!;
+    const targetSignatureStrength = stellarTransitionActive
+      ? interpolateStellarNeighborhoodLodValue(
+          LOD_SIGNATURE_STRENGTHS[1],
+          LOD_SIGNATURE_STRENGTHS[2],
+          LOD_SIGNATURE_STRENGTHS[3],
+          transitionStyleReveal,
+        ) * transitionOpacity
+      : LOD_SIGNATURE_STRENGTHS[boundedLevel]!;
     const wasVisible = this.points.visible;
 
     this.opacity = dampValue(this.opacity, targetOpacity, OPACITY_DAMPING, deltaSeconds);
@@ -116,6 +162,7 @@ export class ExoplanetHostBatch {
     );
     this.points.material.uniforms['catalogOpacity']!.value = this.opacity;
     this.points.userData['observerBoundaryOpacity'] = observerBoundaryOpacity;
+    this.points.userData['stellarNeighborhoodReveal'] = transitionOpacity;
     this.points.material.uniforms['pointScale']!.value = this.pointScale;
     this.points.material.uniforms['hostSignatureStrength']!.value = this.hostSignatureStrength;
     this.points.visible = this.drawCount > 0 && this.opacity > 0.004;

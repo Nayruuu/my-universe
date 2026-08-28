@@ -5,6 +5,11 @@ import {
   type UniverseTime,
   type Vector3Like,
 } from '../../data/models/universe.models';
+import {
+  calculateStellarNeighborhoodReveal,
+  interpolateStellarNeighborhoodLodValue,
+  STELLAR_NEIGHBORHOOD_REVEAL_END,
+} from '../coordinates/stellar-neighborhood-scale-model';
 import { dampValue } from '../lod/screen-space-lod';
 import { StarCatalogRegistry } from '../objects/star-catalog-registry';
 import { getHeliocentricCatalogObserverOpacity } from './heliocentric-catalog-visibility';
@@ -40,6 +45,7 @@ export class StarCatalogBatch {
   private activeVisualScale = 1;
   private selectedObjectId: string | null = null;
   private focusedObjectId: string | null = null;
+  private lodInitialized = false;
   private readonly observerLocalPosition = new THREE.Vector3();
   private readonly observerWorldInverse = new THREE.Matrix4();
 
@@ -109,13 +115,61 @@ export class StarCatalogBatch {
     return true;
   }
 
-  public updateLod(lodLevel: number, deltaSeconds: number, observerPosition?: Vector3Like): void {
+  public updateLod(
+    lodLevel: number,
+    deltaSeconds: number,
+    observerPosition?: Vector3Like,
+    cameraDistance?: number,
+  ): void {
+    this.lodInitialized = true;
     const observerBoundaryOpacity = this.getObserverBoundaryOpacity(observerPosition);
-    const targetOpacity =
-      (LOD_OPACITIES[lodLevel] ?? LOD_OPACITIES.at(-1)!) * observerBoundaryOpacity;
-    const targetPointScale = LOD_POINT_SCALES[lodLevel] ?? LOD_POINT_SCALES.at(-1)!;
-    const targetHaloSize = ACTIVE_HALO_SIZES[lodLevel] ?? ACTIVE_HALO_SIZES.at(-1)!;
-    const targetCoreOpacity = ACTIVE_CORE_OPACITIES[lodLevel] ?? ACTIVE_CORE_OPACITIES.at(-1)!;
+    const stellarTransitionActive = lodLevel >= 1 && lodLevel <= 3;
+    const transitionDistance =
+      cameraDistance ?? (lodLevel <= 2 ? 0 : STELLAR_NEIGHBORHOOD_REVEAL_END);
+    const transitionOpacity = stellarTransitionActive
+      ? calculateStellarNeighborhoodReveal(transitionDistance)
+      : 1;
+    const transitionStyleReveal =
+      cameraDistance === undefined
+        ? lodLevel <= 1
+          ? 1
+          : lodLevel === 2
+            ? 0.5
+            : 0
+        : transitionOpacity;
+    const lodOpacity = stellarTransitionActive
+      ? interpolateStellarNeighborhoodLodValue(
+          LOD_OPACITIES[1],
+          LOD_OPACITIES[2],
+          LOD_OPACITIES[3],
+          transitionStyleReveal,
+        )
+      : (LOD_OPACITIES[lodLevel] ?? LOD_OPACITIES.at(-1)!);
+    const targetOpacity = lodOpacity * observerBoundaryOpacity * transitionOpacity;
+    const targetPointScale = stellarTransitionActive
+      ? interpolateStellarNeighborhoodLodValue(
+          LOD_POINT_SCALES[1],
+          LOD_POINT_SCALES[2],
+          LOD_POINT_SCALES[3],
+          transitionStyleReveal,
+        )
+      : (LOD_POINT_SCALES[lodLevel] ?? LOD_POINT_SCALES.at(-1)!);
+    const targetHaloSize = stellarTransitionActive
+      ? interpolateStellarNeighborhoodLodValue(
+          ACTIVE_HALO_SIZES[1],
+          ACTIVE_HALO_SIZES[2],
+          ACTIVE_HALO_SIZES[3],
+          transitionStyleReveal,
+        )
+      : (ACTIVE_HALO_SIZES[lodLevel] ?? ACTIVE_HALO_SIZES.at(-1)!);
+    const targetCoreOpacity = stellarTransitionActive
+      ? interpolateStellarNeighborhoodLodValue(
+          ACTIVE_CORE_OPACITIES[1],
+          ACTIVE_CORE_OPACITIES[2],
+          ACTIVE_CORE_OPACITIES[3],
+          transitionStyleReveal,
+        ) * transitionOpacity
+      : (ACTIVE_CORE_OPACITIES[lodLevel] ?? ACTIVE_CORE_OPACITIES.at(-1)!);
     const wasVisible = this.points.visible;
 
     this.opacity = dampValue(this.opacity, targetOpacity, 6, deltaSeconds);
@@ -124,6 +178,7 @@ export class StarCatalogBatch {
     this.activeCoreOpacity = dampValue(this.activeCoreOpacity, targetCoreOpacity, 7, deltaSeconds);
     this.points.material.uniforms['catalogOpacity']!.value = this.opacity;
     this.points.userData['observerBoundaryOpacity'] = observerBoundaryOpacity;
+    this.points.userData['stellarNeighborhoodReveal'] = transitionOpacity;
     this.points.material.uniforms['pointScale']!.value = this.pointScale;
     this.activeHalo.material.uniforms['pointSize']!.value =
       this.activeHaloSize * this.activeVisualScale;
@@ -183,6 +238,19 @@ export class StarCatalogBatch {
 
   public get visibleCount(): number {
     return this.points.visible ? this.drawCount : 0;
+  }
+
+  public isObjectVisibleForLabels(objectId: string): boolean | null {
+    if (this.registry.getIndex(objectId) === null) {
+      return null;
+    }
+
+    return (
+      !this.lodInitialized ||
+      this.points.visible ||
+      objectId === this.selectedObjectId ||
+      objectId === this.focusedObjectId
+    );
   }
 
   public dispose(): void {

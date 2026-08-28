@@ -2,6 +2,10 @@ import * as THREE from 'three';
 import { type SpaceObject, type ZoomDebugStats } from '../../data/models/universe.models';
 import { type NavigationContext, NavigationContextJourney } from '../camera/navigation-context';
 import {
+  GALACTIC_APPROACH_ZOOM_RATE_MULTIPLIER,
+  sampleGalacticApproach,
+} from '../camera/galactic-approach';
+import {
   ACTIVE_TARGET_POINTER_ZOOM_MAXIMUM_MULTIPLIER,
   getActiveTargetPointerZoomMultiplier,
 } from '../camera/navigation-policy';
@@ -26,12 +30,20 @@ export interface NavigationCameraController {
   adoptZoomPointer(x: number, y: number): void;
   adoptZoomTarget(position: THREE.Vector3, object: SpaceObject): void;
   trackTarget(position: THREE.Vector3, object: SpaceObject): void;
-  zoomSemantically(deltaY: number, logarithmicRateMultiplier?: number): void;
+  zoomSemantically(
+    deltaY: number,
+    logarithmicRateMultiplier?: number,
+    allowMinimumTraversal?: boolean,
+  ): void;
   zoomBy(factor: number): void;
   adoptReferenceFrame(position: THREE.Vector3, object: SpaceObject): void;
   transitionReferenceFrame(position: THREE.Vector3, object: SpaceObject): void;
   releaseTarget(preserveTraversalDistance?: boolean): void;
-  follow(position: THREE.Vector3): void;
+  follow(
+    position: THREE.Vector3,
+    viewElevation?: number,
+    viewElevationMode?: 'damped' | 'distance',
+  ): void;
 }
 
 export interface UniverseNavigationBindings {
@@ -71,6 +83,11 @@ export class UniverseNavigationRuntime {
   private currentTargetId: string | null = null;
   private releasedTraversalTargetId: string | null = null;
   private zoomAnchor: ZoomAnchor | null = null;
+  private readonly galacticApproachPosition = new THREE.Vector3();
+  private readonly galacticPosition = new THREE.Vector3();
+  private readonly stellarPosition = new THREE.Vector3();
+  private readonly followedTargetPosition = new THREE.Vector3();
+  private minimumTraversalArmedForWheelGesture = false;
 
   constructor(
     private readonly bindings: UniverseNavigationBindings,
@@ -105,6 +122,7 @@ export class UniverseNavigationRuntime {
     this.currentTargetId = null;
     this.releasedTraversalTargetId = null;
     this.zoomAnchor = null;
+    this.minimumTraversalArmedForWheelGesture = false;
     this.journey.clear();
   }
 
@@ -132,16 +150,32 @@ export class UniverseNavigationRuntime {
     deltaY: number,
     pointer: NavigationPointer = { x: 0, y: 0 },
     startsWheelAnchor = true,
+    startsWheelGesture?: boolean,
   ): NavigationZoomDecision {
     if (!controller) {
       return 'ignored';
+    }
+    if (deltaY !== 0 && startsWheelGesture === true) {
+      // Reaching the magnification floor and entering free travel are two distinct navigation
+      // intentions. Arm traversal only when a wheel gesture starts at that floor; otherwise the
+      // current burst settles there and a resumed gesture can deliberately continue through it.
+      this.minimumTraversalArmedForWheelGesture =
+        controller.atMinimumNavigationDistance || controller.minimumTraversalActive;
     }
     const minimumTraversalWasActive = controller.minimumTraversalActive;
 
     if (!minimumTraversalWasActive) {
       this.releasedTraversalTargetId = null;
     }
-    const wheelTarget = this.resolveWheelTarget(controller, objectId, deltaY, startsWheelAnchor);
+    const galacticApproach = this.resolveGalacticApproach(controller.distanceToTarget);
+    // Once the Milky Way -> stellar journey has started, incidental objects passing below the
+    // pointer must not replace its pivot. Otherwise the same wheel gesture produces a different
+    // camera path depending on which label or point happens to cross the cursor, and the apparent
+    // reference-frame transition reads as a cut. Explicit clicks still select another object via
+    // handleNavigationIntent().
+    const wheelTarget = galacticApproach
+      ? null
+      : this.resolveWheelTarget(controller, objectId, deltaY, startsWheelAnchor);
     const startsFreeForwardZoom =
       deltaY < 0 &&
       wheelTarget === null &&
@@ -164,20 +198,31 @@ export class UniverseNavigationRuntime {
       : null;
 
     if (!wheelTarget) {
-      controller.adoptZoomPointer(pointer.x, pointer.y);
-      this.zoomAnchor = {
-        anchorType: 'pointer',
-        anchorObjectId: null,
-      };
+      if (galacticApproach) {
+        controller.adoptZoomAnchor(galacticApproach.position);
+        this.zoomAnchor = {
+          anchorType: 'target',
+          anchorObjectId: this.currentTargetId,
+        };
+      } else {
+        controller.adoptZoomPointer(pointer.x, pointer.y);
+        this.zoomAnchor = {
+          anchorType: 'pointer',
+          anchorObjectId: null,
+        };
+      }
     }
 
     const usesAcceleratedActiveTargetPointerZoom =
       wheelTarget === null &&
       (objectId === null || deltaY >= 0) &&
       this.currentTargetId !== null &&
+      galacticApproach === null &&
       !controller.observerPresentationActive;
 
-    if (usesAcceleratedActiveTargetPointerZoom) {
+    if (galacticApproach) {
+      controller.zoomSemantically(deltaY, GALACTIC_APPROACH_ZOOM_RATE_MULTIPLIER);
+    } else if (usesAcceleratedActiveTargetPointerZoom) {
       controller.zoomSemantically(
         deltaY,
         getActiveTargetPointerZoomMultiplier(
@@ -187,7 +232,21 @@ export class UniverseNavigationRuntime {
         ),
       );
     } else {
-      controller.zoomSemantically(deltaY);
+      const settlesFreeGestureAtMinimum =
+        startsWheelGesture !== undefined &&
+        deltaY < 0 &&
+        !this.minimumTraversalArmedForWheelGesture &&
+        wheelTarget === null &&
+        this.currentTargetId === null &&
+        !controller.semanticZoomActive &&
+        !controller.minimumTraversalActive &&
+        !controller.observerPresentationActive;
+
+      if (settlesFreeGestureAtMinimum) {
+        controller.zoomSemantically(deltaY, 1, false);
+      } else {
+        controller.zoomSemantically(deltaY);
+      }
     }
     if (
       deltaY > 0 &&
@@ -280,7 +339,9 @@ export class UniverseNavigationRuntime {
     this.currentTargetId = context.targetId;
     this.bindings.setNavigationTarget(context.targetId);
     if (preservePivot) {
-      controller.adoptReferenceFrame(position, object);
+      const approach = this.resolveGalacticApproach(controller.distanceToTarget);
+
+      controller.adoptReferenceFrame(approach?.position ?? position, object);
     } else {
       controller.transitionReferenceFrame(position, object);
     }
@@ -291,11 +352,70 @@ export class UniverseNavigationRuntime {
     if (!this.currentTargetId || !this.bindings.hasPrimaryRegistry() || !controller) {
       return;
     }
-    const position = this.bindings.getWorldPosition(this.currentTargetId);
+    if (this.followGalacticApproach(controller)) {
+      return;
+    }
+    const position = this.bindings.getWorldPosition(
+      this.currentTargetId,
+      this.followedTargetPosition,
+    );
 
     if (position) {
       controller.follow(position);
     }
+  }
+
+  /** Refreshes the distance-driven guide every render frame without retargeting ordinary views. */
+  public updateCameraGuide(controller: NavigationCameraController | null): void {
+    if (controller) {
+      this.followGalacticApproach(controller);
+    }
+  }
+
+  private followGalacticApproach(controller: NavigationCameraController): boolean {
+    const approach = this.resolveGalacticApproach(controller.distanceToTarget);
+
+    // Reaching the Milky Way through search or a direct focus must end on a stable Galactic
+    // centre. The centre-to-Sun choreography begins with the next inward zoom gesture; running
+    // it immediately after the focus transition caused an unsolicited sideways drift and pitch
+    // correction on arrival.
+    if (!approach || (!controller.semanticZoomActive && !controller.inwardZoomActive)) {
+      return false;
+    }
+    controller.follow(approach.position, approach.viewElevation, 'distance');
+
+    return true;
+  }
+
+  private resolveGalacticApproach(
+    cameraDistance: number,
+  ): { readonly position: THREE.Vector3; readonly viewElevation: number } | null {
+    const galaxyTargetId = this.journey.resolve(3).targetId;
+    const stellarTargetId = this.journey.resolve(2).targetId;
+
+    if (galaxyTargetId !== 'milky-way' || !stellarTargetId) {
+      return null;
+    }
+    const sample = sampleGalacticApproach(cameraDistance);
+
+    if (!sample.active) {
+      return null;
+    }
+    const galaxyPosition = this.bindings.getWorldPosition(galaxyTargetId, this.galacticPosition);
+    const stellarPosition = this.bindings.getWorldPosition(stellarTargetId, this.stellarPosition);
+
+    if (!galaxyPosition || !stellarPosition) {
+      return null;
+    }
+
+    return {
+      position: this.galacticApproachPosition.lerpVectors(
+        galaxyPosition,
+        stellarPosition,
+        sample.pivotProgress,
+      ),
+      viewElevation: sample.viewElevation,
+    };
   }
 
   private setTarget(objectId: string): void {
@@ -331,22 +451,27 @@ export class UniverseNavigationRuntime {
     wheelTarget: WheelTarget,
     startsWheelAnchor: boolean,
   ): NavigationZoomDecision {
+    const adoptsTarget = startsWheelAnchor && this.currentTargetId !== wheelTarget.objectId;
+
+    // Hand the tracked object to the controller before adopting its zoom anchor. A Galactic
+    // approach can still be converging on the Sun for a few frames after its distance interval;
+    // the new target must cancel that guide before the anchor is resolved, otherwise the first
+    // stellar frame combines the old Solar pivot with the new star tracking baseline.
+    if (adoptsTarget) {
+      this.setTarget(wheelTarget.objectId);
+      controller.trackTarget(wheelTarget.position, wheelTarget.object);
+      this.bindings.emitTargetChanged(wheelTarget.objectId);
+    }
     controller.adoptZoomAnchor(wheelTarget.position);
     this.zoomAnchor = {
       anchorType: 'object',
       anchorObjectId: wheelTarget.objectId,
     };
-    if (this.currentTargetId === wheelTarget.objectId) {
-      return 'zoom-current-target';
+    if (adoptsTarget) {
+      return 'adopt-wheel-target';
     }
-    if (!startsWheelAnchor) {
-      return 'zoom-object';
-    }
-    this.setTarget(wheelTarget.objectId);
-    controller.trackTarget(wheelTarget.position, wheelTarget.object);
-    this.bindings.emitTargetChanged(wheelTarget.objectId);
 
-    return 'adopt-wheel-target';
+    return this.currentTargetId === wheelTarget.objectId ? 'zoom-current-target' : 'zoom-object';
   }
 
   private restoreReleasedTraversalTarget(

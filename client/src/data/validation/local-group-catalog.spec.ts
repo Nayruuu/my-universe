@@ -45,6 +45,37 @@ describe('catalogue cartographique du Groupe local', () => {
     expect(() => assertLocalGroupCatalogCoordinates(dataset.objects)).not.toThrow();
   });
 
+  it('documente une taille physique pour chaque galaxie du Groupe local', () => {
+    const dataset = parseUniverseDataset(localGroupSource, 'local-group');
+    const galaxies = dataset.objects.filter((object) => object.type === 'galaxy');
+
+    for (const object of galaxies) {
+      const diameterLightYears = object.metadata?.['diameterLy'];
+      const halfLightRadiusParsecs = object.metadata?.['halfLightRadiusPc'];
+      const hasPhysicalDiameter = typeof diameterLightYears === 'number' && diameterLightYears > 0;
+      const hasHalfLightRadius =
+        typeof halfLightRadiusParsecs === 'number' && halfLightRadiusParsecs > 0;
+
+      expect(
+        hasPhysicalDiameter || hasHalfLightRadius,
+        `${object.id} doit documenter diameterLy ou halfLightRadiusPc`,
+      ).toBe(true);
+    }
+  });
+
+  it('conserve les tailles indépendantes publiées pour les Nuages de Magellan et Draco', () => {
+    const dataset = parseUniverseDataset(localGroupSource, 'local-group');
+    const byId = new Map(dataset.objects.map((object) => [object.id, object]));
+
+    expect(byId.get('large-magellanic-cloud')?.metadata?.['diameterLy']).toBe(14_000);
+    expect(byId.get('small-magellanic-cloud')?.metadata?.['diameterLy']).toBe(7_000);
+    expect(byId.get('large-magellanic-cloud')?.metadata?.['sizeSource']).toContain(
+      'NASA SVS 11293',
+    );
+    expect(byId.get('draco-dwarf')?.metadata?.['halfLightRadiusPc']).toBe(221);
+    expect(byId.get('draco-dwarf')?.metadata?.['source']).toContain('McConnachie 2012');
+  });
+
   it('valide une position relative à la galaxie hôte', () => {
     const host = galaxy('host', undefined, [100, 0, 0], {
       distanceKpc: 100,

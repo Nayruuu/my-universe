@@ -7,6 +7,9 @@ import {
   UniverseTime,
 } from '../../data/models/universe.models';
 import { CoordinateSystem } from '../coordinates/coordinate-system';
+import { calculateGalacticFrameScale } from '../coordinates/galaxy-scale-model';
+import type { IntergalacticFrameGroup } from '../coordinates/intergalactic-frame-group';
+import { calculateStellarNeighborhoodSceneScale } from '../coordinates/stellar-neighborhood-scale-model';
 import type { FarObjectBatch } from '../rendering/far-object-batch';
 import { EarthEclipseKind, SolarEclipseAppearance } from '../simulation/earth-eclipse';
 import { calculateLunarEclipseAppearance } from '../simulation/lunar-eclipse-calculator';
@@ -35,6 +38,9 @@ export class ObjectRegistry {
   private readonly entries: Map<string, ObjectRegistryEntry>;
   private readonly pickables: THREE.Object3D[];
   private readonly registryRoot: THREE.Group;
+  private readonly intergalacticFrames: IntergalacticFrameGroup;
+  private readonly galacticFrameRoot: THREE.Group;
+  private readonly stellarNeighborhoodRoot: THREE.Group;
   private readonly farObjectBatch: FarObjectBatch;
   private readonly batchedGalaxyTotal: number;
   private readonly activeObjectAdornmentController: ActiveObjectAdornmentController;
@@ -53,6 +59,8 @@ export class ObjectRegistry {
   private currentLodLevel = Number.POSITIVE_INFINITY;
   private temporalMode: TemporalMode = 'state';
   private readonly receivedEmissionTimes = new Map<string, UniverseTime>();
+  private galacticFrameScale = 1;
+  private stellarNeighborhoodReveal = 1;
 
   constructor(
     private readonly spaceRoot: THREE.Group,
@@ -65,6 +73,9 @@ export class ObjectRegistry {
     this.entries = registry.entries;
     this.pickables = registry.pickables;
     this.registryRoot = registry.registryRoot;
+    this.intergalacticFrames = registry.intergalacticFrames;
+    this.galacticFrameRoot = registry.galacticFrameRoot;
+    this.stellarNeighborhoodRoot = registry.stellarNeighborhoodRoot;
     this.farObjectBatch = registry.farObjectBatch;
     this.batchedGalaxyTotal = registry.batchedGalaxyTotal;
     this.activeObjectAdornmentController = new ActiveObjectAdornmentController(
@@ -152,6 +163,7 @@ export class ObjectRegistry {
         navigationTargetId: this.navigationTargetId,
         solarObserverActive: this.solarObserverActive,
         earthObserverActive: this.earthObserverActive,
+        stellarNeighborhoodReveal: this.stellarNeighborhoodReveal,
       },
       deltaSeconds,
     );
@@ -164,6 +176,45 @@ export class ObjectRegistry {
       viewportHeight,
       earthObserverActive && !this.solarObserverActive,
     );
+  }
+
+  public updateReferenceFrameScale(cameraDistance: number): boolean {
+    const intergalacticChanged = this.intergalacticFrames.update(cameraDistance);
+    const nextGalacticScale = calculateGalacticFrameScale(cameraDistance);
+    const galacticChanged = Math.abs(nextGalacticScale - this.galacticFrameScale) > 1e-12;
+    const stellarOriginDistance = this.entries.get('sun')?.node.position.length() ?? 0;
+    const stellarSceneScale = calculateStellarNeighborhoodSceneScale(
+      cameraDistance,
+      stellarOriginDistance,
+    );
+    const parentScale = Math.max(stellarSceneScale.originScale, 1e-12);
+    const nextStellarRadialScale = stellarSceneScale.radialScale / parentScale;
+    const nextStellarVerticalScale = stellarSceneScale.verticalScale / parentScale;
+    const stellarChanged =
+      Math.abs(this.stellarNeighborhoodRoot.scale.x - nextStellarRadialScale) > 1e-12 ||
+      Math.abs(this.stellarNeighborhoodRoot.scale.y - nextStellarVerticalScale) > 1e-12;
+
+    if (galacticChanged) {
+      this.galacticFrameScale = nextGalacticScale;
+      this.galacticFrameRoot.scale.setScalar(nextGalacticScale);
+      this.galacticFrameRoot.userData['sceneUnitsPerKiloparsec'] =
+        nextGalacticScale * this.coordinateSystem.toSceneDistance(1, 'kiloparsec', 'galactic');
+    }
+
+    if (stellarChanged) {
+      this.stellarNeighborhoodRoot.scale.set(
+        nextStellarRadialScale,
+        nextStellarVerticalScale,
+        nextStellarRadialScale,
+      );
+    }
+    this.stellarNeighborhoodReveal = stellarSceneScale.reveal;
+    this.stellarNeighborhoodRoot.userData['radialScale'] = stellarSceneScale.radialScale;
+    this.stellarNeighborhoodRoot.userData['verticalScale'] = stellarSceneScale.verticalScale;
+    this.stellarNeighborhoodRoot.userData['originScale'] = stellarSceneScale.originScale;
+    this.stellarNeighborhoodRoot.userData['reveal'] = stellarSceneScale.reveal;
+
+    return intergalacticChanged || galacticChanged || stellarChanged;
   }
 
   public setEarthObserverCelestialPresentations(
@@ -334,6 +385,7 @@ export class ObjectRegistry {
       lodLevel: this.currentLodLevel,
       selectedId: this.selectedId,
       navigationTargetId: this.navigationTargetId,
+      stellarNeighborhoodReveal: this.stellarNeighborhoodReveal,
     });
   }
 

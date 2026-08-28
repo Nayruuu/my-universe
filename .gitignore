@@ -32,6 +32,7 @@ client/data-sources/*.csv
 client/data-sources/*.dat
 client/data-sources/*.dat.gz
 client/data-sources/*.source.json
+client/data-sources/gaia-dr3/*.csv
 coverage/
 playwright-report/
 test-results/

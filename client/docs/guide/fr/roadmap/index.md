@@ -5,7 +5,7 @@ description: Découvrez ce qu’Universe Map a déjà livré, les améliorations
 
 # Feuille de route
 
-_Dernière révision : 28 août 2026._
+_Dernière révision : 3 septembre 2026._
 
 Cette page est la feuille de route publique de référence d’Universe Map. Elle décrit des résultats et
 des critères de validation plutôt que de promettre des dates. La justesse scientifique, une navigation
@@ -35,9 +35,11 @@ des contraintes pour chaque évolution.
   crépuscule USNO, gêne lunaire, indice de meilleure fenêtre explicitement illustratif et action qui
   déplace ensemble le temps partagé et la caméra. La cible de cette courbe peut être remplacée depuis
   le même catalogue local sans déplacer le ciel courant ; seule cette action engage la cible, le temps
-  partagé et la caméra. Une comparaison compacte applique le même calcul à sept nuits consécutives ;
-  choisir une nuit déplace directement à son meilleur instant, raffiné localement à cinq minutes.
-  Météo en direct, pollution lumineuse et obstacles locaux non mesurés restent hors du modèle.
+  partagé et la caméra. Une comparaison compacte applique le même calcul à sept nuits consécutives.
+  Elle met automatiquement en avant la meilleure avec un indice illustratif comparable sur 100 et
+  expose hauteur, obscurité, gêne lunaire et dégagement du relief avant son action directe vers le
+  meilleur instant, raffiné localement à cinq minutes. Météo en direct, pollution lumineuse et
+  obstacles locaux non mesurés restent hors du modèle.
 - Chaque lieu fixe du catalogue dispose d’un profil d’obstruction à 360° calculé depuis le produit
   de relief de surface NOAA/NCEI ETOPO 2022 v1 à 60 secondes d’arc. Ces profils compacts sont chargés
   à la demande et peuvent masquer étoiles, Lune, planètes et satellites derrière le relief modélisé ; bâtiments,
@@ -53,7 +55,50 @@ des contraintes pour chaque évolution.
   explicitement illustratif.
 - Les étoiles et la Voie lactée gagnent désormais du détail de façon continue au zoom au lieu de
   conserver une taille de pixel figée. La navigation élimine aussi les cibles et sélections devenues
-  hors contexte visuel.
+  hors contexte visuel. Lors de l’entrée dans la Galaxie, le pivot de caméra progresse continûment du
+  centre galactique jusqu’au Soleil tandis que le volume externe, le catalogue stellaire et la bande
+  panoramique locale se fondent sans coupure de référentiel. Cette trajectoire réversible commence
+  dès l’Univers proche, sans lancer de recentrage de caméra aux changements hiérarchiques. Le volume Gaia reste compact pendant
+  toute l’approche extérieure, puis ne se déploie dans sa projection lisible qu’une fois la caméra
+  entrée dans le disque ; la luminosité galactique reste en outre bornée quel que soit l’angle de vue.
+- La calibration structurelle de la Voie lactée sépare désormais son métrique physique et ses
+  coordonnées canoniques de son enveloppe lumineuse explicitement illustrative. À l’entrée
+  galactique, cette enveloppe atteint quatre fois le diamètre canonique et grandit sur toute l’approche
+  logarithmique, sans modifier les distances de caméra, la réponse de la molette, le picking ni le
+  placement des catalogues. Pour rendre la traversée perceptible sans ralentir la caméra, le même nuage
+  de points groupé comprend 140 000 traceurs déterministes et illustratifs : 28 000 restent répartis
+  dans le disque épais galactocentrique, 56 000 forment une enveloppe d’entrée courbe et symétrique
+  autour de l’axe galactique, et 56 000 composent un cœur de passage rapproché plus étroit. Chaque
+  niveau de qualité couvre tout le rayon et tous les azimuts de ce cœur, ce qui évite les portions
+  vides sur le trajet. Toutes les positions restent fixes ; seuls les sprites les plus proches
+  s’étirent brièvement lorsque la distance de caméra varie, puis redeviennent ronds à l’arrêt. Leur
+  défilement apparent est le repère de perspective produit pendant que la caméra traverse le
+  référentiel galactique illustratif, mis à l’échelle continûment. Pendant cette
+  traversée, le voile volumétrique et les particules morphologiques diffuses s’effacent désormais avant
+  les traceurs lointains : il reste des étoiles de proximité plus rares et plus nettes, plutôt qu’un
+  grain poussiéreux uniforme. Les noms des galaxies du Groupe local s’effacent avant la traversée dense,
+  tandis que la cible active reste lisible. Les traceurs ne représentent pas des étoiles individuelles
+  cataloguées. Le blanc du volume est désormais explicitement traité comme la lumière intégrée,
+  illustrative, d’étoiles non résolues, et non comme de la poussière : son socle inter-bras continu est
+  réduit, tandis que bras, filaments et amas conservent des éclats séparés par des intervalles noirs.
+  La passe colorimétrique suivante sépare maintenant la lumière intégrée ivoire chaud, les jeunes
+  étoiles saphir, le cœur ambré, de rares accents H II magenta et la poussière presque noire. Un socle
+  retenu d’étoiles ponctuelles saphir, ivoire, ambre et rouges comble aussi le raccord entre 1 400 et
+  2 800 unités sans rétablir de voile diffus poussiéreux. Cette population reste explicitement
+  procédurale et décorative, et non un ensemble de sources cataloguées individuellement. Une passe de
+  luminance pondérée par la profondeur relève maintenant le cœur des étoiles ponctuelles, plus
+  fortement pour les traceurs de passage rapproché, sans éclaircir le voile volumétrique ni le noir
+  entre les étoiles.
+- Une hiérarchie Gaia DR3 transforme 2 923 790 sources filtrées par qualité en agrégats calculés
+  distants de 512 pc et en 133 526 échantillons de sources mesurées pour l’aperçu du voisinage
+  stellaire. Chaque feuille raffinée de 512 pc conserve ses 32 sources les plus brillantes puis une
+  sélection uniforme déterministe, jusqu’à 96 points. Le raffinement borné par le champ visible et
+  la qualité ne charge que les branches utiles, les valide dans des Workers module, transfère leurs
+  tableaux typés sans copie et ne crée jamais un objet Three.js par source. Recherche exacte, noms,
+  sélection et focus restent fondés sur HYG ; les échantillons Gaia sont explicitement anonymes et
+  incomplets. Au dézoom, les échantillons détaillés fondent vers les racines calculées, qui restent
+  discrètement visibles jusqu’au Groupe local tandis que le volume local se contracte selon une
+  courbe logarithmique pour se fondre dans le disque de la Voie lactée.
 - Les vitesses cartésiennes J2000 de HYG propagent désormais dans le temps le catalogue partagé, le
   ciel observable et les figures de constellation, avec confiance extrapolée explicite et borne de
   validité à ±10 000 années juliennes.
@@ -111,6 +156,11 @@ des contraintes pour chaque évolution.
 
 ## Priorités actuelles
 
+- Finaliser la calibration visuelle de la Voie lactée face au passage vidéo de référence. Les passes
+  de clarté intérieure, de séparation de la lumière intégrée, de palette colorimétrique et de raccord
+  stellaire étant en place, la prochaine ajustera le contraste structurel des bandes de poussière et
+  du cœur avant de vérifier les trois profils de qualité et les benchmarks de rendu. Les distances
+  physiques canoniques resteront inchangées.
 - Conserver le manifeste simulé propre réussi à 10/10 comme baseline de régression et relancer la
   campagne après toute évolution importante du rendu ou des catalogues. Les preuves actuelles ne
   justifient ni une précompilation de shaders plus lourde ni un fallback plus dégradé ; une validation
@@ -123,9 +173,6 @@ Système solaire pour les étoiles HYG et les systèmes exoplanétaires document
 
 ## Volontairement différé
 
-- La hiérarchie agrégée d’étoiles préparée reste dormante jusqu’à ce qu’un catalogue plus dense exige
-  une représentation inter-échelles visible. Toute activation devra déplacer sa préparation dans un
-  Web Worker et éviter les coûts réseau ou GPU invisibles.
 - De nouvelles silhouettes ou maillages de corps irréguliers ne seront ajoutés que lorsqu’un modèle
   de forme faisant autorité justifiera téléchargement, décodage, attribution et coût de rendu.
 

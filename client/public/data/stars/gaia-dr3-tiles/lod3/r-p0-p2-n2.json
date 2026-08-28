@@ -1,0 +1,50 @@
+{
+  "version": "4.0.0",
+  "sourceCatalog": "gaia-dr3-bright-high-confidence",
+  "referenceEpochJulianDay": 2457388.5,
+  "magnitudeBand": "gaia-g",
+  "colorIndexSystem": "gaia-bp-rp",
+  "tiles": [
+    {
+      "id": "c-p0-p8-n5",
+      "parentId": "r-p0-p2-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 2,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 2,
+      "cellCoordinates": [3, 32, -17, 2, 35, -17],
+      "positionsParsec": [
+        460.36613029649146, 4176.036038435564, -2147.2725404713924, 345.6633179868418,
+        4505.044828355756, -2076.200827580144
+      ],
+      "starCounts": [1, 1],
+      "apparentMagnitudes": [10.743403, 11.648574],
+      "colorIndices": [2.459137, 1.9982939]
+    },
+    {
+      "id": "c-p0-p8-n6",
+      "parentId": "r-p0-p2-n2",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 1,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 1,
+      "cellCoordinates": [0, 32, -21],
+      "positionsParsec": [37.31541317032973, 4212.424389993509, -2602.7461308519696],
+      "starCounts": [1],
+      "apparentMagnitudes": [11.760248],
+      "colorIndices": [2.660283]
+    }
+  ]
+}

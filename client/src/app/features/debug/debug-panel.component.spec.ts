@@ -80,7 +80,11 @@ describe('DebugPanelComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Trace molette · 2');
     expect(fixture.nativeElement.textContent).toContain('Copier la trace');
     expect(fixture.nativeElement.textContent).toContain('andromeda');
-    expect(fixture.nativeElement.textContent).toContain('Cellules visibles');
+    expect(fixture.nativeElement.textContent).toContain('Points Gaia envoyés au GPU');
+    expect(fixture.nativeElement.textContent).toContain('Sources Gaia détaillées · écran / GPU');
+    expect(
+      fixture.nativeElement.querySelector('[data-debug-stat="gaia-sampled-sources"]')?.textContent,
+    ).toContain('180 / 250');
     expect(fixture.nativeElement.textContent).toContain('Tuiles galactiques actives / index');
     expect(fixture.nativeElement.textContent).toContain('5 / 5');
     expect(fixture.nativeElement.textContent).toContain('Galaxies groupées');
@@ -130,6 +134,13 @@ describe('DebugPanelComponent', () => {
     expect(
       fixture.nativeElement.querySelector('[data-debug-stat="render-resolution"]')?.textContent,
     ).toContain('1.25×');
+
+    const cosmicStats = stats('cosmic-web');
+
+    cosmicStats.lodLevel = 6;
+    debugStats.set(cosmicStats);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.debug-panel--cosmic')).not.toBeNull();
 
     const targetZoomStats = stats('earth');
 
@@ -230,6 +241,12 @@ function stats(targetId: string | null): EngineDebugStats {
     activeStarClusters: 302,
     cachedStarClusters: 2_610,
     visibleStarClusters: 302,
+    gaiaPresentation: {
+      sampledSources: 250,
+      projectedSampledSources: 180,
+      aggregateCells: 52,
+      projectedAggregateCells: 31,
+    },
     cameraPosition: { x: 1, y: 2, z: 3 },
     cameraTarget: { x: 4, y: 5, z: 6 },
     cameraDistance: 1_500,

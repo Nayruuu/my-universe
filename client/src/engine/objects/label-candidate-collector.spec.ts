@@ -169,7 +169,7 @@ describe('LabelCandidateCollector', () => {
     expect(priorityOf(cosmic, 'lss-supercluster-1')).toBe(301);
   });
 
-  it('évite une interrogation dynamique pour les étoiles HYG déjà filtrées par rang', () => {
+  it('vérifie la visibilité dynamique des catalogues stellaires déjà filtrés par rang', () => {
     const collector = new LabelCandidateCollector();
     const catalogStar = createLabelObject('hyg-1', 'star', { catalogRecordIndex: 0 });
     const host = createLabelObject('nea-host', 'star', { exoplanetHostRank: 0 });
@@ -192,8 +192,9 @@ describe('LabelCandidateCollector', () => {
         isObjectVisible: visible,
       }),
     ).toHaveLength(2);
-    expect(visible).toHaveBeenCalledOnce();
-    expect(visible).toHaveBeenCalledWith('nea-host');
+    expect(visible).toHaveBeenCalledTimes(2);
+    expect(visible).toHaveBeenNthCalledWith(1, 'hyg-1');
+    expect(visible).toHaveBeenNthCalledWith(2, 'nea-host');
   });
 
   it('réutilise les candidats alloués entre deux images', () => {

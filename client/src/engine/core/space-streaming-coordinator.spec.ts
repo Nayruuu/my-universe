@@ -77,7 +77,7 @@ describe('SpaceStreamingCoordinator', () => {
     );
     const frame = streamingFrame();
 
-    coordinator.update(frame, 0);
+    coordinator.update(frame, 0.25);
     await vi.waitFor(() => expect(space.synchronize).toHaveBeenCalledOnce());
     await vi.waitFor(() => expect(stars.synchronize).toHaveBeenCalledOnce());
 
@@ -217,6 +217,10 @@ describe('SpaceStreamingCoordinator', () => {
     const frame = streamingFrame({ lodLevel: 3 });
 
     coordinator.update(frame, 0);
+    expect(stars.synchronize).not.toHaveBeenCalled();
+    coordinator.update({ ...frame, transitioning: true }, 0.25);
+    expect(stars.synchronize).not.toHaveBeenCalled();
+    coordinator.update(frame, 0);
     await vi.waitFor(() => expect(callbacks.onStarTilesChanged).toHaveBeenCalledWith([tile]));
 
     coordinator.update(frame, 0.1);
@@ -267,13 +271,37 @@ describe('SpaceStreamingCoordinator', () => {
     });
     const coordinator = new SpaceStreamingCoordinator(null, stars.stream, callbacks.callbacks);
 
-    coordinator.update(streamingFrame({ lodLevel: 3 }), 0);
+    coordinator.update(streamingFrame({ lodLevel: 3 }), 0.25);
     coordinator.update(streamingFrame({ lodLevel: 4 }), 0);
     first.resolve({ changed: true, tiles: [detailed] });
 
     await vi.waitFor(() => expect(stars.synchronize).toHaveBeenCalledTimes(2));
     await vi.waitFor(() => expect(callbacks.onStarTilesChanged).toHaveBeenCalledWith([overview]));
     expect(callbacks.onStarTilesChanged).not.toHaveBeenCalledWith([detailed]);
+  });
+
+  it('publie un changement différé lorsque la vue suivante conserve les mêmes tuiles', async () => {
+    const callbacks = callbackHarness();
+    const first = deferred<{ changed: boolean; tiles: readonly StarClusterTile[] }>();
+    const overview = starClusterTile(4);
+    const stars = starTileStream({
+      synchronize: vi
+        .fn<
+          (view: StarTileView) => Promise<{ changed: boolean; tiles: readonly StarClusterTile[] }>
+        >()
+        .mockReturnValueOnce(first.promise)
+        .mockResolvedValueOnce({ changed: false, tiles: [overview] }),
+    });
+    const coordinator = new SpaceStreamingCoordinator(null, stars.stream, callbacks.callbacks);
+    const frame = streamingFrame({ lodLevel: 4 });
+
+    coordinator.update(frame, 0.25);
+    coordinator.update(frame, 0.25);
+    first.resolve({ changed: true, tiles: [overview] });
+
+    await vi.waitFor(() => expect(stars.synchronize).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() => expect(callbacks.onStarTilesChanged).toHaveBeenCalledWith([overview]));
+    expect(callbacks.onStarTilesChanged).toHaveBeenCalledOnce();
   });
 
   it('déduplique les erreurs stellaires jusqu’à une synchronisation réussie', async () => {
@@ -292,7 +320,7 @@ describe('SpaceStreamingCoordinator', () => {
     const coordinator = new SpaceStreamingCoordinator(null, stars.stream, callbacks.callbacks);
 
     for (const [index, lodLevel] of [3, 4, 3, 4, 3].entries()) {
-      coordinator.update(streamingFrame({ lodLevel }), 0);
+      coordinator.update(streamingFrame({ lodLevel }), index === 0 ? 0.25 : 0);
       await vi.waitFor(() => expect(stars.synchronize).toHaveBeenCalledTimes(index + 1));
     }
 
@@ -316,7 +344,7 @@ describe('SpaceStreamingCoordinator', () => {
     const stars = starTileStream({ synchronize: vi.fn(() => pending.promise) });
     const coordinator = new SpaceStreamingCoordinator(null, stars.stream, callbacks.callbacks);
 
-    coordinator.update(streamingFrame({ lodLevel: 3 }), 0);
+    coordinator.update(streamingFrame({ lodLevel: 3 }), 0.25);
     callbacks.setActive(false);
     pending.resolve({ changed: true, tiles: [starClusterTile(3)] });
 
@@ -423,6 +451,7 @@ function streamingFrame(overrides: Partial<SpaceStreamingFrame> = {}): SpaceStre
     transitioning: false,
     targetId: null,
     selectedId: null,
+    referenceFrameScale: 1,
     ...overrides,
   };
 }
@@ -461,18 +490,21 @@ function starClusterTile(lodLevel: number): StarClusterTile {
   return {
     id: `tile-${lodLevel}`,
     parentId: lodLevel === 3 ? 'root' : undefined,
-    version: '2.0.0',
+    version: '4.0.0',
     sourceCatalog: 'stars',
     sourceStarCount: 2,
     referenceEpochJulianDay: 2_451_545,
+    magnitudeBand: 'johnson-v',
+    colorIndexSystem: 'johnson-b-v',
     lodLevel,
     cellSizeParsec: lodLevel === 3 ? 40 : 160,
+    representation: lodLevel === 3 ? 'sampled-source' : 'aggregate-cell',
     clusterCount: 1,
     cellCoordinates: Int32Array.from([0, 0, 0]),
     positionsParsec: Float32Array.from([1, 2, 3]),
     starCounts: Uint32Array.from([2]),
     apparentMagnitudes: Float32Array.from([-1]),
-    colorIndicesBv: Float32Array.from([0.4]),
+    colorIndices: Float32Array.from([0.4]),
   };
 }
 

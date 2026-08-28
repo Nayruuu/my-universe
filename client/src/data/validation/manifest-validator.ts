@@ -71,11 +71,11 @@ export function parseManifest(value: unknown): DatasetManifest {
     }
 
     if (datasetType === 'star-tile-index') {
-      if (entry['format'] !== 'star-tiles-v2') {
+      if (entry['format'] !== 'star-tiles-v4') {
         throw new Error(`Format de tuiles stellaires invalide à l’index ${index}.`);
       }
-      if (typeof entry['starCatalogId'] !== 'string') {
-        throw new Error(`Catalogue stellaire manquant à l’index ${index}.`);
+      if (typeof entry['sourceCatalogId'] !== 'string') {
+        throw new Error(`Catalogue source stellaire manquant à l’index ${index}.`);
       }
 
       return {
@@ -83,7 +83,7 @@ export function parseManifest(value: unknown): DatasetManifest {
         url: entry['url'],
         type: 'star-tile-index',
         format: entry['format'],
-        starCatalogId: entry['starCatalogId'],
+        sourceCatalogId: entry['sourceCatalogId'],
       };
     }
 

@@ -89,6 +89,18 @@ describe('galaxy volume visual', () => {
     expect(positions(visual.root)).toHaveLength(2_200 * 3);
     disposeVisual(visual.root);
   });
+
+  it('dimensionne une galaxie naine avec son rayon de demi-lumière documenté', () => {
+    const galaxy = createGalaxy('elliptical');
+
+    galaxy.metadata = { halfLightRadiusPc: 221 };
+    const visual = createGalaxyVolumeVisual(galaxy, 'low');
+
+    expect(visual.root.scale.toArray()).toEqual([2.21, 2.21, 2.21]);
+    expect(visual.root.userData['renderDiameter']).toBeCloseTo(4.42, 6);
+    expect(visual.root.userData['diameterTreatment']).toBe('documented-half-light-diameter');
+    disposeVisual(visual.root);
+  });
 });
 
 function createGalaxy(shape: 'spiral' | 'elliptical' | 'irregular'): SpaceObject {

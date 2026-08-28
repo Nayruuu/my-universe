@@ -15,11 +15,13 @@ export {
   openUniverse,
   queryParameter,
   readCameraInteractionState,
+  readGalacticDiveState,
   readNavigationAlignmentState,
   readObjectScreenPoint,
   universeUrl,
   waitForCameraSettled,
   type CameraInteractionState,
+  type GalacticDiveState,
   type NavigationAlignmentState,
   type ScreenPoint,
 } from './support/navigation-helpers';
@@ -57,6 +59,15 @@ export interface NearbyGalaxyBatchState {
   batchCount: number;
   catalogObjectIds: string[];
   visibleCatalogObjectIds: string[];
+}
+
+export interface IntergalacticObjectWorldState {
+  objectId: string;
+  positionDistance: number;
+  worldScale: number;
+  referenceFrame: string | null;
+  referenceFrameBlend: string | null;
+  sceneUnitsPerMegaparsec: number | null;
 }
 
 interface LabelRegion {
@@ -106,6 +117,9 @@ export interface GalaxyImpostorState {
   opacity: number;
   width: number;
   height: number;
+  baseDiameter: number;
+  physicalSceneDiameter: number | null;
+  diameterTreatment: string | null;
   pickable: boolean;
   farVisualStyle: string | null;
   nearVisible: boolean;
@@ -119,35 +133,75 @@ export interface GalaxyImpostorState {
 export interface MilkyWayDetailState {
   visible: boolean;
   opacity: number;
+  particleCount: number;
+  scale: number;
   radius: number;
+  verticalSpan: number;
   spiralAuraCount: number;
   visualStructure: string | null;
+  visualStyle: string | null;
+  representationTechnique: string | null;
+  rasterTextureRole: string | null;
   structureOrigin: string | null;
+  verticalEnvelope: string | null;
+  flythroughTreatment: string | null;
+  flythroughParticleFraction: number;
+  flythroughCorridorParticleFraction: number;
+  flythroughNearPassageParticleFraction: number;
+  flythroughCorridorTreatment: string | null;
+  flythroughNearPassageTreatment: string | null;
+  motionCue: string | null;
+  luminanceTreatment: string | null;
+  apparentScaleTreatment: string | null;
+  maximumApparentScale: number | null;
+  physicalDiameterLightYears: number | null;
+  authoringDiameter: number | null;
+  worldDiameter: number;
+  physicalWorldDiameter: number;
+  visualScaleFactor: number;
+  visualSceneUnitsPerKiloparsec: number;
+  referenceFrameSceneUnitsPerKiloparsec: number;
+  referenceFrameBlend: string | null;
   spiralArmCount: number | null;
   spiralPitchDegrees: number | null;
   sunDistanceFromGalacticCenter: number;
   stellarOriginDistanceFromSun: number;
+  stellarOriginDistanceFromGalacticCenter: number;
   stellarNeighborhoodScale: number;
+  stellarNeighborhoodVerticalScale: number;
 }
 
 export interface MilkyWayVolumeState {
   visible: boolean;
+  proceduralVolumeVisible: boolean;
   opacity: number;
+  atlasOpacity: number;
+  immersionOpacity: number;
+  discOpacity: number;
   scale: number;
   atlasStatus: string;
-  atlasUrl: string | null;
+  rasterAtlas: string | null;
   structure: string | null;
   depthTechnique: string | null;
   morphologyModel: string | null;
+  verticalStructure: string | null;
+  apparentScaleTreatment: string | null;
+  maximumApparentScale: number | null;
+  physicalDiameterLightYears: number | null;
+  authoringDiameter: number | null;
+  worldDiameter: number;
+  physicalWorldDiameter: number;
+  visualScaleFactor: number;
+  visualSceneUnitsPerKiloparsec: number;
+  referenceFrameSceneUnitsPerKiloparsec: number;
+  referenceFrameBlend: string | null;
+  nearRepresentation: string | null;
+  transitionRepresentation: string | null;
+  interiorContinuity: string | null;
   confidence: string | null;
-  cinematicQuality: string | null;
-  parallaxStrength: number;
-  dustAbsorption: number;
-  glowStrength: number;
   drawMeshCount: number;
   visibleDiscLayerCount: number;
-  layerDepthSpan: number;
-  bulgeHeight: number;
+  volumeThickness: number;
 }
 
 export interface LocalGalacticSkyState {
@@ -594,6 +648,92 @@ export async function readNearbyGalaxyBatchState(page: Page): Promise<NearbyGala
       ),
     };
   });
+}
+
+export async function readIntergalacticObjectWorldState(
+  page: Page,
+  objectId: string,
+): Promise<IntergalacticObjectWorldState> {
+  return page.evaluate((requestedId) => {
+    interface SceneNode {
+      parent: SceneNode | null;
+      matrixWorld: { elements: readonly number[] };
+      userData: Record<string, unknown>;
+      updateWorldMatrix(updateParents: boolean, updateChildren: boolean): void;
+    }
+
+    interface RegistryEntryState {
+      node: SceneNode;
+    }
+
+    interface RegistryState {
+      entries: Map<string, RegistryEntryState>;
+    }
+
+    const root = document.querySelector('app-root');
+    const angularDebug = (
+      window as unknown as {
+        ng?: {
+          getComponent(element: Element): object | null;
+        };
+      }
+    ).ng;
+    const component = root && angularDebug?.getComponent(root);
+    const facade = component ? (Reflect.get(component, 'facade') as object | undefined) : undefined;
+    const engineClient = facade ? (Reflect.get(facade, 'engine') as object | undefined) : undefined;
+    const engine = engineClient
+      ? ((Reflect.get(engineClient, 'engine') as object | null | undefined) ?? engineClient)
+      : undefined;
+    const objectRuntime = engine
+      ? (Reflect.get(engine, 'objectRuntime') as ObjectRuntimeState<RegistryState> | undefined)
+      : undefined;
+    const registry = objectRuntime?.getRegistry(requestedId) ?? null;
+    const node = registry?.entries.get(requestedId)?.node;
+
+    if (!node) {
+      throw new Error(`Objet intergalactique ${requestedId} indisponible dans le registre.`);
+    }
+    node.updateWorldMatrix(true, false);
+    const elements = node.matrixWorld.elements;
+    const x = elements[12] ?? Number.NaN;
+    const y = elements[13] ?? Number.NaN;
+    const z = elements[14] ?? Number.NaN;
+    const worldScale = Math.hypot(
+      elements[0] ?? Number.NaN,
+      elements[1] ?? Number.NaN,
+      elements[2] ?? Number.NaN,
+    );
+    let frameNode = node.parent;
+    let metricOriginNode = node.parent;
+
+    while (frameNode && typeof frameNode.userData['referenceFrame'] !== 'string') {
+      frameNode = frameNode.parent;
+    }
+    while (
+      metricOriginNode &&
+      metricOriginNode.userData['scaleTreatment'] !== 'continuous-intergalactic-metric'
+    ) {
+      metricOriginNode = metricOriginNode.parent;
+    }
+    metricOriginNode?.updateWorldMatrix(true, false);
+    const originElements = metricOriginNode?.matrixWorld.elements;
+    const originX = originElements?.[12] ?? 0;
+    const originY = originElements?.[13] ?? 0;
+    const originZ = originElements?.[14] ?? 0;
+    const referenceFrame = frameNode?.userData['referenceFrame'];
+    const referenceFrameBlend = frameNode?.userData['referenceFrameBlend'];
+    const sceneUnitsPerMegaparsec = frameNode?.userData['sceneUnitsPerMegaparsec'];
+
+    return {
+      objectId: requestedId,
+      positionDistance: Math.hypot(x - originX, y - originY, z - originZ),
+      worldScale,
+      referenceFrame: typeof referenceFrame === 'string' ? referenceFrame : null,
+      referenceFrameBlend: typeof referenceFrameBlend === 'string' ? referenceFrameBlend : null,
+      sceneUnitsPerMegaparsec:
+        typeof sceneUnitsPerMegaparsec === 'number' ? sceneUnitsPerMegaparsec : null,
+    };
+  }, objectId);
 }
 
 export async function readObjectRotation(page: Page, objectId: string): Promise<number> {
@@ -2138,18 +2278,49 @@ export async function readStarClusterBatchState(page: Page): Promise<{
   representationCount: number;
   visibleClusterCount: number;
   pointBatchCount: number;
+  sampledSourcePointCount: number;
+  projectedSampledSourcePointCount: number;
+  aggregateCellPointCount: number;
+  maximumSampledSourceSize: number;
+  maximumAggregateCellSize: number;
+  pointRepresentations: string[];
   visibleLodLevels: number[];
   confidence: string | null;
+  sourceCatalog: string | null;
 }> {
   return page.evaluate(() => {
+    interface ProjectableVector {
+      x: number;
+      y: number;
+      z: number;
+      set(x: number, y: number, z: number): ProjectableVector;
+      clone(): ProjectableVector;
+      project(camera: ProjectionCamera): ProjectableVector;
+    }
+
+    interface ProjectionCamera {
+      readonly isCamera: boolean;
+    }
+
     interface ClusterPoints {
       name: string;
       visible: boolean;
       userData: Record<string, unknown>;
+      position: ProjectableVector;
+      localToWorld(position: ProjectableVector): ProjectableVector;
+      updateWorldMatrix(updateParents: boolean, updateChildren: boolean): void;
       geometry: {
         drawRange: {
           count: number;
         };
+        getAttribute(name: string):
+          | {
+              count: number;
+              getX(index: number): number;
+              getY(index: number): number;
+              getZ(index: number): number;
+            }
+          | undefined;
       };
     }
 
@@ -2195,6 +2366,9 @@ export async function readStarClusterBatchState(page: Page): Promise<{
     const universeScene = engine
       ? (Reflect.get(engine, 'universeScene') as object | undefined)
       : undefined;
+    const camera = engine
+      ? (Reflect.get(engine, 'camera') as ProjectionCamera | null | undefined)
+      : undefined;
     const streamingRuntime = engine
       ? (Reflect.get(engine, 'streamingRuntime') as StreamingRuntime | undefined)
       : undefined;
@@ -2207,13 +2381,91 @@ export async function readStarClusterBatchState(page: Page): Promise<{
       : null;
     const representations = batch ? [...batch.representations.values()] : [];
     const pointBatchCount = representations.filter((representation) =>
-      representation.points.name.startsWith('calculated-hyg-star-clusters-lod-'),
+      representation.points.name.startsWith('calculated-dense-star-'),
     ).length;
+    const visibleRepresentations = representations.filter(
+      (representation) => representation.points.visible,
+    );
+    const pointRepresentations = [
+      ...new Set(
+        visibleRepresentations.flatMap((representation) => {
+          const value = representation.points.userData['pointRepresentation'];
+
+          return typeof value === 'string' ? [value] : [];
+        }),
+      ),
+    ].sort();
+    const countPoints = (pointRepresentation: string): number =>
+      visibleRepresentations
+        .filter(
+          (representation) =>
+            representation.points.userData['pointRepresentation'] === pointRepresentation,
+        )
+        .reduce((sum, representation) => sum + representation.points.geometry.drawRange.count, 0);
+    const projectedSampledSourcePointCount = camera
+      ? visibleRepresentations
+          .filter(
+            (representation) =>
+              representation.points.userData['pointRepresentation'] === 'sampled-source',
+          )
+          .reduce((total, representation) => {
+            const points = representation.points;
+            const position = points.geometry.getAttribute('position');
+
+            if (!position) {
+              return total;
+            }
+            const drawCount = Math.min(position.count, points.geometry.drawRange.count);
+            const projected = points.position.clone();
+            let projectedCount = 0;
+
+            points.updateWorldMatrix(true, false);
+            for (let index = 0; index < drawCount; index += 1) {
+              projected.set(position.getX(index), position.getY(index), position.getZ(index));
+              points.localToWorld(projected);
+              projected.project(camera);
+              if (
+                Math.abs(projected.x) <= 1 &&
+                Math.abs(projected.y) <= 1 &&
+                projected.z >= -1 &&
+                projected.z <= 1
+              ) {
+                projectedCount += 1;
+              }
+            }
+
+            return total + projectedCount;
+          }, 0)
+      : 0;
+    const maximumPointSize = (pointRepresentation: string): number =>
+      visibleRepresentations
+        .filter(
+          (representation) =>
+            representation.points.userData['pointRepresentation'] === pointRepresentation,
+        )
+        .reduce((maximumSize, representation) => {
+          const pointSize = representation.points.geometry.getAttribute('pointSize');
+
+          if (!pointSize) {
+            return maximumSize;
+          }
+          const drawCount = Math.min(
+            pointSize.count,
+            representation.points.geometry.drawRange.count,
+          );
+
+          for (let index = 0; index < drawCount; index += 1) {
+            maximumSize = Math.max(maximumSize, pointSize.getX(index));
+          }
+
+          return maximumSize;
+        }, 0);
     const visibleLodLevels = representations
       .filter((representation) => representation.points.visible)
       .map((representation) => representation.lodLevel)
       .sort((left, right) => left - right);
     const confidence = representations[0]?.points.userData['scientificConfidence'];
+    const sourceCatalog = representations[0]?.points.userData['sourceCatalog'];
 
     return {
       activeTileCount: coordinator?.stats.activeStarTiles ?? 0,
@@ -2224,8 +2476,15 @@ export async function readStarClusterBatchState(page: Page): Promise<{
       representationCount: batch?.representationCount ?? 0,
       visibleClusterCount: batch?.visibleClusterCount ?? 0,
       pointBatchCount,
+      sampledSourcePointCount: countPoints('sampled-source'),
+      projectedSampledSourcePointCount,
+      aggregateCellPointCount: countPoints('aggregate-cell'),
+      maximumSampledSourceSize: maximumPointSize('sampled-source'),
+      maximumAggregateCellSize: maximumPointSize('aggregate-cell'),
+      pointRepresentations,
       visibleLodLevels,
       confidence: typeof confidence === 'string' ? confidence : null,
+      sourceCatalog: typeof sourceCatalog === 'string' ? sourceCatalog : null,
     };
   });
 }
@@ -2608,6 +2867,7 @@ export async function readGalaxyImpostorStates(page: Page): Promise<GalaxyImpost
     interface GalaxySprite {
       visible: boolean;
       layers: { mask: number };
+      userData: Record<string, unknown>;
       material: { opacity: number; userData?: Record<string, unknown> };
       scale: { x: number; y: number };
     }
@@ -2658,9 +2918,12 @@ export async function readGalaxyImpostorStates(page: Page): Promise<GalaxyImpost
           | {
               farSprite?: GalaxySprite | null;
               nearRoot?: GalaxyNearNode | null;
+              farBaseDiameter: number;
             }
           | undefined;
         const sprite = lod?.farSprite;
+        const pickTarget = Reflect.get(entry, 'pickTarget') as
+          { layers?: { mask: number } } | null | undefined;
 
         if (!sprite) {
           continue;
@@ -2674,6 +2937,8 @@ export async function readGalaxyImpostorStates(page: Page): Promise<GalaxyImpost
         const farVisualStyle = sprite.material.userData?.['visualStyle'];
         const nearDiskStyle = disk?.userData['visualStyle'];
         const nearStarFieldStyle = starField?.userData['visualStyle'];
+        const physicalSceneDiameter = sprite.userData['physicalSceneDiameter'];
+        const diameterTreatment = sprite.userData['diameterTreatment'];
 
         states.push({
           objectId,
@@ -2681,7 +2946,11 @@ export async function readGalaxyImpostorStates(page: Page): Promise<GalaxyImpost
           opacity: sprite.material.opacity,
           width: sprite.scale.x,
           height: sprite.scale.y,
-          pickable: (sprite.layers.mask & (1 << 1)) !== 0,
+          baseDiameter: lod?.farBaseDiameter ?? 0,
+          physicalSceneDiameter:
+            typeof physicalSceneDiameter === 'number' ? physicalSceneDiameter : null,
+          diameterTreatment: typeof diameterTreatment === 'string' ? diameterTreatment : null,
+          pickable: ((pickTarget?.layers?.mask ?? 0) & (1 << 1)) !== 0,
           farVisualStyle: typeof farVisualStyle === 'string' ? farVisualStyle : null,
           nearVisible: lod?.nearRoot?.visible ?? false,
           nearDiskVisible: disk?.visible ?? false,
@@ -2710,7 +2979,7 @@ export async function readMilkyWayDetailState(page: Page): Promise<MilkyWayDetai
     interface SceneNode {
       name: string;
       position: SceneVector;
-      scale: { x: number };
+      scale: { x: number; y: number };
       getWorldPosition(target: SceneVector): SceneVector;
     }
 
@@ -2719,7 +2988,10 @@ export async function readMilkyWayDetailState(page: Page): Promise<MilkyWayDetai
       material: { uniforms: { opacity?: { value: unknown } } };
       userData: Record<string, unknown>;
       geometry: {
+        drawRange: { count: number };
+        boundingBox: { min: { y: number }; max: { y: number } } | null;
         boundingSphere: { radius: number } | null;
+        computeBoundingBox(): void;
         computeBoundingSphere(): void;
       };
     }
@@ -2758,6 +3030,7 @@ export async function readMilkyWayDetailState(page: Page): Promise<MilkyWayDetai
     if (!milkyWay) {
       throw new Error('La représentation détaillée de la Voie lactée est indisponible.');
     }
+    milkyWay.geometry.computeBoundingBox();
     milkyWay.geometry.computeBoundingSphere();
     let spiralAuraCount = 0;
     let sun: SceneNode | null = null;
@@ -2771,7 +3044,32 @@ export async function readMilkyWayDetailState(page: Page): Promise<MilkyWayDetai
       }
     });
     const visualStructure = milkyWay.userData['visualStructure'];
+    const visualStyle = milkyWay.userData['visualStyle'];
+    const representationTechnique = milkyWay.userData['representationTechnique'];
+    const rasterTextureRole = milkyWay.userData['rasterTextureRole'];
     const structureOrigin = milkyWay.userData['structureOrigin'];
+    const verticalEnvelope = milkyWay.userData['verticalEnvelope'];
+    const flythroughTreatment = milkyWay.userData['flythroughTreatment'];
+    const flythroughParticleFraction = milkyWay.userData['flythroughParticleFraction'];
+    const flythroughCorridorParticleFraction =
+      milkyWay.userData['flythroughCorridorParticleFraction'];
+    const flythroughNearPassageParticleFraction =
+      milkyWay.userData['flythroughNearPassageParticleFraction'];
+    const flythroughCorridorTreatment = milkyWay.userData['flythroughCorridorTreatment'];
+    const flythroughNearPassageTreatment = milkyWay.userData['flythroughNearPassageTreatment'];
+    const motionCue = milkyWay.userData['motionCue'];
+    const luminanceTreatment = milkyWay.userData['luminanceTreatment'];
+    const apparentScaleTreatment = milkyWay.userData['apparentScaleTreatment'];
+    const maximumApparentScale = milkyWay.userData['maximumApparentScale'];
+    const physicalDiameterLightYears = milkyWay.userData['physicalDiameterLightYears'];
+    const authoringDiameter = milkyWay.userData['authoringDiameter'];
+    const worldDiameter = milkyWay.userData['worldDiameter'];
+    const physicalWorldDiameter = milkyWay.userData['physicalWorldDiameter'];
+    const visualScaleFactor = milkyWay.userData['visualScaleFactor'];
+    const visualSceneUnitsPerKiloparsec = milkyWay.userData['visualSceneUnitsPerKiloparsec'];
+    const referenceFrameSceneUnitsPerKiloparsec =
+      milkyWay.userData['referenceFrameSceneUnitsPerKiloparsec'];
+    const referenceFrameBlend = milkyWay.userData['referenceFrameBlend'];
     const spiralArmCount = milkyWay.userData['spiralArmCount'];
     const spiralPitchDegrees = milkyWay.userData['spiralPitchDegrees'];
     const opacity = milkyWay.material.uniforms.opacity?.value;
@@ -2786,15 +3084,61 @@ export async function readMilkyWayDetailState(page: Page): Promise<MilkyWayDetai
     return {
       visible: milkyWay.visible,
       opacity: typeof opacity === 'number' ? opacity : 0,
+      particleCount: milkyWay.geometry.drawRange.count,
+      scale: milkyWay.scale.x,
       radius: milkyWay.geometry.boundingSphere?.radius ?? 0,
+      verticalSpan: milkyWay.geometry.boundingBox
+        ? milkyWay.geometry.boundingBox.max.y - milkyWay.geometry.boundingBox.min.y
+        : 0,
       spiralAuraCount,
       visualStructure: typeof visualStructure === 'string' ? visualStructure : null,
+      visualStyle: typeof visualStyle === 'string' ? visualStyle : null,
+      representationTechnique:
+        typeof representationTechnique === 'string' ? representationTechnique : null,
+      rasterTextureRole: typeof rasterTextureRole === 'string' ? rasterTextureRole : null,
       structureOrigin: typeof structureOrigin === 'string' ? structureOrigin : null,
+      verticalEnvelope: typeof verticalEnvelope === 'string' ? verticalEnvelope : null,
+      flythroughTreatment: typeof flythroughTreatment === 'string' ? flythroughTreatment : null,
+      flythroughParticleFraction:
+        typeof flythroughParticleFraction === 'number' ? flythroughParticleFraction : 0,
+      flythroughCorridorParticleFraction:
+        typeof flythroughCorridorParticleFraction === 'number'
+          ? flythroughCorridorParticleFraction
+          : 0,
+      flythroughNearPassageParticleFraction:
+        typeof flythroughNearPassageParticleFraction === 'number'
+          ? flythroughNearPassageParticleFraction
+          : 0,
+      flythroughCorridorTreatment:
+        typeof flythroughCorridorTreatment === 'string' ? flythroughCorridorTreatment : null,
+      flythroughNearPassageTreatment:
+        typeof flythroughNearPassageTreatment === 'string' ? flythroughNearPassageTreatment : null,
+      motionCue: typeof motionCue === 'string' ? motionCue : null,
+      luminanceTreatment: typeof luminanceTreatment === 'string' ? luminanceTreatment : null,
+      apparentScaleTreatment:
+        typeof apparentScaleTreatment === 'string' ? apparentScaleTreatment : null,
+      maximumApparentScale: typeof maximumApparentScale === 'number' ? maximumApparentScale : null,
+      physicalDiameterLightYears:
+        typeof physicalDiameterLightYears === 'number' ? physicalDiameterLightYears : null,
+      authoringDiameter: typeof authoringDiameter === 'number' ? authoringDiameter : null,
+      worldDiameter: typeof worldDiameter === 'number' ? worldDiameter : 0,
+      physicalWorldDiameter: typeof physicalWorldDiameter === 'number' ? physicalWorldDiameter : 0,
+      visualScaleFactor: typeof visualScaleFactor === 'number' ? visualScaleFactor : 0,
+      visualSceneUnitsPerKiloparsec:
+        typeof visualSceneUnitsPerKiloparsec === 'number' ? visualSceneUnitsPerKiloparsec : 0,
+      referenceFrameSceneUnitsPerKiloparsec:
+        typeof referenceFrameSceneUnitsPerKiloparsec === 'number'
+          ? referenceFrameSceneUnitsPerKiloparsec
+          : 0,
+      referenceFrameBlend: typeof referenceFrameBlend === 'string' ? referenceFrameBlend : null,
       spiralArmCount: typeof spiralArmCount === 'number' ? spiralArmCount : null,
       spiralPitchDegrees: typeof spiralPitchDegrees === 'number' ? spiralPitchDegrees : null,
       sunDistanceFromGalacticCenter: sunPosition.distanceTo(galacticCenterPosition),
       stellarOriginDistanceFromSun: stellarOriginPosition.distanceTo(sunPosition),
+      stellarOriginDistanceFromGalacticCenter:
+        stellarOriginPosition.distanceTo(galacticCenterPosition),
       stellarNeighborhoodScale: stellarRoot?.scale.x ?? 1,
+      stellarNeighborhoodVerticalScale: stellarRoot?.scale.y ?? 1,
     };
   });
 }
@@ -2818,6 +3162,7 @@ export async function readMilkyWayVolumeState(page: Page): Promise<MilkyWayVolum
       atlasStatus: string;
       drawMeshCount: number;
       visibleDiscLayerCount: number;
+      proceduralVolumeVisible: boolean;
     }
 
     const root = document.querySelector('app-root');
@@ -2847,39 +3192,71 @@ export async function readMilkyWayVolumeState(page: Page): Promise<MilkyWayVolum
     if (!volume) {
       throw new Error('La représentation volumique de la Voie lactée est indisponible.');
     }
-    const discs = volume.root.children.filter((child) =>
-      child.name.startsWith('milky-way-volume-disc-'),
-    );
-    const bulge = volume.root.children.find((child) => child.name === 'milky-way-volume-bulge');
-    const depths = discs.map((disc) => disc.position.y);
-    const opacity = discs[0]?.material?.uniforms['opacity']?.value;
-    const atlasUrl = volume.root.userData['atlasUrl'];
+    const volumeOpacity = volume.root.userData['volumeOpacity'];
+    const atlasOpacity = volume.root.userData['atlasOpacity'];
+    const immersionOpacity = volume.root.userData['immersionOpacity'];
+    const discOpacity = volume.root.userData['discOpacity'];
+    const rasterAtlas = volume.root.userData['rasterAtlas'];
     const structure = volume.root.userData['visualStructure'];
     const depthTechnique = volume.root.userData['depthTechnique'];
     const morphologyModel = volume.root.userData['morphologyModel'];
+    const verticalStructure = volume.root.userData['verticalStructure'];
+    const apparentScaleTreatment = volume.root.userData['apparentScaleTreatment'];
+    const maximumApparentScale = volume.root.userData['maximumApparentScale'];
+    const physicalDiameterLightYears = volume.root.userData['physicalDiameterLightYears'];
+    const authoringDiameter = volume.root.userData['authoringDiameter'];
+    const worldDiameter = volume.root.userData['worldDiameter'];
+    const physicalWorldDiameter = volume.root.userData['physicalWorldDiameter'];
+    const visualScaleFactor = volume.root.userData['visualScaleFactor'];
+    const visualSceneUnitsPerKiloparsec = volume.root.userData['visualSceneUnitsPerKiloparsec'];
+    const referenceFrameSceneUnitsPerKiloparsec =
+      volume.root.userData['referenceFrameSceneUnitsPerKiloparsec'];
+    const referenceFrameBlend = volume.root.userData['referenceFrameBlend'];
+    const nearRepresentation = volume.root.userData['nearRepresentation'];
+    const transitionRepresentation = volume.root.userData['transitionRepresentation'];
+    const interiorContinuity = volume.root.userData['interiorContinuity'];
+    const proceduralVolumeThickness = volume.root.userData['proceduralVolumeThickness'];
     const confidence = volume.root.userData['scientificConfidence'];
-    const cinematicQuality = volume.root.userData['cinematicQuality'];
-    const cinematicProfile = volume.root.userData['cinematicProfile'] as
-      Record<string, unknown> | undefined;
 
     return {
       visible: volume.root.visible,
-      opacity: typeof opacity === 'number' ? opacity : 0,
+      proceduralVolumeVisible: volume.proceduralVolumeVisible,
+      opacity: typeof volumeOpacity === 'number' ? volumeOpacity : 0,
+      atlasOpacity: typeof atlasOpacity === 'number' ? atlasOpacity : 0,
+      immersionOpacity: typeof immersionOpacity === 'number' ? immersionOpacity : 0,
+      discOpacity: typeof discOpacity === 'number' ? discOpacity : 0,
       scale: volume.root.scale.x,
       atlasStatus: volume.atlasStatus,
-      atlasUrl: typeof atlasUrl === 'string' ? atlasUrl : null,
+      rasterAtlas: typeof rasterAtlas === 'string' ? rasterAtlas : null,
       structure: typeof structure === 'string' ? structure : null,
       depthTechnique: typeof depthTechnique === 'string' ? depthTechnique : null,
       morphologyModel: typeof morphologyModel === 'string' ? morphologyModel : null,
+      verticalStructure: typeof verticalStructure === 'string' ? verticalStructure : null,
+      apparentScaleTreatment:
+        typeof apparentScaleTreatment === 'string' ? apparentScaleTreatment : null,
+      maximumApparentScale: typeof maximumApparentScale === 'number' ? maximumApparentScale : null,
+      physicalDiameterLightYears:
+        typeof physicalDiameterLightYears === 'number' ? physicalDiameterLightYears : null,
+      authoringDiameter: typeof authoringDiameter === 'number' ? authoringDiameter : null,
+      worldDiameter: typeof worldDiameter === 'number' ? worldDiameter : 0,
+      physicalWorldDiameter: typeof physicalWorldDiameter === 'number' ? physicalWorldDiameter : 0,
+      visualScaleFactor: typeof visualScaleFactor === 'number' ? visualScaleFactor : 0,
+      visualSceneUnitsPerKiloparsec:
+        typeof visualSceneUnitsPerKiloparsec === 'number' ? visualSceneUnitsPerKiloparsec : 0,
+      referenceFrameSceneUnitsPerKiloparsec:
+        typeof referenceFrameSceneUnitsPerKiloparsec === 'number'
+          ? referenceFrameSceneUnitsPerKiloparsec
+          : 0,
+      referenceFrameBlend: typeof referenceFrameBlend === 'string' ? referenceFrameBlend : null,
+      nearRepresentation: typeof nearRepresentation === 'string' ? nearRepresentation : null,
+      transitionRepresentation:
+        typeof transitionRepresentation === 'string' ? transitionRepresentation : null,
+      interiorContinuity: typeof interiorContinuity === 'string' ? interiorContinuity : null,
       confidence: typeof confidence === 'string' ? confidence : null,
-      cinematicQuality: typeof cinematicQuality === 'string' ? cinematicQuality : null,
-      parallaxStrength: Number(cinematicProfile?.['parallaxStrength']),
-      dustAbsorption: Number(cinematicProfile?.['dustAbsorption']),
-      glowStrength: Number(cinematicProfile?.['glowStrength']),
       drawMeshCount: volume.drawMeshCount,
       visibleDiscLayerCount: volume.visibleDiscLayerCount,
-      layerDepthSpan: Math.max(...depths) - Math.min(...depths),
-      bulgeHeight: (bulge?.scale.y ?? 0) * 2,
+      volumeThickness:
+        typeof proceduralVolumeThickness === 'number' ? proceduralVolumeThickness : 0,
     };
   });
 }

@@ -40,8 +40,8 @@
           @let localizedScale = t.navigationScales[scale.id];
           <button
             type="button"
-            [class.active]="facade.lodLevel() === scale.lodLevel"
-            [attr.aria-current]="facade.lodLevel() === scale.lodLevel ? 'true' : null"
+            [class.active]="activeScaleLodLevel() === scale.lodLevel"
+            [attr.aria-current]="activeScaleLodLevel() === scale.lodLevel ? 'true' : null"
             [attr.aria-label]="i18n.interpolate(t.scale.showScale, { name: localizedScale.label })"
             (click)="viewScale(scale)"
           >

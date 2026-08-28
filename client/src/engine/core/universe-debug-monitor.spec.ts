@@ -41,6 +41,12 @@ describe('UniverseDebugMonitor', () => {
       activeStarClusters: 0,
       cachedStarClusters: 0,
       visibleStarClusters: 302,
+      gaiaPresentation: {
+        sampledSources: 250,
+        projectedSampledSources: 180,
+        aggregateCells: 52,
+        projectedAggregateCells: 31,
+      },
       cameraPosition: { x: 9, y: 8, z: 7 },
       cameraTarget: { x: 0, y: 0, z: 0 },
       cameraDistance: 0,
@@ -152,6 +158,12 @@ function createHarness(overrides: Partial<UniverseDebugContext> = {}): DebugMoni
     zoomAnchor: null,
     tempelPerformance: tempelPerformance(),
     startupPerformance: startupPerformance(),
+    gaiaPresentation: {
+      sampledSources: 250,
+      projectedSampledSources: 180,
+      aggregateCells: 52,
+      projectedAggregateCells: 31,
+    },
     ...overrides,
   };
   const emitStats = vi.fn();

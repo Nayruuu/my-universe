@@ -37,6 +37,12 @@ describe('StellarCatalogLayers', () => {
     expect(layers.activeStarTileCount).toBe(0);
     expect(layers.starClusterRepresentationCount).toBe(0);
     expect(layers.visibleStarClusterCount).toBe(0);
+    expect(layers.getGaiaPresentationStats(new THREE.PerspectiveCamera())).toEqual({
+      sampledSources: 0,
+      projectedSampledSources: 0,
+      aggregateCells: 0,
+      projectedAggregateCells: 0,
+    });
 
     layers.dispose();
     expect(root.children).toHaveLength(0);
@@ -62,16 +68,16 @@ describe('StellarCatalogLayers', () => {
       THREE.BufferGeometry,
       THREE.ShaderMaterial
     >;
-    const firstCluster = root.getObjectByName('calculated-hyg-star-clusters-lod-3') as THREE.Points<
-      THREE.BufferGeometry,
-      THREE.ShaderMaterial
-    >;
+    const firstCluster = root.getObjectByName(
+      'calculated-dense-star-samples-lod-3',
+    ) as THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial>;
     const firstGeometryDispose = vi.spyOn(firstPoints.geometry, 'dispose');
     const firstClusterGeometryDispose = vi.spyOn(firstCluster.geometry, 'dispose');
 
     expect(layers.catalogStarCount).toBe(1);
     expect(layers.visibleCatalogStarCount).toBe(1);
     expect(layers.activeStarTileCount).toBe(1);
+    expect(layers.getGaiaPresentationStats(new THREE.PerspectiveCamera()).sampledSources).toBe(0);
     expect(layers.getCatalogWorldPosition('hyg-3229')).toBeInstanceOf(THREE.Vector3);
     expect(layers.getPickables()).toHaveLength(2);
     expect(firstPoints.material.uniforms['pixelRatio']!.value).toBe(1.25);
@@ -117,17 +123,20 @@ function starClusterTile(): StarClusterTile {
   return {
     id: 'detail',
     parentId: 'root',
-    version: '2.0.0',
-    sourceCatalog: 'hyg-v41-bright-stars',
+    version: '4.0.0',
+    sourceCatalog: 'gaia-dr3-bright-high-confidence',
     sourceStarCount: 1,
-    referenceEpochJulianDay: 2_451_545,
+    referenceEpochJulianDay: 2_457_388.5,
+    magnitudeBand: 'gaia-g',
+    colorIndexSystem: 'gaia-bp-rp',
     lodLevel: 3,
     cellSizeParsec: 40,
+    representation: 'sampled-source',
     clusterCount: 1,
     cellCoordinates: Int32Array.from([0, 0, 0]),
     positionsParsec: Float32Array.from([1, 2, 3]),
     starCounts: Uint32Array.from([1]),
     apparentMagnitudes: Float32Array.from([0.5]),
-    colorIndicesBv: Float32Array.from([0.2]),
+    colorIndices: Float32Array.from([0.2]),
   };
 }

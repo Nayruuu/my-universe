@@ -126,6 +126,13 @@ describe('sélection spatiale des tuiles galactiques', () => {
     ).toEqual(['shifted']);
   });
 
+  it('applique la métrique courante du référentiel aux bornes de tuile', () => {
+    const nodes = [renderNode('scaled', 500, 0, 10)];
+
+    expect(selectSpaceTileIds(nodes, view(), [])).toEqual([]);
+    expect(selectSpaceTileIds(nodes, view({ referenceFrameScale: 0.2 }), [])).toEqual(['scaled']);
+  });
+
   it('projette les bornes scientifiques et capture une caméra immuable', () => {
     const renderNodes = createSpaceTileRenderNodes(index(), (position, _unit, _frame, target) =>
       target.set(position[0] * 2, position[1] * 2, position[2] * 2),
@@ -144,6 +151,7 @@ describe('sélection spatiale des tuiles galactiques', () => {
     camera.position.set(9, 9, 9);
     expect(snapshot.cameraPosition.toArray()).toEqual([1, 2, 100]);
     expect(snapshot.worldOffset.toArray()).toEqual([4, 5, 6]);
+    expect(snapshot.referenceFrameScale).toBe(1);
     expect(snapshot.viewportHeight).toBe(1);
     expect(snapshot.projectionScaleY).toBeGreaterThan(1);
   });
@@ -174,6 +182,7 @@ function view(overrides: Partial<SpaceTileView> = {}): SpaceTileView {
     projectionScaleY: 1,
     cameraPosition: new THREE.Vector3(0, 0, 100),
     worldOffset: new THREE.Vector3(),
+    referenceFrameScale: 1,
     frustum: cubeFrustum(100),
     ...overrides,
   };

@@ -1,6 +1,5 @@
-import { type StarCatalog } from '../../engine/loaders/star-catalog';
 import {
-  assertStarClusterTileMatchesCatalog,
+  assertStarClusterTileMatchesIndex,
   parseStarClusterTile,
   parseStarClusterTilePack,
   parseStarTileIndex,
@@ -8,7 +7,7 @@ import {
 
 describe('index spatial stellaire hiérarchique', () => {
   it('valide les racines, les enfants, les bornes et les paquets mutualisés', () => {
-    const index = parseStarTileIndex(validIndex(), 'hyg-tiles');
+    const index = parseStarTileIndex(validIndex(), 'gaia-tiles');
 
     expect(index.rootIds).toEqual(['root-a', 'root-b']);
     expect(index.nodes).toHaveLength(4);
@@ -30,6 +29,24 @@ describe('index spatial stellaire hiérarchique', () => {
     { ...validIndex(), referenceEpochJulianDay: Number.NaN },
     { ...validIndex(), referenceFrame: 'galactic' },
     { ...validIndex(), distanceUnit: 'light-year' },
+    { ...validIndex(), magnitudeBand: 'johnson-r' },
+    { ...validIndex(), colorIndexSystem: 'temperature' },
+    { ...validIndex(), source: null },
+    { ...validIndex(), source: { ...validSource(), name: '' } },
+    { ...validIndex(), source: { ...validSource(), url: '' } },
+    { ...validIndex(), source: { ...validSource(), doi: 42 } },
+    { ...validIndex(), source: { ...validSource(), credit: '' } },
+    { ...validIndex(), source: { ...validSource(), retrievedAt: 'hier' } },
+    { ...validIndex(), source: { ...validSource(), query: '' } },
+    { ...validIndex(), selection: null },
+    { ...validIndex(), selection: { ...validSelection(), maximumDistanceParsec: 0 } },
+    { ...validIndex(), selection: { ...validSelection(), maximumApparentMagnitude: null } },
+    { ...validIndex(), selection: { ...validSelection(), minimumParallaxOverError: 0 } },
+    { ...validIndex(), sampling: null },
+    {
+      ...validIndex(),
+      sampling: { ...validSampling(), brightestSamplesPerLeaf: 97 },
+    },
     { ...validIndex(), scientificConfidence: 'observed' },
     { ...validIndex(), representation: 'physical' },
     { ...validIndex(), rootIds: [] },
@@ -55,6 +72,7 @@ describe('index spatial stellaire hiérarchique', () => {
     { ...validRoot(), sourceStarCount: 0 },
     { ...validRoot(), clusterCount: 0 },
     { ...validRoot(), cellSizeParsec: 0 },
+    { ...validRoot(), representation: 'individual-object' },
     { ...validRoot(), url: '' },
   ])('rejette un nœud spatial invalide', (node) => {
     expect(() => parseStarTileIndex({ ...validIndex(), nodes: [node] }, 'invalid')).toThrow(
@@ -162,7 +180,7 @@ describe('paquets de tuiles stellaires', () => {
     expect(pack.tiles[0]?.positionsParsec).toBeInstanceOf(Float32Array);
     expect(pack.tiles[0]?.starCounts).toBeInstanceOf(Uint32Array);
     expect(pack.tiles[0]?.apparentMagnitudes).toBeInstanceOf(Float32Array);
-    expect(pack.tiles[0]?.colorIndicesBv).toBeInstanceOf(Float32Array);
+    expect(pack.tiles[0]?.colorIndices).toBeInstanceOf(Float32Array);
   });
 
   it.each([
@@ -172,6 +190,8 @@ describe('paquets de tuiles stellaires', () => {
     { ...validPack(), version: 1 },
     { ...validPack(), sourceCatalog: 42 },
     { ...validPack(), referenceEpochJulianDay: Number.NaN },
+    { ...validPack(), magnitudeBand: 'johnson-r' },
+    { ...validPack(), colorIndexSystem: 'temperature' },
     { ...validPack(), tiles: [] },
   ])('rejette un paquet invalide', (value) => {
     expect(() => parseStarClusterTilePack(value, 'invalid')).toThrow(
@@ -191,6 +211,12 @@ describe('paquets de tuiles stellaires', () => {
         'metadata',
       ),
     ).toThrow('Métadonnées de tuile stellaire incohérentes');
+    expect(() =>
+      parseStarClusterTilePack(
+        { ...validPack(), tiles: [{ ...tile, colorIndexSystem: 'johnson-b-v' }] },
+        'metadata',
+      ),
+    ).toThrow('Métadonnées de tuile stellaire incohérentes');
   });
 
   it.each([
@@ -204,8 +230,11 @@ describe('paquets de tuiles stellaires', () => {
     { ...validTile(), sourceCatalog: 42 },
     { ...validTile(), sourceStarCount: 0 },
     { ...validTile(), referenceEpochJulianDay: Number.NaN },
+    { ...validTile(), magnitudeBand: 'johnson-r' },
+    { ...validTile(), colorIndexSystem: 'temperature' },
     { ...validTile(), lodLevel: -1 },
     { ...validTile(), cellSizeParsec: 0 },
+    { ...validTile(), representation: 'individual-object' },
     { ...validTile(), cellCoordinates: [0, 0] },
     { ...validTile(), cellCoordinates: [0, 0, 0, 1, 1, 1.5] },
     { ...validTile(), positionsParsec: [1, 2] },
@@ -213,7 +242,7 @@ describe('paquets de tuiles stellaires', () => {
     { ...validTile(), starCounts: [2] },
     { ...validTile(), starCounts: [2, 0] },
     { ...validTile(), apparentMagnitudes: [-1, Number.NaN] },
-    { ...validTile(), colorIndicesBv: [0.2] },
+    { ...validTile(), colorIndices: [0.2] },
   ])('rejette une tuile incohérente', (value) => {
     expect(() => parseStarClusterTile(value, 'invalid')).toThrow(
       'Tuile de cellules stellaires invalide',
@@ -226,24 +255,24 @@ describe('paquets de tuiles stellaires', () => {
     );
   });
 
-  it('recoupe une tuile avec son nœud, l’index global et le catalogue binaire', () => {
-    const index = parseStarTileIndex(validIndex(), 'hyg-tiles');
+  it('recoupe une tuile avec son nœud et son index source indépendant de HYG', () => {
+    const index = parseStarTileIndex(validIndex(), 'gaia-tiles');
     const tile = parseStarClusterTile(validTile(), 'a-0');
 
-    expect(() =>
-      assertStarClusterTileMatchesCatalog(tile, index, index.nodes[2]!, catalog()),
-    ).not.toThrow();
+    expect(() => assertStarClusterTileMatchesIndex(tile, index, index.nodes[2]!)).not.toThrow();
   });
 
   it.each([
     [{ sourceCatalog: 'other' }, 'catalogue source'],
-    [{ version: '3.0.0' }, 'version d’index'],
     [{ sourceStarCount: 3, starCounts: [2, 1] }, 'nombre d’étoiles'],
     [{ referenceEpochJulianDay: 2_451_546 }, 'époque de référence'],
+    [{ magnitudeBand: 'johnson-v' }, 'système photométrique'],
+    [{ colorIndexSystem: 'johnson-b-v' }, 'système photométrique'],
     [{ id: 'wrong' }, 'nœud spatial'],
     [{ parentId: 'wrong' }, 'nœud spatial'],
     [{ lodLevel: 4 }, 'niveau de détail'],
     [{ cellSizeParsec: 80 }, 'taille de cellule'],
+    [{ representation: 'aggregate-cell' }, 'représentation'],
     [
       {
         sourceStarCount: 2,
@@ -251,42 +280,45 @@ describe('paquets de tuiles stellaires', () => {
         positionsParsec: [1, 2, 3],
         starCounts: [2],
         apparentMagnitudes: [-1],
-        colorIndicesBv: [0.2],
+        colorIndices: [0.2],
       },
       'nombre de cellules',
     ],
   ])('détecte un recoupement invalide : %s', (changes, message) => {
-    const index = parseStarTileIndex(validIndex(), 'hyg-tiles');
+    const index = parseStarTileIndex(validIndex(), 'gaia-tiles');
     const tile = parseStarClusterTile({ ...validTile(), ...changes }, 'a-0');
 
-    expect(() =>
-      assertStarClusterTileMatchesCatalog(tile, index, index.nodes[2]!, catalog()),
-    ).toThrow(message);
+    expect(() => assertStarClusterTileMatchesIndex(tile, index, index.nodes[2]!)).toThrow(message);
   });
 
-  it('détecte un catalogue global d’une mauvaise taille', () => {
-    const index = parseStarTileIndex(validIndex(), 'hyg-tiles');
-    const tile = parseStarClusterTile(validTile(), 'a-0');
+  it('détecte une tuile issue d’une autre version d’index', () => {
+    const index = parseStarTileIndex(validIndex(), 'gaia-tiles');
+    const tile = {
+      ...parseStarClusterTile(validTile(), 'a-0'),
+      version: '5.0.0',
+    };
 
-    expect(() =>
-      assertStarClusterTileMatchesCatalog(tile, index, index.nodes[2]!, {
-        ...catalog(),
-        count: 5,
-      }),
-    ).toThrow('nombre d’étoiles');
+    expect(() => assertStarClusterTileMatchesIndex(tile, index, index.nodes[2]!)).toThrow(
+      'version d’index',
+    );
   });
 });
 
 function validIndex(): object {
   return {
-    version: '2.0.0',
-    sourceCatalog: 'hyg-v41-bright-stars',
+    version: '4.0.0',
+    sourceCatalog: 'gaia-dr3-bright-high-confidence',
     sourceStarCount: 4,
-    referenceEpochJulianDay: 2_451_545,
-    referenceFrame: 'equatorial-j2000',
+    referenceEpochJulianDay: 2_457_388.5,
+    referenceFrame: 'icrs',
     distanceUnit: 'parsec',
+    magnitudeBand: 'gaia-g',
+    colorIndexSystem: 'gaia-bp-rp',
+    source: validSource(),
+    selection: validSelection(),
+    sampling: validSampling(),
     scientificConfidence: 'calculated',
-    representation: 'illustrative-aggregation',
+    representation: 'hierarchical-aggregation-with-deterministic-samples',
     rootIds: ['root-a', 'root-b'],
     nodes: validNodes(),
   };
@@ -302,6 +334,7 @@ function validNodes(): Array<Record<string, unknown>> {
       boundsParsec: { min: [2, 0, 0], max: [4, 2, 2] },
       sourceStarCount: 1,
       clusterCount: 1,
+      representation: 'aggregate-cell',
       url: '/data/stars/tiles/lod4/pack-1.json',
     },
     {
@@ -313,6 +346,7 @@ function validNodes(): Array<Record<string, unknown>> {
       sourceStarCount: 2,
       clusterCount: 2,
       cellSizeParsec: 40,
+      representation: 'sampled-source',
       url: '/data/stars/tiles/lod3/root-a.json',
     },
     {
@@ -324,6 +358,7 @@ function validNodes(): Array<Record<string, unknown>> {
       sourceStarCount: 1,
       clusterCount: 1,
       cellSizeParsec: 40,
+      representation: 'sampled-source',
       url: '/data/stars/tiles/lod3/root-a.json',
     },
   ];
@@ -338,15 +373,18 @@ function validRoot(): Record<string, unknown> {
     sourceStarCount: 3,
     clusterCount: 2,
     cellSizeParsec: 160,
+    representation: 'aggregate-cell',
     url: '/data/stars/tiles/lod4/pack-0.json',
   };
 }
 
 function validPack(): object {
   return {
-    version: '2.0.0',
-    sourceCatalog: 'hyg-v41-bright-stars',
-    referenceEpochJulianDay: 2_451_545,
+    version: '4.0.0',
+    sourceCatalog: 'gaia-dr3-bright-high-confidence',
+    referenceEpochJulianDay: 2_457_388.5,
+    magnitudeBand: 'gaia-g',
+    colorIndexSystem: 'gaia-bp-rp',
     tiles: [validTile('a-0', 'root-a'), validTile('a-1', 'root-a')],
   };
 }
@@ -355,31 +393,46 @@ function validTile(id = 'a-0', parentId = 'root-a'): object {
   return {
     id,
     parentId,
-    version: '2.0.0',
-    sourceCatalog: 'hyg-v41-bright-stars',
+    version: '4.0.0',
+    sourceCatalog: 'gaia-dr3-bright-high-confidence',
     sourceStarCount: id === 'a-0' ? 2 : 1,
-    referenceEpochJulianDay: 2_451_545,
+    referenceEpochJulianDay: 2_457_388.5,
+    magnitudeBand: 'gaia-g',
+    colorIndexSystem: 'gaia-bp-rp',
     lodLevel: 3,
     cellSizeParsec: 40,
+    representation: 'sampled-source',
     cellCoordinates: id === 'a-0' ? [0, 0, 0, 0, 1, 0] : [1, 0, 0],
     positionsParsec: id === 'a-0' ? [1, 2, 3, 4, 5, 6] : [7, 8, 9],
     starCounts: id === 'a-0' ? [1, 1] : [1],
     apparentMagnitudes: id === 'a-0' ? [-1, 1] : [0],
-    colorIndicesBv: id === 'a-0' ? [0.2, 0.8] : [0.5],
+    colorIndices: id === 'a-0' ? [0.2, 0.8] : [0.5],
   };
 }
 
-function catalog(): StarCatalog {
+function validSource(): object {
   return {
-    count: 4,
-    referenceEpochJulianDay: 2_451_545,
-    positionsParsec: new Float32Array(12),
-    velocitiesParsecPerYear: new Float32Array(12),
-    apparentMagnitudes: new Float32Array(4),
-    colorIndicesBv: new Float32Array(4),
-    catalogIds: new Uint32Array([1, 2, 3, 4]),
-    names: ['A', 'B', 'C', 'D'],
-    aliases: [[], [], [], []],
-    spectralTypes: [null, null, null, null],
+    name: 'Gaia Data Release 3 · gaia_source_lite',
+    url: 'https://gea.esac.esa.int/archive/',
+    doi: '10.5270/esa-qa4lep3',
+    credit: 'ESA/Gaia/DPAC',
+    retrievedAt: '2026-08-28T00:00:00.000Z',
+    query: 'SELECT source_id FROM gaiadr3.gaia_source_lite',
+  };
+}
+
+function validSelection(): object {
+  return {
+    maximumDistanceParsec: 5_000,
+    maximumApparentMagnitude: 12,
+    minimumParallaxOverError: 10,
+  };
+}
+
+function validSampling(): object {
+  return {
+    method: 'brightest-plus-deterministic-uniform',
+    maximumSamplesPerLeaf: 96,
+    brightestSamplesPerLeaf: 32,
   };
 }

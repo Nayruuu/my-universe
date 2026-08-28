@@ -1,23 +1,33 @@
 import {
   type StarClusterTile,
   type StarClusterTilePack,
+  type StarColorIndexSystem,
+  type StarMagnitudeBand,
   type StarTileBounds,
+  type StarTileCatalogSelection,
+  type StarTileCatalogSource,
   type StarTileIndex,
   type StarTileIndexNode,
+  type StarTilePointRepresentation,
+  type StarTileSampling,
 } from '../models/universe.models';
-import { type StarCatalog } from '../../engine/loaders/star-catalog';
 
 export function parseStarTileIndex(value: unknown, source: string): StarTileIndex {
   if (
     !isRecord(value) ||
-    typeof value['version'] !== 'string' ||
+    value['version'] !== '4.0.0' ||
     typeof value['sourceCatalog'] !== 'string' ||
     !isPositiveInteger(value['sourceStarCount']) ||
     !isFiniteNumber(value['referenceEpochJulianDay']) ||
-    value['referenceFrame'] !== 'equatorial-j2000' ||
+    (value['referenceFrame'] !== 'equatorial-j2000' && value['referenceFrame'] !== 'icrs') ||
     value['distanceUnit'] !== 'parsec' ||
+    !isMagnitudeBand(value['magnitudeBand']) ||
+    !isColorIndexSystem(value['colorIndexSystem']) ||
+    !isCatalogSource(value['source']) ||
+    !isCatalogSelection(value['selection']) ||
+    !isSampling(value['sampling']) ||
     value['scientificConfidence'] !== 'calculated' ||
-    value['representation'] !== 'illustrative-aggregation' ||
+    value['representation'] !== 'hierarchical-aggregation-with-deterministic-samples' ||
     !isStringArray(value['rootIds']) ||
     value['rootIds'].length === 0 ||
     !Array.isArray(value['nodes']) ||
@@ -43,6 +53,11 @@ export function parseStarTileIndex(value: unknown, source: string): StarTileInde
     referenceEpochJulianDay: value['referenceEpochJulianDay'],
     referenceFrame: value['referenceFrame'],
     distanceUnit: value['distanceUnit'],
+    magnitudeBand: value['magnitudeBand'],
+    colorIndexSystem: value['colorIndexSystem'],
+    source: value['source'],
+    selection: value['selection'],
+    sampling: value['sampling'],
     scientificConfidence: value['scientificConfidence'],
     representation: value['representation'],
     rootIds: value['rootIds'],
@@ -53,9 +68,11 @@ export function parseStarTileIndex(value: unknown, source: string): StarTileInde
 export function parseStarClusterTilePack(value: unknown, source: string): StarClusterTilePack {
   if (
     !isRecord(value) ||
-    typeof value['version'] !== 'string' ||
+    value['version'] !== '4.0.0' ||
     typeof value['sourceCatalog'] !== 'string' ||
     !isFiniteNumber(value['referenceEpochJulianDay']) ||
+    !isMagnitudeBand(value['magnitudeBand']) ||
+    !isColorIndexSystem(value['colorIndexSystem']) ||
     !Array.isArray(value['tiles']) ||
     value['tiles'].length === 0
   ) {
@@ -74,7 +91,9 @@ export function parseStarClusterTilePack(value: unknown, source: string): StarCl
     if (
       tile.version !== value['version'] ||
       tile.sourceCatalog !== value['sourceCatalog'] ||
-      tile.referenceEpochJulianDay !== value['referenceEpochJulianDay']
+      tile.referenceEpochJulianDay !== value['referenceEpochJulianDay'] ||
+      tile.magnitudeBand !== value['magnitudeBand'] ||
+      tile.colorIndexSystem !== value['colorIndexSystem']
     ) {
       throw new Error(`Métadonnées de tuile stellaire incohérentes dans ${source}.`);
     }
@@ -84,6 +103,8 @@ export function parseStarClusterTilePack(value: unknown, source: string): StarCl
     version: value['version'],
     sourceCatalog: value['sourceCatalog'],
     referenceEpochJulianDay: value['referenceEpochJulianDay'],
+    magnitudeBand: value['magnitudeBand'],
+    colorIndexSystem: value['colorIndexSystem'],
     tiles,
   };
 }
@@ -95,17 +116,20 @@ export function parseStarClusterTile(value: unknown, source: string): StarCluste
     value['id'].length === 0 ||
     (value['parentId'] !== undefined &&
       (typeof value['parentId'] !== 'string' || value['parentId'].length === 0)) ||
-    typeof value['version'] !== 'string' ||
+    value['version'] !== '4.0.0' ||
     typeof value['sourceCatalog'] !== 'string' ||
     !isPositiveInteger(value['sourceStarCount']) ||
     !isFiniteNumber(value['referenceEpochJulianDay']) ||
+    !isMagnitudeBand(value['magnitudeBand']) ||
+    !isColorIndexSystem(value['colorIndexSystem']) ||
     !isNonNegativeInteger(value['lodLevel']) ||
     !isPositiveFiniteNumber(value['cellSizeParsec']) ||
+    !isPointRepresentation(value['representation']) ||
     !isIntegerArray(value['cellCoordinates']) ||
     !isFiniteNumberArray(value['positionsParsec']) ||
     !isPositiveIntegerArray(value['starCounts']) ||
     !isFiniteNumberArray(value['apparentMagnitudes']) ||
-    !isFiniteNumberArray(value['colorIndicesBv'])
+    !isFiniteNumberArray(value['colorIndices'])
   ) {
     throw invalidTile(source);
   }
@@ -117,7 +141,7 @@ export function parseStarClusterTile(value: unknown, source: string): StarCluste
     value['cellCoordinates'].length !== vectorLength ||
     value['positionsParsec'].length !== vectorLength ||
     value['apparentMagnitudes'].length !== clusterCount ||
-    value['colorIndicesBv'].length !== clusterCount
+    value['colorIndices'].length !== clusterCount
   ) {
     throw invalidTile(source);
   }
@@ -134,22 +158,24 @@ export function parseStarClusterTile(value: unknown, source: string): StarCluste
     sourceCatalog: value['sourceCatalog'],
     sourceStarCount: value['sourceStarCount'],
     referenceEpochJulianDay: value['referenceEpochJulianDay'],
+    magnitudeBand: value['magnitudeBand'],
+    colorIndexSystem: value['colorIndexSystem'],
     lodLevel: value['lodLevel'],
     cellSizeParsec: value['cellSizeParsec'],
+    representation: value['representation'],
     clusterCount,
     cellCoordinates: Int32Array.from(value['cellCoordinates']),
     positionsParsec: Float32Array.from(value['positionsParsec']),
     starCounts: Uint32Array.from(value['starCounts']),
     apparentMagnitudes: Float32Array.from(value['apparentMagnitudes']),
-    colorIndicesBv: Float32Array.from(value['colorIndicesBv']),
+    colorIndices: Float32Array.from(value['colorIndices']),
   };
 }
 
-export function assertStarClusterTileMatchesCatalog(
+export function assertStarClusterTileMatchesIndex(
   tile: StarClusterTile,
   index: StarTileIndex,
   node: StarTileIndexNode,
-  catalog: StarCatalog,
 ): void {
   if (tile.sourceCatalog !== index.sourceCatalog) {
     throw new Error('Tuile stellaire associée au mauvais catalogue source.');
@@ -157,14 +183,17 @@ export function assertStarClusterTileMatchesCatalog(
   if (tile.version !== index.version) {
     throw new Error('Tuile stellaire associée à la mauvaise version d’index.');
   }
-  if (index.sourceStarCount !== catalog.count || tile.sourceStarCount !== node.sourceStarCount) {
+  if (tile.sourceStarCount !== node.sourceStarCount) {
     throw new Error('Tuile stellaire associée au mauvais nombre d’étoiles.');
   }
-  if (
-    tile.referenceEpochJulianDay !== index.referenceEpochJulianDay ||
-    tile.referenceEpochJulianDay !== catalog.referenceEpochJulianDay
-  ) {
+  if (tile.referenceEpochJulianDay !== index.referenceEpochJulianDay) {
     throw new Error('Tuile stellaire associée à la mauvaise époque de référence.');
+  }
+  if (
+    tile.magnitudeBand !== index.magnitudeBand ||
+    tile.colorIndexSystem !== index.colorIndexSystem
+  ) {
+    throw new Error('Tuile stellaire associée au mauvais système photométrique.');
   }
   if (tile.id !== node.id || tile.parentId !== node.parentId) {
     throw new Error('Tuile stellaire associée au mauvais nœud spatial.');
@@ -174,6 +203,9 @@ export function assertStarClusterTileMatchesCatalog(
   }
   if (tile.cellSizeParsec !== node.cellSizeParsec) {
     throw new Error('Tuile stellaire associée à la mauvaise taille de cellule.');
+  }
+  if (tile.representation !== node.representation) {
+    throw new Error('Tuile stellaire associée à la mauvaise représentation.');
   }
   if (tile.clusterCount !== node.clusterCount) {
     throw new Error('Tuile stellaire associée au mauvais nombre de cellules.');
@@ -194,6 +226,7 @@ function parseNode(value: unknown, source: string, index: number): StarTileIndex
     !isPositiveInteger(value['sourceStarCount']) ||
     !isPositiveInteger(value['clusterCount']) ||
     !isPositiveFiniteNumber(value['cellSizeParsec']) ||
+    !isPointRepresentation(value['representation']) ||
     typeof value['url'] !== 'string' ||
     value['url'].length === 0
   ) {
@@ -209,6 +242,7 @@ function parseNode(value: unknown, source: string, index: number): StarTileIndex
     sourceStarCount: value['sourceStarCount'],
     clusterCount: value['clusterCount'],
     cellSizeParsec: value['cellSizeParsec'],
+    representation: value['representation'],
     url: value['url'],
   };
 }
@@ -227,7 +261,12 @@ function validateHierarchy(
   for (const rootId of rootIds) {
     const root = nodesById.get(rootId);
 
-    if (!root || root.parentId !== undefined || root.lodLevel !== 4) {
+    if (
+      !root ||
+      root.parentId !== undefined ||
+      root.lodLevel !== 4 ||
+      root.representation !== 'aggregate-cell'
+    ) {
       throw new Error(`Racine spatiale stellaire invalide : ${rootId}.`);
     }
     rootStarCount += root.sourceStarCount;
@@ -248,6 +287,7 @@ function validateHierarchy(
         parent.parentId !== undefined ||
         !parent.childIds.includes(node.id) ||
         node.lodLevel !== 3 ||
+        node.representation !== 'sampled-source' ||
         node.childIds.length > 0
       ) {
         throw new Error(`Relation spatiale stellaire invalide : ${node.parentId} → ${node.id}.`);
@@ -295,6 +335,57 @@ function isBounds(value: unknown): value is StarTileBounds {
 
 function invalidTile(source: string): Error {
   return new Error(`Tuile de cellules stellaires invalide : ${source}.`);
+}
+
+function isMagnitudeBand(value: unknown): value is StarMagnitudeBand {
+  return value === 'johnson-v' || value === 'gaia-g';
+}
+
+function isColorIndexSystem(value: unknown): value is StarColorIndexSystem {
+  return value === 'johnson-b-v' || value === 'gaia-bp-rp';
+}
+
+function isCatalogSource(value: unknown): value is StarTileCatalogSource {
+  return (
+    isRecord(value) &&
+    isNonEmptyString(value['name']) &&
+    isNonEmptyString(value['url']) &&
+    (value['doi'] === null || isNonEmptyString(value['doi'])) &&
+    isNonEmptyString(value['credit']) &&
+    isIsoTimestamp(value['retrievedAt']) &&
+    isNonEmptyString(value['query'])
+  );
+}
+
+function isCatalogSelection(value: unknown): value is StarTileCatalogSelection {
+  return (
+    isRecord(value) &&
+    isPositiveFiniteNumber(value['maximumDistanceParsec']) &&
+    isFiniteNumber(value['maximumApparentMagnitude']) &&
+    isPositiveFiniteNumber(value['minimumParallaxOverError'])
+  );
+}
+
+function isSampling(value: unknown): value is StarTileSampling {
+  return (
+    isRecord(value) &&
+    value['method'] === 'brightest-plus-deterministic-uniform' &&
+    isPositiveInteger(value['maximumSamplesPerLeaf']) &&
+    isPositiveInteger(value['brightestSamplesPerLeaf']) &&
+    value['brightestSamplesPerLeaf'] <= value['maximumSamplesPerLeaf']
+  );
+}
+
+function isPointRepresentation(value: unknown): value is StarTilePointRepresentation {
+  return value === 'aggregate-cell' || value === 'sampled-source';
+}
+
+function isIsoTimestamp(value: unknown): value is string {
+  return isNonEmptyString(value) && Number.isFinite(Date.parse(value));
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

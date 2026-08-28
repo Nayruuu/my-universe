@@ -43,9 +43,10 @@ describe('imposteurs galactiques', () => {
     assets.selectionMaterial.dispose();
   });
 
-  it('crée une silhouette orientée, aplatie et directement sélectionnable', () => {
+  it('crée une silhouette orientée avec une cible de sélection indépendante', () => {
     const visual = createCelestialVisual(createGalaxy(), 'medium', assets);
     const sprite = visual.lod.farSprite;
+    const selectionTarget = visual.pickables[0];
 
     expect(sprite).toBeInstanceOf(THREE.Sprite);
     if (!sprite) {
@@ -55,7 +56,7 @@ describe('imposteurs galactiques', () => {
     expect(sprite.scale.toArray()).toEqual([1_040, 364, 1]);
     expect(sprite.material.map).toBe(assets.galaxyTextures.spiral);
     expect(sprite.material.rotation).toBeCloseTo(THREE.MathUtils.degToRad(35));
-    expect(sprite.layers.mask & (1 << PICKING_LAYER)).not.toBe(0);
+    expect(sprite.layers.mask & (1 << PICKING_LAYER)).toBe(0);
     expect(sprite.userData['objectId']).toBe('andromeda');
     expect(sprite.material.userData['visualStyle']).toBe('structured-galaxy-impostor');
     expect(sprite.material.userData['layers']).toEqual([
@@ -66,8 +67,11 @@ describe('imposteurs galactiques', () => {
     expect(sprite.material.color.r).toBeGreaterThan(0.8);
     expect(sprite.material.color.g).toBeGreaterThan(0.8);
     expect(sprite.material.color.b).toBeGreaterThan(0.8);
+    expect(selectionTarget?.name).toBe('andromeda-selection-target');
+    expect(selectionTarget?.scale.x).toBeCloseTo(598);
+    expect(selectionTarget?.layers.mask & (1 << PICKING_LAYER)).not.toBe(0);
     expect(visual.pickables).toEqual([
-      sprite,
+      selectionTarget,
       visual.lod.nearRoot?.getObjectByName('andromeda-galaxy-structured-disk'),
     ]);
     expect(visual.lod.farAspectRatio).toBe(0.35);

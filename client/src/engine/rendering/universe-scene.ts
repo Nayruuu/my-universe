@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {
   type ConstellationCatalog,
+  type GaiaPresentationStats,
   GraphicQuality,
   type SpaceObject,
   type SpaceTileIndex,
@@ -11,6 +12,7 @@ import {
   type Vector3Like,
 } from '../../data/models/universe.models';
 import type { CoordinateSystem } from '../coordinates/coordinate-system';
+import { type IntergalacticScale } from '../coordinates/intergalactic-scale-model';
 import type { StarCatalogRegistry } from '../objects/star-catalog-registry';
 import type { ExoplanetCatalogRegistry } from '../objects/exoplanet-catalog-registry';
 import type { CosmicGroupCatalogRegistry } from '../objects/cosmic-group-catalog-registry';
@@ -115,7 +117,15 @@ export class UniverseScene {
   }
 
   public setStellarOrigin(position: Vector3Like): void {
-    this.stellarNeighborhoodRoot.position.set(position.x, position.y, position.z);
+    this.environment.setStellarOrigin(position);
+  }
+
+  public get intergalacticScale(): IntergalacticScale {
+    return this.cosmicCatalogLayers.intergalacticScale;
+  }
+
+  public updateReferenceFrameScale(cameraDistance: number): boolean {
+    return this.cosmicCatalogLayers.updateReferenceFrameScale(cameraDistance);
   }
 
   public async setNearbyGalaxyOverview(
@@ -225,6 +235,7 @@ export class UniverseScene {
     earthObserverActive = false,
     navigationTargetId: string | null = null,
   ): void {
+    this.updateReferenceFrameScale(cameraDistance);
     const photographicProfile = getPhotographicProfile(lodLevel, this.quality);
 
     this.environment.update(
@@ -242,6 +253,7 @@ export class UniverseScene {
       photographicProfile.starRadiance,
       cameraPosition,
       navigationTargetId,
+      cameraDistance,
     );
     this.cosmicCatalogLayers.update(
       cameraDistance,
@@ -365,6 +377,10 @@ export class UniverseScene {
 
   public get visibleStarClusterCount(): number {
     return this.stellarCatalogLayers.visibleStarClusterCount;
+  }
+
+  public getGaiaPresentationStats(camera: THREE.Camera): GaiaPresentationStats {
+    return this.stellarCatalogLayers.getGaiaPresentationStats(camera);
   }
 
   public dispose(): void {

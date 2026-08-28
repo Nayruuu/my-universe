@@ -1,6 +1,10 @@
 import * as THREE from 'three';
 import { type ConstellationCatalog } from '../../data/models/universe.models';
 import { CoordinateSystem } from '../coordinates/coordinate-system';
+import {
+  STELLAR_NEIGHBORHOOD_REVEAL_END,
+  STELLAR_NEIGHBORHOOD_REVEAL_START,
+} from '../coordinates/stellar-neighborhood-scale-model';
 import { type StarCatalog } from '../loaders/star-catalog';
 import { StarCatalogRegistry } from '../objects/star-catalog-registry';
 import { ConstellationBatch } from './constellation-batch';
@@ -66,6 +70,7 @@ describe('ConstellationBatch', () => {
     expect(batch.getDefinition('constellation-inconnue')).toBeUndefined();
     expect(batch.getFocusRadius('constellation-orion')).toBe(definition?.visual.visualRadius);
     expect(batch.getFocusRadius('constellation-inconnue')).toBeNull();
+    expect(batch.isObjectVisibleForLabels('constellation-inconnue')).toBeNull();
     batch.dispose();
   });
 
@@ -150,6 +155,38 @@ describe('ConstellationBatch', () => {
     expect(batch.lines.visible).toBe(true);
     batch.updateLod(99, 10);
     expect(batch.lines.visible).toBe(false);
+    batch.dispose();
+  });
+
+  it('fait émerger les constellations dans le même fondu que les étoiles', () => {
+    const batch = createBatch();
+
+    batch.updateLod(2, 10, STELLAR_NEIGHBORHOOD_REVEAL_END);
+    expect(batch.lines.visible).toBe(false);
+    expect(batch.isObjectVisibleForLabels('constellation-orion')).toBe(false);
+
+    const transitionMiddle = Math.sqrt(
+      STELLAR_NEIGHBORHOOD_REVEAL_START * STELLAR_NEIGHBORHOOD_REVEAL_END,
+    );
+
+    batch.updateLod(2, 10, transitionMiddle);
+    expect(batch.lines.visible).toBe(true);
+    const stellarOpacity = batch.lines.material.opacity;
+
+    expect(stellarOpacity).toBeGreaterThan(0);
+    expect(stellarOpacity).toBeLessThan(0.23);
+    expect(batch.isObjectVisibleForLabels('constellation-orion')).toBe(true);
+
+    batch.updateLod(1, 10, transitionMiddle);
+    expect(batch.lines.material.opacity).toBeCloseTo(stellarOpacity, 5);
+
+    batch.updateLod(3, 10, transitionMiddle);
+    expect(batch.lines.material.opacity).toBeCloseTo(stellarOpacity, 5);
+
+    batch.select('constellation-orion');
+    batch.updateLod(2, 10, STELLAR_NEIGHBORHOOD_REVEAL_END);
+    expect(batch.lines.visible).toBe(false);
+    expect(batch.isObjectVisibleForLabels('constellation-orion')).toBe(true);
     batch.dispose();
   });
 
