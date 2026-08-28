@@ -979,12 +979,16 @@ Moon altitude, and target–Moon separation to identify a convenient window. Its
 previewed target, sets the shared simulation time, and recentres the existing camera on the sampled
 target coordinates. A compact astronomical comparison reuses the identical noon-to-noon calculation
 for seven consecutive nights. Each card exposes the interpolated best window, refined best instant,
-maximum altitude, and lunar interference; selecting it commits that night's refined instant through
-the same target, time, and camera action. The calculation runs only while the panel is open; its
-samples are reused until the local solar date, target, location, or terrain changes. Current-list suggestions remain geometric and
-the convenience index is not a visibility forecast: live weather, atmospheric transparency, light
-pollution, and unsurveyed local obstacles are outside the model. The view is not a historical
-reconstruction, a weather service, or a professional observation-planning tool.
+maximum altitude, lunar interference, and a comparable illustrative index out of 100. The strongest
+raw index is selected automatically, with the earlier local night breaking an exact tie. Its summary
+shows the sampled target altitude, Sun altitude, lunar interference, and calculated terrain or
+geometric-horizon clearance. Either the summary action or an individual card commits that night's
+refined instant through the same target, time, and camera action. The calculation runs only while the
+panel is open; its samples are reused until the local solar date, target, location, or terrain changes.
+Current-list suggestions remain geometric and the convenience index is not a visibility forecast:
+live weather, atmospheric transparency, light pollution, and unsurveyed local obstacles are outside
+the model. The view is not a historical reconstruction, a weather service, or a professional
+observation-planning tool.
 
 ## Eclipse model
 

@@ -50,6 +50,7 @@
   } @else {
     <div class="earth-observation-planner__scroll">
       @let nights = forecast();
+      @let recommendation = recommendedNight();
       @if (nights.length > 0) {
         <section class="earth-observation-planner__forecast" data-confidence="illustrative">
           <div class="earth-observation-planner__forecast-heading">
@@ -58,6 +59,64 @@
             </h3>
             <small>{{ text.plannerForecastNote }}</small>
           </div>
+          @if (recommendation; as recommendedNight) {
+            @if (recommendedNight.bestPoint; as recommendedPoint) {
+              <div class="earth-observation-planner__panel" data-planner-recommendation>
+                <div class="earth-observation-planner__timeline-heading">
+                  <div>
+                    <span>{{ text.plannerRecommendationTitle }}</span>
+                    <h3>
+                      {{ formatNightDate(recommendedNight.startTime) }} ·
+                      {{ formatShortTime(recommendedPoint.time) }}
+                    </h3>
+                  </div>
+                  <em>
+                    {{
+                      i18n.interpolate(text.plannerScore, {
+                        score: i18n.formatNumber(recommendedPoint.quality * 100, 0),
+                      })
+                    }}
+                  </em>
+                </div>
+                <small class="earth-observation-planner__score-note">
+                  {{ text.plannerRecommendationBasis }}
+                </small>
+                <dl class="earth-observation-planner__metrics">
+                  <div>
+                    <dt>{{ text.plannerRecommendationAltitude }}</dt>
+                    <dd>{{ i18n.formatNumber(recommendedPoint.targetAltitudeDegrees, 1) }}°</dd>
+                  </div>
+                  <div>
+                    <dt>{{ text.plannerRecommendationDarkness }}</dt>
+                    <dd>{{ i18n.formatNumber(recommendedPoint.sunAltitudeDegrees, 1) }}°</dd>
+                  </div>
+                  <div>
+                    <dt>{{ text.plannerRecommendationMoon }}</dt>
+                    <dd>{{ i18n.formatNumber(recommendedPoint.moonInterference * 100, 1) }} %</dd>
+                  </div>
+                  <div>
+                    <dt>
+                      {{
+                        recommendedNight.terrainApplied
+                          ? text.plannerRecommendationTerrainClearance
+                          : text.plannerRecommendationHorizonClearance
+                      }}
+                    </dt>
+                    <dd>+{{ i18n.formatNumber(recommendedPoint.clearanceDegrees, 1) }}°</dd>
+                  </div>
+                </dl>
+                <button
+                  type="button"
+                  class="earth-observation-planner__best-time"
+                  data-planner-recommendation-go-to
+                  (click)="timelineSelected.emit(recommendedNight)"
+                >
+                  <span aria-hidden="true">◎</span>
+                  {{ text.plannerRecommendationGoTo }}
+                </button>
+              </div>
+            }
+          }
           <ol class="earth-observation-planner__night-list">
             @for (night of nights; track night.startTime.julianDay; let index = $index) {
               <li>
@@ -66,17 +125,26 @@
                     type="button"
                     class="earth-observation-planner__night"
                     [attr.data-planner-night-index]="index"
+                    [attr.data-recommended]="night === recommendation ? true : null"
                     [attr.aria-label]="
                       i18n.interpolate(text.plannerNightGoTo, {
                         date: formatNightDate(night.startTime),
                         time: formatShortTime(bestPoint.time),
                         altitude: i18n.formatNumber(night.culminationAltitudeDegrees, 0),
-                        score: i18n.formatNumber(bestPoint.moonInterference * 100, 1),
+                        quality: i18n.formatNumber(bestPoint.quality * 100, 0),
+                        moon: i18n.formatNumber(bestPoint.moonInterference * 100, 1),
                       })
                     "
                     (click)="timelineSelected.emit(night)"
                   >
-                    <time>{{ formatNightDate(night.startTime) }}</time>
+                    <time>
+                      {{ formatNightDate(night.startTime) }}
+                      @if (night === recommendation) {
+                        <em data-planner-night-recommended>
+                          · {{ text.plannerNightRecommended }}
+                        </em>
+                      }
+                    </time>
                     <strong data-planner-night-best-time>
                       {{
                         i18n.interpolate(text.plannerNightBestTime, {
@@ -103,6 +171,13 @@
                         })
                       }}
                     </span>
+                    <em class="earth-observation-planner__night-score">
+                      {{
+                        i18n.interpolate(text.plannerScore, {
+                          score: i18n.formatNumber(bestPoint.quality * 100, 0),
+                        })
+                      }}
+                    </em>
                   </button>
                 } @else {
                   <button
@@ -130,7 +205,7 @@
 
       @if (timeline(); as currentTimeline) {
         <section
-          class="earth-observation-planner__timeline"
+          class="earth-observation-planner__panel earth-observation-planner__timeline"
           data-confidence="illustrative"
           [attr.data-terrain-applied]="currentTimeline.terrainApplied"
         >
@@ -214,7 +289,7 @@
             <span>{{ formatTime(currentTimeline.endTime) }}</span>
           </div>
 
-          <dl class="earth-observation-planner__events">
+          <dl class="earth-observation-planner__events earth-observation-planner__metrics">
             <div>
               <dt>{{ text.plannerRise }}</dt>
               <dd>{{ formatShortTime(currentTimeline.riseTime) }}</dd>

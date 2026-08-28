@@ -34,9 +34,11 @@ fotograma estables y una arquitectura web completamente estática limitan cada e
   crepúsculo USNO, interferencia lunar, un índice de mejor ventana explícitamente ilustrativo y una
   acción que mueve juntos el tiempo y la cámara. El objetivo de la curva puede cambiarse desde el mismo
   catálogo local sin mover el cielo actual; solo esa acción confirma el objetivo, el tiempo compartido
-  y la cámara. Una comparación compacta aplica el mismo cálculo a siete noches consecutivas; al elegir
-  una se pasa directamente a su mejor instante, refinado localmente a cinco minutos. El tiempo en
-  directo, la contaminación lumínica y los obstáculos locales no medidos quedan fuera del modelo.
+  y la cámara. Una comparación compacta aplica el mismo cálculo a siete noches consecutivas. Destaca
+  automáticamente la mejor con un índice ilustrativo comparable sobre 100 y muestra altura,
+  oscuridad, luz lunar y despeje del terreno antes de su acción directa al mejor instante, refinado
+  localmente a cinco minutos. El tiempo en directo, la contaminación lumínica y los obstáculos locales
+  no medidos quedan fuera del modelo.
 - Cada lugar fijo del catálogo dispone de un perfil de obstrucción de 360° calculado con el producto
   autorizado de relieve superficial NOAA/NCEI ETOPO 2022 v1 de 60 segundos de arco. Los perfiles
   compactos se cargan bajo demanda y pueden ocultar estrellas, la Luna, planetas y satélites tras el terreno

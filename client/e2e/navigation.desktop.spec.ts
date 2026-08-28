@@ -1505,10 +1505,19 @@ test('le planificateur prévisualise une étoile puis engage sa cible et son mei
   await expect(planner).toContainText('Comparaison sur 7 nuits');
   await expect(planner).toContainText('Idéal à');
   await expect(planner.locator('[data-planner-night-index]')).toHaveCount(7);
+  await expect(planner.locator('.earth-observation-planner__night-score')).toHaveCount(7);
+  await expect(planner.locator('[data-recommended="true"]')).toHaveCount(1);
+  const recommendation = planner.locator('[data-planner-recommendation]');
+
+  await expect(recommendation).toContainText('Meilleure nuit');
+  await expect(recommendation).toContainText('Hauteur');
+  await expect(recommendation).toContainText('Soleil');
+  await expect(recommendation).toContainText('Gêne lunaire');
+  await expect(recommendation).toContainText(/Indice \d+\/100/u);
   expect(queryParameter(page, 'target')).toBe(initialTarget);
   expect(queryParameter(page, 'time')).toBe(initialTime);
 
-  await planner.locator('[data-planner-night-index="1"]').click();
+  await recommendation.locator('[data-planner-recommendation-go-to]').click();
   await expect.poll(() => queryParameter(page, 'target')).toBe('betelgeuse');
   await expect.poll(() => queryParameter(page, 'time')).not.toBe(initialTime);
   await waitForCameraSettled(page);
@@ -2945,6 +2954,8 @@ test('la recherche centre les lunes majeures et les petits corps documentés', a
   await expect(details.getByRole('heading', { name: 'Bénou' })).toBeVisible();
   await expect(details).toContainText('Forme et texture observées par OSIRIS-REx');
   await expect.poll(() => wasResourceLoaded(page, '/models/bennu-nasa-vtad.glb')).toBe(true);
+  await expect.poll(() => isObservedShapeAttached(page, 'bennu')).toBe(true);
+  await page.waitForTimeout(100);
 
   await search.fill('1P/Halley');
   await page

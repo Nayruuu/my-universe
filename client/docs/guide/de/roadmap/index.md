@@ -35,9 +35,11 @@ Schritt.
   Mondlichtstörung, einem ausdrücklich illustrativen Bestfenster-Index und einer Aktion, die Zeit und
   Kamera gemeinsam verschiebt. Das Kurvenziel kann aus demselben lokalen Katalog ersetzt werden, ohne
   den aktuellen Himmel zu bewegen; erst diese Aktion übernimmt Ziel, gemeinsame Zeit und Kamera.
-  Eine kompakte Übersicht wendet dieselbe Berechnung auf sieben aufeinanderfolgende Nächte an; eine
-  Auswahl wechselt direkt zum lokal auf fünf Minuten verfeinerten besten Zeitpunkt der Nacht.
-  Live-Wetter, Lichtverschmutzung und lokale Hindernisse bleiben außen vor.
+  Eine kompakte Übersicht wendet dieselbe Berechnung auf sieben aufeinanderfolgende Nächte an. Sie
+  hebt automatisch die stärkste Nacht mit einem vergleichbaren illustrativen Index von 100 hervor
+  und zeigt Höhe, Dunkelheit, Mondlicht und Geländefreiheit, bevor die direkte Aktion zum lokal auf
+  fünf Minuten verfeinerten besten Zeitpunkt wechselt. Live-Wetter, Lichtverschmutzung und lokale
+  Hindernisse bleiben außen vor.
 - Für jeden festen Katalogort wird ein 360°-Verdeckungsprofil aus dem maßgeblichen
   NOAA/NCEI-Oberflächenrelief ETOPO 2022 v1 mit 60 Bogensekunden berechnet. Die kompakten Profile
   werden verzögert geladen und können Sterne, Mond, Planeten und Satelliten hinter modelliertem Gelände
