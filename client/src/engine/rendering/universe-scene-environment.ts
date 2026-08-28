@@ -58,22 +58,16 @@ export class UniverseSceneEnvironment {
     this.galacticTransitionLayer.setPixelRatio(pixelRatio);
   }
 
-  public async ensureMilkyWayAtlas(): Promise<boolean> {
-    const loaded = await Promise.all([
-      this.milkyWayVolume.ensureAtlas(),
-      this.localSpaceEnvironment.ensurePanorama(),
-    ]);
+  public setStellarOrigin(position: Vector3Like): void {
+    this.galacticTransitionLayer.setStellarOrigin(position);
+  }
 
-    return loaded.every(Boolean);
+  public async ensureMilkyWayAtlas(): Promise<boolean> {
+    return this.localSpaceEnvironment.ensurePanorama();
   }
 
   public async prewarmMilkyWayAssets(target: TexturePrewarmTarget): Promise<boolean> {
-    const prepared = await Promise.all([
-      this.milkyWayVolume.prewarmAtlas(target),
-      this.localSpaceEnvironment.prewarmPanorama(target),
-    ]);
-
-    return prepared.every(Boolean);
+    return this.localSpaceEnvironment.prewarmPanorama(target);
   }
 
   public update(
@@ -84,6 +78,14 @@ export class UniverseSceneEnvironment {
     cameraPosition?: Vector3Like,
     earthObserverActive = false,
   ): void {
+    this.galacticTransitionLayer.update({
+      lodLevel,
+      deltaSeconds,
+      cameraDistance,
+      starRadiance: profile.starRadiance,
+      galaxyRadiance: profile.galaxyRadiance,
+      observerPosition: cameraPosition,
+    });
     const localObserverDistance = cameraPosition
       ? this.getLocalObserverDistance(cameraPosition)
       : 0;
@@ -95,19 +97,16 @@ export class UniverseSceneEnvironment {
       profile.starRadiance,
       localObserverDistance,
       earthObserverActive,
+      cameraPosition,
     );
-    this.milkyWayVolume.update(cameraDistance, deltaSeconds, profile.galaxyRadiance);
+    this.milkyWayVolume.update(
+      cameraDistance,
+      deltaSeconds,
+      profile.galaxyRadiance,
+      lodLevel >= 1 && lodLevel <= 5 && !earthObserverActive,
+    );
     (this.scene.background as THREE.Color).copy(this.cosmicBackground.fallbackColor);
     (this.scene.fog as THREE.FogExp2).color.copy(this.cosmicBackground.fogColor);
-    this.galacticTransitionLayer.update({
-      lodLevel,
-      deltaSeconds,
-      cameraDistance,
-      starRadiance: profile.starRadiance,
-      galaxyRadiance: profile.galaxyRadiance,
-      milkyWayAtlasReady: this.milkyWayVolume.atlasStatus === 'ready',
-      observerPosition: cameraPosition,
-    });
   }
 
   public dispose(): void {

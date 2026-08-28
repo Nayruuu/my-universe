@@ -5,20 +5,27 @@ import {
   type StarTileIndexNode,
   type StarTileSource,
 } from '../../data/models/universe.models';
+import { assertStarClusterTileMatchesIndex } from '../../data/validation/star-tile-index';
 import {
-  assertStarClusterTileMatchesCatalog,
-  parseStarClusterTilePack,
-  parseStarTileIndex,
-} from '../../data/validation/star-tile-index';
+  loadStarClusterTilePackSource,
+  loadStarTileIndexSource,
+} from '../loaders/star-tile-source-loader';
+import {
+  loadStarClusterTilePackOffThread,
+  loadStarTileIndexOffThread,
+} from '../loaders/star-tile-worker-loader';
 import { type StarCatalogRegistry } from '../objects/star-catalog-registry';
 import {
   createStarTileRenderNodes,
+  isStarTileNavigationLodLevel,
   selectStarTileNodeIds,
   type StarTileRenderNode,
   type StarTileView,
 } from './star-tile-selection';
 
 type StarTileFetcher = (url: string) => Promise<Response>;
+
+const MAXIMUM_CONCURRENT_PACK_LOADS = 4;
 
 interface LoadedStarTileIndex {
   readonly index: StarTileIndex;
@@ -79,7 +86,7 @@ export class StarTileManager {
   }
 
   public async synchronize(view: StarTileView): Promise<StarTileSyncResult> {
-    if (view.lodLevel !== 3 && view.lodLevel !== 4) {
+    if (!isStarTileNavigationLodLevel(view.lodLevel)) {
       const changed = this.activeNodeIds.length > 0;
 
       this.activeNodeIds = [];
@@ -106,7 +113,9 @@ export class StarTileManager {
     });
     const urls = [...new Set(selectedNodes.map((node) => node.url))];
 
-    await Promise.all(urls.map((url) => this.loadPack(url, loadedIndex)));
+    await loadConcurrently(urls, MAXIMUM_CONCURRENT_PACK_LOADS, (url) =>
+      this.loadPack(url, loadedIndex),
+    );
 
     const tiles = selectedNodes.map((node) => {
       const tile = this.cachedPacks.get(node.url)?.tilesById.get(node.id);
@@ -132,18 +141,9 @@ export class StarTileManager {
   }
 
   private async fetchIndex(): Promise<LoadedStarTileIndex> {
-    const response = await this.fetcher(this.source.url);
-
-    if (!response.ok) {
-      throw new Error(
-        `Impossible de charger l’index stellaire ${this.source.id} (${response.status}).`,
-      );
-    }
-    const index = parseStarTileIndex(await response.json(), this.source.id);
-
-    if (index.sourceCatalog !== this.source.starCatalogId) {
-      throw new Error(`Index stellaire associé au mauvais catalogue : ${index.sourceCatalog}.`);
-    }
+    const index = await loadStarTileIndexOffThread(this.source, {
+      loadIndexOnMainThread: (source) => loadStarTileIndexSource(source, this.fetcher),
+    });
     const nodesById = new Map(index.nodes.map((node) => [node.id, node]));
     const renderNodes = createStarTileRenderNodes(index, (position, target) =>
       this.registry.toRenderPosition(position, target),
@@ -186,12 +186,12 @@ export class StarTileManager {
     url: string,
     loadedIndex: LoadedStarTileIndex,
   ): Promise<CachedStarTilePack> {
-    const response = await this.fetcher(url);
-
-    if (!response.ok) {
-      throw new Error(`Impossible de charger le paquet de tuiles stellaires (${response.status}).`);
-    }
-    const pack = parseStarClusterTilePack(await response.json(), url);
+    const pack = await loadStarClusterTilePackOffThread(
+      { id: url, url },
+      {
+        loadPackOnMainThread: (source) => loadStarClusterTilePackSource(source, this.fetcher),
+      },
+    );
     const tilesById = new Map<string, StarClusterTile>();
 
     for (const tile of pack.tiles) {
@@ -203,7 +203,7 @@ export class StarTileManager {
       if (node.url !== url) {
         throw new Error(`Tuile stellaire chargée depuis le mauvais paquet : ${tile.id}.`);
       }
-      assertStarClusterTileMatchesCatalog(tile, loadedIndex.index, node, this.registry.catalog);
+      assertStarClusterTileMatchesIndex(tile, loadedIndex.index, node);
       tilesById.set(tile.id, tile);
     }
 
@@ -251,4 +251,22 @@ export class StarTileManager {
 
 function sameIds(left: readonly string[], right: readonly string[]): boolean {
   return left.length === right.length && left.every((id, index) => id === right[index]);
+}
+
+async function loadConcurrently<Value, Result>(
+  values: readonly Value[],
+  maximumConcurrency: number,
+  load: (value: Value) => Promise<Result>,
+): Promise<void> {
+  let nextIndex = 0;
+  const workerCount = Math.min(values.length, Math.max(1, Math.floor(maximumConcurrency)));
+  const workers = Array.from({ length: workerCount }, async () => {
+    while (nextIndex < values.length) {
+      const value = values[nextIndex++]!;
+
+      await load(value);
+    }
+  });
+
+  await Promise.all(workers);
 }

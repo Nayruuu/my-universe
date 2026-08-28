@@ -41,6 +41,8 @@ describe('UniverseFrameRenderer', () => {
       expect.any(Function),
       3,
       'earth',
+      expect.any(Number),
+      expect.any(Number),
     );
 
     const readWorldPosition = harness.renderLabels.mock.calls[0]?.[1] as (
@@ -75,6 +77,23 @@ describe('UniverseFrameRenderer', () => {
       expect.any(Function),
       2,
       'earth',
+      expect.any(Number),
+      expect.any(Number),
+    );
+  });
+
+  it('fond les annotations du Groupe local au seuil d’entrée galactique', () => {
+    const harness = createHarness({ cameraDistance: 6_000 });
+
+    harness.renderer.render(0.1, harness.services, 3);
+
+    expect(harness.renderLabels).toHaveBeenCalledWith(
+      harness.camera,
+      expect.any(Function),
+      3,
+      'earth',
+      expect.any(Number),
+      0.5,
     );
   });
 
@@ -130,6 +149,7 @@ interface HarnessOptions {
   readonly observerModeActive: boolean;
   readonly observerSkyObjectId: string | null;
   readonly registryAvailable: boolean;
+  readonly cameraDistance: number;
 }
 
 function createHarness(overrides: Partial<HarnessOptions> = {}) {
@@ -140,6 +160,7 @@ function createHarness(overrides: Partial<HarnessOptions> = {}) {
     observerModeActive: false,
     observerSkyObjectId: null,
     registryAvailable: true,
+    cameraDistance: 700,
     ...overrides,
   };
   const blackHole = object('gaia-bh1', 'black-hole');
@@ -176,6 +197,7 @@ function createHarness(overrides: Partial<HarnessOptions> = {}) {
     getTargetId: () => options.targetId,
     getSelectedId: () => options.selectedId,
     getQuality: () => 'high',
+    getCameraDistance: () => options.cameraDistance,
     labelsAllowed: () => options.labelsAllowed,
     isObserverModeActive: () => options.observerModeActive,
     isObserverSkyObject: (objectId) => objectId === options.observerSkyObjectId,

@@ -1,0 +1,55 @@
+{
+  "version": "4.0.0",
+  "sourceCatalog": "gaia-dr3-bright-high-confidence",
+  "referenceEpochJulianDay": 2457388.5,
+  "magnitudeBand": "gaia-g",
+  "colorIndexSystem": "gaia-bp-rp",
+  "tiles": [
+    {
+      "id": "c-p8-n5-p0",
+      "parentId": "r-p2-n2-p0",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 4,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 4,
+      "cellCoordinates": [32, -17, 1, 33, -19, 1, 33, -17, 1, 33, -17, 1],
+      "positionsParsec": [
+        4195.464936352759, -2077.767739281825, 222.31981536042935, 4252.754575386072,
+        -2416.7857440632756, 176.90032776863447, 4224.928513451781, -2101.026615788149,
+        128.26193429804786, 4334.823618599797, -2162.22415962264, 176.87136395796023
+      ],
+      "starCounts": [1, 1, 1, 1],
+      "apparentMagnitudes": [11.347002, 11.937489, 11.945112, 11.945495],
+      "colorIndices": [1.45189, 1.4343777, 1.7359018, 1.3901787]
+    },
+    {
+      "id": "c-p8-n5-p1",
+      "parentId": "r-p2-n2-p0",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 4,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 4,
+      "cellCoordinates": [32, -18, 6, 33, -19, 7, 32, -20, 6, 34, -17, 4],
+      "positionsParsec": [
+        4144.731543184504, -2235.9933098306797, 793.817546157753, 4274.628512644563,
+        -2374.3573635066173, 995.0227458597662, 4132.552821917798, -2492.4015175699733,
+        885.8184489961474, 4402.317149030954, -2135.4820645229966, 606.1786634779124
+      ],
+      "starCounts": [1, 1, 1, 1],
+      "apparentMagnitudes": [11.431691, 11.6280155, 11.881847, 11.932603],
+      "colorIndices": [1.4078932, 2.070485, 1.8592987, 1.8535299]
+    }
+  ]
+}

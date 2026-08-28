@@ -29,6 +29,7 @@ export interface FrameLodManager {
 export interface UniverseFrameNavigationBindings {
   getQuality(): GraphicQuality;
   getCurrentTime(): UniverseTime;
+  updateCameraGuide(): void;
   emitLodChanged(lodLevel: number): void;
 }
 
@@ -52,6 +53,10 @@ export class UniverseFrameNavigation {
   public update(deltaSeconds: number, services: UniverseFrameNavigationServices): number {
     const { renderer, camera, spaceRoot, controller } = services;
 
+    // Refresh the target and any distance-driven camera guide before applying the zoom frame.
+    // Updating it only when a reference-frame scale changed left the Galactic pose stale for
+    // several wheel frames, then applied the whole correction as one visible camera jump.
+    this.bindings.updateCameraGuide();
     controller.update(deltaSeconds, this.bindings.getCurrentTime());
     this.floatingOriginShift.copy(controller.controls.target);
     const originShifted = this.floatingOriginManager.update(

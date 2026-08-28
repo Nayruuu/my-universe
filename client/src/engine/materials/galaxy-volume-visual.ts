@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GalaxyVisualShape, GraphicQuality, SpaceObject } from '../../data/models/universe.models';
+import { getGalaxyRenderScale } from '../coordinates/galaxy-scale-model';
 import { PICKING_LAYER } from '../selection/selection-layers';
 
 const PARTICLE_BUDGETS = {
@@ -28,6 +29,8 @@ export function createGalaxyVolumeVisual(
   object: SpaceObject,
   quality: GraphicQuality,
 ): GalaxyVolumeVisual {
+  const scaleModel = getGalaxyRenderScale(object);
+  const renderDiameter = scaleModel.renderDiameter;
   const shape = object.visual.galaxyShape ?? 'elliptical';
   const axisRatio = THREE.MathUtils.clamp(object.visual.galaxyAxisRatio ?? 0.72, 0.16, 1);
   const rotation = THREE.MathUtils.degToRad(object.visual.galaxyRotationDegrees ?? 0);
@@ -37,7 +40,9 @@ export function createGalaxyVolumeVisual(
   const root = new THREE.Group();
 
   root.name = `${object.id}-galaxy-near-volume`;
-  root.scale.setScalar(object.visual.visualRadius);
+  root.scale.setScalar(renderDiameter / 2);
+  root.userData['renderDiameter'] = renderDiameter;
+  root.userData['diameterTreatment'] = scaleModel.diameterTreatment;
   root.rotation.order = 'ZXY';
   root.rotation.x = Math.acos(axisRatio);
   root.rotation.z = rotation;

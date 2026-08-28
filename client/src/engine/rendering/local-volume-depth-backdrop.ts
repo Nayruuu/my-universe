@@ -69,7 +69,7 @@ export class LocalVolumeDepthBackdrop {
     this.points.userData['appearanceConfidence'] = 'illustrative';
     this.points.userData['sceneRole'] = 'non-interactive-deep-sky-background';
     this.points.userData['depthProjection'] = 'catalog-direction-preserving-radial-compression';
-    this.points.userData['visualProfile'] = 'luminous-catalog-deep-field';
+    this.points.userData['visualProfile'] = 'inclined-multilobed-unresolved-group-light';
     this.points.userData['depthShellRadius'] = [DEPTH_SHELL_INNER_RADIUS, DEPTH_SHELL_OUTER_RADIUS];
     this.points.userData['source'] = 'Cosmicflows-4 · Tully et al. (2023)';
     this.setQuality(quality);
@@ -141,6 +141,11 @@ function createGeometry(registry: CosmicGroupCatalogRegistry): THREE.BufferGeome
   const colors = new Float32Array(catalog.count * 3);
   const sizes = new Float32Array(catalog.count);
   const alphas = new Float32Array(catalog.count);
+  const orientations = new Float32Array(catalog.count);
+  const axisRatios = new Float32Array(catalog.count);
+  const profiles = new Float32Array(catalog.count);
+  const prominences = new Float32Array(catalog.count);
+  const seeds = new Float32Array(catalog.count);
   const nearColor = new THREE.Color(0xffd3a0);
   const farColor = new THREE.Color(0x9aafff);
   const pointColor = new THREE.Color();
@@ -172,8 +177,13 @@ function createGeometry(registry: CosmicGroupCatalogRegistry): THREE.BufferGeome
     colors[renderOffset] = pointColor.r;
     colors[renderOffset + 1] = pointColor.g;
     colors[renderOffset + 2] = pointColor.b;
-    sizes[renderIndex] = 1.5 + prominence * 3.6 + appearanceSeed * 0.5;
-    alphas[renderIndex] = 0.42 + prominence * 0.5;
+    sizes[renderIndex] = 3.1 + prominence * 6.2 + appearanceSeed * 1.1;
+    alphas[renderIndex] = 0.3 + prominence * 0.48;
+    orientations[renderIndex] = stableMapPriority(`${objectId}:local-depth-angle`) * Math.PI * 2;
+    axisRatios[renderIndex] = 0.3 + stableMapPriority(`${objectId}:local-depth-axis-ratio`) * 0.62;
+    profiles[renderIndex] = stableMapPriority(`${objectId}:local-depth-profile`);
+    prominences[renderIndex] = prominence;
+    seeds[renderIndex] = appearanceSeed;
   }
   const geometry = new THREE.BufferGeometry();
 
@@ -181,6 +191,11 @@ function createGeometry(registry: CosmicGroupCatalogRegistry): THREE.BufferGeome
   geometry.setAttribute('pointColor', new THREE.BufferAttribute(colors, 3));
   geometry.setAttribute('pointSize', new THREE.BufferAttribute(sizes, 1));
   geometry.setAttribute('pointAlpha', new THREE.BufferAttribute(alphas, 1));
+  geometry.setAttribute('groupOrientation', new THREE.BufferAttribute(orientations, 1));
+  geometry.setAttribute('groupAxisRatio', new THREE.BufferAttribute(axisRatios, 1));
+  geometry.setAttribute('groupProfile', new THREE.BufferAttribute(profiles, 1));
+  geometry.setAttribute('groupProminence', new THREE.BufferAttribute(prominences, 1));
+  geometry.setAttribute('groupSeed', new THREE.BufferAttribute(seeds, 1));
   geometry.setDrawRange(0, 0);
   if (catalog.count > 0) {
     geometry.computeBoundingSphere();
@@ -200,15 +215,30 @@ function createMaterial(): THREE.ShaderMaterial {
       attribute vec3 pointColor;
       attribute float pointSize;
       attribute float pointAlpha;
+      attribute float groupOrientation;
+      attribute float groupAxisRatio;
+      attribute float groupProfile;
+      attribute float groupProminence;
+      attribute float groupSeed;
       uniform float pixelRatio;
       varying vec3 vColor;
       varying float vAlpha;
+      varying vec2 vOrientation;
+      varying float vAxisRatio;
+      varying float vProfile;
+      varying float vProminence;
+      varying float vSeed;
 
       void main() {
         vColor = pointColor;
         vAlpha = pointAlpha;
+        vOrientation = vec2(cos(groupOrientation), sin(groupOrientation));
+        vAxisRatio = groupAxisRatio;
+        vProfile = groupProfile;
+        vProminence = groupProminence;
+        vSeed = groupSeed;
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        gl_PointSize = max(1.15, pointSize * pixelRatio);
+        gl_PointSize = max(2.4, pointSize * pixelRatio);
       }
     `,
     fragmentShader: `
@@ -216,26 +246,47 @@ function createMaterial(): THREE.ShaderMaterial {
       uniform float radiance;
       varying vec3 vColor;
       varying float vAlpha;
+      varying vec2 vOrientation;
+      varying float vAxisRatio;
+      varying float vProfile;
+      varying float vProminence;
+      varying float vSeed;
 
       void main() {
         vec2 point = (gl_PointCoord - vec2(0.5)) * 2.0;
-        float radius = length(point);
+        vec2 orientedPoint = mat2(
+          vOrientation.x,
+          -vOrientation.y,
+          vOrientation.y,
+          vOrientation.x
+        ) * point;
+        float radius = length(vec2(orientedPoint.x, orientedPoint.y / vAxisRatio));
         if (radius > 1.0) {
           discard;
         }
-        float halo = 1.0 - radius;
-        halo *= halo;
-        float core = 1.0 - smoothstep(0.0, 0.24, radius);
-        float brightness = 0.82 + core * 0.78;
+        float softEdge = 1.0 - smoothstep(0.68, 1.0, radius);
+        float diffuseLight = exp(-2.8 * pow(max(radius, 0.0001), 0.76));
+        float core = exp(-12.0 * radius) * (0.5 + vProminence * 0.7);
+        vec2 lobeOffset = vec2(mix(0.2, 0.38, vSeed), mix(-0.14, 0.14, vProfile));
+        float secondaryLobe = exp(-13.0 * length(orientedPoint - lobeOffset));
+        float groupLight = softEdge *
+          (diffuseLight * 0.76 + core * 0.92 + secondaryLobe * (0.14 + vProfile * 0.2));
+        if (groupLight < 0.012) {
+          discard;
+        }
+        vec3 coreColor = vec3(1.0, 0.91, 0.76);
+        vec3 color = mix(vColor, coreColor, core * 0.52);
 
         gl_FragColor = vec4(
-          vColor * radiance * brightness,
-          opacity * vAlpha * (halo * 0.8 + core * 0.4)
+          color * radiance * (0.74 + groupLight * 0.48),
+          opacity * vAlpha * groupLight
         );
+        #include <colorspace_fragment>
       }
     `,
     transparent: true,
-    blending: THREE.AdditiveBlending,
+    blending: THREE.NormalBlending,
+    depthTest: true,
     depthWrite: false,
     toneMapped: false,
   });

@@ -29,6 +29,7 @@ describe('UniverseFrameNavigation', () => {
     const lodLevel = harness.navigation.update(0.25, harness.services);
 
     expect(lodLevel).toBe(2);
+    expect(harness.updateCameraGuide).toHaveBeenCalledOnce();
     expect(harness.updateCamera).toHaveBeenCalledWith(0.25, harness.currentTime);
     expect(harness.updateFloatingOrigin).toHaveBeenCalledWith(
       harness.spaceRoot,
@@ -44,6 +45,9 @@ describe('UniverseFrameNavigation', () => {
     expect(harness.emitLodChanged).toHaveBeenCalledWith(2);
     expect(harness.updateCamera.mock.invocationCallOrder[0]).toBeLessThan(
       harness.updateFloatingOrigin.mock.invocationCallOrder[0]!,
+    );
+    expect(harness.updateCameraGuide.mock.invocationCallOrder[0]).toBeLessThan(
+      harness.updateCamera.mock.invocationCallOrder[0]!,
     );
   });
 
@@ -96,9 +100,11 @@ function createHarness() {
     selectLevel: selectLodLevel,
   };
   const emitLodChanged = vi.fn<(lodLevel: number) => void>();
+  const updateCameraGuide = vi.fn<() => void>();
   const bindings: UniverseFrameNavigationBindings = {
     getQuality: () => 'high',
     getCurrentTime: () => currentTime,
+    updateCameraGuide,
     emitLodChanged,
   };
   const services: UniverseFrameNavigationServices = {
@@ -122,6 +128,7 @@ function createHarness() {
     updateFloatingOrigin,
     lodManager,
     selectLodLevel,
+    updateCameraGuide,
     emitLodChanged,
   };
 }

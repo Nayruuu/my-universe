@@ -71,6 +71,7 @@ export class ActiveObjectAdornmentController {
 
     this.selectionMarker.visible =
       selected?.definition.type !== 'black-hole' &&
+      state.lodLevel < 2 &&
       !state.solarObserverActive &&
       !state.solarEclipsePathActive &&
       !state.solarEclipseActive &&

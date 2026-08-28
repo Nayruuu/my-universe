@@ -8,6 +8,7 @@ import {
 import { type CameraZoomDiagnostics } from '../camera/camera-controller';
 import { ACTIVE_TARGET_POINTER_ZOOM_MAXIMUM_MULTIPLIER } from '../camera/navigation-policy';
 import { NAVIGATION_SCALES } from '../camera/navigation-scales';
+import { type WheelZoomInputMetadata } from '../camera/wheel-zoom-normalizer';
 import { FloatingOriginManager } from '../coordinates/floating-origin-manager';
 import { LodManager } from '../lod/lod-manager';
 import { PerformanceManager } from '../performance/performance-manager';
@@ -524,7 +525,7 @@ describe('UniverseEngine', () => {
     );
     const sunPosition = access.universeScene?.spaceRoot.getObjectByName('sun')?.position;
 
-    expect(stellarRoot?.position.x).toBeGreaterThan(2_000);
+    expect(stellarRoot?.position.x).toBeCloseTo(736.02, 8);
     expect(stellarRoot?.position.toArray()).toEqual(sunPosition?.toArray());
 
     const setStarClusterTiles = vi.spyOn(access.universeScene!, 'setStarClusterTiles');
@@ -547,9 +548,9 @@ describe('UniverseEngine', () => {
       0,
     );
     expect(setStarClusterTiles).not.toHaveBeenCalled();
-    expect(fetchMock.mock.calls.some(([url]) => String(url).startsWith('/data/stars/tiles/'))).toBe(
-      false,
-    );
+    expect(
+      fetchMock.mock.calls.some(([url]) => String(url).startsWith('/data/stars/gaia-dr3-tiles/')),
+    ).toBe(false);
     expect(access.streamingRuntime.coordinator?.stats).toMatchObject({
       activeStarTiles: 0,
       cachedStarPacks: 0,
@@ -662,7 +663,7 @@ describe('UniverseEngine', () => {
     engine.dispose();
   });
 
-  it('ignore la source agrégée inactive sans requête ni avertissement', async () => {
+  it('n’active pas la source Gaia hors du voisinage stellaire', async () => {
     installAssets([], {
       binaryBuffer: starCatalogBuffer(),
       starTileSource: true,
@@ -688,7 +689,9 @@ describe('UniverseEngine', () => {
     );
 
     expect(
-      vi.mocked(fetch).mock.calls.some(([url]) => String(url).startsWith('/data/stars/tiles/')),
+      vi
+        .mocked(fetch)
+        .mock.calls.some(([url]) => String(url).startsWith('/data/stars/gaia-dr3-tiles/')),
     ).toBe(false);
     expect(events.filter((event) => event.type === 'performance-warning')).toEqual([]);
     expect(access.streamingRuntime.coordinator?.stats).toMatchObject({
@@ -788,6 +791,7 @@ describe('UniverseEngine', () => {
 
     engine.setTime({ julianDay: 2_451_545 });
     await engine.setTarget(planetId);
+    engine.completeTargetTransition();
     expect(access.objectRuntime.exoplanetSystemRegistry?.has(hostId)).toBe(true);
     expect(access.objectRuntime.exoplanetSystemRegistry?.has(planetId)).toBe(true);
     expect(access.streamingRuntime.activeExoplanetSystemObjects).toHaveLength(2);
@@ -1250,6 +1254,12 @@ describe('UniverseEngine', () => {
 
     expect(labelManager.isObjectVisible('constellation-orion')).toBe(true);
     expect(selection.isBackgroundObject('constellation-orion')).toBe(true);
+    const constellationVisibility = vi
+      .spyOn(access.universeScene!, 'isCatalogObjectVisibleForLabels')
+      .mockReturnValue(null);
+
+    expect(labelManager.isObjectVisible('constellation-orion')).toBe(true);
+    constellationVisibility.mockRestore();
     engine.setDisplayOptions({
       showOrbits: true,
       showConstellations: false,
@@ -1272,6 +1282,7 @@ describe('UniverseEngine', () => {
     });
 
     await engine.setTarget('constellation-orion');
+    engine.completeTargetTransition();
     expect(events).toContainEqual({
       type: 'target-changed',
       objectId: 'constellation-orion',
@@ -1350,6 +1361,7 @@ describe('UniverseEngine', () => {
     expect(runtime.loop.stop).toHaveBeenCalledOnce();
     expect(runtime.camera.aspect).toBe(2);
     expect(runtime.renderer.setSize).toHaveBeenCalledWith(800, 400, false);
+    expect(runtime.lensing.setSize).toHaveBeenCalledWith(800, 400, 1, 'medium');
     expect(runtime.labels.resize).toHaveBeenCalledWith(800, 400);
   });
 
@@ -1370,6 +1382,7 @@ describe('UniverseEngine', () => {
     expect(runtime.labels.dispose).toHaveBeenCalledOnce();
     expect(runtime.registry.dispose).toHaveBeenCalledOnce();
     expect(runtime.scene.dispose).toHaveBeenCalledOnce();
+    expect(runtime.lensing.dispose).toHaveBeenCalledOnce();
     expect(runtime.renderer.renderLists.dispose).toHaveBeenCalledOnce();
     expect(runtime.renderer.dispose).toHaveBeenCalledOnce();
     expect(runtime.engine.allObjects).toEqual([]);
@@ -1895,7 +1908,7 @@ describe('UniverseEngine', () => {
     expect(runtime.labels.setEnabled).toHaveBeenCalledWith(false);
     expect(runtime.labels.setDensity).toHaveBeenCalledWith('dense');
     expect(runtime.labels.setObjects).toHaveBeenCalled();
-    expect(runtime.catalog.getLabelObjects).toHaveBeenCalledWith(expect.any(Array), 3_300, 8, 72);
+    expect(runtime.catalog.getLabelObjects).toHaveBeenCalledWith(expect.any(Array), 2_100, 6, 72);
     expect(runtime.registry.setDisplayOptions).toHaveBeenCalledWith(options);
     expect(rebuild).not.toHaveBeenCalled();
     expect(runtime.labels.setQuality).not.toHaveBeenCalled();
@@ -2165,6 +2178,9 @@ describe('UniverseEngine', () => {
       expect.any(Function),
       2,
       'mars',
+      undefined,
+      1,
+      0,
     );
     expect(events).toContainEqual({ type: 'lod-changed', level: 2 });
     expect(events).toContainEqual({ type: 'time-changed', time: currentTime });
@@ -2176,15 +2192,20 @@ describe('UniverseEngine', () => {
     const internals = runtimeInternals(runtime);
     const frameBindings = (
       internals.frameRenderer as unknown as {
-        bindings: { isCameraTransitioning(): boolean };
+        bindings: {
+          getCameraDistance(): number;
+          isCameraTransitioning(): boolean;
+        };
       }
     ).bindings;
 
     runtime.access.cameraController = null;
+    expect(frameBindings.getCameraDistance()).toBe(0);
     expect(frameBindings.isCameraTransitioning()).toBe(false);
 
     runtime.access.cameraController = runtime.controller;
     runtime.controller.isTransitioning = true;
+    expect(frameBindings.getCameraDistance()).toBe(runtime.controller.distanceToTarget);
     expect(frameBindings.isCameraTransitioning()).toBe(true);
   });
 
@@ -2366,6 +2387,9 @@ describe('UniverseEngine', () => {
       expect.any(Function),
       1,
       'earth',
+      undefined,
+      1,
+      0,
     );
     expect(runtime.registry.updateLod).toHaveBeenCalledWith(runtime.camera, 450, 1, 0.01, false);
   });
@@ -2495,6 +2519,46 @@ describe('UniverseEngine', () => {
     expect(runtime.access.handleSemanticZoomIntent('mars', -120)).toBe('retain-wheel-anchor');
     expect(runtime.access.handleSemanticZoomIntent('mars', -120)).toBe('retain-wheel-anchor');
     expect(runtime.access.handleSemanticZoomIntent(null, -120)).toBe('retain-wheel-anchor');
+  });
+
+  it('transmet la frontière de rafale pour stabiliser la butée de navigation libre', () => {
+    const runtime = createRuntime();
+    const pointer = { x: 0.109_375, y: 0.265_384_615_384_615_33 };
+
+    runtime.controller.distanceToTarget = 0.752_152_610_959_856_4;
+    runtime.controller.atMinimumNavigationDistance = false;
+    runtime.access.handleSemanticZoomIntent(null, -12.393_471_667_736_222, pointer, {
+      rawDeltaY: -743.681_030_273_437_5,
+      deltaMode: 0,
+    });
+
+    expect(runtime.controller.zoomSemantically).toHaveBeenLastCalledWith(
+      -12.393_471_667_736_222,
+      1,
+      false,
+    );
+
+    runtime.controller.atMinimumNavigationDistance = true;
+    runtime.access.handleSemanticZoomIntent(null, -18.714_973_875_118_524, pointer, {
+      rawDeltaY: -367.355_346_679_687_5,
+      deltaMode: 0,
+      continuesWheelAnchor: true,
+      continuesWheelGesture: true,
+    });
+
+    expect(runtime.controller.zoomSemantically).toHaveBeenLastCalledWith(
+      -18.714_973_875_118_524,
+      1,
+      false,
+    );
+
+    runtime.access.handleSemanticZoomIntent(null, -18.714_973_875_118_524, pointer, {
+      rawDeltaY: -367.355_346_679_687_5,
+      deltaMode: 0,
+      continuesWheelAnchor: true,
+    });
+
+    expect(runtime.controller.zoomSemantically).toHaveBeenLastCalledWith(-18.714_973_875_118_524);
   });
 
   it('enregistre chaque intention de molette uniquement lorsque la trace est activée', () => {
@@ -2728,7 +2792,7 @@ describe('UniverseEngine', () => {
   it('change de référentiel avec les échelles pendant un aller-retour à la molette', () => {
     const runtime = createRuntime();
     const distances = [
-      520, 1_400, 9_600, 17_000, 120_000, 420_000, 120_000, 17_000, 9_600, 1_400, 520, 4.8,
+      520, 1_400, 3_600, 17_000, 120_000, 420_000, 120_000, 17_000, 3_600, 1_400, 520, 4.8,
     ];
 
     installNavigationHierarchy(runtime);
@@ -2768,7 +2832,7 @@ describe('UniverseEngine', () => {
   it('retrouve une planète arbitraire après un aller-retour sémantique complet', () => {
     const runtime = createRuntime();
     const distances = [
-      520, 1_400, 9_600, 17_000, 120_000, 420_000, 120_000, 17_000, 9_600, 1_400, 520, 4.8,
+      520, 1_400, 3_600, 17_000, 120_000, 420_000, 120_000, 17_000, 3_600, 1_400, 520, 4.8,
     ];
 
     installNavigationHierarchy(runtime);
@@ -2834,14 +2898,14 @@ describe('UniverseEngine', () => {
     runtime.access.handleNavigationIntent('earth');
     runtime.controller.isTransitioning = true;
 
-    runtime.access.handleCameraSettled(9_600, 'interaction');
+    runtime.access.handleCameraSettled(3_600, 'interaction');
     expect(runtime.access.targetId).toBe('earth');
 
     runtime.controller.isTransitioning = false;
-    runtime.access.handleCameraSettled(9_600, 'interaction');
+    runtime.access.handleCameraSettled(3_600, 'interaction');
     expect(runtime.access.targetId).toBe('earth');
 
-    runtime.access.handleCameraSettled(9_600, 'transition');
+    runtime.access.handleCameraSettled(3_600, 'transition');
 
     expect(runtime.access.targetId).toBe('earth');
     expect(runtime.controller.transitionReferenceFrame).not.toHaveBeenCalled();
@@ -2940,6 +3004,11 @@ describe('UniverseEngine', () => {
 
     expect(runtime.access.targetId).toBe('hyg-1');
     expect(runtime.registry.setNavigationTarget).toHaveBeenLastCalledWith(null);
+    expect(runtime.controller.adoptReferenceFrame).not.toHaveBeenCalled();
+    expect(runtime.controller.adoptZoomTarget).toHaveBeenCalledWith(
+      new THREE.Vector3(12, 4, -3),
+      catalogStar,
+    );
     expect(runtime.controller.transitionReferenceFrame).toHaveBeenCalledWith(
       new THREE.Vector3(12, 4, -3),
       catalogStar,
@@ -3200,11 +3269,11 @@ function installAssets(objects: readonly SpaceObject[], options: AssetOptions = 
   }
   if (options.starTileSource) {
     datasets.push({
-      id: 'hyg-star-tiles',
-      url: '/data/stars/tiles/index.json',
+      id: 'gaia-star-tiles',
+      url: '/data/stars/gaia-dr3-tiles/index.json',
       type: 'star-tile-index',
-      format: 'star-tiles-v2',
-      starCatalogId: 'stars',
+      format: 'star-tiles-v4',
+      sourceCatalogId: 'gaia-dr3-bright-high-confidence',
     });
   }
   if (options.spaceTileIndex) {
@@ -3352,6 +3421,7 @@ interface EngineAccess {
     objectId: string | null,
     deltaY: number,
     pointer?: { x: number; y: number },
+    metadata?: WheelZoomInputMetadata,
   ): 'retain-wheel-anchor' | 'refresh-wheel-anchor';
   handleCameraSettled(
     distance: number,
@@ -3426,6 +3496,7 @@ interface FakeUniverseScene {
   readonly selectCatalogObject: ReturnType<typeof vi.fn>;
   readonly getCatalogWorldPosition: ReturnType<typeof vi.fn>;
   readonly getCatalogPickables: ReturnType<typeof vi.fn>;
+  readonly getGaiaPresentationStats: ReturnType<typeof vi.fn>;
   readonly ensureMilkyWayAtlas: ReturnType<typeof vi.fn>;
   readonly updateStellarCatalog: ReturnType<typeof vi.fn>;
   readonly updateLod: ReturnType<typeof vi.fn>;
@@ -3493,6 +3564,7 @@ interface FakeRegistry extends SolarEclipsePresentationRegistry {
   readonly setDisplayOptions: ReturnType<typeof vi.fn>;
   readonly setEarthObserverCelestialPresentations: ReturnType<typeof vi.fn>;
   readonly updateLod: ReturnType<typeof vi.fn>;
+  readonly updateReferenceFrameScale: ReturnType<typeof vi.fn>;
   readonly dispose: ReturnType<typeof vi.fn>;
   visibleObjectCount: number;
   batchedGalaxyCount: number;
@@ -3657,6 +3729,7 @@ function createRuntime(): Runtime {
     setDisplayOptions: vi.fn(),
     setEarthObserverCelestialPresentations: vi.fn(),
     updateLod: vi.fn(),
+    updateReferenceFrameScale: vi.fn(() => false),
     dispose: vi.fn(),
     visibleObjectCount: 4,
     batchedGalaxyCount: 7,
@@ -3712,6 +3785,12 @@ function createRuntime(): Runtime {
     selectCatalogObject: vi.fn(),
     getCatalogWorldPosition: vi.fn(() => null),
     getCatalogPickables: vi.fn(() => []),
+    getGaiaPresentationStats: vi.fn(() => ({
+      sampledSources: 0,
+      projectedSampledSources: 0,
+      aggregateCells: 0,
+      projectedAggregateCells: 0,
+    })),
     ensureMilkyWayAtlas: vi.fn(async () => true),
     updateStellarCatalog: vi.fn(),
     updateLod: vi.fn(),

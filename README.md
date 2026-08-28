@@ -91,26 +91,66 @@ confidence, catalogues, performance guidance, and frequently asked questions.
   light curve, composite color, morphology, or expansion as measured time-resolved data.
 - A continuous local-space cinematic environment for Solar System and stellar-neighborhood views:
   a GPU-integrated 360-degree Milky Way sky built from an 8K runtime crop of ESO/S. Brunier's
-  observed full-sky panorama, presented as a distant 32-degree photographic band with an explicitly
-  illustrative diagonal composition, subtle ecliptic zodiacal light, a distance-aware solar corona,
+  observed full-sky panorama, presented as a distant 32-degree photographic band aligned with the
+  same heliocentric Galactic plane as the external procedural disc, subtle ecliptic zodiacal light,
+  a distance-aware solar corona,
   and a quality-bounded 3,000/7,000/14,000-point unresolved sky whose distant procedural shell
   follows camera translations through floating-origin shifts. The Galactic Center remains fixed in
   the galactic reference frame instead of following camera rotation. The crop and presentation are
   explicitly illustrative even though the source pixels are observational. These layers fade
   continuously into the external galaxy before galactic scale or when the observer leaves the
   heliocentric neighborhood, and add at most three draw calls.
-- One exact 10,000-entry HYG GPU batch remains the stellar-neighborhood source for rendering,
-  search, and focus. Outside its finite heliocentric selection volume, the complete batch remains as
-  a faint, explicitly incomplete reference during local-scale travel instead of vanishing abruptly.
-  The prepared loose-octree aggregate dataset stays available for a future denser catalogue, but the
-  current runtime deliberately performs no request, parsing, or GPU allocation for that visually
-  dormant layer.
-- A cinematic layered 3D Milky Way with an asymmetric barred-spiral emissive atlas, domain-warped
-  view parallax, three physical depths, grazing-angle mip filtering, discontinuous dust rifts,
-  restrained glow, and a volumetric barred bulge. A restrained deterministic point batch adds
-  scale-stable stellar detail over the atlas and doubles as its fallback. The observed Solar
-  neighborhood remains correctly offset from the center and is hidden before it can collapse into
-  an artificial galactic clump.
+- One exact 10,000-entry HYG GPU batch remains the source for named stellar rendering, search,
+  selection, and focus. A separate Gaia DR3 snapshot contributes 2,923,790 quality-filtered sources
+  through distant calculated 512-parsec aggregates and 133,526 deterministically selected measured
+  source samples in the stellar-neighborhood overview. Only visible branches are fetched, parsed in
+  module Workers, and transferred as typed arrays. Refinement uses at most two active GPU point
+  batches plus one retiring cross-fade batch. Detailed sources become calculated root aggregates at
+  galactic scale, then fade through the Local Group. During Galactic entry, the local reference frame
+  unfolds while its catalogues are masked; HYG and measured Gaia points appear only after their world
+  positions have stabilized, so zoom changes perspective without making stars slide. Gaia samples remain anonymous and are not
+  searchable; their `G <= 12`, parallax-S/N, BP−RP, 5 kpc, and bounded-sampling cuts make the
+  background incomplete by design.
+- A cinematic layered 3D Milky Way whose close morphology is generated at runtime: one deterministic
+  ray-marched RGBA density volume supplies warm-ivory integrated light, distinct sapphire-to-cyan
+  young regions, fragmented branches, dark dust filaments, granular stellar nurseries, magenta H II
+  knots, an amber bar, a compact ivory nucleus, and real vertical depth; one aligned GPU point batch
+  draws 60,000/140,000/280,000 entries across the three quality profiles. Half preserve the existing
+  morphology, while explicitly illustrative broad-disc, entry-shell, and near-passage tracers create
+  several planes of motion parallax. The visual
+  overview explicitly opens the illustrative arm pitch from the 13-degree structural reference to
+  22 degrees so the morphology remains readable at screen scale. Its illustrative luminous envelope
+  reaches four times the canonical diameter at Galactic entry, while catalogue coordinates, camera
+  distance, wheel response, and picking retain the documented 100,000-light-year metric. No raster
+  galaxy atlas can expose source pixels or overlap the procedural form. During the galaxy-to-stars
+  handoff, the ray-marched veil and soft morphology recede before crisp, proximity-gated tracers and
+  incoming catalogues take over. A restrained, camera-centred procedural field follows a more legible
+  sapphire, cyan, ivory, amber, and red temperature sequence across the 1,400–2,800-unit handoff
+  without masquerading as catalogued sources or adding a diffuse veil. This keeps the viewer visually inside the Milky Way without
+  turning the crossing into a luminous fog or uniform dusty grain, and it uses no camera-speed
+  multiplier. A second, static GPU point batch places 12,000/26,000/48,000 sparse stars around the
+  luminous disc and groups one eighth of them into 48 compact globular-like concentrations. This
+  uncatalogued, explicitly illustrative halo reaches a 12,540-authoring-unit radius, remains fixed in
+  the Galactic frame for perspective-only parallax, and contains neither fog nor diffuse emission.
+  Beyond it, one camera-centred GPU batch adds 10,000/24,000/52,000 low-surface-brightness galaxy
+  impostors according to quality. Their elliptical, spiral, and irregular profiles, colours,
+  orientations, and sky directions are a representative illustrative sample of the cosmological
+  galaxy population—not a catalogue or a literal galaxy count. They remain fixed on the sky without
+  translational parallax, respect an analytic Galactic zone of avoidance, and fade before the local
+  stellar and outer catalogue-backed galaxy views take over.
+  The Galactic tracer field opens earlier around the route, keeps a crisp minimum sprite size, and
+  compensates lower-density quality profiles without allocating more entries. A
+  depth-weighted luminance pass raises the discrete stellar cores—most strongly for near-passage
+  tracers—without lifting the black inter-star field.
+  White volume emission explicitly represents illustrative integrated light from unresolved stars,
+  with a reduced inter-arm pedestal and dark separation between brighter arms, filaments, and clumps.
+  Chroma is reinforced locally rather than through a global saturation lift: cool arms, the warm bar,
+  and H II knots retain separate hues while the low-density background stays neutral-black.
+  Narrow leading-edge and paired bar lanes composite near-black extinction over the additive stars,
+  while a compact ivory nucleus remains distinct inside the amber bar; the volume does not represent
+  dust. Its external contribution now recedes over the 9,000-to-1,200-unit approach. The observed
+  Solar neighborhood remains correctly offset from the center and is hidden before it can collapse
+  into an artificial galactic clump.
 - A searchable black-hole layer containing Sagittarius A*, Cygnus X-1, and Gaia BH1, with
   catalogue-backed positions and masses, scale-specific galactocentric or heliocentric placement,
   activity-aware silhouettes, and a quality-aware,
@@ -130,8 +170,10 @@ confidence, catalogues, performance guidance, and frequently asked questions.
   collision-free names, contextual host/satellite visibility, and searchable scientific facts.
   Compact shared impostors cross-fade into inclined procedural disks and bounded 3D particle
   volumes when approached, exposing spiral, elliptical, or irregular structure instead of scaling
-  a flat halo across the viewport. Catalogue positions remain observed; internal morphology,
-  particle placement, orientation, and adapted dimensions are identified as illustrative.
+  a flat halo across the viewport. Documented diameters are converted linearly in each catalogue
+  reference frame; catalogue positions remain observed, while internal morphology, particle
+  placement, orientation, luminosity, minimum screen size, and undocumented fallback dimensions are
+  identified as illustrative.
 - A searchable layer of 720 observed nearby-Universe galaxies, backed by five curated regions and a
   110-tile static Local Volume octree with screen-size refinement, 2/3/5-tile quality budgets,
   target pinning, and parsed-data reuse. A lightweight one-draw-call overview keeps all 720 real
@@ -145,7 +187,8 @@ confidence, catalogues, performance guidance, and frequently asked questions.
   non-interactive deep-sky batch introduces about 3,800/9,100/16,600 calculated groups in
   low/medium/high quality between the Milky Way and Local Group scales. It preserves each catalogue
   direction while compressing radial depth into a clearly documented LOD shell, maintaining spatial
-  continuity without a decorative star field. A second GPU batch adds
+  continuity with inclined, multi-lobed unresolved group light rather than circular star-like
+  marks. A second GPU batch adds
   a quality-aware nearest-neighbor scaffold precomputed from those positions without presenting the
   lines as observed physical filaments. An optional 128³ static density volume combines a
   distance-compensated sample of those data with a deterministic cellular continuity field, then
@@ -505,6 +548,11 @@ Angular bundles and local astronomical assets.
   [HYG Database v4.1](https://github.com/astronexus/HYG-Database) under CC BY-SA 4.0.
   Its fixed-size brightness selection explicitly retains all 16 featured stars, including faint
   nearby objects such as Proxima Centauri, Barnard's Star, and Wolf 359.
+- The cross-scale stellar hierarchy is derived from
+  [Gaia Data Release 3](https://www.cosmos.esa.int/web/gaia/data-release-3), using the
+  `gaiadr3.gaia_source_lite` table at reference epoch J2016.0. The static source snapshot and every
+  derived aggregate or retained measured sample credit ESA/Gaia/DPAC; query, partition hashes,
+  selection limits, sampling method, and transformations are recorded beside the data.
 - The illustrative four-arm Milky Way density model is informed by the maser-parallax structure
   compiled by [Reid et al. (2019)](https://doi.org/10.3847/1538-4357/ab4a11).
 - The compact black-hole layer combines the

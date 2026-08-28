@@ -1,6 +1,11 @@
 import * as THREE from 'three';
 import { SpaceObject } from '../../data/models/universe.models';
 import { CoordinateSystem } from '../coordinates/coordinate-system';
+import {
+  STELLAR_NEIGHBORHOOD_EXPANSION_START,
+  STELLAR_NEIGHBORHOOD_REVEAL_END,
+  STELLAR_NEIGHBORHOOD_REVEAL_START,
+} from '../coordinates/stellar-neighborhood-scale-model';
 import { ExoplanetCatalog } from '../loaders/exoplanet-catalog';
 import { ExoplanetCatalogRegistry } from '../objects/exoplanet-catalog-registry';
 import { PICKING_LAYER } from '../selection/selection-layers';
@@ -93,6 +98,8 @@ describe('ExoplanetHostBatch', () => {
     batch.updateLod(0, 10);
     expect(batch.points.material.uniforms['hostSignatureStrength']!.value).toBeCloseTo(0, 4);
     expect(batch.points.material.uniforms['pointScale']!.value).toBeCloseTo(0.62, 4);
+    batch.updateLod(1, 10);
+    expect(batch.points.material.uniforms['catalogOpacity']!.value).toBeCloseTo(0.54, 4);
     batch.updateLod(2, 10);
     expect(batch.points.visible).toBe(true);
     expect(batch.visibleCount).toBe(2);
@@ -106,6 +113,38 @@ describe('ExoplanetHostBatch', () => {
     batch.updateLod(4, 10);
     expect(batch.points.visible).toBe(false);
     expect(batch.visibleCount).toBe(0);
+    batch.dispose();
+  });
+
+  it('fait émerger les hôtes exoplanétaires avec le voisinage stellaire', () => {
+    const batch = createBatch();
+
+    batch.updateLod(2, 10, undefined, STELLAR_NEIGHBORHOOD_REVEAL_END);
+    expect(batch.visibleCount).toBe(0);
+    expect(batch.points.userData['stellarNeighborhoodReveal']).toBe(0);
+
+    const transitionMiddle = Math.sqrt(
+      STELLAR_NEIGHBORHOOD_REVEAL_START * STELLAR_NEIGHBORHOOD_REVEAL_END,
+    );
+
+    batch.updateLod(2, 10, undefined, transitionMiddle);
+    expect(batch.visibleCount).toBe(2);
+    const stellarOpacity = batch.points.material.uniforms['catalogOpacity']!.value as number;
+    const stellarPointScale = batch.points.material.uniforms['pointScale']!.value as number;
+
+    expect(stellarOpacity).toBeGreaterThan(0);
+    expect(stellarOpacity).toBeLessThan(0.68);
+
+    batch.updateLod(1, 10, undefined, transitionMiddle);
+    expect(batch.points.material.uniforms['catalogOpacity']!.value).toBeCloseTo(stellarOpacity, 5);
+    expect(batch.points.material.uniforms['pointScale']!.value).toBeCloseTo(stellarPointScale, 5);
+
+    batch.updateLod(3, 10, undefined, transitionMiddle);
+    expect(batch.points.material.uniforms['catalogOpacity']!.value).toBeCloseTo(stellarOpacity, 5);
+    expect(batch.points.material.uniforms['pointScale']!.value).toBeCloseTo(stellarPointScale, 5);
+
+    batch.updateLod(2, 10, undefined, STELLAR_NEIGHBORHOOD_REVEAL_START);
+    expect(batch.points.material.uniforms['catalogOpacity']!.value).toBeCloseTo(0.54, 5);
     batch.dispose();
   });
 
@@ -140,6 +179,14 @@ describe('ExoplanetHostBatch', () => {
     expect(batch.getPickables()).toEqual([batch.selectionPoint, batch.points]);
     expect(batch.getWorldPosition(planetId)).not.toBeNull();
     expect(batch.isObjectVisibleForLabels(planetId)).toBe(true);
+
+    batch.updateLod(3, 10, undefined, STELLAR_NEIGHBORHOOD_EXPANSION_START);
+    expect(batch.selectionPoint.visible).toBe(false);
+    expect(batch.selectionPoint.userData['objectId']).toBe(planetId);
+    expect(batch.isObjectVisibleForLabels(planetId)).toBe(false);
+
+    batch.updateLod(2, 10, undefined, STELLAR_NEIGHBORHOOD_REVEAL_START);
+    expect(batch.selectionPoint.visible).toBe(true);
 
     batch.select(null);
     expect(batch.selectionPoint.visible).toBe(false);

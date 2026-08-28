@@ -1,6 +1,10 @@
 @if (facade.debugEnabled() && facade.debugStats(); as stats) {
   @let t = i18n.content();
-  <aside class="debug-panel" [attr.aria-label]="t.debug.aria">
+  <aside
+    class="debug-panel"
+    [class.debug-panel--cosmic]="stats.lodLevel === 6"
+    [attr.aria-label]="t.debug.aria"
+  >
     <header>
       <span>DEBUG</span><strong>{{ stats.fps }} FPS</strong>
     </header>
@@ -66,6 +70,30 @@
       <div>
         <dt>{{ t.debug.hygStars }}</dt>
         <dd data-debug-stat="hyg-stars">{{ stats.catalogStars }}</dd>
+      </div>
+      <div>
+        <dt>{{ t.debug.activeCells }}</dt>
+        <dd data-debug-stat="gaia-loaded">
+          {{ stats.activeStarClusters }} / {{ stats.cachedStarClusters }}
+        </dd>
+      </div>
+      <div>
+        <dt>{{ t.debug.visibleCells }}</dt>
+        <dd data-debug-stat="gaia-gpu-total">{{ stats.visibleStarClusters }}</dd>
+      </div>
+      <div class="wide">
+        <dt>{{ t.debug.gaiaSampledSources }}</dt>
+        <dd data-debug-stat="gaia-sampled-sources">
+          {{ stats.gaiaPresentation.projectedSampledSources }} /
+          {{ stats.gaiaPresentation.sampledSources }}
+        </dd>
+      </div>
+      <div class="wide">
+        <dt>{{ t.debug.gaiaAggregateCells }}</dt>
+        <dd data-debug-stat="gaia-aggregate-cells">
+          {{ stats.gaiaPresentation.projectedAggregateCells }} /
+          {{ stats.gaiaPresentation.aggregateCells }}
+        </dd>
       </div>
       <div>
         <dt>{{ t.debug.visibleExoplanetHosts }}</dt>
@@ -158,14 +186,6 @@
       <div>
         <dt>{{ t.debug.cachedStarTiles }}</dt>
         <dd>{{ stats.cachedStarTiles }}</dd>
-      </div>
-      <div>
-        <dt>{{ t.debug.activeCells }}</dt>
-        <dd>{{ stats.activeStarClusters }} / {{ stats.cachedStarClusters }}</dd>
-      </div>
-      <div>
-        <dt>{{ t.debug.visibleCells }}</dt>
-        <dd>{{ stats.visibleStarClusters }}</dd>
       </div>
       <div>
         <dt>{{ t.debug.lodLevel }}</dt>

@@ -41,6 +41,7 @@ describe('budget de rendu des labels', () => {
 describe('présentation des labels', () => {
   it.each([
     ['planète principale', createLabelObject('earth', 'planet'), 1, true, true, false],
+    ['planète en fondu stellaire', createLabelObject('earth', 'planet'), 2, true, true, false],
     ['Soleil', createLabelObject('sun', 'star'), 1, false, true, true],
     ['étoile', createLabelObject('sirius', 'star'), 1, true, false, false],
     ['trou noir', createLabelObject('gaia-bh1', 'black-hole'), 2, true, false, false],

@@ -1,5 +1,10 @@
 import * as THREE from 'three';
 import { type ConstellationCatalog, type SpaceObject } from '../../data/models/universe.models';
+import {
+  calculateStellarNeighborhoodReveal,
+  interpolateStellarNeighborhoodLodValue,
+  STELLAR_NEIGHBORHOOD_REVEAL_END,
+} from '../coordinates/stellar-neighborhood-scale-model';
 import { dampValue } from '../lod/screen-space-lod';
 import { type StarCatalogRegistry } from '../objects/star-catalog-registry';
 import { ConstellationVisual } from './constellation-visual';
@@ -22,6 +27,7 @@ export class ConstellationBatch {
   private highlightOpacity = 0;
   private selectedId: string | null = null;
   private hoveredId: string | null = null;
+  private lodInitialized = false;
 
   constructor(catalog: ConstellationCatalog, registry: StarCatalogRegistry) {
     this.visual = new ConstellationVisual(catalog, registry);
@@ -66,8 +72,31 @@ export class ConstellationBatch {
     this.applyActiveFigure();
   }
 
-  public updateLod(lodLevel: number, deltaSeconds: number): void {
-    const lodOpacity = LOD_OPACITIES[lodLevel] ?? 0;
+  public updateLod(lodLevel: number, deltaSeconds: number, cameraDistance?: number): void {
+    this.lodInitialized = true;
+    const stellarTransitionActive = lodLevel >= 1 && lodLevel <= 3;
+    const transitionDistance =
+      cameraDistance ?? (lodLevel <= 2 ? 0 : STELLAR_NEIGHBORHOOD_REVEAL_END);
+    const transitionOpacity = stellarTransitionActive
+      ? calculateStellarNeighborhoodReveal(transitionDistance)
+      : 1;
+    const transitionStyleReveal =
+      cameraDistance === undefined
+        ? lodLevel <= 1
+          ? 1
+          : lodLevel === 2
+            ? 0.5
+            : 0
+        : transitionOpacity;
+    const lodOpacity =
+      (stellarTransitionActive
+        ? interpolateStellarNeighborhoodLodValue(
+            LOD_OPACITIES[1],
+            LOD_OPACITIES[2],
+            LOD_OPACITIES[3],
+            transitionStyleReveal,
+          )
+        : (LOD_OPACITIES[lodLevel] ?? 0)) * transitionOpacity;
     const targetOpacity = this.enabled ? lodOpacity : 0;
     const activeFigure = this.highlightLines.geometry.drawRange.count > 0;
     const selectedFigure =
@@ -92,6 +121,14 @@ export class ConstellationBatch {
       selectedFigure ? SELECTED_HIGHLIGHT_COLOR : HOVER_HIGHLIGHT_COLOR,
     );
     this.updateVisibility();
+  }
+
+  public isObjectVisibleForLabels(objectId: string): boolean | null {
+    if (!this.visual.has(objectId)) {
+      return null;
+    }
+
+    return !this.lodInitialized || this.lines.visible || objectId === this.selectedId;
   }
 
   public updatePositions(): void {

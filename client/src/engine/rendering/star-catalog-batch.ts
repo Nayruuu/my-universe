@@ -5,6 +5,11 @@ import {
   type UniverseTime,
   type Vector3Like,
 } from '../../data/models/universe.models';
+import {
+  calculateStellarNeighborhoodReveal,
+  interpolateStellarNeighborhoodLodValue,
+  STELLAR_NEIGHBORHOOD_REVEAL_END,
+} from '../coordinates/stellar-neighborhood-scale-model';
 import { dampValue } from '../lod/screen-space-lod';
 import { StarCatalogRegistry } from '../objects/star-catalog-registry';
 import { getHeliocentricCatalogObserverOpacity } from './heliocentric-catalog-visibility';
@@ -20,6 +25,7 @@ const LOD_POINT_SCALES = [1.9, 1.6, 1.3, 1, 0.82, 0.55] as const;
 const ACTIVE_HALO_SIZES = [196, 112, 52, 20, 16, 12] as const;
 const ACTIVE_CORE_OPACITIES = [1, 0.28, 0, 0, 0, 0] as const;
 const REMOTE_HYG_VISIBILITY_FLOOR = 0.12;
+const MINIMUM_VISIBLE_REVEAL = 0.004;
 
 export class StarCatalogBatch {
   public readonly root = new THREE.Group();
@@ -40,6 +46,8 @@ export class StarCatalogBatch {
   private activeVisualScale = 1;
   private selectedObjectId: string | null = null;
   private focusedObjectId: string | null = null;
+  private lodInitialized = false;
+  private stellarNeighborhoodVisible = true;
   private readonly observerLocalPosition = new THREE.Vector3();
   private readonly observerWorldInverse = new THREE.Matrix4();
 
@@ -109,13 +117,59 @@ export class StarCatalogBatch {
     return true;
   }
 
-  public updateLod(lodLevel: number, deltaSeconds: number, observerPosition?: Vector3Like): void {
+  public updateLod(
+    lodLevel: number,
+    deltaSeconds: number,
+    observerPosition?: Vector3Like,
+    cameraDistance?: number,
+  ): void {
+    this.lodInitialized = true;
     const observerBoundaryOpacity = this.getObserverBoundaryOpacity(observerPosition);
-    const targetOpacity =
-      (LOD_OPACITIES[lodLevel] ?? LOD_OPACITIES.at(-1)!) * observerBoundaryOpacity;
-    const targetPointScale = LOD_POINT_SCALES[lodLevel] ?? LOD_POINT_SCALES.at(-1)!;
-    const targetHaloSize = ACTIVE_HALO_SIZES[lodLevel] ?? ACTIVE_HALO_SIZES.at(-1)!;
-    const targetCoreOpacity = ACTIVE_CORE_OPACITIES[lodLevel] ?? ACTIVE_CORE_OPACITIES.at(-1)!;
+    const stellarTransitionActive = lodLevel >= 1 && lodLevel <= 3;
+    const transitionDistance =
+      cameraDistance ?? (lodLevel <= 2 ? 0 : STELLAR_NEIGHBORHOOD_REVEAL_END);
+    const transitionOpacity = calculateStellarNeighborhoodReveal(transitionDistance);
+    const transitionStyleReveal =
+      cameraDistance === undefined
+        ? lodLevel <= 1
+          ? 1
+          : lodLevel === 2
+            ? 0.5
+            : 0
+        : transitionOpacity;
+    const lodOpacity = stellarTransitionActive
+      ? interpolateStellarNeighborhoodLodValue(
+          LOD_OPACITIES[1],
+          LOD_OPACITIES[2],
+          LOD_OPACITIES[3],
+          transitionStyleReveal,
+        )
+      : (LOD_OPACITIES[lodLevel] ?? LOD_OPACITIES.at(-1)!);
+    const targetOpacity = lodOpacity * observerBoundaryOpacity * transitionOpacity;
+    const targetPointScale = stellarTransitionActive
+      ? interpolateStellarNeighborhoodLodValue(
+          LOD_POINT_SCALES[1],
+          LOD_POINT_SCALES[2],
+          LOD_POINT_SCALES[3],
+          transitionStyleReveal,
+        )
+      : (LOD_POINT_SCALES[lodLevel] ?? LOD_POINT_SCALES.at(-1)!);
+    const targetHaloSize = stellarTransitionActive
+      ? interpolateStellarNeighborhoodLodValue(
+          ACTIVE_HALO_SIZES[1],
+          ACTIVE_HALO_SIZES[2],
+          ACTIVE_HALO_SIZES[3],
+          transitionStyleReveal,
+        )
+      : (ACTIVE_HALO_SIZES[lodLevel] ?? ACTIVE_HALO_SIZES.at(-1)!);
+    const targetCoreOpacity = stellarTransitionActive
+      ? interpolateStellarNeighborhoodLodValue(
+          ACTIVE_CORE_OPACITIES[1],
+          ACTIVE_CORE_OPACITIES[2],
+          ACTIVE_CORE_OPACITIES[3],
+          transitionStyleReveal,
+        ) * transitionOpacity
+      : (ACTIVE_CORE_OPACITIES[lodLevel] ?? ACTIVE_CORE_OPACITIES.at(-1)!);
     const wasVisible = this.points.visible;
 
     this.opacity = dampValue(this.opacity, targetOpacity, 6, deltaSeconds);
@@ -124,14 +178,15 @@ export class StarCatalogBatch {
     this.activeCoreOpacity = dampValue(this.activeCoreOpacity, targetCoreOpacity, 7, deltaSeconds);
     this.points.material.uniforms['catalogOpacity']!.value = this.opacity;
     this.points.userData['observerBoundaryOpacity'] = observerBoundaryOpacity;
+    this.points.userData['stellarNeighborhoodReveal'] = transitionOpacity;
     this.points.material.uniforms['pointScale']!.value = this.pointScale;
     this.activeHalo.material.uniforms['pointSize']!.value =
       this.activeHaloSize * this.activeVisualScale;
     this.activeCore.material.opacity = this.activeCoreOpacity;
     this.activeCore.material.uniforms['layerOpacity']!.value = this.activeCoreOpacity;
-    this.activeCore.visible = this.activeDetail.visible && this.activeCoreOpacity > 0.004;
-    this.activeHalo.visible = this.activeDetail.visible;
-    this.points.visible = this.drawCount > 0 && this.opacity > 0.004;
+    this.stellarNeighborhoodVisible = transitionOpacity > MINIMUM_VISIBLE_REVEAL;
+    this.refreshPresentationVisibility();
+    this.points.visible = this.drawCount > 0 && this.opacity > MINIMUM_VISIBLE_REVEAL;
     if (this.points.visible !== wasVisible) {
       this.updatePickableIndices();
     }
@@ -142,7 +197,6 @@ export class StarCatalogBatch {
 
     if (!objectId || index === null) {
       this.selectedObjectId = null;
-      this.selectionPoint.visible = false;
       this.selectionPoint.userData['objectId'] = null;
       this.refreshActiveDetail();
 
@@ -152,7 +206,6 @@ export class StarCatalogBatch {
     this.selectedObjectId = objectId;
     this.selectionPoint.position.fromArray(this.registry.renderPositions, index * 3);
     this.selectionPoint.userData['objectId'] = objectId;
-    this.selectionPoint.visible = true;
     this.refreshActiveDetail();
   }
 
@@ -185,6 +238,19 @@ export class StarCatalogBatch {
     return this.points.visible ? this.drawCount : 0;
   }
 
+  public isObjectVisibleForLabels(objectId: string): boolean | null {
+    if (this.registry.getIndex(objectId) === null) {
+      return null;
+    }
+
+    return (
+      !this.lodInitialized ||
+      this.points.visible ||
+      objectId === this.selectedObjectId ||
+      objectId === this.focusedObjectId
+    );
+  }
+
   public dispose(): void {
     this.points.geometry.dispose();
     this.points.material.dispose();
@@ -203,9 +269,9 @@ export class StarCatalogBatch {
     const index = objectId ? this.registry.getIndex(objectId) : null;
 
     if (!objectId || index === null) {
-      this.activeDetail.visible = false;
       this.activeDetail.userData['objectId'] = null;
       this.activeDetail.userData['activation'] = null;
+      this.refreshPresentationVisibility();
 
       return;
     }
@@ -214,9 +280,6 @@ export class StarCatalogBatch {
     this.activeDetail.userData['objectId'] = objectId;
     this.activeDetail.userData['activation'] =
       this.focusedObjectId === objectId ? 'navigation-target' : 'selection';
-    this.activeDetail.visible = true;
-    this.activeHalo.visible = true;
-    this.activeCore.visible = this.activeCoreOpacity > 0.004;
     this.activeVisualScale = applyActiveCatalogStarAppearance(
       this.visual,
       this.registry,
@@ -224,6 +287,17 @@ export class StarCatalogBatch {
       this.activeHaloSize,
       this.activeCoreOpacity,
     );
+    this.refreshPresentationVisibility();
+  }
+
+  private refreshPresentationVisibility(): void {
+    const hasActiveDetail = typeof this.activeDetail.userData['objectId'] === 'string';
+
+    this.selectionPoint.visible = this.selectedObjectId !== null && this.stellarNeighborhoodVisible;
+    this.activeDetail.visible = hasActiveDetail && this.stellarNeighborhoodVisible;
+    this.activeHalo.visible = this.activeDetail.visible;
+    this.activeCore.visible =
+      this.activeDetail.visible && this.activeCoreOpacity > MINIMUM_VISIBLE_REVEAL;
   }
 
   private refreshSelectionPoint(): void {

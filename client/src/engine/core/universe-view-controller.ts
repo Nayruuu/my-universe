@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { type SpaceObject } from '../../data/models/universe.models';
+import { type CameraSettledSource } from '../camera/camera-controller';
 import type { EarthObserverFraming } from '../camera/earth-observer-camera-control';
 import {
   getMinimumNavigationDistance,
@@ -11,6 +12,7 @@ const CATALOG_STAR_FOCUS_DISTANCE = 800;
 const EXOPLANET_SYSTEM_FOCUS_DISTANCE = 72;
 
 export interface UniverseViewCameraController {
+  readonly isTransitioning: boolean;
   focusOn(position: THREE.Vector3, object: SpaceObject, distance?: number): void;
   focusOnFromDirection(
     position: THREE.Vector3,
@@ -51,9 +53,15 @@ export interface UniverseViewBindings {
 }
 
 export class UniverseViewController {
+  private pendingSelectionId: string | null = null;
+
   constructor(private readonly bindings: UniverseViewBindings) {}
 
-  public async setTarget(objectId: string, zoom?: number): Promise<void> {
+  public async setTarget(
+    objectId: string,
+    zoom?: number,
+    selectionTiming: 'arrival' | 'immediate' = 'arrival',
+  ): Promise<void> {
     const cameraController = this.bindings.getCameraController();
 
     if (
@@ -75,7 +83,7 @@ export class UniverseViewController {
       await this.bindings.ensureTempelFilamentSpines();
     }
 
-    this.prepareView(objectId, objectId);
+    this.prepareView(objectId, selectionTiming === 'arrival' ? null : objectId);
     const constellationRadius = this.bindings.getConstellationFocusRadius(objectId);
     const verticalFieldOfView = this.bindings.getVerticalFieldOfView();
     const earthFacingDirection = this.getEarthFacingCatalogDirection(objectId, position);
@@ -101,7 +109,25 @@ export class UniverseViewController {
     } else {
       cameraController.focusOn(position, object, zoom ?? this.getCatalogFocusDistance(objectId));
     }
+    if (selectionTiming === 'arrival' && cameraController.isTransitioning) {
+      this.pendingSelectionId = objectId;
+    } else if (selectionTiming === 'arrival') {
+      this.bindings.selectObject(objectId);
+    }
     this.bindings.emitTargetChanged(objectId);
+  }
+
+  public handleCameraSettled(source: CameraSettledSource): void {
+    const selectedId = this.pendingSelectionId;
+
+    this.pendingSelectionId = null;
+    if (source === 'transition' && selectedId) {
+      this.bindings.selectObject(selectedId);
+    }
+  }
+
+  public cancelPendingSelection(): void {
+    this.pendingSelectionId = null;
   }
 
   public completeTargetTransition(): void {
@@ -174,7 +200,7 @@ export class UniverseViewController {
       getMinimumNavigationDistance(object) * 1.35,
     );
 
-    await this.setTarget(objectId, distance);
+    await this.setTarget(objectId, distance, 'immediate');
   }
 
   public viewOrbit(objectId: string): void {
@@ -233,6 +259,7 @@ export class UniverseViewController {
   }
 
   private prepareView(targetId: string, selectedId: string | null): void {
+    this.pendingSelectionId = null;
     this.bindings.clearPresentation();
     this.bindings.clearNavigationLock();
     this.bindings.adoptTarget(targetId);

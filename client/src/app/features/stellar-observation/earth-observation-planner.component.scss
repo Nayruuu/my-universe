@@ -291,7 +291,7 @@
   }
 }
 
-.earth-observation-planner__timeline {
+.earth-observation-planner__panel {
   padding: 12px;
   border: 1px solid rgb(120 199 240 / 16%);
   border-radius: 14px;
@@ -402,9 +402,9 @@
   }
 }
 
-.earth-observation-planner__events {
+.earth-observation-planner__metrics {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
   gap: 6px;
   margin: 10px 0 0;
 

@@ -450,14 +450,28 @@ describe('EarthSkyViewComponent', () => {
       const nights = Array.from(
         fixture.nativeElement.querySelectorAll('[data-planner-night-index]'),
       ) as HTMLButtonElement[];
+      const recommendation = fixture.nativeElement.querySelector(
+        '[data-planner-recommendation]',
+      ) as HTMLElement;
+      const recommendedNights = nights.filter((night) => night.dataset['recommended'] === 'true');
       const secondNight = forecast?.[1];
 
       expect(forecast).toHaveLength(7);
       expect(nights).toHaveLength(7);
+      expect(recommendedNights).toHaveLength(1);
       expect(fixture.nativeElement.textContent).toContain('Comparaison sur 7 nuits');
       expect(fixture.nativeElement.textContent).toContain('Calcul astronomique sans météo');
+      expect(recommendation.textContent).toContain('Meilleure nuit');
+      expect(recommendation.textContent).toContain('hauteur utile');
+      expect(recommendation.textContent).toContain('Hauteur');
+      expect(recommendation.textContent).toContain('Soleil');
+      expect(recommendation.textContent).toContain('Gêne lunaire');
+      expect(recommendation.textContent).toContain('/100');
+      expect(recommendation.querySelector('[data-planner-recommendation-go-to]')).not.toBeNull();
+      expect(recommendedNights[0]?.textContent).toContain('Recommandée');
       expect(nights[0]?.textContent).toContain('Gêne lunaire');
       expect(nights[0]?.textContent).toContain('Idéal à');
+      expect(nights.every((night) => night.textContent?.includes('/100'))).toBe(true);
       expect(
         new Set(
           nights.map(
@@ -481,6 +495,33 @@ describe('EarthSkyViewComponent', () => {
     } finally {
       window.removeEventListener(EARTH_OBSERVER_LOOK_AT_EVENT, handleLookAt);
     }
+  });
+
+  it('rejoint directement la nuit recommandée depuis la synthèse', () => {
+    const fixture = TestBed.createComponent(EarthSkyViewComponent);
+    const component = fixture.componentInstance as unknown as SkyViewAccess;
+
+    fixture.detectChanges();
+    (
+      fixture.nativeElement.querySelector('.earth-sky-view__planner-toggle') as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    const forecast = component.observationForecast()!;
+    const recommendedNightButton = fixture.nativeElement.querySelector(
+      '[data-planner-night-index][data-recommended="true"]',
+    ) as HTMLButtonElement;
+    const recommendationButton = fixture.nativeElement.querySelector(
+      '[data-planner-recommendation-go-to]',
+    ) as HTMLButtonElement;
+    const recommendedNight = forecast[Number(recommendedNightButton.dataset['plannerNightIndex'])]!;
+
+    recommendationButton.click();
+    fixture.detectChanges();
+
+    expect(facade.setTime).toHaveBeenCalledWith(recommendedNight.bestPoint!.time);
+    expect(facade.selectObject).toHaveBeenCalledWith('sirius');
+    expect(fixture.nativeElement.querySelector('.earth-observation-planner')).toBeNull();
   });
 
   it('prévisualise une autre étoile sans déplacer le ciel puis la rejoint au meilleur instant', async () => {

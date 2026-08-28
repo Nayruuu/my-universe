@@ -38,9 +38,9 @@ describe('PerformanceManager', () => {
     expect(manager.getPixelRatio('low')).toBe(1);
     expect(manager.getPixelRatio('medium')).toBe(1.25);
     expect(manager.getPixelRatio('high')).toBe(1.5);
-    expect(manager.getParticleCount('low')).toBe(2_000);
-    expect(manager.getParticleCount('medium')).toBe(5_000);
-    expect(manager.getParticleCount('high')).toBe(10_000);
+    expect(manager.getParticleCount('low')).toBe(6_000);
+    expect(manager.getParticleCount('medium')).toBe(14_000);
+    expect(manager.getParticleCount('high')).toBe(28_000);
   });
 
   it('délègue les frames et expose le diagnostic de résolution adaptative', () => {

@@ -1149,6 +1149,12 @@ function debugStats(): EngineDebugStats {
     activeStarClusters: 0,
     cachedStarClusters: 0,
     visibleStarClusters: 0,
+    gaiaPresentation: {
+      sampledSources: 0,
+      projectedSampledSources: 0,
+      aggregateCells: 0,
+      projectedAggregateCells: 0,
+    },
     cameraPosition: { x: 1, y: 2, z: 3 },
     cameraTarget: { x: 0, y: 0, z: 0 },
     cameraDistance: 4,

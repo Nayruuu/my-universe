@@ -54,6 +54,21 @@ describe('CameraZoomController', () => {
     expect(controller.diagnostics?.status).toBe('unchanged');
   });
 
+  it('diffère la synchronisation OrbitControls pendant un geste caméra concurrent', () => {
+    let synchronizationAllowed = false;
+
+    controller = new CameraZoomController(camera, controls, settled, () => synchronizationAllowed);
+    controller.zoomSemantically(-120);
+
+    expect(updateControls).not.toHaveBeenCalled();
+    expect(controller.distanceToTarget).toBeLessThan(24);
+
+    synchronizationAllowed = true;
+    controller.zoomSemantically(-120);
+
+    expect(updateControls).toHaveBeenCalledOnce();
+  });
+
   it('annule un rapprochement récent avant de commencer le trajet des échelles', () => {
     const initialDistance = controller.distanceToTarget;
 
@@ -308,6 +323,35 @@ describe('CameraZoomController', () => {
     expect(targetTranslation).toEqual(cameraTranslation);
     expect(controller.distanceToTarget).toBeCloseTo(FREE_NAVIGATION_MIN_DISTANCE, 12);
     expect(controller.diagnostics?.status).toBe('applied');
+  });
+
+  it('termine une rafale à la butée sans convertir son surplus en trajet libre', () => {
+    camera.position.set(0, 0, 0.8);
+    camera.lookAt(controls.target);
+    camera.updateMatrixWorld();
+
+    controller.adoptPointer(0.109_375, 0.265_384_615_384_615_33);
+    controller.zoomSemantically(-120, {
+      allowMinimumTraversal: false,
+      traverseMinimum: true,
+    });
+
+    expect(controller.distanceToTarget).toBeCloseTo(FREE_NAVIGATION_MIN_DISTANCE, 12);
+    expect(controller.minimumTraversalActive).toBe(false);
+    expect(controller.inwardZoomActive).toBe(false);
+    expect(controller.diagnostics?.status).toBe('minimum');
+    const clampedCameraPosition = camera.position.clone();
+    const clampedTarget = controls.target.clone();
+
+    controller.adoptPointer(0.109_375, 0.265_384_615_384_615_33);
+    controller.zoomSemantically(-120, {
+      allowMinimumTraversal: false,
+      traverseMinimum: true,
+    });
+
+    expect(camera.position.distanceTo(clampedCameraPosition)).toBeLessThan(1e-12);
+    expect(controls.target.distanceTo(clampedTarget)).toBeLessThan(1e-12);
+    expect(controller.diagnostics?.status).toBe('minimum');
   });
 
   it('parcourt environ trois cent quarante millions de kilomètres dès la première impulsion', () => {

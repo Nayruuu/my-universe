@@ -25,6 +25,7 @@ export interface OrbitVisualState {
   readonly lodLevel: number;
   readonly selectedId: string | null;
   readonly navigationTargetId: string | null;
+  readonly stellarNeighborhoodReveal?: number;
 }
 
 interface OrbitVisual {
@@ -44,6 +45,11 @@ const SOLAR_SYSTEM_ORBIT_TYPES = new Set<SpaceObject['type']>([
   'asteroid',
   'comet',
 ]);
+const LOCAL_NEIGHBORHOOD_ORBIT_TYPES = new Set<SpaceObject['type']>([
+  ...SOLAR_SYSTEM_ORBIT_TYPES,
+  'exoplanet',
+]);
+const MINIMUM_VISIBLE_OPACITY = 0.008;
 
 export class OrbitVisualManager {
   private readonly visuals = new Map<string, OrbitVisual>();
@@ -65,15 +71,23 @@ export class OrbitVisualManager {
     const activeOrbitId = this.getActiveOrbitId(state);
     const orbitsAllowed =
       state.showOrbits && !state.solarObserverActive && !state.earthObserverActive;
+    const solarSystemReveal = resolveSolarSystemReveal(state);
 
     for (const [objectId, orbit] of this.visuals) {
       const active = objectId === activeOrbitId;
-      const overviewEmphasis = state.lodLevel === 1;
       const solarSystemOrbit =
         state.lodLevel <= 2 && SOLAR_SYSTEM_ORBIT_TYPES.has(orbit.entry.definition.type);
+      const localNeighborhoodOrbit =
+        state.lodLevel <= 2 && LOCAL_NEIGHBORHOOD_ORBIT_TYPES.has(orbit.entry.definition.type);
+      const overviewEmphasis =
+        state.lodLevel === 1 ||
+        (state.lodLevel === 2 && localNeighborhoodOrbit && solarSystemReveal > 0);
+      const transitionVisibility = localNeighborhoodOrbit && !active ? solarSystemReveal : 1;
 
       orbit.line.visible =
-        orbitsAllowed && (state.lodLevel <= 1 || (active && state.lodLevel <= 2));
+        orbitsAllowed &&
+        transitionVisibility > MINIMUM_VISIBLE_OPACITY &&
+        (state.lodLevel <= 1 || (localNeighborhoodOrbit && state.lodLevel <= 2) || active);
       orbit.line.material.color.set(
         solarSystemOrbit
           ? active
@@ -83,13 +97,15 @@ export class OrbitVisualManager {
             ? (orbit.entry.definition.visual.color ?? 0x8acff4)
             : orbit.baseColor,
       );
-      orbit.line.material.opacity = active ? 0.92 : overviewEmphasis ? 0.62 : orbit.baseOpacity;
+      orbit.line.material.opacity =
+        (active ? 0.92 : overviewEmphasis ? 0.62 : orbit.baseOpacity) * transitionVisibility;
       orbit.line.material.linewidth = active ? 1.6 : overviewEmphasis ? 1.35 : 1;
       orbit.line.renderOrder = active ? 3 : overviewEmphasis ? 1 : 0;
       orbit.line.userData['active'] = active;
       orbit.line.userData['overviewEmphasis'] = overviewEmphasis;
       orbit.line.userData['semanticGroup'] = solarSystemOrbit ? 'solar-system' : null;
       orbit.line.userData['mapAccent'] = solarSystemOrbit ? orbit.mapColor : null;
+      orbit.line.userData['overviewReveal'] = localNeighborhoodOrbit ? transitionVisibility : null;
     }
   }
 
@@ -130,6 +146,16 @@ export class OrbitVisualManager {
       return requiredIds;
     }
     if (state.lodLevel <= 2) {
+      if (resolveSolarSystemReveal(state) > MINIMUM_VISIBLE_OPACITY) {
+        for (const entry of this.entries.values()) {
+          if (
+            LOCAL_NEIGHBORHOOD_ORBIT_TYPES.has(entry.definition.type) &&
+            isOrbitalDefinition(entry.definition.positionProvider)
+          ) {
+            requiredIds.add(entry.definition.id);
+          }
+        }
+      }
       const activeOrbitId = this.getActiveOrbitId(state);
 
       if (activeOrbitId) {
@@ -208,6 +234,14 @@ export class OrbitVisualManager {
       ? selected.definition.id
       : null;
   }
+}
+
+function resolveSolarSystemReveal(state: OrbitVisualState): number {
+  return THREE.MathUtils.clamp(
+    state.stellarNeighborhoodReveal ?? (state.lodLevel <= 1 ? 1 : 0),
+    0,
+    1,
+  );
 }
 
 function isOrbitalDefinition(

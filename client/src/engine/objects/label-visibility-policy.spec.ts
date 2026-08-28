@@ -22,7 +22,7 @@ describe('label visibility policy', () => {
 
   it('conserve les budgets de densité par qualité et niveau de détail', () => {
     expect(getMaximumLabelCount('low', 2, 'minimal')).toBe(14);
-    expect(getMaximumLabelCount('high', 2, 'dense')).toBe(144);
+    expect(getMaximumLabelCount('high', 2, 'dense')).toBe(120);
     expect(getMaximumCatalogLabelRank('medium', 1, 'balanced')).toBe(1_400);
   });
 
@@ -39,6 +39,15 @@ describe('label visibility policy', () => {
 
     expect(getLabelTextColor(earth, false, 1)).toBe('#43b4dd');
     expect(getLabelTextColor(earth, true, 1)).toBe('#9ae8ff');
+    expect(isLabelVisibleAtLevel(earth, 2)).toBe(true);
+    expect(isLabelVisibleAtLevel(earth, 3)).toBe(false);
+  });
+
+  it('prolonge les exoplanètes vedettes pendant le fondu du voisinage local', () => {
+    const exoplanet = createObject('kepler-b', 'exoplanet');
+
+    expect(isLabelVisibleAtLevel(exoplanet, 2)).toBe(true);
+    expect(isLabelVisibleAtLevel(exoplanet, 3)).toBe(false);
   });
 
   it('réserve la vue planétaire aux planètes, à la Lune terrestre puis aux étoiles', () => {

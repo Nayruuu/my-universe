@@ -287,7 +287,34 @@ export interface StarTileIndexNode {
   sourceStarCount: number;
   clusterCount: number;
   cellSizeParsec: number;
+  representation: StarTilePointRepresentation;
   url: string;
+}
+
+export type StarTileReferenceFrame = 'equatorial-j2000' | 'icrs';
+export type StarMagnitudeBand = 'johnson-v' | 'gaia-g';
+export type StarColorIndexSystem = 'johnson-b-v' | 'gaia-bp-rp';
+export type StarTilePointRepresentation = 'aggregate-cell' | 'sampled-source';
+
+export interface StarTileSampling {
+  method: 'brightest-plus-deterministic-uniform';
+  maximumSamplesPerLeaf: number;
+  brightestSamplesPerLeaf: number;
+}
+
+export interface StarTileCatalogSource {
+  name: string;
+  url: string;
+  doi: string | null;
+  credit: string;
+  retrievedAt: string;
+  query: string;
+}
+
+export interface StarTileCatalogSelection {
+  maximumDistanceParsec: number;
+  maximumApparentMagnitude: number;
+  minimumParallaxOverError: number;
 }
 
 export interface StarTileIndex {
@@ -295,10 +322,15 @@ export interface StarTileIndex {
   sourceCatalog: string;
   sourceStarCount: number;
   referenceEpochJulianDay: number;
-  referenceFrame: 'equatorial-j2000';
+  referenceFrame: StarTileReferenceFrame;
   distanceUnit: 'parsec';
+  magnitudeBand: StarMagnitudeBand;
+  colorIndexSystem: StarColorIndexSystem;
+  source: StarTileCatalogSource;
+  selection: StarTileCatalogSelection;
+  sampling: StarTileSampling;
   scientificConfidence: 'calculated';
-  representation: 'illustrative-aggregation';
+  representation: 'hierarchical-aggregation-with-deterministic-samples';
   rootIds: readonly string[];
   nodes: readonly StarTileIndexNode[];
 }
@@ -310,27 +342,32 @@ export interface StarClusterTile {
   sourceCatalog: string;
   sourceStarCount: number;
   referenceEpochJulianDay: number;
+  magnitudeBand: StarMagnitudeBand;
+  colorIndexSystem: StarColorIndexSystem;
   lodLevel: number;
   cellSizeParsec: number;
+  representation: StarTilePointRepresentation;
   clusterCount: number;
   cellCoordinates: Int32Array;
   positionsParsec: Float32Array;
   starCounts: Uint32Array;
   apparentMagnitudes: Float32Array;
-  colorIndicesBv: Float32Array;
+  colorIndices: Float32Array;
 }
 
 export interface StarClusterTilePack {
   version: string;
   sourceCatalog: string;
   referenceEpochJulianDay: number;
+  magnitudeBand: StarMagnitudeBand;
+  colorIndexSystem: StarColorIndexSystem;
   tiles: readonly StarClusterTile[];
 }
 
 export interface StarTileSource {
   id: string;
   url: string;
-  starCatalogId: string;
+  sourceCatalogId: string;
 }
 
 export interface TempelFilamentSpineSource {
@@ -388,8 +425,8 @@ export type DatasetManifestEntry =
       id: string;
       url: string;
       type: 'star-tile-index';
-      format: 'star-tiles-v2';
-      starCatalogId: string;
+      format: 'star-tiles-v4';
+      sourceCatalogId: string;
     }
   | {
       id: string;
@@ -477,6 +514,13 @@ export interface AdaptiveRenderingStats {
   readonly currentPixelRatio: number;
 }
 
+export interface GaiaPresentationStats {
+  readonly sampledSources: number;
+  readonly projectedSampledSources: number;
+  readonly aggregateCells: number;
+  readonly projectedAggregateCells: number;
+}
+
 export interface EngineDebugStats {
   fps: number;
   drawCalls: number;
@@ -504,6 +548,7 @@ export interface EngineDebugStats {
   activeStarClusters: number;
   cachedStarClusters: number;
   visibleStarClusters: number;
+  gaiaPresentation: GaiaPresentationStats;
   cameraPosition: Vector3Like;
   cameraTarget: Vector3Like;
   cameraDistance: number;

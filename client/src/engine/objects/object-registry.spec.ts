@@ -1,6 +1,15 @@
 import * as THREE from 'three';
 import { GraphicQuality, SpaceObject, type TemporalMode } from '../../data/models/universe.models';
 import { CoordinateSystem } from '../coordinates/coordinate-system';
+import {
+  calculateGalacticFrameScale,
+  calculateMilkyWaySceneScale,
+} from '../coordinates/galaxy-scale-model';
+import {
+  calculateStellarNeighborhoodReveal,
+  calculateStellarNeighborhoodSceneScale,
+  STELLAR_NEIGHBORHOOD_REVEAL_END,
+} from '../coordinates/stellar-neighborhood-scale-model';
 import { calculateApparentRadiusPixels } from '../lod/screen-space-lod';
 import { EarthEclipseKind } from '../simulation/earth-eclipse';
 import { dateToJulianDay } from '../simulation/time-utils';
@@ -51,6 +60,35 @@ describe('ObjectRegistry', () => {
     registry.dispose();
     expect(root.children).toHaveLength(0);
     expect(registry.getPickables()).toHaveLength(0);
+  });
+
+  it('préserve les distances relatives entre les catalogues intergalactiques', () => {
+    const registry = new ObjectRegistry(
+      new THREE.Group(),
+      new CoordinateSystem(),
+      intergalacticObjects(),
+      'low',
+    );
+
+    registry.updatePositions(ECLIPSE_TIME);
+
+    for (const [cameraDistance, expectedM31Distance] of [
+      [17_000, 7_830],
+      [120_000, 3_132],
+      [420_000, 156.6],
+    ] as const) {
+      registry.updateReferenceFrameScale(cameraDistance);
+      const m31Distance = registry.getWorldPosition('andromeda')!.length();
+      const m81Distance = registry.getWorldPosition('m81')!.length();
+      const m87Distance = registry.getWorldPosition('m87')!.length();
+      const cosmicReferenceDistance = registry.getWorldPosition('cosmic-reference')!.length();
+
+      expect(m31Distance).toBeCloseTo(expectedM31Distance, 6);
+      expect(m81Distance / m31Distance).toBeCloseTo(3.63 / 0.783, 6);
+      expect(m87Distance / m31Distance).toBeCloseTo(17.219 / 0.783, 6);
+      expect(cosmicReferenceDistance).toBeCloseTo(m87Distance, 6);
+    }
+    registry.dispose();
   });
 
   it('actualise l’activité cométaire à partir de la distance héliocentrique', () => {
@@ -358,7 +396,7 @@ describe('ObjectRegistry', () => {
     registry.updatePositions(ECLIPSE_TIME);
     const galactocentric = registry.getSpacePosition('sun');
 
-    expect(galactocentric?.x).toBeGreaterThan(2_000);
+    expect(galactocentric?.x).toBeCloseTo(736.02, 8);
     expect(galactocentric?.y).toBe(0);
     expect(galactocentric?.z).toBe(0);
 
@@ -368,6 +406,15 @@ describe('ObjectRegistry', () => {
 
     expect(registry.getSpacePosition('sun')).toEqual(galactocentric);
     expect(world?.x).toBeCloseTo(galactocentric!.x - 1_600, 8);
+
+    registry.updateReferenceFrameScale(17_000);
+    expect(registry.getSpacePosition('sun')?.x).toBeCloseTo(
+      736.02 * calculateGalacticFrameScale(17_000),
+      8,
+    );
+    expect(registry.getSpacePosition('sun')!.x).toBeLessThan(
+      calculateMilkyWaySceneScale(17_000).worldDiameter / 2,
+    );
     expect(registry.getSpacePosition('unknown')).toBeNull();
     registry.dispose();
   });
@@ -459,17 +506,76 @@ describe('ObjectRegistry', () => {
 
     registry.updatePositions({ julianDay: 2_451_545 });
 
-    expect(root.getObjectByName('kepler-452')?.parent?.name).toBe('sun');
+    expect(root.getObjectByName('kepler-452')?.parent?.name).toBe(
+      'object-registry-stellar-neighborhood-frame',
+    );
+    expect(root.getObjectByName('kepler-452')?.parent?.parent?.name).toBe('sun');
     expect(root.getObjectByName('kepler-452-b')?.parent?.name).toBe('kepler-452');
     expect(registry.getOrbitRadius('kepler-452-b')).toBeGreaterThan(15);
+    const expandedDistance = registry
+      .getWorldPosition('kepler-452')!
+      .distanceTo(registry.getWorldPosition('sun')!);
+    const expandedOffset = registry
+      .getWorldPosition('kepler-452')!
+      .sub(registry.getWorldPosition('sun')!);
+
+    registry.updateReferenceFrameScale(3_600);
+    root.updateMatrixWorld(true);
+    const access = registry as unknown as RegistryAccess;
+    const collapsedDistance = registry
+      .getWorldPosition('kepler-452')!
+      .distanceTo(registry.getWorldPosition('sun')!);
+
+    expect(access.stellarNeighborhoodRoot.userData).toMatchObject({
+      radialScale: 0.085,
+      originScale: 1,
+      reveal: calculateStellarNeighborhoodReveal(3_600),
+    });
+    expect(access.stellarNeighborhoodRoot.scale.x).toBeCloseTo(0.085, 8);
+    expect(access.stellarNeighborhoodRoot.scale.y).toBeLessThan(
+      access.stellarNeighborhoodRoot.scale.x,
+    );
+    expect(collapsedDistance).toBeLessThan(expandedDistance * 0.09);
+
+    registry.updateReferenceFrameScale(3_000);
+    root.updateMatrixWorld(true);
+    const transitioningScale = calculateStellarNeighborhoodSceneScale(3_000, 736.02);
+
+    expect(access.stellarNeighborhoodRoot.scale.x).toBeCloseTo(transitioningScale.radialScale, 8);
+    expect(access.stellarNeighborhoodRoot.scale.x).toBeGreaterThan(0.085);
+    expect(access.stellarNeighborhoodRoot.scale.x).toBeLessThan(1);
+
+    registry.updateReferenceFrameScale(1_400);
+    root.updateMatrixWorld(true);
+    expect(access.stellarNeighborhoodRoot.scale.x).toBeCloseTo(1, 8);
+    expect(access.stellarNeighborhoodRoot.scale.y).toBeCloseTo(1, 8);
+    expect(
+      registry.getWorldPosition('kepler-452')!.distanceTo(registry.getWorldPosition('sun')!),
+    ).toBeCloseTo(expandedDistance, 8);
+
+    registry.updateReferenceFrameScale(700);
+    root.updateMatrixWorld(true);
+    const localTransition = calculateStellarNeighborhoodSceneScale(700, 736.02);
+
+    expect(access.stellarNeighborhoodRoot.scale.x).toBeCloseTo(localTransition.radialScale, 8);
+    expect(access.stellarNeighborhoodRoot.scale.y).toBeCloseTo(localTransition.verticalScale, 8);
+    expect(
+      registry.getWorldPosition('kepler-452')!.distanceTo(registry.getWorldPosition('sun')!),
+    ).toBeCloseTo(
+      new THREE.Vector3(
+        expandedOffset.x * localTransition.radialScale,
+        expandedOffset.y * localTransition.verticalScale,
+        expandedOffset.z * localTransition.radialScale,
+      ).length(),
+      8,
+    );
+
     registry.setNavigationTarget('kepler-452-b');
     const camera = new THREE.PerspectiveCamera(48, 1, 0.01, 1_000_000);
     const planetPosition = registry.getWorldPosition('kepler-452-b')!;
 
     camera.position.copy(planetPosition).add(new THREE.Vector3(0, 0, 5));
     registry.updateLod(camera, 900, 0, 2);
-    const access = registry as unknown as RegistryAccess;
-
     expect(access.entries.get('kepler-452')?.lod.visibilityBlend).toBeGreaterThan(0.9);
     registry.dispose();
   });
@@ -513,6 +619,7 @@ describe('ObjectRegistry', () => {
 
     registry.setNavigationTarget(null);
     registry.select(null);
+    registry.updateReferenceFrameScale(STELLAR_NEIGHBORHOOD_REVEAL_END);
     access.currentLodLevel = 2;
     access.applyOrbitVisibility();
     expect(orbitLines(access.registryRoot)).toHaveLength(0);
@@ -754,7 +861,7 @@ describe('ObjectRegistry', () => {
     registry.dispose();
   }, 10_000);
 
-  it('fond progressivement l’imposteur de la Voie lactée avec sa représentation galactique', () => {
+  it('active progressivement le proxy de la Voie lactée sans rendre un second visuel', () => {
     const registry = new ObjectRegistry(
       new THREE.Group(),
       new CoordinateSystem(),
@@ -770,7 +877,7 @@ describe('ObjectRegistry', () => {
     const camera = new THREE.PerspectiveCamera(48, 1, 0.01, 40_000);
     const sprite = access.entries.get('milky-way')!.lod.farSprite!;
 
-    camera.position.set(0, 0, 9_600);
+    camera.position.set(0, 0, 3_600);
     registry.setNavigationTarget('milky-way');
     registry.updateLod(camera, 900, 3, 2);
     expect(sprite.visible).toBe(false);
@@ -778,12 +885,12 @@ describe('ObjectRegistry', () => {
     camera.position.set(0, 0, 13_300);
     registry.updateLod(camera, 900, 3, 2);
     expect(sprite.visible).toBe(true);
-    const transitionOpacity = sprite.material.opacity;
+    expect(sprite.material.opacity).toBe(0);
 
     camera.position.set(0, 0, 17_000);
     registry.updateLod(camera, 900, 4, 2);
     expect(sprite.visible).toBe(true);
-    expect(sprite.material.opacity).toBeGreaterThan(transitionOpacity);
+    expect(sprite.material.opacity).toBe(0);
 
     registry.updateLod(camera, 900, 6, 2);
     expect(sprite.visible).toBe(false);
@@ -1126,6 +1233,7 @@ interface RegistryAccess {
     readonly points: THREE.Points;
   };
   readonly registryRoot: THREE.Group;
+  readonly stellarNeighborhoodRoot: THREE.Group;
   readonly receivedEmissionTimes: Map<string, { julianDay: number }>;
   currentLodLevel: number;
   applyOrbitVisibility(): void;
@@ -1200,6 +1308,59 @@ function diverseObjects(): SpaceObject[] {
       parentId: 'missing',
     },
   ];
+}
+
+function intergalacticObjects(): SpaceObject[] {
+  return [
+    intergalacticObject('cosmic-web', 'universe', 'cosmic-web', 0, 'megaparsec'),
+    intergalacticObject(
+      'nearby-universe',
+      'region',
+      'nearby-universe',
+      0,
+      'megaparsec',
+      'cosmic-web',
+    ),
+    intergalacticObject('local-group', 'region', 'local-group', 0, 'kiloparsec', 'nearby-universe'),
+    intergalacticObject('andromeda', 'galaxy', 'local-group', 783, 'kiloparsec', 'local-group'),
+    intergalacticObject('m81', 'galaxy', 'nearby-universe', 3.63, 'megaparsec', 'nearby-universe'),
+    intergalacticObject(
+      'm87',
+      'galaxy',
+      'nearby-universe',
+      17.219,
+      'megaparsec',
+      'nearby-universe',
+    ),
+    intergalacticObject(
+      'cosmic-reference',
+      'galaxy-cluster',
+      'cosmic-web',
+      17.219,
+      'megaparsec',
+      'cosmic-web',
+    ),
+  ];
+}
+
+function intergalacticObject(
+  id: string,
+  type: SpaceObject['type'],
+  referenceFrame: SpaceObject['referenceFrame'],
+  distance: number,
+  unit: 'kiloparsec' | 'megaparsec',
+  parentId?: string,
+): SpaceObject {
+  return {
+    id,
+    name: id,
+    type,
+    ...(parentId ? { parentId } : {}),
+    referenceFrame,
+    scientificConfidence: 'observed',
+    visual: { visualRadius: 1, scaleMode: 'adaptive' },
+    positionProvider: { type: 'static', position: [distance, 0, 0], unit },
+  };
 }
 
 type VisualFixture = Partial<SpaceObject['visual']> & { rotationHours?: number };

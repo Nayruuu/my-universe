@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { GraphicQuality, SpaceObject } from '../../data/models/universe.models';
+import { getGalaxyRenderScale } from '../coordinates/galaxy-scale-model';
 import { PICKING_LAYER } from '../selection/selection-layers';
 import { createGalaxyVolumeVisual } from './galaxy-volume-visual';
 import {
@@ -8,15 +9,19 @@ import {
   type CelestialVisualAssets,
 } from './celestial-visual-types';
 
+const GALAXY_SELECTION_RADIUS_PER_RENDER_DIAMETER = 0.575;
+
 export function createGalaxyCelestialVisual(
   root: THREE.Group,
   object: SpaceObject,
   quality: GraphicQuality,
   assets: CelestialVisualAssets,
 ): CelestialVisual {
-  const diameter = object.visual.visualRadius * 2;
+  const scaleModel = getGalaxyRenderScale(object);
+  const diameter = scaleModel.renderDiameter;
   const shape = object.visual.galaxyShape ?? 'elliptical';
-  const aspectRatio = object.visual.galaxyAxisRatio ?? 0.72;
+  const isMilkyWay = object.id === 'milky-way';
+  const aspectRatio = isMilkyWay ? 1 : (object.visual.galaxyAxisRatio ?? 0.72);
   const isNearbyUniverseCatalogObject =
     typeof object.metadata?.['nearbyUniverseLabelRank'] === 'number';
   const material = createGalaxyMaterial(
@@ -28,16 +33,45 @@ export function createGalaxyCelestialVisual(
   halo.name = `${object.id}-galaxy-impostor`;
   halo.scale.set(diameter, diameter * aspectRatio, 1);
   halo.material.rotation = THREE.MathUtils.degToRad(object.visual.galaxyRotationDegrees ?? 0);
-  halo.layers.enable(PICKING_LAYER);
   halo.userData['objectId'] = object.id;
+  halo.userData['renderDiameter'] = diameter;
+  halo.userData['diameterTreatment'] = scaleModel.diameterTreatment;
+  if (scaleModel.physicalSceneDiameter !== null) {
+    halo.userData['physicalSceneDiameter'] = scaleModel.physicalSceneDiameter;
+  }
+  if (isMilkyWay) {
+    halo.name = 'milky-way-galaxy-picking-proxy';
+    halo.material.opacity = 0;
+    halo.material.colorWrite = false;
+    halo.layers.enable(PICKING_LAYER);
+    halo.userData['pickingProxyOnly'] = true;
+    halo.userData['apparentScaleTreatment'] = 'single-procedural-galaxy-with-invisible-pick-proxy';
+    halo.userData['scientificConfidence'] = 'illustrative';
+    halo.material.userData['visualStyle'] = 'transparent-procedural-galaxy-picking-proxy';
+  }
   halo.visible = false;
   root.add(halo);
-  const volume = object.id === 'milky-way' ? null : createGalaxyVolumeVisual(object, quality);
+  const hitTarget = isMilkyWay
+    ? null
+    : createGalaxySelectionTarget(
+        object,
+        diameter,
+        assets.selectionGeometry,
+        assets.selectionMaterial,
+      );
+
+  if (hitTarget) {
+    root.add(hitTarget);
+  }
+
+  const volume = isMilkyWay ? null : createGalaxyVolumeVisual(object, quality);
 
   if (volume) {
     volume.root.visible = false;
     root.add(volume.root);
   }
+
+  const pickables = hitTarget ? [hitTarget, ...volume!.pickables] : [halo];
 
   return {
     root,
@@ -47,7 +81,7 @@ export function createGalaxyCelestialVisual(
     solarEclipse: null,
     supernova: null,
     observerCorona: null,
-    pickables: volume ? [halo, ...volume.pickables] : [halo],
+    pickables,
     lod: {
       nearRoot: volume?.root ?? null,
       farSprite: halo,
@@ -62,6 +96,26 @@ export function createGalaxyCelestialVisual(
       farAspectRatio: aspectRatio,
     },
   };
+}
+
+function createGalaxySelectionTarget(
+  object: SpaceObject,
+  renderDiameter: number,
+  geometry: THREE.SphereGeometry,
+  material: THREE.MeshBasicMaterial,
+): THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial> {
+  const target = new THREE.Mesh(geometry, material);
+  const hitRadius = renderDiameter * GALAXY_SELECTION_RADIUS_PER_RENDER_DIAMETER;
+
+  target.name = `${object.id}-selection-target`;
+  target.scale.setScalar(hitRadius);
+  target.layers.set(PICKING_LAYER);
+  target.userData['objectId'] = object.id;
+  target.userData['visualRole'] = 'selection-proxy';
+  target.userData['sizeTreatment'] = 'screen-synchronized-margin-around-rendered-galaxy';
+  target.userData['renderDiameterRadiusMultiplier'] = GALAXY_SELECTION_RADIUS_PER_RENDER_DIAMETER;
+
+  return target;
 }
 
 function createGalaxyMaterial(color: string, texture: THREE.Texture): THREE.SpriteMaterial {

@@ -22,8 +22,8 @@ export interface LocalSpaceEnvironmentVisual {
 }
 
 const GALACTIC_BAND_PANORAMA_EXPOSURE = 1.18;
-const GALACTIC_BAND_PRESENTATION_PITCH_DEGREES = -32;
-const GALACTIC_BAND_PRESENTATION_ROLL_DEGREES = -6.5;
+const GALACTIC_BAND_PRESENTATION_PITCH_DEGREES = 0;
+const GALACTIC_BAND_PRESENTATION_ROLL_DEGREES = 0;
 const GALACTIC_SKY_RADIUS = 64_000;
 const ZODIACAL_LIGHT_RADIUS = 480;
 const SOLAR_CORONA_TEXTURE_SIZE = 192;
@@ -104,6 +104,7 @@ function configureGalacticBand(
   galacticBand.userData['galacticCenterDirection'] = [-1, 0, 0];
   galacticBand.userData['visualStyle'] = 'inside-milky-way-panoramic-band';
   galacticBand.userData['angularPresentation'] = 'distant-thin-sky-band';
+  galacticBand.userData['observerAnchoring'] = 'camera-centered-distant-sphere';
   galacticBand.userData['sourceCredit'] = 'ESO/S. Brunier';
   galacticBand.userData['sourceImageId'] = 'ESO-ESO0932A';
   galacticBand.userData['sourcePageUrl'] = LOCAL_MILKY_WAY_SOURCE_PAGE_URL;
@@ -112,13 +113,14 @@ function configureGalacticBand(
   galacticBand.userData['sourceAngularLatitudeSpanDegrees'] = 60;
   galacticBand.userData['angularLatitudeSpanDegrees'] = 32;
   galacticBand.userData['latitudePresentationScale'] = 32 / 60;
-  galacticBand.userData['visibilityTreatment'] = 'photographic-continuous-light';
-  galacticBand.userData['displayGrade'] = 'eso-photographic-v3';
+  galacticBand.userData['visibilityTreatment'] =
+    'photographic-interior-crossfade-with-density-volume';
+  galacticBand.userData['displayGrade'] = 'eso-photographic-neutral-warm-v4';
   galacticBand.userData['sourceProjection'] = 'full-sky-panorama-galactic-plane-horizontal';
   galacticBand.userData['presentationPitchDegrees'] = GALACTIC_BAND_PRESENTATION_PITCH_DEGREES;
   galacticBand.userData['presentationRollDegrees'] = GALACTIC_BAND_PRESENTATION_ROLL_DEGREES;
-  galacticBand.userData['presentationComposition'] = 'diagonal-cinematic-sky';
-  galacticBand.userData['orientationConfidence'] = 'illustrative';
+  galacticBand.userData['presentationComposition'] = 'shared-galactic-plane-with-density-volume';
+  galacticBand.userData['orientationConfidence'] = 'calculated-shared-galactic-frame';
   galacticBand.userData['photographicSourceConfidence'] = 'observed';
   galacticBand.userData['visualLayers'] = [
     'integrated-starlight',
@@ -157,6 +159,7 @@ function createGalacticBandMaterial(detailStrength: number): THREE.ShaderMateria
       detailStrength: { value: detailStrength },
       panorama: { value: null },
       panoramaReady: { value: 0 },
+      panoramaBlend: { value: 0 },
       panoramaExposure: { value: GALACTIC_BAND_PANORAMA_EXPOSURE },
     },
     vertexShader: `
@@ -173,6 +176,7 @@ function createGalacticBandMaterial(detailStrength: number): THREE.ShaderMateria
       uniform float detailStrength;
       uniform sampler2D panorama;
       uniform float panoramaReady;
+      uniform float panoramaBlend;
       uniform float panoramaExposure;
       varying vec3 galacticDirection;
 
@@ -207,12 +211,12 @@ function createGalacticBandMaterial(detailStrength: number): THREE.ShaderMateria
           + brightCore * (0.1 + centerBulge * 0.62 + antiCenter * 0.05);
 
         emission *= 1.0 - dustRift * (0.58 + detailStrength * 0.26);
-        vec3 coolColor = vec3(0.2, 0.38, 0.67);
-        vec3 neutralColor = vec3(0.58, 0.68, 0.82);
-        vec3 warmColor = vec3(1.0, 0.55, 0.28);
-        vec3 proceduralColor = mix(coolColor, neutralColor, starCloud * 0.68);
+        vec3 coolColor = vec3(0.12, 0.19, 0.3);
+        vec3 neutralColor = vec3(0.46, 0.46, 0.44);
+        vec3 warmColor = vec3(0.72, 0.48, 0.29);
+        vec3 proceduralColor = mix(coolColor, neutralColor, starCloud * 0.76);
         proceduralColor = mix(proceduralColor, warmColor, centerBulge * 0.82);
-        proceduralColor += vec3(0.13, 0.3, 0.38) * starCloud * brightCore * detailStrength;
+        proceduralColor += vec3(0.08, 0.12, 0.15) * starCloud * brightCore * detailStrength;
         float proceduralAlpha = clamp(emission * opacity * 1.65, 0.0, 0.72);
         float latitudeAngle = asin(clamp(direction.y, -1.0, 1.0));
         float bandLatitudeWindow = 1.0 - smoothstep(0.26179938780, 0.27925268032, abs(latitudeAngle));
@@ -231,10 +235,12 @@ function createGalacticBandMaterial(detailStrength: number): THREE.ShaderMateria
 
         panoramaColor = pow(max(panoramaColor, vec3(0.0)), vec3(0.94));
         vec3 panoramaGray = vec3(dot(panoramaColor, vec3(0.2126, 0.7152, 0.0722)));
-        panoramaColor = max(mix(panoramaGray, panoramaColor, 1.32), vec3(0.0));
+        panoramaColor = max(mix(panoramaGray, panoramaColor, 1.12), vec3(0.0));
+        panoramaColor *= vec3(1.03, 1.0, 0.95);
         panoramaColor *= mix(1.0, panoramaExposure, panoramaSignal);
-        vec3 color = mix(proceduralColor, panoramaColor, panoramaReady);
-        float alpha = mix(proceduralAlpha, panoramaAlpha, panoramaReady);
+        float photographicMix = panoramaReady * panoramaBlend;
+        vec3 color = mix(proceduralColor, panoramaColor, photographicMix);
+        float alpha = mix(proceduralAlpha, panoramaAlpha, photographicMix);
 
         if (alpha < 0.001) {
           discard;

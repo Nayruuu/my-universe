@@ -127,6 +127,12 @@ function debugResources(cameraX = 1): UniverseDebugRuntimeResources {
       tempelFilamentSpineTileCount: 8,
       visibleStarClusterCount: 302,
     },
+    getGaiaPresentationStats: () => ({
+      sampledSources: 250,
+      projectedSampledSources: 180,
+      aggregateCells: 52,
+      projectedAggregateCells: 31,
+    }),
   };
 }
 

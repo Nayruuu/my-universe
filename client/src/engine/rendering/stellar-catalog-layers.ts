@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {
   type ConstellationCatalog,
+  type GaiaPresentationStats,
   type GraphicQuality,
   type SpaceObject,
   type StarClusterTile,
@@ -138,15 +139,16 @@ export class StellarCatalogLayers {
     starRadiance: number,
     cameraPosition?: Vector3Like,
     navigationTargetId: string | null = null,
+    cameraDistance?: number,
   ): void {
     this.starCatalogBatch?.setPhotographicRadiance(starRadiance);
     this.exoplanetHostBatch?.setPhotographicRadiance(starRadiance);
     this.starClusterBatch?.setPhotographicRadiance(starRadiance);
     this.starCatalogBatch?.focus(navigationTargetId);
-    this.starCatalogBatch?.updateLod(lodLevel, deltaSeconds, cameraPosition);
-    this.exoplanetHostBatch?.updateLod(lodLevel, deltaSeconds, cameraPosition);
-    this.starClusterBatch?.updateLod(lodLevel, deltaSeconds);
-    this.constellationBatch?.updateLod(lodLevel, deltaSeconds);
+    this.starCatalogBatch?.updateLod(lodLevel, deltaSeconds, cameraPosition, cameraDistance);
+    this.exoplanetHostBatch?.updateLod(lodLevel, deltaSeconds, cameraPosition, cameraDistance);
+    this.starClusterBatch?.updateLod(lodLevel, deltaSeconds, cameraDistance);
+    this.constellationBatch?.updateLod(lodLevel, deltaSeconds, cameraDistance);
   }
 
   public updateTime(time: UniverseTime, temporalMode: TemporalMode = 'state'): void {
@@ -180,7 +182,12 @@ export class StellarCatalogLayers {
   }
 
   public isObjectVisibleForLabels(objectId: string): boolean | null {
-    return this.exoplanetHostBatch?.isObjectVisibleForLabels(objectId) ?? null;
+    return (
+      this.starCatalogBatch?.isObjectVisibleForLabels(objectId) ??
+      this.exoplanetHostBatch?.isObjectVisibleForLabels(objectId) ??
+      this.constellationBatch?.isObjectVisibleForLabels(objectId) ??
+      null
+    );
   }
 
   public get visibleCatalogStarCount(): number {
@@ -213,6 +220,17 @@ export class StellarCatalogLayers {
 
   public get visibleStarClusterCount(): number {
     return this.starClusterBatch?.visibleClusterCount ?? 0;
+  }
+
+  public getGaiaPresentationStats(camera: THREE.Camera): GaiaPresentationStats {
+    return (
+      this.starClusterBatch?.getPresentationStats(camera) ?? {
+        sampledSources: 0,
+        projectedSampledSources: 0,
+        aggregateCells: 0,
+        projectedAggregateCells: 0,
+      }
+    );
   }
 
   public dispose(): void {

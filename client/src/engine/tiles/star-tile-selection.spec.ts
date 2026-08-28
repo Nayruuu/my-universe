@@ -9,11 +9,53 @@ import {
 } from './star-tile-selection';
 
 describe('sélection spatiale des tuiles stellaires', () => {
-  it('ignore les niveaux sans agrégation et filtre les racines hors du frustum', () => {
+  it('reste actif de la vue stellaire au Groupe local et filtre les racines hors du frustum', () => {
     const nodes = [renderNode('root-visible', 0, 0, 10), renderNode('root-hidden', 500, 0, 10)];
 
-    expect(selectStarTileNodeIds(nodes, view({ lodLevel: 2 }))).toEqual([]);
+    expect(selectStarTileNodeIds(nodes, view({ lodLevel: 3 }))).toEqual(['root-visible']);
     expect(selectStarTileNodeIds(nodes, view({ lodLevel: 4 }))).toEqual(['root-visible']);
+    expect(selectStarTileNodeIds(nodes, view({ lodLevel: 2 }))).toEqual(['root-visible']);
+    expect(selectStarTileNodeIds(nodes, view({ lodLevel: 5 }))).toEqual([]);
+  });
+
+  it('remplace les sources détaillées par leur racine dans la Voie lactée', () => {
+    const nodes = [
+      renderNode('root', 0, 0, 18, ['child']),
+      renderNode('child', 0, 0, 5, [], 'root'),
+    ];
+
+    expect(
+      selectStarTileNodeIds(
+        nodes,
+        view({ lodLevel: 2, cameraPosition: new THREE.Vector3(0, 0, 100) }),
+      ),
+    ).toEqual(['child']);
+    expect(
+      selectStarTileNodeIds(
+        nodes,
+        view({ lodLevel: 3, cameraPosition: new THREE.Vector3(0, 0, 100) }),
+      ),
+    ).toEqual(['root']);
+    expect(
+      selectStarTileNodeIds(
+        nodes,
+        view({ lodLevel: 4, cameraPosition: new THREE.Vector3(0, 0, 100) }),
+      ),
+    ).toEqual(['root']);
+  });
+
+  it('retarde le raffinement spatial tant que le voisinage stellaire reste comprimé', () => {
+    const nodes = [
+      renderNode('root', 0, 0, 18, ['child']),
+      renderNode('child', 0, 0, 5, [], 'root'),
+    ];
+
+    expect(
+      selectStarTileNodeIds(nodes, view({ lodLevel: 2, stellarNeighborhoodReveal: 0 })),
+    ).toEqual(['root']);
+    expect(
+      selectStarTileNodeIds(nodes, view({ lodLevel: 2, stellarNeighborhoodReveal: 1 })),
+    ).toEqual(['child']);
   });
 
   it('raffine les plus grandes cellules visibles selon le budget qualité', () => {
@@ -27,13 +69,13 @@ describe('sélection spatiale des tuiles stellaires', () => {
       renderNode('c-0', -30, 0, 5, [], 'root-c'),
     ];
 
-    expect(selectStarTileNodeIds(nodes, view({ lodLevel: 3, quality: 'low' }))).toEqual([
+    expect(selectStarTileNodeIds(nodes, view({ lodLevel: 2, quality: 'low' }))).toEqual([
       'a-0',
       'a-1',
       'b-0',
       'root-c',
     ]);
-    expect(selectStarTileNodeIds(nodes, view({ lodLevel: 3, quality: 'high' }))).toEqual([
+    expect(selectStarTileNodeIds(nodes, view({ lodLevel: 2, quality: 'high' }))).toEqual([
       'a-0',
       'a-1',
       'b-0',
@@ -48,9 +90,23 @@ describe('sélection spatiale des tuiles stellaires', () => {
       renderNode('small-child', 0, 0, 0.1, [], 'small'),
     ];
 
-    expect(selectStarTileNodeIds(nodes, view({ lodLevel: 3, quality: 'high' }))).toEqual([
+    expect(selectStarTileNodeIds(nodes, view({ lodLevel: 2, quality: 'high' }))).toEqual([
       'leaf',
       'small',
+    ]);
+  });
+
+  it('ne raffine pas une grande sphère dont le centre reste hors écran', () => {
+    const nodes = [
+      renderNode('root-visible', 0, 0, 18, ['visible-child']),
+      renderNode('root-offscreen', 150, 0, 100, ['offscreen-child']),
+      renderNode('visible-child', 0, 0, 5, [], 'root-visible'),
+      renderNode('offscreen-child', 150, 0, 5, [], 'root-offscreen'),
+    ];
+
+    expect(selectStarTileNodeIds(nodes, view({ lodLevel: 2, quality: 'high' }))).toEqual([
+      'root-offscreen',
+      'visible-child',
     ]);
   });
 
@@ -64,7 +120,7 @@ describe('sélection spatiale des tuiles stellaires', () => {
       renderNode('c-0', 0, 0, 5, [], 'root-c'),
     ];
 
-    expect(selectStarTileNodeIds(nodes, view({ lodLevel: 3, quality: 'low' }))).toEqual([
+    expect(selectStarTileNodeIds(nodes, view({ lodLevel: 2, quality: 'low' }))).toEqual([
       'a-0',
       'b-0',
       'root-c',
@@ -77,7 +133,7 @@ describe('sélection spatiale des tuiles stellaires', () => {
     expect(
       selectStarTileNodeIds(
         nodes,
-        view({ lodLevel: 4, worldOffset: new THREE.Vector3(-500, 0, 0) }),
+        view({ lodLevel: 2, worldOffset: new THREE.Vector3(-500, 0, 0) }),
       ),
     ).toEqual(['shifted']);
   });
@@ -96,13 +152,14 @@ describe('sélection spatiale des tuiles stellaires', () => {
     camera.position.set(1, 2, 100);
     camera.lookAt(0, 0, 0);
     camera.updateMatrixWorld();
-    const snapshot = createStarTileView(camera, 900, 3, 'medium', new THREE.Vector3(4, 5, 6));
+    const snapshot = createStarTileView(camera, 900, 2, 'medium', new THREE.Vector3(4, 5, 6), 2);
 
     camera.position.set(9, 9, 9);
     expect(snapshot.cameraPosition.toArray()).toEqual([1, 2, 100]);
     expect(snapshot.worldOffset.toArray()).toEqual([4, 5, 6]);
     expect(snapshot.viewportHeight).toBe(900);
     expect(snapshot.projectionScaleY).toBeGreaterThan(1);
+    expect(snapshot.stellarNeighborhoodReveal).toBe(1);
   });
 });
 
@@ -160,6 +217,7 @@ function index(): StarTileIndex {
     sourceStarCount: 2,
     clusterCount: 1,
     cellSizeParsec: 160,
+    representation: 'aggregate-cell',
     url: '/root.json',
   };
   const child: StarTileIndexNode = {
@@ -174,18 +232,39 @@ function index(): StarTileIndex {
     sourceStarCount: 1,
     clusterCount: 1,
     cellSizeParsec: 40,
+    representation: 'sampled-source',
     url: '/child.json',
   };
 
   return {
-    version: '2.0.0',
+    version: '4.0.0',
     sourceCatalog: 'fixture',
     sourceStarCount: 2,
     referenceEpochJulianDay: 2_451_545,
     referenceFrame: 'equatorial-j2000',
     distanceUnit: 'parsec',
+    magnitudeBand: 'johnson-v',
+    colorIndexSystem: 'johnson-b-v',
+    source: {
+      name: 'Fixture',
+      url: 'https://example.test/fixture',
+      doi: null,
+      credit: 'Fixture',
+      retrievedAt: '2026-08-28T00:00:00.000Z',
+      query: 'fixture',
+    },
+    selection: {
+      maximumDistanceParsec: 1,
+      maximumApparentMagnitude: 12,
+      minimumParallaxOverError: 10,
+    },
+    sampling: {
+      method: 'brightest-plus-deterministic-uniform',
+      maximumSamplesPerLeaf: 96,
+      brightestSamplesPerLeaf: 32,
+    },
     scientificConfidence: 'calculated',
-    representation: 'illustrative-aggregation',
+    representation: 'hierarchical-aggregation-with-deterministic-samples',
     rootIds: ['root'],
     nodes: [root, child],
   };

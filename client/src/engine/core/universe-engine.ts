@@ -100,7 +100,10 @@ export class UniverseEngine {
     handleCameraSettled: (distance, source) => this.handleCameraSettled(distance, source),
     isObjectVisible: (objectId) => {
       if (this.universeScene?.hasConstellation(objectId)) {
-        return this.displayOptions.showConstellations;
+        return (
+          this.displayOptions.showConstellations &&
+          (this.universeScene.isCatalogObjectVisibleForLabels(objectId) ?? true)
+        );
       }
 
       const registry = this.objectRuntime.getRegistry(objectId);
@@ -299,6 +302,7 @@ export class UniverseEngine {
     getQuality: () => this.displayOptions.quality,
     getTargetId: () => this.targetId,
     getSelectedId: () => this.selectedId,
+    followCurrentTarget: () => this.followCurrentTarget(),
     preloadTempelFilamentSpines: () => this.preloadTempelFilamentSpines(),
     ensureTempelFilamentSpines: () => this.ensureTempelFilamentSpines(),
   });
@@ -308,6 +312,7 @@ export class UniverseEngine {
     {
       getQuality: () => this.displayOptions.quality,
       getCurrentTime: () => this.timeController.currentTime,
+      updateCameraGuide: () => this.navigationRuntime.updateCameraGuide(this.cameraController),
       emitLodChanged: (level) => this.emit({ type: 'lod-changed', level }),
     },
   );
@@ -325,6 +330,7 @@ export class UniverseEngine {
     getTargetId: () => this.targetId,
     getSelectedId: () => this.selectedId,
     getQuality: () => this.displayOptions.quality,
+    getCameraDistance: () => this.cameraController?.distanceToTarget ?? 0,
     labelsAllowed: () => this.solarEclipsePresentation.labelsAllowed,
     isObserverModeActive: () => this.cameraController?.observerPresentationActive ?? false,
     isObserverSkyObject: (objectId) =>
@@ -336,8 +342,23 @@ export class UniverseEngine {
     getRegistry: (objectId) => this.objectRuntime.getRegistry(objectId),
     isCameraTransitioning: () => this.cameraController?.isTransitioning ?? false,
     setLabelsTransitioning: (transitioning) => this.labelManager?.setTransitioning(transitioning),
-    renderLabels: (camera, readWorldPosition, lodLevel, activeObjectId) =>
-      this.labelManager?.render(camera, readWorldPosition, lodLevel, activeObjectId),
+    renderLabels: (
+      camera,
+      readWorldPosition,
+      lodLevel,
+      activeObjectId,
+      stellarNeighborhoodReveal,
+      galacticContextLabelOpacity,
+    ) =>
+      this.labelManager?.render(
+        camera,
+        readWorldPosition,
+        lodLevel,
+        activeObjectId,
+        undefined,
+        stellarNeighborhoodReveal,
+        galacticContextLabelOpacity,
+      ),
     clearLabels: () => this.labelManager?.clear(),
   });
   private readonly frameRuntime = new UniverseFrameRuntime(
@@ -401,7 +422,12 @@ export class UniverseEngine {
       const universeScene = this.universeScene;
 
       return renderer && camera && universeScene && this.objectRuntime.primaryRegistry
-        ? { renderer, camera, universeScene }
+        ? {
+            renderer,
+            camera,
+            universeScene,
+            getGaiaPresentationStats: () => universeScene.getGaiaPresentationStats(camera),
+          }
         : null;
     },
     getCameraTarget: () => this.cameraController?.controls.target ?? null,
@@ -900,6 +926,7 @@ export class UniverseEngine {
         deltaY,
         pointer,
         metadata.continuesWheelAnchor !== true,
+        metadata.continuesWheelGesture !== true,
       );
 
       return 'retain-wheel-anchor';
@@ -920,6 +947,7 @@ export class UniverseEngine {
           deltaY,
           pointer,
           metadata.continuesWheelAnchor !== true,
+          metadata.continuesWheelGesture !== true,
         ),
     );
 
@@ -957,14 +985,19 @@ export class UniverseEngine {
     const controller = this.cameraController;
 
     if (!controller) {
+      this.viewController.cancelPendingSelection();
+
       return;
     }
     // CameraZoomController publishes `zoom` synchronously, before the navigation runtime can hand
     // the journey to its next scale target. Its current object can therefore be temporarily out of
     // frame even though the same wheel transaction is still using it as a reversible context.
     if (source !== 'zoom' && this.releaseNavigationTargetOutsideViewport(controller)) {
+      this.viewController.cancelPendingSelection();
+
       return;
     }
+    this.viewController.handleCameraSettled(source);
     if (source !== 'pinch' || controller.isTransitioning) {
       return;
     }

@@ -19,6 +19,7 @@ describe('LocalSpaceEnvironmentVisual', () => {
       scientificConfidence: 'illustrative',
       physicalPhenomenon: 'integrated-milky-way-light-and-dust',
       sourceCredit: 'ESO/S. Brunier',
+      displayGrade: 'eso-photographic-neutral-warm-v4',
     });
     expect(visual.coronaTexture.userData['visualLayers']).toEqual([
       'warmCore',
@@ -33,6 +34,13 @@ describe('LocalSpaceEnvironmentVisual', () => {
     });
 
     expect(visual.galacticBandMaterial.uniforms['detailStrength']!.value).toBe(1);
+    expect(visual.galacticBandMaterial.uniforms['panoramaBlend']!.value).toBe(0);
+    expect(visual.galacticBandMaterial.fragmentShader).toContain(
+      'photographicMix = panoramaReady * panoramaBlend',
+    );
+    expect(visual.galacticBandMaterial.fragmentShader).toContain(
+      'mix(panoramaGray, panoramaColor, 1.12)',
+    );
     expect(visual.zodiacalMaterial.uniforms['grainStrength']!.value).toBe(1);
     expect(visual.coronaMaterial.color.g).toBeCloseTo(0.82 + 0.82 * 0.14);
     expect(visual.coronaMaterial.color.b).toBeCloseTo(0.66 + 0.82 * 0.26);

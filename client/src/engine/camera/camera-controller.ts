@@ -27,8 +27,18 @@ import { zoomScaleFromWheelDelta } from './zoom-physics';
 
 export type { CameraZoomDiagnostics } from './camera-zoom-controller';
 export type CameraSettledSource = 'interaction' | 'pinch' | 'transition' | 'zoom';
+export type ViewElevationGuideMode = 'damped' | 'distance';
 
 const PLANETARY_SAFE_FRAMING_ELEVATION = 0.2;
+const GUIDED_VIEW_DAMPING = 2.8;
+const DISTANCE_GUIDED_VIEW_DAMPING = 4.5;
+const DISTANCE_GUIDED_VIEW_MAXIMUM_ANGULAR_SPEED = THREE.MathUtils.degToRad(12);
+const DISTANCE_GUIDED_TARGET_MAXIMUM_ANGULAR_SPEED = THREE.MathUtils.degToRad(8);
+const DISTANCE_GUIDED_MAXIMUM_FRAME_DELTA_SECONDS = 1 / 30;
+const DIRECT_FOCUS_SCALE_JOURNEY_MINIMUM_DECADES = 1;
+const DIRECT_FOCUS_SCALE_JOURNEY_BASE_DURATION_SECONDS = 1.15;
+const DIRECT_FOCUS_SCALE_JOURNEY_SECONDS_PER_DECADE = 1.65;
+const DIRECT_FOCUS_SCALE_JOURNEY_MAXIMUM_DURATION_SECONDS = 7;
 
 export class CameraController {
   public readonly controls: OrbitControls;
@@ -43,6 +53,11 @@ export class CameraController {
   private readonly observerTransitionStartQuaternion = new THREE.Quaternion();
   private readonly observerTransitionEndQuaternion = new THREE.Quaternion();
   private readonly targetApproachPosition = new THREE.Vector3();
+  private readonly guidedViewOffset = new THREE.Vector3();
+  private readonly guidedHorizontalDirection = new THREE.Vector3();
+  private readonly distanceGuidedTarget = new THREE.Vector3();
+  private readonly distanceGuidedAppliedTarget = new THREE.Vector3();
+  private readonly distanceGuidedTargetDelta = new THREE.Vector3();
   private targetInteractionActive = false;
   private targetApproachMinimumDistance: number | null = null;
   private targetApproachUsesPrecisionFloor = false;
@@ -52,6 +67,16 @@ export class CameraController {
   private observerTransitionPending = false;
   private observerSkyContentPreserved = false;
   private observerFraming = DEFAULT_EARTH_OBSERVER_FRAMING;
+  private viewElevationGuide: number | null = null;
+  private viewElevationGuideMode: ViewElevationGuideMode = 'damped';
+  /** Reserved for resuming a combined drag + wheel gesture without snapping on release. */
+  private distanceGuidedTargetActive = false;
+  private distanceGuidedViewCatchUpActive = false;
+  private viewGuideSuppressed = false;
+  private orbitInteractionActive = false;
+  private distanceGuideRequestedDuringOrbitInteraction = false;
+  private wheelZoomDuringOrbitInteraction = false;
+  private pendingDistanceGuideElevation = 0;
 
   constructor(
     public readonly camera: THREE.PerspectiveCamera,
@@ -74,8 +99,11 @@ export class CameraController {
     this.transitionController = new CameraTransitionController(camera, this.controls, () =>
       this.handleTransitionCompleted(),
     );
-    this.zoomController = new CameraZoomController(camera, this.controls, (distance) =>
-      this.onCameraSettled(distance, 'zoom'),
+    this.zoomController = new CameraZoomController(
+      camera,
+      this.controls,
+      (distance) => this.onCameraSettled(distance, 'zoom'),
+      () => !this.orbitInteractionActive,
     );
     this.targetTracker = new CameraTargetTracker(
       camera,
@@ -251,11 +279,58 @@ export class CameraController {
     });
   }
 
-  public follow(position: THREE.Vector3): void {
+  public follow(
+    position: THREE.Vector3,
+    viewElevation?: number,
+    viewElevationMode: ViewElevationGuideMode = 'damped',
+  ): void {
     if (this.observerControl.active) {
       return;
     }
-    this.targetTracker.follow(position);
+    const requestedViewElevation =
+      viewElevation === undefined ? null : THREE.MathUtils.clamp(Math.abs(viewElevation), 0, 0.96);
+    const requestsDistanceGuide =
+      requestedViewElevation !== null && viewElevationMode === 'distance';
+
+    this.viewElevationGuide = this.viewGuideSuppressed ? null : requestedViewElevation;
+    this.viewElevationGuideMode = viewElevationMode;
+    const suppressedDistanceGuide = requestsDistanceGuide && this.viewGuideSuppressed;
+    const usesDistanceGuide = this.viewElevationGuide !== null && viewElevationMode === 'distance';
+
+    if (this.orbitInteractionActive || suppressedDistanceGuide) {
+      // OrbitControls owns the camera while the pointer is held. Only advance the logical
+      // tracking baseline here: applying the automatic Galactic pivot in the same frame as a
+      // user rotation makes the two movements add up as a visible cut. Keeping the baseline
+      // current also prevents a catch-up jump when the pointer is released.
+      this.distanceGuidedTargetActive = false;
+      this.distanceGuidedViewCatchUpActive = false;
+      this.targetTracker.track(position);
+      if (this.orbitInteractionActive && requestsDistanceGuide) {
+        // Keep the latest intended pose so a combined drag + wheel can resume its journey after
+        // the pointer is released. A plain manual rotation does not set the accompanying wheel
+        // flag and therefore remains a persistent user override.
+        this.distanceGuideRequestedDuringOrbitInteraction = true;
+        this.distanceGuidedTarget.copy(position);
+        this.pendingDistanceGuideElevation = requestedViewElevation;
+      }
+    } else if (usesDistanceGuide) {
+      this.distanceGuidedTarget.copy(position);
+      if (!this.distanceGuidedTargetActive) {
+        // During an ordinary wheel journey the Galactic pose must be a pure function of distance.
+        // A temporal catch-up keeps moving the sky after the wheel stops and reverses late when the
+        // user zooms back out, which reads as stars bouncing. The distance-domain curves already
+        // provide the spatial easing, so apply their pivot synchronously.
+        this.targetTracker.rebase(position);
+        this.distanceGuidedAppliedTarget.copy(position);
+      }
+    } else if (this.distanceGuidedTargetActive) {
+      // Finish only the bounded catch-up created by a combined drag + wheel gesture before
+      // returning to ordinary tracking. Dropping that exceptional guide immediately would apply
+      // its residual centre-to-Sun offset in one frame.
+      this.distanceGuidedTarget.copy(position);
+    } else {
+      this.targetTracker.follow(position);
+    }
     if (this.targetApproachMinimumDistance !== null) {
       this.targetApproachPosition.copy(position);
       this.updateTargetApproachConstraint(this.targetApproachMinimumDistance);
@@ -270,7 +345,9 @@ export class CameraController {
 
       return;
     }
+    this.updateDistanceGuidedTarget(deltaSeconds);
     this.zoomController.update(deltaSeconds, this.transitionController.active);
+    this.updateGuidedView(deltaSeconds);
 
     this.controls.panSpeed = THREE.MathUtils.clamp(this.distanceToTarget / 80, 0.25, 5);
     this.controls.update();
@@ -297,13 +374,23 @@ export class CameraController {
     this.zoomController.zoomBy(factor, { traverseMinimum });
   }
 
-  public zoomSemantically(deltaY: number, logarithmicRateMultiplier = 1): void {
+  public zoomSemantically(
+    deltaY: number,
+    logarithmicRateMultiplier = 1,
+    allowMinimumTraversal = true,
+  ): void {
     if (this.observerControl.zoomBy(zoomScaleFromWheelDelta(deltaY))) {
       return;
     }
     this.completeReferenceFrameTransition();
+    if (this.orbitInteractionActive) {
+      this.wheelZoomDuringOrbitInteraction = true;
+    } else {
+      this.viewGuideSuppressed = false;
+    }
     this.transitionController.cancel();
     this.zoomController.zoomSemantically(deltaY, {
+      allowMinimumTraversal,
       logarithmicRateMultiplier,
       traverseMinimum: !this.hasActiveTarget,
     });
@@ -318,12 +405,22 @@ export class CameraController {
 
   public adoptZoomAnchor(position: THREE.Vector3): void {
     this.completeReferenceFrameTransition();
-    this.zoomController.adoptAnchor(position);
+    this.zoomController.adoptAnchor(
+      this.distanceGuidedTargetActive
+        ? this.distanceGuidedAppliedTarget
+        : this.viewGuideSuppressed
+          ? this.controls.target
+          : position,
+    );
   }
 
   public adoptZoomPointer(x: number, y: number): void {
     this.completeReferenceFrameTransition();
-    this.zoomController.adoptPointer(x, y);
+    if (this.orbitInteractionActive) {
+      this.zoomController.adoptAnchor(this.controls.target);
+    } else {
+      this.zoomController.adoptPointer(x, y);
+    }
   }
 
   public setNavigationConstraints(object: SpaceObject): void {
@@ -335,6 +432,10 @@ export class CameraController {
 
   public trackTarget(position: THREE.Vector3, object: SpaceObject): void {
     this.deactivateObserverModePreservingView();
+    // An explicitly adopted object supersedes any residual Galactic camera guide. Leaving the
+    // guide active makes its next applied Solar pivot look like movement of the newly tracked
+    // star, translating both camera and orbit target by the full star-to-Sun separation.
+    this.clearViewGuide();
     // A new object approach is a new reversible journey. Keeping inward segments from the
     // previous target would make the first reversal retrace the wrong pivot.
     this.zoomController.resetJourney();
@@ -352,6 +453,8 @@ export class CameraController {
   public shiftTrackedPosition(originShift: THREE.Vector3): void {
     this.targetTracker.shift(originShift);
     this.zoomController.shiftOrigin(originShift);
+    this.distanceGuidedTarget.sub(originShift);
+    this.distanceGuidedAppliedTarget.sub(originShift);
     if (this.targetApproachActive) {
       this.targetApproachPosition.sub(originShift);
     }
@@ -403,11 +506,18 @@ export class CameraController {
     this.clearTargetApproach();
     this.controls.minDistance = getMinimumNavigationDistance(object);
     this.setTargetInteractionActive(true);
-    this.targetTracker.track(position);
+    // A logical LOD hand-off must keep the current Galactic pivot as its tracking baseline.
+    // `position` already contains the distance-domain Galactic approach when that choreography is
+    // active; recording the canonical destination instead would make the next follow() compensate
+    // the whole centre-to-system offset in one frame.
+    this.targetTracker.track(
+      this.distanceGuidedTargetActive ? this.distanceGuidedAppliedTarget : position,
+    );
   }
 
   public adoptZoomTarget(position: THREE.Vector3, object: SpaceObject): void {
     this.deactivateObserverModePreservingView();
+    this.clearViewGuide();
     this.zoomController.resetJourney();
     this.transitionController.cancel();
     this.clearTargetApproach();
@@ -425,6 +535,7 @@ export class CameraController {
     this.observerTransitionPending = false;
     this.observerSkyContentPreserved = false;
     this.observerFraming = DEFAULT_EARTH_OBSERVER_FRAMING;
+    this.clearViewGuide();
   }
 
   public releaseTarget(preserveTraversalDistance = false): void {
@@ -454,20 +565,29 @@ export class CameraController {
     object: SpaceObject,
   ): void {
     this.zoomController.reset();
+    this.clearViewGuide();
     this.clearTargetApproach();
     this.targetTracker.reset(position);
     this.setTargetInteractionActive(true);
     const endCamera = position.clone().add(direction.multiplyScalar(distance));
     const travelDistance = this.controls.target.distanceTo(position);
+    const transitionDuration = resolveDirectFocusDuration(
+      this.distanceToTarget,
+      distance,
+      travelDistance,
+    );
 
     this.controls.minDistance = getMinimumNavigationDistance(object);
     this.transitionController.start(endCamera, position, {
-      duration: THREE.MathUtils.clamp(0.85 + Math.log10(1 + travelDistance) * 0.22, 0.85, 2.2),
+      duration: transitionDuration,
       logarithmicDistance: true,
     });
   }
 
   private readonly cancelTransition = (): void => {
+    this.orbitInteractionActive = true;
+    this.distanceGuideRequestedDuringOrbitInteraction = false;
+    this.wheelZoomDuringOrbitInteraction = false;
     this.completeReferenceFrameTransition();
     this.transitionController.cancel();
     this.zoomController.cancelAnchor();
@@ -476,11 +596,32 @@ export class CameraController {
     this.observerTransitionPending = false;
     this.observerSkyContentPreserved = false;
     this.observerFraming = DEFAULT_EARTH_OBSERVER_FRAMING;
+    this.viewElevationGuide = null;
+    this.distanceGuidedTargetActive = false;
+    this.distanceGuidedViewCatchUpActive = false;
+    this.viewGuideSuppressed = true;
   };
 
   private readonly handleInteractionEnd = (): void => {
     const source = this.pinchInteractionActive ? 'pinch' : 'interaction';
+    const resumesCombinedDistanceGuide =
+      this.distanceGuideRequestedDuringOrbitInteraction && this.wheelZoomDuringOrbitInteraction;
 
+    this.orbitInteractionActive = false;
+    this.distanceGuideRequestedDuringOrbitInteraction = false;
+    this.wheelZoomDuringOrbitInteraction = false;
+    if (resumesCombinedDistanceGuide) {
+      // The pointer has released ownership of the camera. Resume from the exact visible pivot,
+      // not from the logical target adopted during the LOD hand-off, so the convergence remains
+      // bounded and continuous instead of leaving the Sun stranded off-screen.
+      this.viewGuideSuppressed = false;
+      this.viewElevationGuide = this.pendingDistanceGuideElevation;
+      this.viewElevationGuideMode = 'distance';
+      this.distanceGuidedAppliedTarget.copy(this.controls.target);
+      this.targetTracker.track(this.distanceGuidedAppliedTarget);
+      this.distanceGuidedTargetActive = true;
+      this.distanceGuidedViewCatchUpActive = true;
+    }
     this.pinchInteractionActive = false;
     this.onCameraSettled(this.distanceToTarget, source);
   };
@@ -490,6 +631,103 @@ export class CameraController {
       this.pinchInteractionActive = true;
     }
   };
+
+  private updateGuidedView(deltaSeconds: number): void {
+    const elevation = this.viewElevationGuide;
+
+    if (
+      elevation === null ||
+      deltaSeconds <= 0 ||
+      this.transitionController.active ||
+      this.observerTransitionPending
+    ) {
+      return;
+    }
+    this.guidedViewOffset.copy(this.camera.position).sub(this.controls.target);
+    const distance = this.guidedViewOffset.length();
+
+    if (distance <= Number.EPSILON) {
+      return;
+    }
+    const verticalSign = this.guidedViewOffset.y < 0 ? -1 : 1;
+
+    this.guidedHorizontalDirection.set(this.guidedViewOffset.x, 0, this.guidedViewOffset.z);
+    if (this.guidedHorizontalDirection.lengthSq() <= Number.EPSILON) {
+      this.guidedHorizontalDirection.set(0, 0, 1);
+    } else {
+      this.guidedHorizontalDirection.normalize();
+    }
+    const currentElevationAngle = Math.asin(
+      THREE.MathUtils.clamp(Math.abs(this.guidedViewOffset.y) / distance, 0, 1),
+    );
+    const targetElevationAngle = Math.asin(elevation);
+    const catchesUpAfterInteraction =
+      this.viewElevationGuideMode === 'distance' && this.distanceGuidedViewCatchUpActive;
+    const guidedDeltaSeconds = catchesUpAfterInteraction
+      ? Math.min(deltaSeconds, DISTANCE_GUIDED_MAXIMUM_FRAME_DELTA_SECONDS)
+      : deltaSeconds;
+    const damping =
+      this.viewElevationGuideMode === 'distance'
+        ? DISTANCE_GUIDED_VIEW_DAMPING
+        : GUIDED_VIEW_DAMPING;
+    let elevationAngleDelta =
+      this.viewElevationGuideMode === 'distance' && !catchesUpAfterInteraction
+        ? targetElevationAngle - currentElevationAngle
+        : (targetElevationAngle - currentElevationAngle) *
+          (1 - Math.exp(-damping * guidedDeltaSeconds));
+
+    if (catchesUpAfterInteraction) {
+      const maximumAngularStep = DISTANCE_GUIDED_VIEW_MAXIMUM_ANGULAR_SPEED * guidedDeltaSeconds;
+
+      elevationAngleDelta = THREE.MathUtils.clamp(
+        elevationAngleDelta,
+        -maximumAngularStep,
+        maximumAngularStep,
+      );
+    }
+    const nextElevationAngle = currentElevationAngle + elevationAngleDelta;
+
+    this.guidedHorizontalDirection.multiplyScalar(distance * Math.cos(nextElevationAngle));
+    this.guidedHorizontalDirection.y = verticalSign * distance * Math.sin(nextElevationAngle);
+    this.camera.position.copy(this.controls.target).add(this.guidedHorizontalDirection);
+    if (catchesUpAfterInteraction && Math.abs(targetElevationAngle - nextElevationAngle) <= 1e-6) {
+      this.distanceGuidedViewCatchUpActive = false;
+    }
+  }
+
+  private updateDistanceGuidedTarget(deltaSeconds: number): void {
+    if (!this.distanceGuidedTargetActive) {
+      return;
+    }
+    this.distanceGuidedTargetDelta
+      .copy(this.distanceGuidedTarget)
+      .sub(this.distanceGuidedAppliedTarget);
+    const targetDeltaLength = this.distanceGuidedTargetDelta.length();
+    const guidedDeltaSeconds = Math.min(deltaSeconds, DISTANCE_GUIDED_MAXIMUM_FRAME_DELTA_SECONDS);
+    const maximumTargetStep =
+      this.distanceToTarget *
+      Math.tan(DISTANCE_GUIDED_TARGET_MAXIMUM_ANGULAR_SPEED * guidedDeltaSeconds);
+    const reachesTarget = targetDeltaLength <= maximumTargetStep;
+
+    if (!reachesTarget) {
+      this.distanceGuidedTargetDelta.setLength(maximumTargetStep);
+    }
+    this.distanceGuidedAppliedTarget.add(this.distanceGuidedTargetDelta);
+    this.targetTracker.follow(this.distanceGuidedAppliedTarget);
+    if (reachesTarget) {
+      this.distanceGuidedTargetActive = false;
+    }
+  }
+
+  private clearViewGuide(): void {
+    this.viewElevationGuide = null;
+    this.viewElevationGuideMode = 'damped';
+    this.distanceGuidedTargetActive = false;
+    this.distanceGuidedViewCatchUpActive = false;
+    this.viewGuideSuppressed = false;
+    this.distanceGuideRequestedDuringOrbitInteraction = false;
+    this.wheelZoomDuringOrbitInteraction = false;
+  }
 
   private completeReferenceFrameTransition(): void {
     this.transitionController.completePendingReferenceFrame();
@@ -631,4 +869,38 @@ export class CameraController {
     this.controls.touches.ONE = THREE.TOUCH.ROTATE;
     this.controls.touches.TWO = THREE.TOUCH.DOLLY_PAN;
   }
+}
+
+function resolveDirectFocusDuration(
+  startDistance: number,
+  endDistance: number,
+  travelDistance: number,
+): number {
+  const spatialDuration = THREE.MathUtils.clamp(
+    0.85 + Math.log10(1 + travelDistance) * 0.22,
+    0.85,
+    2.2,
+  );
+  const logarithmicScaleSpan =
+    Number.isFinite(startDistance) &&
+    Number.isFinite(endDistance) &&
+    startDistance > endDistance &&
+    endDistance > 0
+      ? Math.log10(startDistance / endDistance)
+      : 0;
+
+  if (logarithmicScaleSpan < DIRECT_FOCUS_SCALE_JOURNEY_MINIMUM_DECADES) {
+    return spatialDuration;
+  }
+
+  // This is illustrative camera pacing: a direct search must leave enough screen time for the
+  // same scale-dependent reference-frame choreography that a wheel journey reveals progressively.
+  return Math.max(
+    spatialDuration,
+    Math.min(
+      DIRECT_FOCUS_SCALE_JOURNEY_BASE_DURATION_SECONDS +
+        logarithmicScaleSpan * DIRECT_FOCUS_SCALE_JOURNEY_SECONDS_PER_DECADE,
+      DIRECT_FOCUS_SCALE_JOURNEY_MAXIMUM_DURATION_SECONDS,
+    ),
+  );
 }

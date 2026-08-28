@@ -21,23 +21,34 @@ describe('LocalVolumeDepthBackdrop', () => {
       appearanceConfidence: 'illustrative',
       sceneRole: 'non-interactive-deep-sky-background',
       depthProjection: 'catalog-direction-preserving-radial-compression',
-      visualProfile: 'luminous-catalog-deep-field',
+      visualProfile: 'inclined-multilobed-unresolved-group-light',
       source: 'Cosmicflows-4 · Tully et al. (2023)',
     });
     expect(geometry.getAttribute('position').count).toBe(8);
     expect(geometry.getAttribute('pointColor').count).toBe(8);
     expect(geometry.getAttribute('pointSize').count).toBe(8);
     expect(geometry.getAttribute('pointAlpha').count).toBe(8);
-    expect(geometry.getAttribute('orientation')).toBeUndefined();
-    expect(geometry.getAttribute('axisRatio')).toBeUndefined();
+    expect(geometry.getAttribute('groupOrientation').count).toBe(8);
+    expect(geometry.getAttribute('groupAxisRatio').count).toBe(8);
+    expect(geometry.getAttribute('groupProfile').count).toBe(8);
+    expect(geometry.getAttribute('groupProminence').count).toBe(8);
+    expect(geometry.getAttribute('groupSeed').count).toBe(8);
     expect(geometry.drawRange.count).toBe(4);
-    expect(backdrop.points.material.fragmentShader).toContain('float radius = length(point)');
-    expect(backdrop.points.material.fragmentShader).not.toContain('mat2(');
+    expect(backdrop.points.material.fragmentShader).toContain('float secondaryLobe');
+    expect(backdrop.points.material.fragmentShader).toContain('mat2(');
     expect(backdrop.points.material.fragmentShader).toContain('if (radius > 1.0)');
-    expect(backdrop.points.material.vertexShader).toContain('max(1.15');
-    expect(backdrop.points.material.fragmentShader).toContain('0.82 + core * 0.78');
-    expect(backdrop.points.material.fragmentShader).not.toContain('exp(');
+    expect(backdrop.points.material.vertexShader).toContain('max(2.4');
+    expect(backdrop.points.material.fragmentShader).toContain('float diffuseLight = exp(');
+    expect(backdrop.points.material.blending).toBe(THREE.NormalBlending);
     expect(backdrop.visibleCount).toBe(0);
+
+    const sizes = geometry.getAttribute('pointSize');
+    const axisRatios = geometry.getAttribute('groupAxisRatio');
+
+    expect(minimumAttributeValue(sizes)).toBeGreaterThanOrEqual(3.1);
+    expect(maximumAttributeValue(sizes)).toBeGreaterThan(3.5);
+    expect(minimumAttributeValue(axisRatios)).toBeGreaterThanOrEqual(0.3);
+    expect(maximumAttributeValue(axisRatios)).toBeLessThanOrEqual(0.92);
 
     backdrop.setQuality('low');
     expect(geometry.drawRange.count).toBe(1);
@@ -176,4 +187,28 @@ function registry(count = 8, duplicateObjectIds = false): CosmicGroupCatalogRegi
   };
 
   return new CosmicGroupCatalogRegistry(catalog, new CoordinateSystem());
+}
+
+function minimumAttributeValue(
+  attribute: THREE.BufferAttribute | THREE.InterleavedBufferAttribute,
+): number {
+  let minimum = Number.POSITIVE_INFINITY;
+
+  for (let index = 0; index < attribute.count; index += 1) {
+    minimum = Math.min(minimum, attribute.getX(index));
+  }
+
+  return minimum;
+}
+
+function maximumAttributeValue(
+  attribute: THREE.BufferAttribute | THREE.InterleavedBufferAttribute,
+): number {
+  let maximum = Number.NEGATIVE_INFINITY;
+
+  for (let index = 0; index < attribute.count; index += 1) {
+    maximum = Math.max(maximum, attribute.getX(index));
+  }
+
+  return maximum;
 }

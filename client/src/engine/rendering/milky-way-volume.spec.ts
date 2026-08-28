@@ -1,245 +1,160 @@
 import * as THREE from 'three';
+import { calculateMilkyWaySceneScale } from '../coordinates/galaxy-scale-model';
 import {
   createMilkyWayVolumeSample,
-  getMilkyWayCinematicProfile,
-  MILKY_WAY_ATLAS_URL,
   MilkyWayVolume,
   sampleMilkyWayVolume,
 } from './milky-way-volume';
 
 describe('MilkyWayVolume', () => {
-  it('augmente la profondeur, la poussière et le halo sans ajouter de maillage', () => {
-    const low = getMilkyWayCinematicProfile('low');
-    const medium = getMilkyWayCinematicProfile('medium');
-    const high = getMilkyWayCinematicProfile('high');
-
-    expect(low.parallaxStrength).toBeLessThan(medium.parallaxStrength);
-    expect(medium.parallaxStrength).toBeLessThan(high.parallaxStrength);
-    expect(low.dustAbsorption).toBeLessThan(medium.dustAbsorption);
-    expect(medium.dustAbsorption).toBeLessThan(high.dustAbsorption);
-    expect(low.glowStrength).toBeLessThan(medium.glowStrength);
-    expect(medium.glowStrength).toBeLessThan(high.glowStrength);
-    expect(low.colorGradeStrength).toBeLessThan(high.colorGradeStrength);
-  });
-
-  it('fait apparaître puis disparaître la galaxie sans coupure de distance', () => {
+  it('maintient le même objet procédural du Groupe local à l’échelle galactique', () => {
     const sample = createMilkyWayVolumeSample();
 
+    expect(sampleMilkyWayVolume(0, sample).opacity).toBe(0);
+    expect(sample.immersionOpacity).toBeCloseTo(0.0736, 6);
+
+    sampleMilkyWayVolume(420, sample);
+    expect(sample.opacity).toBe(0);
+    expect(sample.immersionOpacity).toBeGreaterThan(0.15);
+    expect(sample.immersionOpacity).toBeLessThan(0.16);
+
     sampleMilkyWayVolume(1_400, sample);
-    expect(sample.opacity).toBe(0);
-    expect(sample.scale).toBe(1);
+    expect(sample.opacity).toBeGreaterThan(0.001);
+    expect(sample.opacity).toBeLessThan(0.002);
+    expect(sample.immersionOpacity).toBeGreaterThan(0.03);
+    expect(sample.immersionOpacity).toBeLessThan(0.04);
 
-    sampleMilkyWayVolume(9_600, sample);
-    expect(sample.opacity).toBeCloseTo(0.92, 6);
-    expect(sample.scale).toBeCloseTo(1, 6);
+    expect(sampleMilkyWayVolume(1_800, sample).opacity).toBeGreaterThan(0.015);
+    expect(sample.opacity).toBeLessThan(0.016);
+    expect(sample.immersionOpacity).toBe(0);
 
-    sampleMilkyWayVolume(13_300, sample);
-    expect(sample.opacity).toBeGreaterThan(0);
-    expect(sample.opacity).toBeLessThan(0.92);
-    expect(sample.scale).toBeGreaterThan(0.16);
-    expect(sample.scale).toBeLessThan(1);
+    expect(sampleMilkyWayVolume(3_600, sample).opacity).toBeGreaterThan(0.207);
+    expect(sample.opacity).toBeLessThan(0.208);
+    expect(sample.immersionOpacity).toBe(0);
 
-    sampleMilkyWayVolume(14_500, sample);
-    expect(sample.opacity).toBeGreaterThan(0.15);
-    expect(sample.scale).toBeGreaterThan(0.28);
+    expect(sampleMilkyWayVolume(4_000, sample).opacity).toBeGreaterThan(0.27);
+    expect(sample.opacity).toBeLessThan(0.271);
 
-    sampleMilkyWayVolume(15_000, sample);
-    expect(sample.opacity).toBeGreaterThan(0.08);
+    for (const distance of [9_000, 9_600, 17_000, 120_000, 170_000]) {
+      expect(sampleMilkyWayVolume(distance, sample).opacity).toBeCloseTo(0.92, 6);
+      expect(sample.immersionOpacity).toBe(0);
+    }
 
-    sampleMilkyWayVolume(17_000, sample);
-    expect(sample.opacity).toBe(0);
-    expect(sample.scale).toBeCloseTo(0.16, 6);
+    expect(sampleMilkyWayVolume(5, sample).immersionOpacity).toBeCloseTo(0.0736, 6);
+    expect(sampleMilkyWayVolume(70, sample).immersionOpacity).toBeGreaterThan(0);
+    expect(sample.immersionOpacity).toBeLessThan(0.1);
+    expect(sampleMilkyWayVolume(150, sample).immersionOpacity).toBeGreaterThan(0.09);
+    expect(sample.immersionOpacity).toBeLessThan(0.1);
+    expect(sampleMilkyWayVolume(260, sample).immersionOpacity).toBeGreaterThan(0.11);
+    expect(sample.immersionOpacity).toBeLessThan(0.12);
+    expect(sampleMilkyWayVolume(520, sample).immersionOpacity).toBeCloseTo(0.16, 6);
+    expect(sampleMilkyWayVolume(900, sample).immersionOpacity).toBeGreaterThan(0.12);
+    expect(sample.immersionOpacity).toBeLessThan(0.13);
+    expect(sampleMilkyWayVolume(1_800, sample).immersionOpacity).toBe(0);
 
-    const before = sampleMilkyWayVolume(2_399, createMilkyWayVolumeSample()).opacity;
-    const after = sampleMilkyWayVolume(2_401, createMilkyWayVolumeSample()).opacity;
+    const overviewTransition = sampleMilkyWayVolume(235_000, sample).opacity;
 
-    expect(Math.abs(after - before)).toBeLessThan(0.002);
+    expect(overviewTransition).toBeGreaterThan(0);
+    expect(overviewTransition).toBeLessThan(0.92);
+    expect(sampleMilkyWayVolume(300_000, sample).opacity).toBe(0);
+    expect(sampleMilkyWayVolume(Number.POSITIVE_INFINITY, sample).opacity).toBe(0);
+    expect(sampleMilkyWayVolume(Number.NEGATIVE_INFINITY, sample).opacity).toBe(0);
     expect(sampleMilkyWayVolume(Number.NaN, sample).opacity).toBe(0);
     expect(sampleMilkyWayVolume(-1, sample).opacity).toBe(0);
-    expect(sampleMilkyWayVolume(Number.POSITIVE_INFINITY, sample)).toEqual({
-      opacity: 0,
-      scale: 0.16,
-    });
+    expect(sample.immersionOpacity).toBe(0);
+
+    const before = sampleMilkyWayVolume(1_399, createMilkyWayVolumeSample()).opacity;
+    const after = sampleMilkyWayVolume(1_401, createMilkyWayVolumeSample()).opacity;
+
+    expect(Math.abs(after - before)).toBeLessThan(0.002);
+    for (const boundary of [5, 260, 520, 1_200, 1_800, 9_000, 170_000, 300_000]) {
+      const beforeBoundary = sampleMilkyWayVolume(boundary - 0.01, createMilkyWayVolumeSample());
+      const afterBoundary = sampleMilkyWayVolume(boundary + 0.01, createMilkyWayVolumeSample());
+
+      expect(Math.abs(afterBoundary.opacity - beforeBoundary.opacity)).toBeLessThan(0.001);
+      expect(
+        Math.abs(afterBoundary.immersionOpacity - beforeBoundary.immersionOpacity),
+      ).toBeLessThan(0.001);
+    }
   });
 
-  it('construit un disque multicouche et un bulbe réellement volumique', () => {
-    const volume = new MilkyWayVolume(async () => new THREE.Texture(document.createElement('img')));
-    const base = volume.root.getObjectByName('milky-way-volume-disc-base');
-    const upper = volume.root.getObjectByName('milky-way-volume-disc-upper');
-    const lower = volume.root.getObjectByName('milky-way-volume-disc-lower');
-    const bulge = volume.root.getObjectByName('milky-way-volume-bulge');
-
-    expect(volume.root.userData['scientificConfidence']).toBe('illustrative');
-    expect(volume.root.userData['visualStructure']).toBe(
-      'asymmetric-continuous-four-arm-galactic-disc',
-    );
-    expect(volume.root.userData['atlasUrl']).toBe(MILKY_WAY_ATLAS_URL);
-    expect(volume.root.userData['depthTechnique']).toBe(
-      'domain-warped-atlas-parallax-with-dust-rifts',
-    );
-    expect(volume.root.userData['morphologyModel']).toBe(
-      'barred-spiral-with-two-major-and-two-minor-arms',
-    );
-    expect(base).toBeInstanceOf(THREE.Mesh);
-    expect(upper).toBeInstanceOf(THREE.Mesh);
-    expect(lower).toBeInstanceOf(THREE.Mesh);
-    expect(bulge).toBeInstanceOf(THREE.Mesh);
-    expect(base?.position.y).toBe(0);
-    expect(upper?.position.y).toBeGreaterThan(0);
-    expect(lower?.position.y).toBeLessThan(0);
-    expect(bulge?.scale.y).toBeGreaterThan(base?.scale.y ?? 0);
-    expect(volume.atlasStatus).toBe('idle');
-
-    volume.setQuality('low');
-    volume.dispose();
-  });
-
-  it('charge l’atlas une seule fois, configure sa colorimétrie et adapte les couches à la qualité', async () => {
-    const texture = new THREE.Texture(document.createElement('img'));
-    const loadAsync = vi
-      .spyOn(THREE.TextureLoader.prototype, 'loadAsync')
-      .mockResolvedValue(texture);
+  it('construit un seul volume procédural tridimensionnel', () => {
     const volume = new MilkyWayVolume();
+    const proceduralVolume = volume.root.getObjectByName('milky-way-procedural-density-volume');
 
-    const firstLoad = volume.ensureAtlas();
-    const secondLoad = volume.ensureAtlas();
-
-    expect(volume.atlasStatus).toBe('loading');
-    await expect(firstLoad).resolves.toBe(true);
-    await expect(secondLoad).resolves.toBe(true);
-    expect(loadAsync).toHaveBeenCalledOnce();
-    expect(loadAsync).toHaveBeenCalledWith(MILKY_WAY_ATLAS_URL);
-    expect(volume.atlasStatus).toBe('ready');
-    expect(texture.colorSpace).toBe(THREE.SRGBColorSpace);
-
-    volume.update(9_600, 10);
-    volume.setQuality('low');
-    expect(volume.visibleDiscLayerCount).toBe(1);
-    expect(texture.anisotropy).toBe(2);
-    const lowProfile = readCinematicUniforms(volume);
-
-    volume.setQuality('medium');
-    expect(volume.visibleDiscLayerCount).toBe(2);
-    expect(texture.anisotropy).toBe(8);
-    const mediumProfile = readCinematicUniforms(volume);
-
-    volume.setQuality('high');
-    expect(volume.visibleDiscLayerCount).toBe(3);
-    expect(texture.anisotropy).toBe(16);
-    expect(volume.drawMeshCount).toBe(4);
-    const highProfile = readCinematicUniforms(volume);
-
-    expect(lowProfile.parallaxStrength).toBeLessThan(mediumProfile.parallaxStrength);
-    expect(mediumProfile.parallaxStrength).toBeLessThan(highProfile.parallaxStrength);
-    expect(lowProfile.dustAbsorption).toBeLessThan(highProfile.dustAbsorption);
-    expect(lowProfile.glowStrength).toBeLessThan(highProfile.glowStrength);
-
-    const base = volume.root.getObjectByName('milky-way-volume-disc-base') as THREE.Mesh<
-      THREE.PlaneGeometry,
-      THREE.ShaderMaterial
-    >;
-
-    expect(base.material.fragmentShader).toContain('viewParallax');
-    expect(base.material.fragmentShader).toContain('domainWarp');
-    expect(base.material.fragmentShader).toContain('spiralPhase');
-    expect(base.material.fragmentShader).toContain('continuousEmission');
-    expect(base.material.fragmentShader).toContain('dustRift');
-    expect(base.material.fragmentShader).toContain('dustAbsorption');
-    expect(base.material.fragmentShader).toContain('colorGradeStrength');
-
-    await expect(volume.ensureAtlas()).resolves.toBe(true);
-    expect(loadAsync).toHaveBeenCalledOnce();
-    volume.dispose();
-  });
-
-  it('conserve le rendu particulaire si le chargement de l’atlas échoue', async () => {
-    const loader = vi.fn().mockRejectedValue(new Error('texture indisponible'));
-    const volume = new MilkyWayVolume(loader);
-
-    await expect(volume.ensureAtlas()).resolves.toBe(false);
-    await expect(volume.ensureAtlas()).resolves.toBe(false);
-    expect(loader).toHaveBeenCalledOnce();
-    expect(volume.atlasStatus).toBe('failed');
-
-    volume.update(9_600, 10);
+    expect(volume.atlasStatus).toBe('procedural');
+    expect(volume.root.userData).toMatchObject({
+      scientificConfidence: 'illustrative',
+      rasterAtlas: 'none',
+      depthTechnique: 'procedural-ray-marched-density-volume',
+      apparentScaleTreatment: 'illustrative-immersive-envelope-over-canonical-reference-frame',
+      physicalDiameterLightYears: 100_000,
+      authoringDiameter: 11_400,
+      transitionRepresentation: 'continuous-three-dimensional-density-and-stellar-volume',
+    });
+    expect(proceduralVolume).toBeInstanceOf(THREE.Mesh);
+    expect(volume.root.children).toHaveLength(1);
     expect(volume.visibleDiscLayerCount).toBe(0);
-    expect(volume.drawMeshCount).toBe(1);
-    volume.dispose();
-    volume.dispose();
-    await expect(volume.ensureAtlas()).resolves.toBe(false);
-  });
-
-  it('libère une texture qui termine son chargement après la destruction', async () => {
-    const texture = new THREE.Texture(document.createElement('img'));
-    const textureDispose = vi.spyOn(texture, 'dispose');
-    let resolveTexture: ((value: THREE.Texture) => void) | undefined;
-    const volume = new MilkyWayVolume(
-      () =>
-        new Promise((resolve) => {
-          resolveTexture = resolve;
-        }),
-    );
-
-    const loading = volume.ensureAtlas();
-
-    volume.dispose();
-    resolveTexture?.(texture);
-    await expect(loading).resolves.toBe(false);
-    expect(textureDispose).toHaveBeenCalledOnce();
-    expect(volume.atlasStatus).toBe('failed');
-  });
-
-  it('amortit l’opacité, masque les ressources hors transition et les libère', async () => {
-    const texture = new THREE.Texture(document.createElement('img'));
-    const textureDispose = vi.spyOn(texture, 'dispose');
-    const volume = new MilkyWayVolume(async () => texture);
-    const base = volume.root.getObjectByName('milky-way-volume-disc-base') as THREE.Mesh<
-      THREE.PlaneGeometry,
-      THREE.ShaderMaterial
-    >;
-    const geometryDispose = vi.spyOn(base.geometry, 'dispose');
-    const materialDispose = vi.spyOn(base.material, 'dispose');
-
-    await volume.ensureAtlas();
-    volume.setQuality('high');
-    volume.update(9_600, 0);
-    expect(base.material.uniforms['opacity']!.value).toBe(0);
-
-    volume.update(9_600, 1 / 60);
-    const partialOpacity = base.material.uniforms['opacity']!.value as number;
-
-    expect(partialOpacity).toBeGreaterThan(0);
-    expect(partialOpacity).toBeLessThan(0.92);
-
-    volume.update(9_600, 10);
-    expect(volume.root.visible).toBe(true);
-    expect(volume.root.scale.x).toBeCloseTo(1, 4);
-
-    volume.update(17_000, 10);
-    expect(volume.root.visible).toBe(false);
     expect(volume.drawMeshCount).toBe(0);
 
     volume.dispose();
-    expect(textureDispose).toHaveBeenCalledOnce();
-    expect(geometryDispose).toHaveBeenCalledOnce();
-    expect(materialDispose).toHaveBeenCalledOnce();
+  });
+
+  it('amortit, adapte la qualité et masque la représentation hors des niveaux actifs', () => {
+    const volume = new MilkyWayVolume();
+    const proceduralVolume = volume.root.getObjectByName(
+      'milky-way-procedural-density-volume',
+    ) as THREE.Mesh<THREE.BoxGeometry, THREE.ShaderMaterial>;
+    const volumeGeometryDispose = vi.spyOn(proceduralVolume.geometry, 'dispose');
+
+    volume.setQuality('high');
+    expect(proceduralVolume.userData['rayMarchSteps']).toBe(32);
+
+    volume.update(17_000, 0);
+    expect(volume.root.visible).toBe(false);
+
+    volume.update(17_000, 1 / 60);
+    const partialOpacity = proceduralVolume.material.uniforms['volumeOpacity']!.value as number;
+
+    expect(partialOpacity).toBeGreaterThan(0);
+    expect(partialOpacity).toBeLessThan(0.92 * 0.46);
+
+    volume.update(17_000, 10);
+    const localGroupScale = calculateMilkyWaySceneScale(17_000);
+
+    expect(volume.root.visible).toBe(true);
+    expect(volume.root.scale.x).toBeCloseTo(localGroupScale.modelScale, 8);
+    expect(volume.root.userData).toMatchObject({
+      worldDiameter: localGroupScale.worldDiameter,
+      physicalWorldDiameter: localGroupScale.physicalWorldDiameter,
+      visualScaleFactor: localGroupScale.visualScaleFactor,
+      visualSceneUnitsPerKiloparsec: localGroupScale.visualSceneUnitsPerKiloparsec,
+      referenceFrameSceneUnitsPerKiloparsec: localGroupScale.referenceFrameSceneUnitsPerKiloparsec,
+      referenceFrameBlend: 'intergalactic-to-galactic',
+    });
+    expect(volume.proceduralVolumeVisible).toBe(true);
+    expect(volume.drawMeshCount).toBe(1);
+    expect(volume.root.userData['atlasOpacity']).toBe(0);
+
+    volume.update(17_000, 10, 1, false);
+    expect(volume.root.visible).toBe(false);
+    expect(volume.drawMeshCount).toBe(0);
+
+    volume.update(1_400, 10);
+    expect(volume.root.visible).toBe(true);
+    expect(volume.proceduralVolumeVisible).toBe(true);
+    expect(volume.drawMeshCount).toBe(1);
+
+    volume.update(2.7, 10);
+    expect(volume.root.visible).toBe(true);
+    expect(proceduralVolume.material.uniforms['volumeOpacity']!.value).toBeCloseTo(0.0736, 6);
+
+    volume.update(2.7, 10, 1, false);
+    expect(volume.root.visible).toBe(false);
+
+    volume.dispose();
+    volume.dispose();
+    expect(volumeGeometryDispose).toHaveBeenCalledOnce();
     expect(volume.root.children).toHaveLength(0);
   });
 });
-
-function readCinematicUniforms(volume: MilkyWayVolume): {
-  parallaxStrength: number;
-  dustAbsorption: number;
-  glowStrength: number;
-} {
-  const base = volume.root.getObjectByName('milky-way-volume-disc-base') as THREE.Mesh<
-    THREE.PlaneGeometry,
-    THREE.ShaderMaterial
-  >;
-
-  return {
-    parallaxStrength: base.material.uniforms['parallaxStrength']!.value as number,
-    dustAbsorption: base.material.uniforms['dustAbsorption']!.value as number,
-    glowStrength: base.material.uniforms['glowStrength']!.value as number,
-  };
-}

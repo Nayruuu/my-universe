@@ -19,13 +19,16 @@ describe('UniverseViewController', () => {
     expect(harness.clearPresentation).toHaveBeenCalledOnce();
     expect(harness.clearNavigationLock).toHaveBeenCalledOnce();
     expect(harness.adoptTarget).toHaveBeenCalledWith('earth');
-    expect(harness.selectObject).toHaveBeenCalledWith('earth');
+    expect(harness.selectObject).toHaveBeenCalledWith(null);
     expect(harness.cameraController.focusOn).toHaveBeenCalledWith(
       harness.positions.get('earth'),
       harness.definitions.get('earth'),
       12,
     );
     expect(harness.emitTargetChanged).toHaveBeenCalledWith('earth');
+
+    harness.controller.handleCameraSettled('transition');
+    expect(harness.selectObject).toHaveBeenLastCalledWith('earth');
 
     await harness.controller.setTarget('host');
     expect(harness.cameraController.focusOn).toHaveBeenLastCalledWith(
@@ -54,6 +57,45 @@ describe('UniverseViewController', () => {
       harness.definitions.get('sun'),
       undefined,
     );
+
+    await harness.controller.setTarget('milky-way');
+    expect(harness.cameraController.focusOn).toHaveBeenLastCalledWith(
+      harness.positions.get('milky-way'),
+      harness.definitions.get('milky-way'),
+      undefined,
+    );
+  });
+
+  it('laisse le travelling visible avant d’ouvrir la fiche à l’arrivée', async () => {
+    const harness = createHarness();
+
+    await harness.controller.setTarget('earth');
+
+    expect(harness.selectObject).toHaveBeenCalledTimes(1);
+    expect(harness.selectObject).toHaveBeenLastCalledWith(null);
+
+    harness.controller.handleCameraSettled('transition');
+    expect(harness.selectObject).toHaveBeenLastCalledWith('earth');
+
+    await harness.controller.setTarget('sun');
+    harness.controller.handleCameraSettled('interaction');
+    expect(harness.selectObject).not.toHaveBeenCalledWith('sun');
+
+    await harness.controller.setTarget('earth');
+    harness.controller.cancelPendingSelection();
+    harness.controller.handleCameraSettled('transition');
+    expect(harness.selectObject).toHaveBeenCalledTimes(4);
+    expect(harness.selectObject).toHaveBeenLastCalledWith(null);
+  });
+
+  it('sélectionne immédiatement une cible qui ne déclenche aucun travelling', async () => {
+    const harness = createHarness();
+
+    harness.cameraController.isTransitioning = false;
+    await harness.controller.setTarget('earth');
+
+    expect(harness.selectObject).toHaveBeenNthCalledWith(1, null);
+    expect(harness.selectObject).toHaveBeenNthCalledWith(2, 'earth');
   });
 
   it('charge les filaments et cadre une constellation depuis son volume', async () => {
@@ -375,6 +417,17 @@ describe('UniverseViewController', () => {
       scale.distance,
     );
     expect(harness.emitTargetChanged).toHaveBeenCalledWith('sun');
+
+    const milkyWayScale = NAVIGATION_SCALES[3]!;
+
+    harness.controller.viewScale(milkyWayScale);
+
+    expect(harness.cameraController.focusOnFromDirection).toHaveBeenLastCalledWith(
+      harness.positions.get('milky-way'),
+      harness.definitions.get('milky-way'),
+      new THREE.Vector3(...milkyWayScale.direction),
+      milkyWayScale.distance,
+    );
   });
 
   it.each([
@@ -418,6 +471,7 @@ interface Harness {
 }
 
 interface MockViewCameraController {
+  isTransitioning: boolean;
   readonly focusOn: Mock<UniverseViewCameraController['focusOn']>;
   readonly focusOnFromDirection: Mock<UniverseViewCameraController['focusOnFromDirection']>;
   readonly observeFrom: Mock<UniverseViewCameraController['observeFrom']>;
@@ -432,6 +486,7 @@ interface MockViewRegistry {
 
 function createHarness(): Harness {
   const definitions = new Map<string, SpaceObject>([
+    ['milky-way', object('milky-way', 'Voie lactée', 'galaxy', 'local-group')],
     ['sun', object('sun', 'Soleil', 'star', 'milky-way')],
     ['earth', object('earth', 'Terre', 'planet', 'sun')],
     ['host', object('host', 'Étoile hôte', 'star', 'milky-way')],
@@ -451,6 +506,7 @@ function createHarness(): Harness {
     getOrbitRadius: vi.fn((objectId: string) => (objectId === 'earth' ? 10 : null)),
   };
   const cameraController: MockViewCameraController = {
+    isTransitioning: true,
     focusOn: vi.fn(),
     focusOnFromDirection: vi.fn(),
     observeFrom: vi.fn(),

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { SpaceObject } from '../../data/models/universe.models';
+import { calculateMilkyWayReferenceFrameScale } from '../coordinates/galaxy-scale-model';
 import type { CelestialLodRepresentation } from '../materials/celestial-visual-factory';
 import { PICKING_LAYER } from '../selection/selection-layers';
 import {
@@ -198,6 +199,170 @@ describe('ObjectLodController', () => {
     );
     expect(fixture.entries.get('milky-way')?.lod.visibilityBlend).toBe(0);
   });
+
+  it('masque un objet stellaire comprimé mais conserve une cible active', () => {
+    const stellarObject: SpaceObject = {
+      ...object('stellar-host', 'star'),
+      referenceFrame: 'stellar',
+    };
+    const fixture = createFixture([stellarObject]);
+    const stellarHost = fixture.entries.get('stellar-host')!;
+
+    fixture.camera.position.set(0, 0, 5);
+    fixture.controller.update(
+      fixture.camera,
+      900,
+      state({ lodLevel: 2 }),
+      Number.POSITIVE_INFINITY,
+    );
+
+    expect(stellarHost.lod.visibilityBlend).toBe(1);
+    expect(stellarHost.visualRoot.visible).toBe(true);
+
+    fixture.controller.update(
+      fixture.camera,
+      900,
+      state({ lodLevel: 2, stellarNeighborhoodReveal: 0 }),
+      Number.POSITIVE_INFINITY,
+    );
+
+    expect(stellarHost.lod.visibilityBlend).toBe(0);
+    expect(stellarHost.visualRoot.visible).toBe(false);
+
+    fixture.controller.update(
+      fixture.camera,
+      900,
+      state({
+        lodLevel: 2,
+        selectedId: 'stellar-host',
+        stellarNeighborhoodReveal: 0,
+      }),
+      Number.POSITIVE_INFINITY,
+    );
+
+    expect(stellarHost.lod.visibilityBlend).toBe(1);
+    expect(stellarHost.visualRoot.visible).toBe(true);
+  });
+
+  it('conserve un fondu identique du voisinage local de part et d’autre du seuil stellaire', () => {
+    const exoplanet: SpaceObject = {
+      ...object('kepler-b', 'exoplanet', 'kepler'),
+      referenceFrame: 'stellar',
+    };
+    const fixture = createFixture([
+      object('sun', 'star'),
+      object('earth', 'planet', 'sun'),
+      exoplanet,
+    ]);
+
+    fixture.camera.position.set(0, 0, 5);
+    fixture.controller.update(
+      fixture.camera,
+      900,
+      state({ lodLevel: 1, stellarNeighborhoodReveal: 0.45 }),
+      Number.POSITIVE_INFINITY,
+    );
+
+    expect(fixture.entries.get('sun')?.lod.visibilityBlend).toBe(1);
+    expect(fixture.entries.get('earth')?.lod.visibilityBlend).toBeCloseTo(0.45, 10);
+    expect(fixture.entries.get('kepler-b')?.lod.visibilityBlend).toBeCloseTo(0.45, 10);
+
+    fixture.controller.update(
+      fixture.camera,
+      900,
+      state({ lodLevel: 2, stellarNeighborhoodReveal: 0.45 }),
+      Number.POSITIVE_INFINITY,
+    );
+
+    expect(fixture.entries.get('earth')?.lod.visibilityBlend).toBeCloseTo(0.45, 10);
+    expect(fixture.entries.get('kepler-b')?.lod.visibilityBlend).toBeCloseTo(0.45, 10);
+
+    fixture.controller.update(
+      fixture.camera,
+      900,
+      state({ lodLevel: 2, selectedId: 'earth', stellarNeighborhoodReveal: 0 }),
+      Number.POSITIVE_INFINITY,
+    );
+
+    expect(fixture.entries.get('earth')?.lod.visibilityBlend).toBe(1);
+    expect(fixture.entries.get('kepler-b')?.lod.visibilityBlend).toBe(0);
+  });
+
+  it('conserve le proxy de sélection de la Voie lactée sans rendre un second visuel', () => {
+    const fixture = createFixture([object('milky-way', 'galaxy', 'local-group')]);
+    const milkyWay = fixture.entries.get('milky-way')!;
+
+    milkyWay.lod.farSprite!.userData['pickingProxyOnly'] = true;
+    milkyWay.lod.farSprite!.material.colorWrite = false;
+    fixture.camera.position.set(0, 0, 17_000);
+    fixture.controller.update(
+      fixture.camera,
+      900,
+      state({ lodLevel: 4, selectedId: 'milky-way', navigationTargetId: 'milky-way' }),
+      Number.POSITIVE_INFINITY,
+    );
+
+    expect(milkyWay.lod.farAlpha).toBe(0);
+    expect(milkyWay.lod.farSprite?.material.opacity).toBe(0);
+    expect(milkyWay.lod.farSprite?.material.colorWrite).toBe(false);
+    expect(milkyWay.lod.farSprite?.visible).toBe(true);
+    expect(milkyWay.lod.farSprite?.userData['worldDiameter']).toBeCloseTo(
+      calculateMilkyWayReferenceFrameScale(17_000).worldDiameter,
+      6,
+    );
+    expect(milkyWay.lod.farSprite?.userData['minimumScreenDiameterApplied']).toBe(false);
+    expect(milkyWay.lod.farSprite?.scale.x).toBeGreaterThan(306.601);
+    expect(milkyWay.visualRoot.visible).toBe(true);
+    expect(milkyWay.pickTarget?.layers.isEnabled(PICKING_LAYER)).toBe(true);
+
+    fixture.controller.update(
+      fixture.camera,
+      900,
+      state({ lodLevel: 6, selectedId: 'milky-way', navigationTargetId: 'milky-way' }),
+      Number.POSITIVE_INFINITY,
+    );
+    expect(milkyWay.lod.farSprite?.visible).toBe(false);
+    expect(milkyWay.pickTarget?.layers.isEnabled(PICKING_LAYER)).toBe(false);
+  });
+
+  it('conserve un diamètre physique monde sous une racine de référentiel redimensionnée', () => {
+    const fixture = createFixture([object('andromeda', 'galaxy')]);
+    const andromeda = fixture.entries.get('andromeda')!;
+    const frameRoot = new THREE.Group();
+
+    frameRoot.scale.setScalar(0.4);
+    fixture.root.add(frameRoot);
+    frameRoot.add(andromeda.node);
+    andromeda.lod.farBaseDiameter = 100;
+    fixture.camera.position.set(0, 0, 100);
+    fixture.controller.update(
+      fixture.camera,
+      900,
+      state({ lodLevel: 4, selectedId: 'andromeda' }),
+      Number.POSITIVE_INFINITY,
+    );
+
+    expect(andromeda.lod.farSprite?.scale.x).toBeCloseTo(100, 8);
+    expect(andromeda.lod.farSprite?.getWorldScale(new THREE.Vector3()).x).toBeCloseTo(40, 8);
+  });
+
+  it('synchronise la cible d’une galaxie avec son diamètre rendu à l’écran', () => {
+    const fixture = createFixture([object('draco-dwarf', 'galaxy')]);
+    const dwarf = fixture.entries.get('draco-dwarf')!;
+
+    dwarf.lod.farBaseDiameter = 4.42;
+    dwarf.pickTarget!.userData['renderDiameterRadiusMultiplier'] = 0.575;
+    fixture.camera.position.set(0, 0, 760);
+    fixture.controller.update(
+      fixture.camera,
+      900,
+      state({ lodLevel: 4 }),
+      Number.POSITIVE_INFINITY,
+    );
+
+    expect(dwarf.lod.farSprite?.scale.x).toBeGreaterThan(4.42);
+    expect(dwarf.pickTarget?.scale.x).toBeCloseTo(dwarf.lod.farSprite!.scale.x * 0.575, 8);
+  });
 });
 
 function createFixture(
@@ -207,6 +372,7 @@ function createFixture(
   controller: ObjectLodController;
   entries: Map<string, ObjectLodEntry>;
   camera: THREE.PerspectiveCamera;
+  root: THREE.Group;
   batch: {
     updatePoint: ReturnType<typeof vi.fn>;
     commit: ReturnType<typeof vi.fn>;
@@ -268,6 +434,7 @@ function createFixture(
     controller: new ObjectLodController(root, entries, batch, 'high'),
     entries,
     camera: new THREE.PerspectiveCamera(48, 1, 0.01, 1_000_000),
+    root,
     batch,
   };
 }

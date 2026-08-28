@@ -5,7 +5,7 @@ description: Consulta lo que Universe Map ya ha entregado, sus prioridades actua
 
 # Hoja de ruta
 
-_Última revisión: 28 de agosto de 2026._
+_Última revisión: 3 de septiembre de 2026._
 
 Esta página es la hoja de ruta pública de referencia de Universe Map. Describe resultados y criterios
 de validación en lugar de prometer fechas. La precisión científica, una navegación legible, tiempos de
@@ -34,9 +34,11 @@ fotograma estables y una arquitectura web completamente estática limitan cada e
   crepúsculo USNO, interferencia lunar, un índice de mejor ventana explícitamente ilustrativo y una
   acción que mueve juntos el tiempo y la cámara. El objetivo de la curva puede cambiarse desde el mismo
   catálogo local sin mover el cielo actual; solo esa acción confirma el objetivo, el tiempo compartido
-  y la cámara. Una comparación compacta aplica el mismo cálculo a siete noches consecutivas; al elegir
-  una se pasa directamente a su mejor instante, refinado localmente a cinco minutos. El tiempo en
-  directo, la contaminación lumínica y los obstáculos locales no medidos quedan fuera del modelo.
+  y la cámara. Una comparación compacta aplica el mismo cálculo a siete noches consecutivas. Destaca
+  automáticamente la mejor con un índice ilustrativo comparable sobre 100 y muestra altura,
+  oscuridad, luz lunar y despeje del terreno antes de su acción directa al mejor instante, refinado
+  localmente a cinco minutos. El tiempo en directo, la contaminación lumínica y los obstáculos locales
+  no medidos quedan fuera del modelo.
 - Cada lugar fijo del catálogo dispone de un perfil de obstrucción de 360° calculado con el producto
   autorizado de relieve superficial NOAA/NCEI ETOPO 2022 v1 de 60 segundos de arco. Los perfiles
   compactos se cargan bajo demanda y pueden ocultar estrellas, la Luna, planetas y satélites tras el terreno
@@ -50,7 +52,45 @@ fotograma estables y una arquitectura web completamente estática limitan cada e
   aparecen a partir de un campo de 12°, o de inmediato si son el objetivo, para evitar superposiciones
   en gran angular; el tamaño mínimo de legibilidad sigue marcado como ilustrativo.
 - Las estrellas y la Vía Láctea ganan detalle de forma continua con el zoom. La navegación también
-  elimina objetivos y selecciones que ya no pertenecen al contexto visible.
+  elimina objetivos y selecciones que ya no pertenecen al contexto visible. Al entrar en la Galaxia,
+  el pivote de cámara avanza de forma continua desde el centro galáctico hasta el Sol mientras el
+  volumen exterior, el catálogo estelar y la banda panorámica local se funden sin corte de referencia.
+- La calibración estructural de la Vía Láctea separa ahora su métrica física y espacial canónica de
+  la envolvente luminosa explícitamente ilustrativa. En la entrada galáctica, esa envolvente alcanza
+  cuatro veces el diámetro canónico y crece durante toda la aproximación logarítmica, sin cambiar las
+  distancias de cámara, la respuesta de la rueda, el picking ni la posición de los catálogos. Para que
+  el recorrido se perciba sin ralentizar la cámara, la misma nube de puntos agrupada incluye 140.000
+  trazadores deterministas e ilustrativos: 28.000 permanecen distribuidos por el disco grueso
+  galactocéntrico, 56.000 forman una envolvente de entrada curva y simétrica alrededor del eje
+  galáctico y 56.000 componen un núcleo más estrecho de paso cercano. Cada nivel de calidad cubre todo
+  el radio y todos los acimuts de ese núcleo, evitando tramos vacíos en la ruta. Todas las posiciones
+  permanecen estáticas; solo los sprites más próximos se alargan brevemente mientras cambia la
+  distancia de cámara y vuelven a ser redondos al detenerse. Su desplazamiento aparente procede de la
+  traslación y la perspectiva de la cámara, no de un movimiento independiente de las partículas. Durante el recorrido,
+  el velo volumétrico y las partículas morfológicas suaves retroceden antes que los trazadores lejanos,
+  dejando estrellas próximas más escasas y nítidas en vez de un grano polvoriento uniforme. Las
+  etiquetas de las galaxias del Grupo Local se desvanecen antes del tramo denso, mientras el objetivo
+  activo sigue siendo legible. Los trazadores no son estrellas individuales catalogadas. El componente
+  blanco del volumen se trata ahora explícitamente como luz integrada ilustrativa de estrellas no
+  resueltas, no como polvo: se reduce el fondo continuo entre brazos, mientras brazos, filamentos y
+  cúmulos conservan luces separadas por zonas oscuras. La fase cromática siguiente separa ahora la luz
+  integrada marfil cálida, las estrellas jóvenes zafiro, el núcleo ámbar, escasos acentos H II magenta y
+  el polvo casi negro. Un fondo contenido de estrellas puntuales zafiro, marfil, ámbar y rojas también
+  cubre la transición entre 1.400 y 2.800 unidades sin recuperar un velo de polvo difuso. Esta población
+  sigue siendo explícitamente procedural y decorativa, no un conjunto de fuentes catalogadas una a una.
+  Una pasada de luminancia ponderada por profundidad eleva ahora los núcleos de las estrellas puntuales,
+  con mayor intensidad en los trazadores de paso cercano, sin aclarar el velo volumétrico ni el negro
+  entre estrellas.
+- Una jerarquía Gaia DR3 representa 2.923.790 fuentes filtradas por calidad mediante agregados
+  calculados distantes de 512 pc y 133.526 muestras de fuentes medidas para la vista general del
+  vecindario estelar. Cada hoja refinada de 512 pc conserva sus 32 fuentes más brillantes y una
+  selección uniforme determinista, hasta 96 puntos. El refinamiento limitado por visibilidad y
+  calidad carga solo las ramas útiles, las valida en Workers de módulo, transfiere arrays tipados
+  sin copias y nunca crea un objeto Three.js por fuente. La búsqueda exacta, nombres, selección y
+  enfoque siguen usando HYG; las muestras Gaia son explícitamente anónimas e incompletas. Al alejar
+  el zoom, las muestras detalladas se funden en raíces calculadas que siguen visibles de forma
+  discreta hasta el Grupo Local, mientras el volumen local se integra en el disco de la Vía Láctea
+  mediante una escala logarítmica.
 - Las velocidades cartesianas J2000 de HYG propagan ahora el catálogo compartido, el cielo del
   observador y las figuras de constelación, con confianza extrapolada explícita y límite de ±10.000
   años julianos.
@@ -105,6 +145,11 @@ fotograma estables y una arquitectura web completamente estática limitan cada e
 
 ## Prioridades actuales
 
+- Completar la calibración visual de la Vía Láctea frente al pasaje de referencia. Con las fases de
+  claridad interior, separación de la luz integrada, paleta cromática y transición estelar ya
+  implementadas, la siguiente ajustará el contraste estructural de las bandas de polvo y el núcleo
+  antes de verificar los tres perfiles de calidad y los benchmarks de renderizado. Las distancias
+  físicas canónicas seguirán sin cambios.
 - Mantener el manifiesto simulado limpio aprobado 10/10 como referencia de regresión y repetir la
   campaña tras cambios importantes de renderizado o catálogo. La evidencia actual no justifica una
   ruta de precompilación de shaders más pesada ni un fallback de menor fidelidad; la validación física
@@ -117,9 +162,6 @@ baricentro del Sistema Solar para las estrellas HYG y los sistemas exoplanetario
 
 ## Aplazado deliberadamente
 
-- La jerarquía estelar agregada preparada seguirá inactiva hasta que un catálogo más denso necesite
-  una representación visible entre escalas. Activarla exigirá preparación en Web Worker y ningún
-  trabajo invisible de red o GPU.
 - Solo se añadirán nuevas siluetas o mallas de cuerpos irregulares cuando un modelo de forma autorizado
   justifique descarga, decodificación, atribución y coste de renderizado.
 

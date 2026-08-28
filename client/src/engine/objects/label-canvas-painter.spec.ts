@@ -22,6 +22,12 @@ describe('LabelCanvasPainter', () => {
     expect(context.fillStyle).toBe('#43b4dd');
     expect(context.strokeStyle).toBe('#43b4dd');
     expect(context.stroke).toHaveBeenCalled();
+    const labelAlphas: number[] = [];
+
+    context.fillText.mockImplementation(() => labelAlphas.push(context.globalAlpha));
+    painter.drawLabel(planet, solarSystemPlanetRectangle, false, false, 1, 0.4);
+    expect(labelAlphas.at(-1)).toBe(0.4);
+    expect(context.globalAlpha).toBe(1);
     painter.drawLabel(planet, solarSystemPlanetRectangle, true, false, 1);
     expect(context.fillStyle).toBe('#9ae8ff');
     expect(context.strokeStyle).toBe('#9ae8ff');
@@ -41,6 +47,12 @@ describe('LabelCanvasPainter', () => {
     painter.drawAnchor(starRectangle, 100, 120, true, false, true);
     expect(context.strokeStyle).toBe('rgba(255, 221, 145, 0.9)');
     expect(context.fillStyle).toBe('rgba(255, 236, 190, 0.98)');
+    const anchorAlphas: number[] = [];
+
+    context.fill.mockImplementation(() => anchorAlphas.push(context.globalAlpha));
+    painter.drawAnchor(starRectangle, 100, 120, false, false, true, 0.25);
+    expect(anchorAlphas.at(-1)).toBe(0.25);
+    expect(context.globalAlpha).toBe(1);
   });
 
   it('efface le canvas et applique immédiatement un nouveau résolveur de noms', () => {
@@ -80,11 +92,13 @@ interface ContextSpies {
   readonly setTransform: ReturnType<typeof vi.fn>;
   readonly clearRect: ReturnType<typeof vi.fn>;
   readonly fillText: ReturnType<typeof vi.fn>;
+  readonly fill: ReturnType<typeof vi.fn>;
   readonly measureText: ReturnType<typeof vi.fn>;
   readonly stroke: ReturnType<typeof vi.fn>;
   readonly font: string;
   readonly fillStyle: string;
   readonly strokeStyle: string;
+  readonly globalAlpha: number;
 }
 
 function createContext(measuredWidth = 80): CanvasRenderingContext2D & ContextSpies {
@@ -103,6 +117,7 @@ function createContext(measuredWidth = 80): CanvasRenderingContext2D & ContextSp
     font: '',
     fillStyle: '',
     strokeStyle: '',
+    globalAlpha: 1,
     lineWidth: 1,
     textAlign: 'start',
     textBaseline: 'alphabetic',

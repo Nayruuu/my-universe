@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { SpaceObject } from '../../data/models/universe.models';
 import {
+  calculateGalacticContextLabelOpacity,
   findLabelHit,
   getMaximumCatalogLabelPoolRank,
   getMaximumCatalogLabelRank,
@@ -108,7 +109,7 @@ describe('hiérarchie des labels par échelle', () => {
     constellationLabelRank: 7,
   });
   const faintConstellation = createLabelObject('constellation-hydra', 'region', {
-    constellationLabelRank: 43,
+    constellationLabelRank: 31,
   });
   const brightestCatalogStar = createLabelObject('hyg-1', 'star', {
     catalogRecordIndex: 0,
@@ -120,10 +121,10 @@ describe('hiérarchie des labels par échelle', () => {
     catalogRecordIndex: 50,
   });
   const lastHighQualityCatalogStar = createLabelObject('hyg-2999', 'star', {
-    catalogRecordIndex: 2_999,
+    catalogRecordIndex: 2_399,
   });
   const excludedHighQualityCatalogStar = createLabelObject('hyg-3000', 'star', {
-    catalogRecordIndex: 3_000,
+    catalogRecordIndex: 2_400,
   });
   const nearestExoplanetHost = createLabelObject('nea-host-nearby', 'star', {
     exoplanetHost: true,
@@ -233,7 +234,7 @@ describe('hiérarchie des labels par échelle', () => {
     expect(isLabelVisibleAtLevel(brightestCatalogStar, 3, 'low')).toBe(false);
     expect(isLabelVisibleAtLevel(secondaryCatalogStar, 0, 'low')).toBe(false);
     expect(isLabelVisibleAtLevel(secondaryCatalogStar, 1, 'low')).toBe(false);
-    expect(isLabelVisibleAtLevel(secondaryCatalogStar, 2, 'low')).toBe(true);
+    expect(isLabelVisibleAtLevel(secondaryCatalogStar, 2, 'low')).toBe(false);
     expect(isLabelVisibleAtLevel(secondaryCatalogStar, 3, 'low')).toBe(false);
     expect(isLabelVisibleAtLevel(secondaryCatalogStar, 0, 'high')).toBe(true);
     expect(isLabelVisibleAtLevel(galacticCatalogStar, 3, 'high')).toBe(false);
@@ -252,18 +253,18 @@ describe('hiérarchie des labels par échelle', () => {
     expect(isLabelVisibleAtLevel(ninthExoplanetHost, 1, 'high')).toBe(false);
     expect(isLabelVisibleAtLevel(ninthExoplanetHost, 1, 'high', 'dense')).toBe(true);
     expect(getMaximumExoplanetHostLabelRank('low', 1)).toBe(2);
-    expect(getMaximumExoplanetHostLabelRank('medium', 2)).toBe(5);
+    expect(getMaximumExoplanetHostLabelRank('medium', 2)).toBe(4);
     expect(getMaximumExoplanetHostLabelRank('high', 0)).toBe(4);
     expect(getMaximumExoplanetHostLabelRank('high', 1, 'minimal')).toBe(4);
     expect(getMaximumExoplanetHostLabelRank('high', 1, 'dense')).toBe(12);
     expect(getMaximumExoplanetHostLabelRank('high', 99)).toBe(0);
-    expect(getMaximumExoplanetHostLabelPoolRank('low', 'minimal')).toBe(2);
-    expect(getMaximumExoplanetHostLabelPoolRank('medium', 'balanced')).toBe(5);
+    expect(getMaximumExoplanetHostLabelPoolRank('low', 'minimal')).toBe(1);
+    expect(getMaximumExoplanetHostLabelPoolRank('medium', 'balanced')).toBe(4);
     expect(getMaximumExoplanetHostLabelPoolRank('high', 'dense')).toBe(12);
   });
 
   it('réserve la visibilité dynamique aux objets liés à une couche ou à un disque', () => {
-    expect(requiresDynamicLabelVisibility(brightestCatalogStar)).toBe(false);
+    expect(requiresDynamicLabelVisibility(brightestCatalogStar)).toBe(true);
     expect(requiresDynamicLabelVisibility(nearestExoplanetHost)).toBe(true);
     expect(requiresDynamicLabelVisibility(nearestCosmicGroup)).toBe(true);
     expect(requiresDynamicLabelVisibility(constellation)).toBe(true);
@@ -283,24 +284,24 @@ describe('hiérarchie des labels par échelle', () => {
     expect(isLabelVisibleAtLevel(constellation, 4, 'high')).toBe(false);
     expect(getMaximumConstellationLabelRank('low', 0)).toBe(8);
     expect(getMaximumConstellationLabelRank('medium', 1)).toBe(22);
-    expect(getMaximumConstellationLabelRank('high', 2)).toBe(44);
+    expect(getMaximumConstellationLabelRank('high', 2)).toBe(32);
     expect(getMaximumConstellationLabelRank('high', 3)).toBe(0);
     expect(getMaximumConstellationLabelRank('high', 99)).toBe(0);
-    expect(getMaximumConstellationLabelRank('high', 2, 'minimal')).toBe(22);
-    expect(getMaximumConstellationLabelRank('high', 2, 'dense')).toBe(66);
+    expect(getMaximumConstellationLabelRank('high', 2, 'minimal')).toBe(16);
+    expect(getMaximumConstellationLabelRank('high', 2, 'dense')).toBe(48);
   });
 
   it('borne la densité selon le profil, la qualité et le niveau de détail', () => {
     expect(getMaximumCatalogLabelRank('low', 0)).toBe(400);
     expect(getMaximumCatalogLabelRank('medium', 1)).toBe(1_400);
-    expect(getMaximumCatalogLabelRank('high', 2)).toBe(3_000);
+    expect(getMaximumCatalogLabelRank('high', 2)).toBe(2_400);
     expect(getMaximumCatalogLabelRank('high', 3)).toBe(0);
     expect(getMaximumCatalogLabelRank('high', 4)).toBe(0);
     expect(getMaximumCatalogLabelRank('high', 5)).toBe(0);
     expect(getMaximumCatalogLabelRank('high', 99)).toBe(0);
     expect(getMaximumLabelCount('low', 2)).toBe(28);
     expect(getMaximumLabelCount('medium', 2)).toBe(56);
-    expect(getMaximumLabelCount('high', 2)).toBe(96);
+    expect(getMaximumLabelCount('high', 2)).toBe(80);
     expect(getMaximumLabelCount('high', 0)).toBe(64);
     expect(getMaximumLabelCount('high', 3)).toBe(72);
     expect(getMaximumLabelCount('high', 4)).toBe(36);
@@ -309,13 +310,13 @@ describe('hiérarchie des labels par échelle', () => {
     expect(getMaximumLabelCount('high', 99)).toBe(72);
     expect(getMaximumLabelCount('low', 2, 'minimal')).toBe(14);
     expect(getMaximumLabelCount('medium', 2, 'dense')).toBe(84);
-    expect(getMaximumLabelCount('high', 2, 'minimal')).toBe(48);
-    expect(getMaximumLabelCount('high', 2, 'dense')).toBe(144);
-    expect(getMaximumCatalogLabelRank('high', 2, 'minimal')).toBe(1_500);
-    expect(getMaximumCatalogLabelRank('high', 2, 'dense')).toBe(4_500);
-    expect(getMaximumCatalogLabelPoolRank('low', 'minimal')).toBe(500);
-    expect(getMaximumCatalogLabelPoolRank('medium', 'balanced')).toBe(2_200);
-    expect(getMaximumCatalogLabelPoolRank('high', 'dense')).toBe(4_500);
+    expect(getMaximumLabelCount('high', 2, 'minimal')).toBe(40);
+    expect(getMaximumLabelCount('high', 2, 'dense')).toBe(120);
+    expect(getMaximumCatalogLabelRank('high', 2, 'minimal')).toBe(1_200);
+    expect(getMaximumCatalogLabelRank('high', 2, 'dense')).toBe(3_600);
+    expect(getMaximumCatalogLabelPoolRank('low', 'minimal')).toBe(350);
+    expect(getMaximumCatalogLabelPoolRank('medium', 'balanced')).toBe(1_400);
+    expect(getMaximumCatalogLabelPoolRank('high', 'dense')).toBe(3_600);
   });
 });
 
@@ -422,6 +423,108 @@ describe('LabelManager', () => {
       expect.any(Number),
     );
     manager.dispose();
+  });
+
+  it('fond les labels du voisinage local tout en conservant les repères actifs', () => {
+    const context = installContext();
+    const earth = createLabelObject('earth', 'planet');
+    const exoplanet = createLabelObject('kepler-b', 'exoplanet');
+    const sirius = createLabelObject('sirius', 'star');
+    const sun = createLabelObject('sun', 'star');
+    const manager = new LabelManager(
+      document.createElement('div'),
+      [earth, exoplanet, sirius, sun],
+      'high',
+    );
+    const access = manager as unknown as LabelManagerAccess;
+    const camera = cameraForLabels();
+    const positions = new Map<string, THREE.Vector3>([
+      ['earth', new THREE.Vector3(-0.7, -0.2, 0)],
+      ['kepler-b', new THREE.Vector3(0, 0.2, 0)],
+      ['sirius', new THREE.Vector3(0.35, -0.45, 0)],
+      ['sun', new THREE.Vector3(0.7, -0.2, 0)],
+    ]);
+    const reader = (id: string, target: THREE.Vector3): THREE.Vector3 | null => {
+      const position = positions.get(id);
+
+      return position ? target.copy(position) : null;
+    };
+    const painted = new Map<string, number>();
+
+    context.fillText.mockImplementation((text: string) => {
+      painted.set(text, context.globalAlpha);
+    });
+    manager.resize(800, 400);
+    manager.render(camera, reader, 2, null, 1_000, 0);
+
+    expect(access.hitRegions.map(({ objectId }) => objectId)).toEqual(['sun']);
+    expect(painted).toEqual(new Map([['sun', 1]]));
+
+    painted.clear();
+    manager.render(camera, reader, 2, null, 1_500, 0.5);
+    expect(painted.get('earth')).toBe(0.5);
+    expect(painted.get('kepler-b')).toBe(0.5);
+    expect(painted.get('sirius')).toBe(0.5);
+    expect(painted.get('sun')).toBe(1);
+
+    painted.clear();
+    manager.render(camera, reader, 2, 'earth', 2_000, 0);
+    expect(painted.get('earth')).toBe(1);
+    expect(painted.has('kepler-b')).toBe(false);
+
+    painted.clear();
+    manager.setHoveredObject('kepler-b');
+    manager.render(camera, reader, 2, null, 2_500, 0);
+    expect(painted.get('kepler-b')).toBe(1);
+    manager.dispose();
+  });
+
+  it('efface les galaxies de contexte pendant la plongée sans masquer le repère actif', () => {
+    const context = installContext();
+    const draco = createLabelObject('draco-dwarf', 'galaxy', { mapLabelRank: 0 });
+    const sun = createLabelObject('sun', 'star');
+    const manager = new LabelManager(document.createElement('div'), [draco, sun], 'high');
+    const access = manager as unknown as LabelManagerAccess;
+    const camera = cameraForLabels();
+    const positions = new Map<string, THREE.Vector3>([
+      ['draco-dwarf', new THREE.Vector3(-0.5, 0, 0)],
+      ['sun', new THREE.Vector3(0.5, 0, 0)],
+    ]);
+    const reader = (id: string, target: THREE.Vector3): THREE.Vector3 | null => {
+      const position = positions.get(id);
+
+      return position ? target.copy(position) : null;
+    };
+    const painted = new Map<string, number>();
+
+    context.fillText.mockImplementation((text: string) => {
+      painted.set(text, context.globalAlpha);
+    });
+    manager.resize(800, 400);
+    manager.render(camera, reader, 3, 'sun', 1_000, 1, 0);
+
+    expect(access.hitRegions.map(({ objectId }) => objectId)).toEqual(['sun']);
+    expect(painted).toEqual(new Map([['sun', 1]]));
+
+    painted.clear();
+    manager.render(camera, reader, 3, 'sun', 1_500, 1, 0.5);
+    expect(painted.get('draco-dwarf')).toBe(0.5);
+    expect(painted.get('sun')).toBe(1);
+
+    painted.clear();
+    manager.render(camera, reader, 3, 'draco-dwarf', 2_000, 1, 0);
+    expect(painted.get('draco-dwarf')).toBe(1);
+    manager.dispose();
+  });
+
+  it('calcule un fondu doux et borné des annotations galactiques', () => {
+    expect(calculateGalacticContextLabelOpacity(7_000)).toBe(1);
+    expect(calculateGalacticContextLabelOpacity(6_000)).toBe(0.5);
+    expect(calculateGalacticContextLabelOpacity(5_000)).toBe(0);
+    expect(calculateGalacticContextLabelOpacity(0)).toBe(0);
+    expect(calculateGalacticContextLabelOpacity(Number.POSITIVE_INFINITY)).toBe(1);
+    expect(calculateGalacticContextLabelOpacity(Number.NEGATIVE_INFINITY)).toBe(0);
+    expect(calculateGalacticContextLabelOpacity(Number.NaN)).toBe(1);
   });
 
   it('réduit uniquement la cadence des labels pendant une transition caméra', () => {
@@ -836,6 +939,7 @@ interface ContextSpies {
   readonly font: string;
   readonly fillStyle: string;
   readonly strokeStyle: string;
+  readonly globalAlpha: number;
 }
 
 function installContext(measuredWidth = 80): ContextSpies {
@@ -854,6 +958,7 @@ function installContext(measuredWidth = 80): ContextSpies {
     font: '',
     fillStyle: '',
     strokeStyle: '',
+    globalAlpha: 1,
     lineWidth: 1,
     textAlign: 'start',
     textBaseline: 'alphabetic',

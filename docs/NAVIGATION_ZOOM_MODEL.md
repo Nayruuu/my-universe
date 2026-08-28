@@ -82,6 +82,31 @@ Under a fixed perspective projection, `A` remains under the same screen pixel. A
 deliberately replaces the navigation-plane anchor with its object position once, then retains that
 anchor throughout the burst. Hierarchy and LOD changes must not replace it mid-burst.
 
+## Distance-driven reference-frame morphing
+
+A reference-frame boundary must never add a second camera trajectory on top of pointer zoom. The
+wheel remains the sole source of camera motion: changing LOD may update the logical navigation
+target and its constraints, but it preserves the geometric pivot established at the start of the
+wheel burst.
+
+Visual representations instead converge as deterministic functions of camera distance. During the
+Milky-Way-to-stellar transition, the external procedural volume, granular Galactic layer, local
+panorama, registered nearby stars, and streamed catalogue cross-fade over overlapping intervals.
+The local catalogue remains compact and contained in the Galactic disc at the outer end, then
+unfolds into its readable stellar projection over `3,600 -> 700`. Scene catalogues and registered
+objects use the same distance-derived transform without an additional time-domain lag.
+
+This separation is deliberate:
+
+- input chooses the path and preserves the point under the cursor;
+- navigation hierarchy changes semantic context without repositioning the camera;
+- rendering morphs between compatible scales around that path;
+- reversing the same normalized input retraces the same geometric zoom.
+
+No object type may install an independent wheel cadence, forced camera direction, roll, or moving
+orbit pivot. Cinematic focus transitions are allowed for explicit commands, but they end before a
+wheel gesture begins and cannot participate in a semantic scale crossing.
+
 ## One coordinate across the minimum-distance boundary
 
 A minimum distance is a geometric boundary, not a second input law. While an object remains the
@@ -205,8 +230,8 @@ units to every interval, even though the intervals have very different logarithm
 | ------------------ | --------------: | ------------------------: | ------------------: |
 | 4.8 -> 520         |           6.759 |                   3,123.5 |                 480 |
 | 520 -> 1,400       |           1.429 |                     660.3 |                 480 |
-| 1,400 -> 9,600     |           2.778 |                   1,283.5 |                 480 |
-| 9,600 -> 17,000    |           0.824 |                     381.0 |                 480 |
+| 1,400 -> 3,600     |           1.363 |                     629.6 |                 480 |
+| 3,600 -> 17,000    |           2.239 |                   1,034.9 |                 480 |
 | 17,000 -> 120,000  |           2.819 |                   1,302.9 |                 480 |
 | 120,000 -> 420,000 |           1.807 |                     835.2 |                 480 |
 | 420,000 -> 600,000 |           0.515 |                     237.8 |                 480 |

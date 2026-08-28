@@ -1,0 +1,28 @@
+{
+  "version": "4.0.0",
+  "sourceCatalog": "gaia-dr3-bright-high-confidence",
+  "referenceEpochJulianDay": 2457388.5,
+  "magnitudeBand": "gaia-g",
+  "colorIndexSystem": "gaia-bp-rp",
+  "tiles": [
+    {
+      "id": "c-n9-p4-p1",
+      "parentId": "r-n3-p1-p0",
+      "version": "4.0.0",
+      "sourceCatalog": "gaia-dr3-bright-high-confidence",
+      "sourceStarCount": 1,
+      "referenceEpochJulianDay": 2457388.5,
+      "magnitudeBand": "gaia-g",
+      "colorIndexSystem": "gaia-bp-rp",
+      "lodLevel": 3,
+      "cellSizeParsec": 128,
+      "representation": "sampled-source",
+      "clusterCount": 1,
+      "cellCoordinates": [-35, 16, 4],
+      "positionsParsec": [-4366.861068782964, 2067.9597040854533, 600.7859565628006],
+      "starCounts": [1],
+      "apparentMagnitudes": [11.695602],
+      "colorIndices": [1.5455465]
+    }
+  ]
+}

@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { type GraphicQuality } from '../../data/models/universe.models';
+import { calculateIntergalacticScale } from '../coordinates/intergalactic-scale-model';
+import { calculateStellarNeighborhoodReveal } from '../coordinates/stellar-neighborhood-scale-model';
 import { type SpaceStreamingFrame } from './space-streaming-coordinator';
 
 export interface FrameContentStreamingCoordinator {
@@ -7,6 +9,7 @@ export interface FrameContentStreamingCoordinator {
 }
 
 export interface FrameContentObjectRuntime {
+  updateReferenceFrameScale?(cameraDistance: number): boolean;
   updateLod(
     camera: THREE.PerspectiveCamera,
     viewportHeight: number,
@@ -19,6 +22,7 @@ export interface FrameContentObjectRuntime {
 export interface FrameContentScene {
   readonly spaceRoot: THREE.Group;
   ensureMilkyWayAtlas(): Promise<boolean>;
+  updateReferenceFrameScale?(cameraDistance: number): boolean;
   updateLod(
     lodLevel: number,
     deltaSeconds: number,
@@ -42,6 +46,7 @@ export interface UniverseFrameContentBindings {
   getQuality(): GraphicQuality;
   getTargetId(): string | null;
   getSelectedId(): string | null;
+  followCurrentTarget(): void;
   preloadTempelFilamentSpines(): Promise<void>;
   ensureTempelFilamentSpines(): Promise<void>;
 }
@@ -69,6 +74,15 @@ export class UniverseFrameContent {
       controller.observerSkyContentActive ?? controller.observerModeActive === true;
     const earthObserverPresentationActive =
       controller.observerPresentationActive === true || earthObserverActive;
+    const objectScaleChanged =
+      this.objectRuntime.updateReferenceFrameScale?.(controller.distanceToTarget) ?? false;
+    const sceneScaleChanged =
+      universeScene.updateReferenceFrameScale?.(controller.distanceToTarget) ?? false;
+    const referenceFrameScaleChanged = objectScaleChanged || sceneScaleChanged;
+
+    if (referenceFrameScaleChanged) {
+      this.bindings.followCurrentTarget();
+    }
 
     this.bindings.getStreamingCoordinator()?.update(
       {
@@ -80,6 +94,9 @@ export class UniverseFrameContent {
         transitioning: controller.isTransitioning,
         targetId: this.bindings.getTargetId(),
         selectedId: this.bindings.getSelectedId(),
+        referenceFrameScale: calculateIntergalacticScale(controller.distanceToTarget)
+          .nearbyUniverseScale,
+        stellarNeighborhoodReveal: calculateStellarNeighborhoodReveal(controller.distanceToTarget),
       },
       deltaSeconds,
     );
