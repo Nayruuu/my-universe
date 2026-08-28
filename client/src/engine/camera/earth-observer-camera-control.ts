@@ -25,10 +25,19 @@ export {
 export { EARTH_OBSERVER_FIELD_OF_VIEW_DEGREES } from './earth-observer-view.constants';
 
 const ROTATION_RADIANS_PER_PIXEL = 0.0032;
+const LOOK_AT_MINIMUM_DURATION_SECONDS = 0.36;
+const LOOK_AT_MAXIMUM_DURATION_SECONDS = 0.82;
 
 export const EARTH_OBSERVER_JOURNEY_DURATION_SECONDS = 2.4;
+export const EARTH_OBSERVER_LOOK_AT_EVENT = 'universe-earth-observer-look-at';
+export const EARTH_OBSERVER_LOOK_AT_SETTLED_EVENT = 'universe-earth-observer-look-at-settled';
 export const EARTH_OBSERVER_VIEW_EVENT = 'universe-earth-observer-view';
 export const EARTH_OBSERVER_ZOOM_AT_EVENT = 'universe-earth-observer-zoom-at';
+
+export interface EarthObserverLookAtDetail {
+  readonly altitudeDegrees: number;
+  readonly azimuthDegrees: number;
+}
 
 export interface EarthObserverZoomAtDetail {
   readonly anchorAltitudeDegrees: number;
@@ -63,12 +72,22 @@ export class EarthObserverCameraControl {
   private readonly direction = new THREE.Vector3();
   private readonly fallbackUp = new THREE.Vector3();
   private readonly forwardedAnchorDirection = new THREE.Vector3();
+  private readonly lookAtDirection = new THREE.Vector3();
+  private readonly lookAtStartDirection = new THREE.Vector3();
   private readonly orientation = new EarthObserverOrientation();
   private readonly pointerAnchorCorrection = new THREE.Quaternion();
   private readonly pointerRayAfterZoom = new THREE.Vector3();
   private readonly pointerRayBeforeZoom = new THREE.Vector3();
   private readonly wheelZoomNormalizer = new WheelZoomNormalizer();
   private enabled = false;
+  private lookAtAltitudeDeltaDegrees = 0;
+  private lookAtAnimationDurationSeconds = LOOK_AT_MINIMUM_DURATION_SECONDS;
+  private lookAtAnimationElapsedSeconds = 0;
+  private lookAtAnimationActive = false;
+  private lookAtAzimuthDeltaDegrees = 0;
+  private lookAtStartAltitudeDegrees = 0;
+  private lookAtStartAzimuthDegrees = 0;
+  private lookAtSettledDetail: EarthObserverLookAtDetail | null = null;
   private pointerId: number | null = null;
   private previousPointerX = 0;
   private previousPointerY = 0;
@@ -88,10 +107,15 @@ export class EarthObserverCameraControl {
       EARTH_OBSERVER_ZOOM_AT_EVENT,
       this.handleForwardedWheel as EventListener,
     );
+    window.addEventListener(EARTH_OBSERVER_LOOK_AT_EVENT, this.handleLookAt as EventListener);
   }
 
   public get active(): boolean {
     return this.enabled;
+  }
+
+  public get transitioning(): boolean {
+    return this.lookAtAnimationActive;
   }
 
   public activate(
@@ -114,19 +138,29 @@ export class EarthObserverCameraControl {
     this.applyView();
   }
 
-  public update(time?: UniverseTime): void {
+  public update(deltaSeconds: number, time?: UniverseTime): void {
     if (!this.enabled) {
       return;
     }
+    let referenceFrameChanged = false;
+
     if (time && this.referenceFrameProvider && time.julianDay !== this.referenceFrameJulianDay) {
       this.referenceFrameJulianDay = time.julianDay;
       const frame = this.referenceFrameProvider(time);
 
       if (frame && this.orientation.updateReferenceFrame(frame)) {
-        this.applyView();
-
-        return;
+        referenceFrameChanged = true;
       }
+    }
+    if (this.lookAtAnimationActive) {
+      this.updateLookAtAnimation(deltaSeconds);
+
+      return;
+    }
+    if (referenceFrameChanged) {
+      this.applyView();
+
+      return;
     }
     this.camera.position.copy(this.anchor);
   }
@@ -152,6 +186,7 @@ export class EarthObserverCameraControl {
       return;
     }
     this.enabled = false;
+    this.cancelLookAtAnimation();
     this.pointerId = null;
     this.referenceFrameProvider = null;
     this.referenceFrameJulianDay = Number.NaN;
@@ -170,12 +205,14 @@ export class EarthObserverCameraControl {
       EARTH_OBSERVER_ZOOM_AT_EVENT,
       this.handleForwardedWheel as EventListener,
     );
+    window.removeEventListener(EARTH_OBSERVER_LOOK_AT_EVENT, this.handleLookAt as EventListener);
   }
 
   private readonly handlePointerDown = (event: PointerEvent): void => {
     if (!this.enabled || event.button !== 0 || this.pointerId !== null) {
       return;
     }
+    this.cancelLookAtAnimation();
     this.pointerId = event.pointerId;
     this.previousPointerX = event.clientX;
     this.previousPointerY = event.clientY;
@@ -189,13 +226,11 @@ export class EarthObserverCameraControl {
     }
     const deltaX = event.clientX - this.previousPointerX;
     const deltaY = event.clientY - this.previousPointerY;
+    const rotationRadiansPerPixel = resolveRotationRadiansPerPixel(this.camera.fov);
 
     this.previousPointerX = event.clientX;
     this.previousPointerY = event.clientY;
-    this.orientation.rotate(
-      deltaX * ROTATION_RADIANS_PER_PIXEL,
-      -deltaY * ROTATION_RADIANS_PER_PIXEL,
-    );
+    this.orientation.rotate(deltaX * rotationRadiansPerPixel, -deltaY * rotationRadiansPerPixel);
     this.applyView();
     event.preventDefault();
   };
@@ -214,6 +249,7 @@ export class EarthObserverCameraControl {
     if (!this.enabled) {
       return;
     }
+    this.cancelLookAtAnimation();
     this.applyWheelZoom(
       event.deltaY,
       event.deltaMode,
@@ -229,6 +265,7 @@ export class EarthObserverCameraControl {
     if (!this.enabled) {
       return;
     }
+    this.cancelLookAtAnimation();
     const {
       anchorAltitudeDegrees,
       anchorAzimuthDegrees,
@@ -255,6 +292,77 @@ export class EarthObserverCameraControl {
     event.preventDefault();
     event.stopImmediatePropagation();
   };
+
+  private readonly handleLookAt = (event: CustomEvent<EarthObserverLookAtDetail>): void => {
+    if (!this.enabled) {
+      return;
+    }
+    const direction = this.orientation.copyHorizontalDirection(
+      event.detail.altitudeDegrees,
+      event.detail.azimuthDegrees,
+      this.lookAtDirection,
+    );
+
+    if (!direction) {
+      return;
+    }
+    this.orientation.copyDirection(this.lookAtStartDirection);
+    const angularProgress = Math.sqrt(
+      THREE.MathUtils.clamp(this.lookAtStartDirection.angleTo(direction) / Math.PI, 0, 1),
+    );
+
+    this.lookAtStartAltitudeDegrees = this.orientation.centerAltitudeDegrees;
+    this.lookAtStartAzimuthDegrees = this.orientation.centerAzimuthDegrees;
+    this.lookAtAltitudeDeltaDegrees =
+      event.detail.altitudeDegrees - this.lookAtStartAltitudeDegrees;
+    this.lookAtAzimuthDeltaDegrees = normalizeSignedDegrees(
+      event.detail.azimuthDegrees - this.lookAtStartAzimuthDegrees,
+    );
+    this.lookAtAnimationDurationSeconds = THREE.MathUtils.lerp(
+      LOOK_AT_MINIMUM_DURATION_SECONDS,
+      LOOK_AT_MAXIMUM_DURATION_SECONDS,
+      angularProgress,
+    );
+    this.lookAtAnimationElapsedSeconds = 0;
+    this.lookAtAnimationActive = true;
+    this.lookAtSettledDetail = { ...event.detail };
+    event.preventDefault();
+  };
+
+  private updateLookAtAnimation(deltaSeconds: number): void {
+    this.lookAtAnimationElapsedSeconds = Math.min(
+      this.lookAtAnimationDurationSeconds,
+      this.lookAtAnimationElapsedSeconds + Math.max(0, deltaSeconds),
+    );
+    const progress = this.lookAtAnimationElapsedSeconds / this.lookAtAnimationDurationSeconds;
+    const easedProgress = easeInOutCubic(progress);
+    const direction = this.orientation.copyHorizontalDirection(
+      this.lookAtStartAltitudeDegrees + this.lookAtAltitudeDeltaDegrees * easedProgress,
+      this.lookAtStartAzimuthDegrees + this.lookAtAzimuthDeltaDegrees * easedProgress,
+      this.lookAtDirection,
+    );
+
+    if (direction) {
+      this.orientation.centerOnDirection(direction);
+    }
+    this.applyView();
+    if (progress < 1) {
+      return;
+    }
+    const detail = this.lookAtSettledDetail!;
+
+    this.cancelLookAtAnimation();
+    window.dispatchEvent(
+      new CustomEvent<EarthObserverLookAtDetail>(EARTH_OBSERVER_LOOK_AT_SETTLED_EVENT, {
+        detail,
+      }),
+    );
+  }
+
+  private cancelLookAtAnimation(): void {
+    this.lookAtAnimationActive = false;
+    this.lookAtSettledDetail = null;
+  }
 
   private applyWheelZoom(
     rawDeltaY: number,
@@ -379,4 +487,23 @@ export class EarthObserverCameraControl {
       }),
     );
   }
+}
+
+function resolveRotationRadiansPerPixel(verticalFieldOfViewDegrees: number): number {
+  const fieldOfView = THREE.MathUtils.clamp(
+    verticalFieldOfViewDegrees,
+    EARTH_OBSERVER_MINIMUM_FIELD_OF_VIEW_DEGREES,
+    EARTH_OBSERVER_MAXIMUM_FIELD_OF_VIEW_DEGREES,
+  );
+  const zoomSensitivity = Math.min(1, fieldOfView / EARTH_OBSERVER_FIELD_OF_VIEW_DEGREES);
+
+  return ROTATION_RADIANS_PER_PIXEL * zoomSensitivity;
+}
+
+function normalizeSignedDegrees(value: number): number {
+  return THREE.MathUtils.euclideanModulo(value + 180, 360) - 180;
+}
+
+function easeInOutCubic(progress: number): number {
+  return progress < 0.5 ? 4 * progress ** 3 : 1 - Math.pow(-2 * progress + 2, 3) / 2;
 }

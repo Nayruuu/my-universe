@@ -27,15 +27,29 @@ des contraintes pour chaque évolution.
   orientable, les constellations modernes, altitude et azimut, un champ de vision de 102° à 2° ancré
   au pointeur, 461 lieux restaurables depuis l’URL, une géolocalisation consentie arrondie à trois
   décimales et des contextes de scène locaux illustratifs.
+- Un planificateur local à la demande classe la Lune, les planètes et les satellites catalogués
+  visibles par altitude et évalue les 48 étoiles les plus brillantes du catalogue pour en proposer
+  jusqu’à huit visibles. Choisir une suggestion ouvre sa fiche existante et recentre le ciel.
+  L’horizon calculé et le relief sont pris en compte quand ils sont disponibles. La cible active a
+  désormais une courbe d’altitude calculée sur 24 heures avec lever, culmination, coucher, bandes de
+  crépuscule USNO, gêne lunaire, indice de meilleure fenêtre explicitement illustratif et action qui
+  déplace ensemble le temps partagé et la caméra. La cible de cette courbe peut être remplacée depuis
+  le même catalogue local sans déplacer le ciel courant ; seule cette action engage la cible, le temps
+  partagé et la caméra. Météo en direct, pollution lumineuse et obstacles locaux non mesurés restent
+  hors du modèle.
 - Chaque lieu fixe du catalogue dispose d’un profil d’obstruction à 360° calculé depuis le produit
   de relief de surface NOAA/NCEI ETOPO 2022 v1 à 60 secondes d’arc. Ces profils compacts sont chargés
-  à la demande et peuvent masquer étoiles, Lune et planètes derrière le relief modélisé ; bâtiments,
+  à la demande et peuvent masquer étoiles, Lune, planètes et satellites derrière le relief modélisé ; bâtiments,
   végétation, microrelief et coordonnées libres restent explicitement hors de ce modèle. Trois
   enveloppes de distance calculées (0–30, 30–100 et 100–300 km) donnent sa profondeur à la silhouette ;
   couleurs et éclairage restent stylistiques.
-- La Lune et les sept planètes visibles réutilisent dans cette vue leurs objets Three.js, matériaux,
-  éclairages et textures différées existants. Directions topocentriques et diamètres angulaires sont
-  calculés ; le plancher de lisibilité borné reste explicitement illustratif.
+- La Lune, les sept planètes visibles et les vingt autres satellites catalogués réutilisent dans cette
+  vue leurs objets Three.js, matériaux, éclairages et textures différées. Directions topocentriques et
+  diamètres angulaires emploient les distances orbitales physiques : les positions galiléennes sont
+  calculées et les seize trajectoires fondées sur des éléments moyens J2000 restent signalées comme
+  extrapolées. Les satellites apparaissent à partir d’un champ de 12°, ou immédiatement lorsqu’ils
+  sont ciblés, afin d’éviter les superpositions au grand angle ; le plancher de lisibilité reste
+  explicitement illustratif.
 - Les étoiles et la Voie lactée gagnent désormais du détail de façon continue au zoom au lieu de
   conserver une taille de pixel figée. La navigation élimine aussi les cibles et sélections devenues
   hors contexte visuel.

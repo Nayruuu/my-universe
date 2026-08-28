@@ -26,15 +26,28 @@ fotograma estables y una arquitectura web completamente estática limitan cada e
   libre, constelaciones modernas, altitud y acimut, campo de visión de 102° a 2° anclado al puntero,
   461 lugares restaurables desde la URL, geolocalización del navegador consentida y redondeada a
   tres decimales, y contextos de escena locales ilustrativos.
+- Un planificador local bajo demanda ordena la Luna, los planetas y los satélites catalogados visibles
+  por altitud y evalúa las 48 estrellas más brillantes del catálogo para proponer hasta ocho visibles.
+  Elegir una sugerencia abre sus detalles existentes y vuelve a centrar el cielo. Se aplican el
+  horizonte calculado y la obstrucción del relieve cuando están disponibles. El objetivo activo ahora
+  dispone de una curva de altitud calculada de 24 horas con salida, culminación, puesta, franjas de
+  crepúsculo USNO, interferencia lunar, un índice de mejor ventana explícitamente ilustrativo y una
+  acción que mueve juntos el tiempo y la cámara. El objetivo de la curva puede cambiarse desde el mismo
+  catálogo local sin mover el cielo actual; solo esa acción confirma el objetivo, el tiempo compartido
+  y la cámara. El tiempo en directo, la contaminación lumínica y los obstáculos locales no medidos
+  quedan fuera del modelo.
 - Cada lugar fijo del catálogo dispone de un perfil de obstrucción de 360° calculado con el producto
   autorizado de relieve superficial NOAA/NCEI ETOPO 2022 v1 de 60 segundos de arco. Los perfiles
-  compactos se cargan bajo demanda y pueden ocultar estrellas, la Luna y planetas tras el terreno
+  compactos se cargan bajo demanda y pueden ocultar estrellas, la Luna, planetas y satélites tras el terreno
   modelado; edificios, vegetación, microrrelieve y coordenadas libres quedan fuera del modelo. Tres
   envolventes de distancia calculadas (0–30, 30–100 y 100–300 km) dan profundidad a la silueta; el
   color y la iluminación son estilísticos.
-- La Luna y los siete planetas visibles reutilizan sus objetos Three.js, materiales, iluminación y
-  texturas diferidas. Se calculan dirección topocéntrica y diámetro angular; el tamaño mínimo de
-  legibilidad sigue marcado como ilustrativo.
+- La Luna, los siete planetas visibles y otros veinte satélites catalogados reutilizan sus objetos
+  Three.js, materiales, iluminación y texturas diferidas. Las direcciones topocéntricas y los diámetros
+  angulares usan distancias orbitales físicas: las posiciones galileanas son calculadas y las otras
+  dieciséis trayectorias de elementos medios J2000 siguen marcadas como extrapoladas. Los satélites
+  aparecen a partir de un campo de 12°, o de inmediato si son el objetivo, para evitar superposiciones
+  en gran angular; el tamaño mínimo de legibilidad sigue marcado como ilustrativo.
 - Las estrellas y la Vía Láctea ganan detalle de forma continua con el zoom. La navegación también
   elimina objetivos y selecciones que ya no pertenecen al contexto visible.
 - Las velocidades cartesianas J2000 de HYG propagan ahora el catálogo compartido, el cielo del

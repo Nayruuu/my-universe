@@ -28,6 +28,11 @@ export interface EarthHorizonPerspective {
   readonly viewport: EarthHorizonViewport;
 }
 
+export interface EarthIllustrativeLandscapePresentation {
+  readonly opacity: number;
+  readonly state: 'full' | 'fading' | 'hidden';
+}
+
 export interface EarthHorizonLandmark {
   readonly kind: EarthHorizonLandmarkKind;
   readonly name: string;
@@ -122,6 +127,33 @@ const LANDMARKS: Readonly<Record<string, LandmarkDefinition>> = {
     scale: 1,
   },
 };
+
+const ILLUSTRATIVE_LANDSCAPE_HIDDEN_FIELD_OF_VIEW_DEGREES = 18;
+const ILLUSTRATIVE_LANDSCAPE_FULL_FIELD_OF_VIEW_DEGREES = 42;
+
+// Buildings and procedural ridges are artistic orientation aids, not a geometric obstruction
+// model. Keep them at normal naked-eye fields, then remove them before telescope-scale zooms.
+export function earthIllustrativeLandscapePresentation(
+  verticalFieldOfViewDegrees: number,
+): EarthIllustrativeLandscapePresentation {
+  const fieldOfViewDegrees = Number.isFinite(verticalFieldOfViewDegrees)
+    ? verticalFieldOfViewDegrees
+    : ILLUSTRATIVE_LANDSCAPE_FULL_FIELD_OF_VIEW_DEGREES;
+  const opacity = Math.min(
+    1,
+    Math.max(
+      0,
+      (fieldOfViewDegrees - ILLUSTRATIVE_LANDSCAPE_HIDDEN_FIELD_OF_VIEW_DEGREES) /
+        (ILLUSTRATIVE_LANDSCAPE_FULL_FIELD_OF_VIEW_DEGREES -
+          ILLUSTRATIVE_LANDSCAPE_HIDDEN_FIELD_OF_VIEW_DEGREES),
+    ),
+  );
+
+  return {
+    opacity,
+    state: opacity === 0 ? 'hidden' : opacity === 1 ? 'full' : 'fading',
+  };
+}
 
 export function createEarthHorizonProfile(location: EarthObserverLocation): EarthHorizonProfile {
   const seed = hashText(`${location.id}:${location.latitude}:${location.longitude}`);

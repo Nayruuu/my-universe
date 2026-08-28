@@ -44,6 +44,42 @@ export async function readObjectVisualDiagnostics(
   }, objectId);
 }
 
+export async function isObservedShapeAttached(page: Page, objectId: string): Promise<boolean> {
+  return page.evaluate((requestedId) => {
+    interface RuntimeObject {
+      getObjectByName(name: string): object | undefined;
+    }
+
+    interface RegistryState {
+      readonly entries: Map<string, object>;
+    }
+
+    interface ObjectRuntimeState {
+      getRegistry(id: string): RegistryState | null;
+    }
+
+    const root = document.querySelector('app-root');
+    const angularDebug = (
+      window as unknown as { ng?: { getComponent(element: Element): object | null } }
+    ).ng;
+    const component = root && angularDebug?.getComponent(root);
+    const facade = component ? (Reflect.get(component, 'facade') as object | undefined) : undefined;
+    const engineClient = facade ? (Reflect.get(facade, 'engine') as object | undefined) : undefined;
+    const engine = engineClient
+      ? ((Reflect.get(engineClient, 'engine') as object | null | undefined) ?? engineClient)
+      : undefined;
+    const objectRuntime = engine
+      ? (Reflect.get(engine, 'objectRuntime') as ObjectRuntimeState | undefined)
+      : undefined;
+    const entry = objectRuntime?.getRegistry(requestedId)?.entries.get(requestedId);
+    const rotatingBody = entry
+      ? (Reflect.get(entry, 'rotatingBody') as RuntimeObject | null)
+      : null;
+
+    return rotatingBody?.getObjectByName(`${requestedId}-observed-shape`) !== undefined;
+  }, objectId);
+}
+
 export async function readRenderedFrameSignature(page: Page): Promise<RenderedFrameSignature> {
   return page.evaluate(browserReadRenderedFrameSignature);
 }

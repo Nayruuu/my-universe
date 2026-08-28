@@ -91,7 +91,11 @@ export class CameraController {
   }
 
   public get isTransitioning(): boolean {
-    return this.transitionController.active || this.zoomController.active;
+    return (
+      this.transitionController.active ||
+      this.zoomController.active ||
+      this.observerControl.transitioning
+    );
   }
 
   public get distanceToTarget(): number {
@@ -262,7 +266,7 @@ export class CameraController {
   public update(deltaSeconds: number, time?: UniverseTime): void {
     this.transitionController.update(deltaSeconds);
     if (this.observerControl.active) {
-      this.observerControl.update(time);
+      this.observerControl.update(deltaSeconds, time);
 
       return;
     }

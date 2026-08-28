@@ -33,10 +33,14 @@
           type="button"
           class="earth-sky-view__body"
           [class.earth-sky-view__body--assisted]="body.assistedVisibility"
+          [class.earth-sky-view__body--selected]="facade.selectedObject()?.id === body.id"
           [attr.data-body-id]="body.id"
           data-renderer="webgl-existing-object"
+          data-readability-marker="illustrative-unresolved-only"
           [attr.data-size]="body.angularSizeClass"
+          [attr.data-kind]="body.skyObjectKind"
           [attr.data-resolved]="body.resolvedAppearance"
+          [attr.data-position-confidence]="body.positionConfidence"
           [attr.data-angular-diameter-degrees]="body.angularDiameterDegrees"
           [attr.data-angular-diameter-confidence]="body.angularDiameterConfidence"
           [attr.data-apparent-diameter-pixels]="body.apparentDiameterPixels"
@@ -45,15 +49,21 @@
           [attr.data-azimuth-degrees]="body.observation.azimuthDegrees"
           [attr.data-display-scale-mode]="body.displayScaleMode"
           [attr.data-appearance-confidence]="body.appearanceConfidence"
+          [attr.data-label-placement]="body.labelPlacement"
+          [attr.data-label-visible]="body.labelVisible"
           [attr.data-lunar-phase]="body.lunarPhase.shape"
           [attr.data-lunar-waxing]="body.lunarPhase.waxing"
           [attr.aria-label]="body.name"
+          [attr.aria-pressed]="facade.selectedObject()?.id === body.id"
           [title]="body.name"
           [style.left.%]="body.xPercent"
           [style.top.%]="body.yPercent"
           [style.--body-color]="body.color"
           [style.--body-size]="body.displayDiameterPixels + 'px'"
-          (click)="selectSkyBody(body.id)"
+          [style.--label-x]="body.labelOffsetXPixels + 'px'"
+          [style.--label-y]="body.labelOffsetYPixels + 'px'"
+          [style.--label-o]="body.labelVisible ? '1' : '0'"
+          (click)="selectSkyBody(body)"
           (wheel)="
             zoomSkyBody($event, body.observation.altitudeDegrees, body.observation.azimuthDegrees)
           "
@@ -65,6 +75,25 @@
         </button>
       }
     </div>
+
+    @for (cue of focusCues(); track cue.sequence) {
+      <div
+        class="earth-sky-view__focus-cue"
+        role="status"
+        aria-live="polite"
+        [attr.data-focus-object-id]="cue.objectId"
+        [style.left.%]="cue.xPercent"
+        [style.top.%]="cue.yPercent"
+        [style.--focus-color]="cue.color"
+      >
+        <i aria-hidden="true"></i>
+        <strong>{{ cue.name }}</strong>
+        <small>
+          {{ i18n.formatNumber(cue.altitudeDegrees, 1) }}° ·
+          {{ text.directions[cue.compassDirection] }}
+        </small>
+      </div>
+    }
   }
 
   @if (!isOpen) {
@@ -122,6 +151,32 @@
       {{ text.returnToMap }}
     </button>
 
+    <button
+      type="button"
+      class="earth-sky-view__planner-launch"
+      [class.is-active]="plannerOpen()"
+      [attr.aria-label]="text.plannerOpen"
+      [attr.aria-expanded]="plannerOpen()"
+      aria-controls="earth-observation-planner"
+      [title]="text.plannerOpen"
+      (click)="togglePlanner()"
+    >
+      <span aria-hidden="true">✦</span>
+    </button>
+
+    @if (observationPlan(); as plan) {
+      <app-earth-observation-planner
+        id="earth-observation-planner"
+        [plan]="plan"
+        [timeline]="observationTimeline()"
+        [timeZone]="observerSelection.location()!.timeZone"
+        (closeRequested)="closePlanner()"
+        (itemSelected)="focusPlannerItem($event)"
+        (targetSelected)="selectPlannerTarget($event)"
+        (timelineSelected)="focusPlannerTimeline($event)"
+      />
+    }
+
     <nav class="earth-sky-view__controls" [attr.aria-label]="text.skyControls">
       <button
         type="button"
@@ -132,6 +187,19 @@
       >
         <span aria-hidden="true">◎</span>
         {{ text.recenterShort }}
+      </button>
+      <button
+        type="button"
+        class="earth-sky-view__planner-toggle"
+        [class.is-active]="plannerOpen()"
+        [attr.aria-label]="text.plannerOpen"
+        [attr.aria-expanded]="plannerOpen()"
+        aria-controls="earth-observation-planner"
+        [title]="text.plannerOpen"
+        (click)="togglePlanner()"
+      >
+        <span aria-hidden="true">✦</span>
+        {{ text.plannerShort }}
       </button>
       <button
         type="button"
@@ -160,7 +228,7 @@
     </nav>
 
     <footer class="earth-sky-view__science">
-      <span>{{ text.scientificNote }}</span>
+      <span>{{ scientificNote() }}</span>
       <small>{{ terrainHorizonDescription() }} · {{ text.onDevice }}</small>
     </footer>
   }

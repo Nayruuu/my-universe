@@ -45,13 +45,16 @@ trois passages. Chacun a échantillonné 1 452 à 1 455 images à 9,1 ms au p95,
 9,4 à 9,5 ms au maximum et sans aucune image longue ; Jupiter a atteint sa représentation résolue
 dans les trois passages.
 
-Une matrice de stress sur la même machine, explicitement simulée, est aussi restée dans le budget.
-En qualité moyenne avec le CPU Chrome ralenti 4×, le canvas a utilisé un DPR de 1,25 et mesuré une
-médiane de 9,3 ms au p95, 16,7 ms au p99, 24,9 ms au maximum, sans image longue. En qualité faible à
-CPU 6× et DPR 1, les médianes ont atteint 15,9 ms au p95, 25,1 ms au p99 et 42 ms au maximum, avec
-une pire image à 49,9 ms et 0,20 à 0,34 % d’images longues. Jupiter s’est résolue dans les six
-passages sous stress. Le GPU restait le M5 Max : ces résultats mesurent une marge de régression, pas
-des machines physiques représentatives des gammes moyenne ou faible.
+Une campagne simulée propre sur le même hôte, enregistrée le 28 août 2026 depuis la révision
+`27db0e1`, a réussi ses dix rapports. En qualité moyenne et CPU 4×, la première carte utilisable
+médiane est arrivée en 1,26 s, la première image Tempel visible médiane en 24,2 ms, les trois passages
+d’échelle à froid sont restés à 9,3 ms au p95 avec une pire image à 66,5 ms, et les passages
+observables à 9,2 ms au p95 médian avec une pire image à 24,9 ms et Jupiter résolue 3/3. En qualité
+faible et CPU 6×, les valeurs correspondantes sont 1,85 s, 33,1 ms, 16,6–16,7 ms au p95 avec une pire
+image d’échelle à 83,4 ms, puis 9,4 ms au p95 observable avec une pire image à 41,7 ms et Jupiter
+résolue 3/3. Les deux protocoles de ressources gardent des nombres identiques de géométries, textures
+et draw calls sur trois cycles. Le GPU restait le M5 Max : ces résultats mesurent une marge de
+régression, pas des machines physiques représentatives des gammes moyenne ou faible.
 
 Les cinq benchmarks de performance — démarrage, Tempel, ressources, images inter-échelles et
 planétarium observable — peuvent écrire le même rapport de preuve JSON versionné avec

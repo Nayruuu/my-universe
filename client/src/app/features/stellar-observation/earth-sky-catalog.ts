@@ -1,8 +1,19 @@
-import type { SpaceObject } from '../../../data/models/universe.models';
+import type { SpaceObject, UniverseTime } from '../../../data/models/universe.models';
+import {
+  calculateSolarSystemSky,
+  isSolarSystemSkyBodyId,
+} from '../../../engine/simulation/solar-system-sky';
+import {
+  calculateSolarSystemSatelliteSkyObservation,
+  isSolarSystemSatelliteSkyTarget,
+} from '../../../engine/simulation/solar-system-satellite-sky';
 import type {
+  EarthObservationLocation,
   EquatorialSkyCoordinates,
+  StellarObservation,
   StellarObservationCatalogEntry,
 } from '../../../engine/simulation/stellar-observation';
+import { calculateStellarObservation } from '../../../engine/simulation/stellar-observation';
 
 const DEFAULT_STAR_COLOR = '#dce9ff';
 
@@ -64,4 +75,32 @@ export function equatorialCoordinates(object: SpaceObject): EquatorialSkyCoordin
     typeof declinationDegrees === 'number'
     ? { rightAscensionDegrees, declinationDegrees }
     : null;
+}
+
+export function isEarthSkyTarget(object: SpaceObject): boolean {
+  return (
+    createEarthSkyTarget(object) !== null ||
+    isSolarSystemSkyBodyId(object.id) ||
+    isSolarSystemSatelliteSkyTarget(object)
+  );
+}
+
+export function calculateEarthSkyTargetObservation(
+  object: SpaceObject,
+  time: UniverseTime,
+  location: EarthObservationLocation,
+): StellarObservation | null {
+  const stellarTarget = createEarthSkyTarget(object);
+
+  if (stellarTarget) {
+    return calculateStellarObservation(time, stellarTarget.coordinates, location);
+  }
+  if (isSolarSystemSkyBodyId(object.id)) {
+    return (
+      calculateSolarSystemSky(time, location).find(({ id }) => id === object.id)?.observation ??
+      null
+    );
+  }
+
+  return calculateSolarSystemSatelliteSkyObservation(time, location, object)?.observation ?? null;
 }

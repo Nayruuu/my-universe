@@ -25,6 +25,8 @@ import {
 export class UniverseSearchComponent {
   public readonly selectionMode = input<'navigate' | 'emit'>('navigate');
   public readonly allowedTypes = input<readonly SpaceObjectType[] | null>(null);
+  public readonly excludedIds = input<readonly string[]>([]);
+  public readonly embedded = input(false);
   public readonly placeholder = input<string | null>(null);
   public readonly resultSelected = output<SearchEntry>();
   protected readonly searchService = inject(SearchService);
@@ -45,12 +47,17 @@ export class UniverseSearchComponent {
   protected readonly results = computed(() => {
     this.searchService.revision();
     const allowedTypes = this.allowedTypes();
+    const excludedIds = new Set(this.excludedIds());
     const entries = allowedTypes
       ? this.searchService.search(this.query(), 32)
       : this.searchService.search(this.query());
 
     return entries
-      .filter((entry) => allowedTypes === null || allowedTypes.includes(entry.type))
+      .filter(
+        (entry) =>
+          (allowedTypes === null || allowedTypes.includes(entry.type)) &&
+          !excludedIds.has(entry.id),
+      )
       .slice(0, 8);
   });
   protected readonly searchPlaceholder = computed(

@@ -5,11 +5,9 @@ import {
   EARTH_OBSERVER_MAXIMUM_FIELD_OF_VIEW_DEGREES,
 } from '../../../engine/camera/earth-observer-view.constants';
 import type { EarthObservationLocation } from '../../../engine/simulation/stellar-observation';
-import {
-  calculateEarthObserverReferenceFrame,
-  calculateStellarObservation,
-} from '../../../engine/simulation/stellar-observation';
-import { equatorialCoordinates } from './earth-sky-catalog';
+import { calculateEarthObserverReferenceFrame } from '../../../engine/simulation/stellar-observation';
+import { calculateEarthSkyDirection } from '../../../engine/simulation/solar-system-sky';
+import { calculateEarthSkyTargetObservation } from './earth-sky-catalog';
 
 const MINIMUM_ENTRY_ALTITUDE_DEGREES = 18;
 const TARGET_EDGE_CLEARANCE_DEGREES = 6;
@@ -33,12 +31,7 @@ export function earthSkyEntryFraming(
   location: EarthObservationLocation,
   preservedHorizonPercentage?: number,
 ): EarthSkyEntryFraming {
-  const coordinates = equatorialCoordinates(target);
-
-  if (!coordinates) {
-    return DEFAULT_EARTH_SKY_ENTRY_FRAMING;
-  }
-  const observation = calculateStellarObservation(time, coordinates, location);
+  const observation = calculateEarthSkyTargetObservation(target, time, location);
   const referenceFrame = calculateEarthObserverReferenceFrame(time, location);
 
   if (!observation || !referenceFrame) {
@@ -86,6 +79,11 @@ export function earthSkyEntryFraming(
     initialPitchOffsetDegrees,
     pitchLimits,
     verticalFieldOfViewDegrees,
+    targetDirection: calculateEarthSkyDirection(
+      observation.altitudeDegrees,
+      observation.azimuthDegrees,
+      referenceFrame,
+    ),
     northDirection: referenceFrame.northDirection,
     zenithDirection: referenceFrame.zenithDirection,
     resolveReferenceFrame: (currentTime) =>

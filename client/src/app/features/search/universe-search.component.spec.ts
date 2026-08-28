@@ -85,7 +85,9 @@ describe('UniverseSearchComponent', () => {
     const selected = vi.fn();
 
     fixture.componentRef.setInput('selectionMode', 'emit');
-    fixture.componentRef.setInput('allowedTypes', ['star']);
+    fixture.componentRef.setInput('allowedTypes', ['star', 'planet']);
+    fixture.componentRef.setInput('excludedIds', ['earth']);
+    fixture.componentRef.setInput('embedded', true);
     fixture.componentRef.setInput('placeholder', 'Rechercher une étoile');
     component.resultSelected.subscribe(selected);
     component.choose(sirius);
@@ -100,7 +102,12 @@ describe('UniverseSearchComponent', () => {
 
     search.mockReturnValue([earth, sirius]);
     component.updateQuery(inputEvent('s'));
+    fixture.detectChanges();
+
     expect(component.results()).toEqual([sirius]);
+    expect(search).toHaveBeenCalledWith('s', 32);
+    expect(fixture.nativeElement.querySelector('.results--embedded')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.result__arrow').textContent.trim()).toBe('→');
   });
 
   it('efface la requête et traduit tous les types affichés', () => {

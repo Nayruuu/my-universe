@@ -27,15 +27,27 @@ Schritt.
   moderne Sternbilder, Höhe und Azimut, ein zeigergebundenes Sichtfeld von 102° bis 2°, 461 per URL
   wiederherstellbare Orte, zustimmungsbasierte Browser-Geolokalisierung auf drei Dezimalstellen und
   illustrative lokale Szenenkontexte.
+- Ein lokaler Planer auf Abruf ordnet sichtbaren Mond, Planeten und katalogisierte Satelliten nach
+  Höhe und wertet die 48 hellsten Katalogsterne aus, um bis zu acht sichtbare Sterne vorzuschlagen.
+  Eine Auswahl öffnet die vorhandenen Objektdetails und zentriert den Himmel neu. Berechneter Horizont
+  und Geländeabschattung werden berücksichtigt, sofern verfügbar. Das aktive Ziel erhält nun eine
+  berechnete 24-Stunden-Höhenkurve mit Aufgang, Kulmination, Untergang, USNO-Dämmerungsbändern,
+  Mondlichtstörung, einem ausdrücklich illustrativen Bestfenster-Index und einer Aktion, die Zeit und
+  Kamera gemeinsam verschiebt. Das Kurvenziel kann aus demselben lokalen Katalog ersetzt werden, ohne
+  den aktuellen Himmel zu bewegen; erst diese Aktion übernimmt Ziel, gemeinsame Zeit und Kamera.
+  Live-Wetter, Lichtverschmutzung und lokale Hindernisse bleiben außen vor.
 - Für jeden festen Katalogort wird ein 360°-Verdeckungsprofil aus dem maßgeblichen
   NOAA/NCEI-Oberflächenrelief ETOPO 2022 v1 mit 60 Bogensekunden berechnet. Die kompakten Profile
-  werden verzögert geladen und können Sterne, Mond und Planeten hinter modelliertem Gelände
+  werden verzögert geladen und können Sterne, Mond, Planeten und Satelliten hinter modelliertem Gelände
   verdecken; Gebäude, Vegetation, Mikrorelief und freie Koordinaten bleiben außerhalb des Modells.
   Drei berechnete Entfernungshüllen (0–30, 30–100 und 100–300 km) verleihen der Silhouette Tiefe;
   Farbe und Beleuchtung sind stilisiert.
-- Mond und sieben sichtbare Planeten verwenden ihre vorhandenen Three.js-Objekte, Materialien,
-  Beleuchtung und verzögert geladenen Texturen. Topozentrische Richtung und Winkeldurchmesser werden
-  berechnet; die begrenzte Mindestgröße zur Lesbarkeit bleibt ausdrücklich illustrativ.
+- Mond, sieben sichtbare Planeten und zwanzig weitere katalogisierte Satelliten verwenden ihre
+  vorhandenen Three.js-Objekte, Materialien, Beleuchtung und verzögert geladenen Texturen. Die
+  topozentrischen Richtungen und Winkeldurchmesser verwenden physische Bahndistanzen: galileische
+  Positionen sind berechnet, die sechzehn Bahnen aus mittleren J2000-Elementen bleiben als extrapoliert
+  gekennzeichnet. Satelliten erscheinen ab einem Sichtfeld von 12° oder sofort als Ziel, um Überlagerung
+  im Weitwinkel zu vermeiden; die Mindestgröße zur Lesbarkeit bleibt ausdrücklich illustrativ.
 - Sterne und Milchstraße gewinnen beim Zoomen kontinuierlich Details. Die Navigation entfernt zudem
   Ziele und Auswahlen, sobald ihr visueller Kontext verschwindet.
 - Die kartesischen J2000-Geschwindigkeiten von HYG schreiben nun den gemeinsamen Sternkatalog, den

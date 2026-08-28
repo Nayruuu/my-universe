@@ -61,7 +61,7 @@
     }
   }
 
-  @if (!coordinates()) {
+  @if (!supportedTarget()) {
     <p class="observation-message">{{ text.coordinatesUnavailable }}</p>
   } @else if (selectedLocation() && observation(); as result) {
     <app-local-sky-map
@@ -97,7 +97,7 @@
     </dl>
 
     <p class="visibility-note">{{ text.visibilityNote }}</p>
-    <p class="scientific-note">{{ text.scientificNote }}</p>
+    <p class="scientific-note">{{ scientificNote() }}</p>
     <small>{{ text.onDevice }}</small>
   } @else if (selectedLocation()) {
     <p class="observation-message">{{ text.unsupportedTime }}</p>

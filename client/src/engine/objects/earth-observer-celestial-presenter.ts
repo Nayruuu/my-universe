@@ -19,7 +19,15 @@ interface ObserverTransformSnapshot {
   readonly scale: THREE.Vector3;
 }
 
-const EARTH_OBSERVER_BODY_IDS = new Set([
+interface ObserverMaterialSnapshot {
+  readonly emissive: THREE.Color;
+  readonly emissiveIntensity: number;
+  readonly emissiveMap: THREE.Texture | null;
+  readonly hadObserverShadowFill: boolean;
+  readonly observerShadowFill: unknown;
+}
+
+const CORE_EARTH_OBSERVER_BODY_IDS = new Set([
   'moon',
   'mercury',
   'venus',
@@ -31,6 +39,8 @@ const EARTH_OBSERVER_BODY_IDS = new Set([
 ]);
 const OBSERVER_PRESENTATION_DISTANCE = 1;
 const OBSERVER_PRESENTATION_MODE = 'topocentric-angular-existing-object';
+const OBSERVER_SHADOW_FILL = 'illustrative-readability-fill';
+const OBSERVER_SHADOW_FILL_INTENSITY = 0.14;
 const MINIMUM_PROJECTION_DEPTH = 1e-6;
 
 export class EarthObserverCelestialPresenter {
@@ -38,6 +48,10 @@ export class EarthObserverCelestialPresenter {
   private readonly presentations = new Map<string, EarthObserverCelestialPresentation>();
   private readonly presentationRoots = new Map<string, THREE.Group>();
   private readonly snapshots = new Map<string, ObserverTransformSnapshot>();
+  private readonly materialSnapshots = new Map<
+    THREE.MeshStandardMaterial,
+    ObserverMaterialSnapshot
+  >();
   private readonly cameraForward = new THREE.Vector3();
   private readonly compensationBasis = new THREE.Matrix4();
   private readonly compensationQuaternion = new THREE.Quaternion();
@@ -47,12 +61,19 @@ export class EarthObserverCelestialPresenter {
   private readonly radialTangent = new THREE.Vector3();
   private readonly screenTangent = new THREE.Vector3();
   private readonly worldPosition = new THREE.Vector3();
+  private readonly observerBodyIds: ReadonlySet<string>;
   private active = false;
 
   constructor(
     registryRoot: THREE.Group,
     private readonly entries: ReadonlyMap<string, ObjectRegistryEntry>,
   ) {
+    this.observerBodyIds = new Set([
+      ...CORE_EARTH_OBSERVER_BODY_IDS,
+      ...[...entries.values()]
+        .filter(({ definition }) => definition.type === 'moon')
+        .map(({ definition }) => definition.id),
+    ]);
     this.observerRoot.name = 'earth-observer-celestial-presentation';
     this.observerRoot.userData['scientificConfidence'] = 'calculated-angular-position';
     this.observerRoot.userData['visualScale'] = 'illustrative-readability-floor';
@@ -63,7 +84,7 @@ export class EarthObserverCelestialPresenter {
     this.presentations.clear();
 
     for (const presentation of presentations) {
-      if (isValidPresentation(presentation) && EARTH_OBSERVER_BODY_IDS.has(presentation.objectId)) {
+      if (isValidPresentation(presentation) && this.observerBodyIds.has(presentation.objectId)) {
         this.presentations.set(presentation.objectId, presentation);
       }
     }
@@ -87,7 +108,7 @@ export class EarthObserverCelestialPresenter {
     this.showExistingSunlight();
     this.observerRoot.updateWorldMatrix(true, false);
 
-    for (const objectId of EARTH_OBSERVER_BODY_IDS) {
+    for (const objectId of this.observerBodyIds) {
       const entry = this.entries.get(objectId);
       const presentation = this.presentations.get(objectId);
       const presentationRoot = this.presentationRoots.get(objectId);
@@ -113,7 +134,7 @@ export class EarthObserverCelestialPresenter {
   private adoptVisuals(): void {
     this.active = true;
 
-    for (const objectId of EARTH_OBSERVER_BODY_IDS) {
+    for (const objectId of this.observerBodyIds) {
       const entry = this.entries.get(objectId);
       const parent = entry?.visualRoot.parent;
 
@@ -193,6 +214,50 @@ export class EarthObserverCelestialPresenter {
       managed.material.depthWrite = managed.baseDepthWrite;
       synchronizeLayerOpacityUniform(managed.material);
     }
+    this.applyObserverReadabilityFill(entry);
+  }
+
+  private applyObserverReadabilityFill(entry: ObjectRegistryEntry): void {
+    let applied = false;
+
+    for (const managed of entry.lod.nearMaterials) {
+      const material = managed.material;
+
+      if (!(material instanceof THREE.MeshStandardMaterial)) {
+        continue;
+      }
+      const snapshot = this.materialSnapshots.get(material);
+
+      if (!snapshot && material.emissiveIntensity >= OBSERVER_SHADOW_FILL_INTENSITY) {
+        continue;
+      }
+      if (!snapshot) {
+        this.materialSnapshots.set(material, {
+          emissive: material.emissive.clone(),
+          emissiveIntensity: material.emissiveIntensity,
+          emissiveMap: material.emissiveMap,
+          hadObserverShadowFill: Object.hasOwn(material.userData, 'observerShadowFill'),
+          observerShadowFill: material.userData['observerShadowFill'],
+        });
+      }
+      const emissiveMapChanged = material.emissiveMap !== material.map;
+
+      if (material.map) {
+        material.emissive.setHex(0xffffff);
+      } else {
+        material.emissive.copy(material.color);
+      }
+      material.emissiveMap = material.map;
+      material.emissiveIntensity = OBSERVER_SHADOW_FILL_INTENSITY;
+      material.userData['observerShadowFill'] = OBSERVER_SHADOW_FILL;
+      if (emissiveMapChanged) {
+        material.needsUpdate = true;
+      }
+      applied = true;
+    }
+    if (applied) {
+      entry.visualRoot.userData['observerShadowFill'] = OBSERVER_SHADOW_FILL;
+    }
   }
 
   private applyPerspectiveCompensation(
@@ -265,6 +330,25 @@ export class EarthObserverCelestialPresenter {
     if (sun) {
       delete sun.visualRoot.userData['observerSunlightOnly'];
     }
+    for (const [material, snapshot] of this.materialSnapshots) {
+      const emissiveMapChanged = material.emissiveMap !== snapshot.emissiveMap;
+
+      material.emissive.copy(snapshot.emissive);
+      material.emissiveIntensity = snapshot.emissiveIntensity;
+      material.emissiveMap = snapshot.emissiveMap;
+      if (snapshot.hadObserverShadowFill) {
+        material.userData['observerShadowFill'] = snapshot.observerShadowFill;
+      } else {
+        delete material.userData['observerShadowFill'];
+      }
+      if (emissiveMapChanged) {
+        material.needsUpdate = true;
+      }
+    }
+    for (const snapshot of this.snapshots.values()) {
+      delete snapshot.visualRoot.userData['observerShadowFill'];
+    }
+    this.materialSnapshots.clear();
     this.presentationRoots.clear();
     this.snapshots.clear();
   }

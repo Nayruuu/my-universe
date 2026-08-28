@@ -1,5 +1,9 @@
 import { ASTRONOMY_ENGINE_MAX_JULIAN_DAY } from './astronomy-engine-time-domain';
-import { calculateAngularDiameterDegrees, calculateSolarSystemSky } from './solar-system-sky';
+import {
+  calculateAngularDiameterDegrees,
+  calculateSolarSystemSky,
+  calculateSunSkyObservation,
+} from './solar-system-sky';
 import { calculateEarthObserverReferenceFrame } from './stellar-observation';
 import { dateToJulianDay } from './time-utils';
 
@@ -75,6 +79,20 @@ describe('ciel du Système solaire depuis la Terre', () => {
     expect(calculateAngularDiameterDegrees(1_737.4, 384_400 / 149_597_870.7)).toBeCloseTo(0.518, 3);
   });
 
+  it('reproduit la position topocentrique indépendante du Soleil à Paris', () => {
+    const observation = calculateSunSkyObservation(
+      { julianDay: dateToJulianDay(new Date('2026-01-15T18:00:00Z')) },
+      PARIS,
+    );
+
+    // Independent reference: NASA/JPL Horizons DE441, observer table quantities=4,
+    // Paris 2.3522° E / 48.8566° N / 35 m, 2026-01-15 18:00 UTC:
+    // apparent azimuth 255.797887° and refracted elevation −15.017410°.
+    // https://ssd.jpl.nasa.gov/horizons/manual.html
+    expect(observation?.azimuthDegrees).toBeCloseTo(255.797_887, 1);
+    expect(Math.abs((observation?.altitudeDegrees ?? 0) - -15.017_41)).toBeLessThan(0.15);
+  });
+
   it('expose la fraction éclairée et le sens réel de la phase lunaire', () => {
     const waxingMoon = calculateSolarSystemSky(
       { julianDay: dateToJulianDay(new Date('2026-08-16T15:08:00Z')) },
@@ -99,6 +117,9 @@ describe('ciel du Système solaire depuis la Terre', () => {
     expect(
       calculateSolarSystemSky({ julianDay: ASTRONOMY_ENGINE_MAX_JULIAN_DAY + 1 }, PARIS),
     ).toEqual([]);
+    expect(
+      calculateSunSkyObservation({ julianDay: ASTRONOMY_ENGINE_MAX_JULIAN_DAY + 1 }, PARIS),
+    ).toBeNull();
     expect(() =>
       calculateSolarSystemSky({ julianDay: 2_451_545 }, { ...PARIS, latitude: Number.NaN }),
     ).toThrow(/latitude/i);

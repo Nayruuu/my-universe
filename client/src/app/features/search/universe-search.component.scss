@@ -136,6 +136,15 @@ input {
   backdrop-filter: blur(24px) saturate(140%);
 }
 
+.results--embedded {
+  position: static;
+  max-height: 238px;
+  margin-top: 6px;
+  overflow-y: auto;
+  scrollbar-color: rgb(105 180 219 / 35%) transparent;
+  scrollbar-width: thin;
+}
+
 .result {
   display: flex;
   width: 100%;

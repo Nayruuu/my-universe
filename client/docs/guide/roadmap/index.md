@@ -26,15 +26,27 @@ and a fully static browser architecture remain constraints for every item.
   constellations, altitude and azimuth, a 102°–2° pointer-anchored field of view, 461 URL-restorable
   observing places, consent-based browser geolocation rounded to three decimal degrees, and
   illustrative local scene contexts.
+- An on-demand local observation planner ranks the visible Moon, planets, and catalogued satellites
+  by altitude and evaluates the 48 brightest catalogue stars to propose up to eight visible stars.
+  Selecting a suggestion opens its existing details and recentres the sky. Calculated horizon and
+  terrain obstruction are applied when available. The active target now has a calculated 24-hour
+  altitude curve with rise, culmination, set, USNO twilight bands, Moon interference, an explicitly
+  illustrative best-window index, and an action that moves both shared time and camera. The curve
+  target can be replaced from the same local catalogue without moving the current sky; only that
+  action commits the target, shared time, and camera. Live weather, light pollution, and unsurveyed
+  local obstacles remain outside the model.
 - Every fixed catalogue location has a 360° obstruction profile calculated from the authoritative
   NOAA/NCEI ETOPO 2022 v1 60-arc-second surface-relief product. The compact profiles load lazily and
-  can hide stars, the Moon, and planets behind modelled terrain; buildings, vegetation, microrelief,
-  and custom-coordinate locations remain explicitly outside that model. Three calculated distance
+  can hide stars, the Moon, planets, and satellites behind modelled terrain; buildings, vegetation,
+  microrelief, and custom-coordinate locations remain explicitly outside that model. Three calculated
   envelopes (0–30, 30–100, and 100–300 km) give the silhouette depth; colour and lighting are
   stylistic.
-- The Moon and seven visible planets reuse their existing Three.js objects, materials, lighting,
-  and deferred textures in the observer view. Their topocentric directions and angular diameters are
-  calculated; a bounded readability floor remains explicitly illustrative.
+- The Moon, seven visible planets, and twenty other catalogued satellites reuse their existing
+  Three.js objects, materials, lighting, and deferred textures in the observer view. Topocentric
+  directions and angular diameters use physical orbital distances: Galilean positions are calculated,
+  while the sixteen mean-J2000-element paths remain labelled extrapolated. Satellite markers appear
+  from a 12° field of view, or immediately when targeted, to avoid overlap at wide angles; the bounded
+  readability floor remains explicitly illustrative.
 - Stellar points and the Milky Way now gain useful detail continuously under zoom instead of relying
   on a fixed pixel footprint. Navigation also clears stale targets and selections when their visual
   context disappears.

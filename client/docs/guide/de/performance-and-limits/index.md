@@ -44,13 +44,16 @@ allen drei Läufen stabil. Jeder Lauf erfasste 1.452–1.455 Bilder bei 9,1 ms p
 maximal 9,4–9,5 ms und ohne lange Bilder; Jupiter erreichte in allen drei Läufen seine aufgelöste
 Darstellung.
 
-Auch eine ausdrücklich simulierte Stressmatrix auf demselben Rechner blieb im Budget. Bei mittlerer
-Qualität, 4× gedrosselter Chrome-CPU und Canvas-DPR 1,25 lagen die Mediane bei 9,3 ms p95, 16,7 ms
-p99 und maximal 24,9 ms, ohne lange Bilder. Niedrige Qualität bei CPU 6× und DPR 1 erreichte
-15,9 ms p95, 25,1 ms p99 und maximal 42 ms im Median, ein schlechtestes Bild von 49,9 ms sowie
-0,20–0,34 % lange Bilder. Jupiter wurde in allen sechs Stressläufen aufgelöst. Die GPU blieb der
-M5 Max; damit misst dies Regressionsreserve und keine repräsentative physische Mittel- oder
-Niedrigklasse-Hardware.
+Eine saubere simulierte Kampagne auf demselben Host, aufgezeichnet am 28. August 2026 aus Revision
+`27db0e1`, bestand alle zehn Berichte. Bei mittlerer Qualität und CPU 4× erreichte die erste nutzbare
+Karte im Median 1,26 s, Tempels erstes sichtbares Bild 24,2 ms, drei kalte Skalenläufe 9,3 ms p95 mit
+einem schlechtesten Bild von 66,5 ms und die Beobachterläufe 9,2 ms p95 im Median mit einem
+schlechtesten Bild von 24,9 ms sowie Jupiter 3/3 aufgelöst. Bei niedriger Qualität und CPU 6× waren
+die entsprechenden Werte 1,85 s, 33,1 ms, 16,6–16,7 ms p95 mit einem schlechtesten Skalenbild von
+83,4 ms sowie 9,4 ms Beobachter-p95 mit einem schlechtesten Bild von 41,7 ms und Jupiter 3/3
+aufgelöst. Beide Ressourcenprotokolle hielten Geometrie-, Textur- und Draw-Call-Zahlen über drei
+Zyklen unverändert. Die GPU blieb der M5 Max; damit misst dies Regressionsreserve und keine
+repräsentative physische Mittel- oder Niedrigklasse-Hardware.
 
 Alle fünf Leistungs-Benchmarks — Start, Tempel, Ressourcen, Maßstabsbilder und
 Beobachter-Planetarium — können mit `UNIVERSE_BENCHMARK_REPORT_PATH` denselben versionierten

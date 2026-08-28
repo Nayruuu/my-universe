@@ -905,11 +905,22 @@ minimum-distance traversal. Zoom reorients the roll-free Earth-fixed camera so t
 direction under the pointer remains stationary, including when a DOM planet marker covers the
 WebGL canvas.
 
-Moon and planet overlays use Astronomy Engine topocentric distances plus the locally sourced body
-radii to calculate angular diameter. Their exact pinhole-projected diameter is retained separately
-from the displayed diameter. At narrow fields of view, observed or adapted local textures resolve
-into bounded disks; a documented readability floor keeps small planets inspectable and remains
-explicitly `illustrative`, never a claim that their physical angular size is larger.
+The observer view reuses the existing Three.js resources for the Moon, seven non-Earth planets, and
+all twenty other catalogued satellites instead of constructing a second set of celestial objects.
+Moon and planet directions come from Astronomy Engine. The Galilean satellites use its JUP365
+vectors at the Earth-received epoch; the remaining sixteen satellites propagate their physical
+[NASA/JPL mean J2000 elements](https://ssd.jpl.nasa.gov/sats/elem/) around the apparent parent body.
+This topocentric calculation deliberately ignores each orbit's visual `distanceScale`. Galilean
+positions are labelled `calculated`; the mean-element paths remain `extrapolated` because they omit
+perturbations.
+
+Topocentric distances plus locally sourced body radii determine angular diameter. The exact
+pinhole-projected diameter is retained separately from the displayed diameter. At narrow fields of
+view, observed or adapted local textures resolve into bounded disks; a documented readability floor
+keeps small bodies inspectable and remains explicitly `illustrative`, never a claim that their
+physical angular size is larger. To avoid twenty satellite labels collapsing onto their parent
+planets, non-targeted satellite markers are revealed at 12° field of view or narrower. A directly
+selected satellite remains visible at every field of view.
 
 The browser calculates apparent direction, altitude, azimuth, precession, nutation, and atmospheric
 refraction for the selected star. The view can recenter the target, expose independent name and
@@ -949,7 +960,27 @@ claim detail absent from ETOPO. The result can occlude stars, Moon, and planets,
 model-derived regional mask rather than surveyed local geometry: 60 arc-seconds cannot resolve
 buildings, vegetation, embankments, or micro-relief. Custom browser coordinates keep the illustrative
 plain because the static client neither ships the 466 MB raster nor calls an elevation API. The view
-is not live weather, a historical reconstruction, or a professional observation-planning tool.
+also exposes an on-demand local observation planner. It ranks the visible Moon and planets by
+calculated altitude, evaluates the 48 brightest catalogue stars, and proposes at most eight visible
+stars. It shares the same topocentric, refraction, geometric-horizon, and ETOPO-obstruction functions
+as the renderer. Selecting a suggestion opens the existing object details and recentres the
+planetarium on its calculated horizontal coordinates. By default, the panel additionally samples the
+active target over one local-solar-noon-to-noon window every 30 minutes. Its shared local search can
+replace that curve target with a calculable star, planet, or moon without mutating the selected object,
+shared time, URL, or camera. The chart plots calculated altitude and terrain clearance, interpolates
+rise and set crossings, finds the sampled culmination, and separates daylight, civil, nautical,
+astronomical twilight, and night with the Sun-centre thresholds documented by the
+[US Naval Observatory](https://aa.usno.navy.mil/faq/RST_defs). The topocentric solar position has an
+independent regression value from the [NASA/JPL Horizons observer table](https://ssd.jpl.nasa.gov/horizons/manual.html).
+An explicitly `illustrative` index combines darkness, angular height, lunar illuminated fraction,
+Moon altitude, and target–Moon separation to identify a convenient window. Its action commits the
+previewed target, sets the shared simulation time, and recentres the existing camera on the sampled
+target coordinates. The calculation
+runs only while the panel is open; its 24-hour samples are reused until the local solar date, target,
+location, or terrain changes. Current-list suggestions remain geometric and the convenience index is
+not a visibility forecast: live weather, atmospheric transparency, light pollution, and unsurveyed
+local obstacles are outside the model. The view is not a historical reconstruction, a weather service,
+or a professional observation-planning tool.
 
 ## Eclipse model
 

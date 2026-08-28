@@ -43,13 +43,16 @@ Il renderer in qualità alta ha applicato il limite DPR 1,5 documentato ed è ri
 e tre le prove. Ogni prova ha campionato 1452–1455 frame a 9,1 ms al p95, 9,3 ms al p99,
 9,4–9,5 ms massimi e senza frame lunghi; Giove ha raggiunto la rappresentazione risolta in tutte e tre.
 
-Anche una matrice di stress sullo stesso computer, indicata esplicitamente come simulata, è rimasta
-nel budget. Con qualità media, CPU Chrome rallentata 4× e DPR canvas 1,25, le mediane sono state
-9,3 ms al p95, 16,7 ms al p99 e 24,9 ms massimi, senza frame lunghi. Con qualità bassa, CPU 6× e
-DPR 1, sono state 15,9 ms al p95, 25,1 ms al p99 e 42 ms massimi, con un peggior frame di 49,9 ms e
-0,20–0,34% di frame lunghi. Giove si è risolto in tutte le sei prove sotto stress. La GPU è rimasta
-la M5 Max: questi dati misurano il margine contro le regressioni, non hardware fisico rappresentativo
-di fascia media o bassa.
+Una campagna simulata pulita sullo stesso host, registrata il 28 agosto 2026 dalla revisione
+`27db0e1`, ha superato tutti e dieci i rapporti. Con qualità media e CPU 4×, la prima mappa utilizzabile
+mediana è arrivata in 1,26 s, il primo frame visibile di Tempel mediano in 24,2 ms, i tre percorsi di
+scala a freddo sono rimasti a 9,3 ms p95 con un frame peggiore di 66,5 ms e i percorsi osservabili a
+9,2 ms p95 mediano con un frame peggiore di 24,9 ms e Giove risolto 3/3. Con qualità bassa e CPU 6×, i
+valori corrispondenti sono stati 1,85 s, 33,1 ms, 16,6–16,7 ms p95 con un frame di scala peggiore di
+83,4 ms e 9,4 ms p95 osservabile con un frame peggiore di 41,7 ms e Giove risolto 3/3. Entrambi i
+protocolli delle risorse hanno mantenuto invariati i conteggi di geometrie, texture e draw call per
+tre cicli. La GPU è rimasta la M5 Max: questi dati misurano il margine contro le regressioni, non
+hardware fisico rappresentativo di fascia media o bassa.
 
 Tutti e cinque i benchmark delle prestazioni — avvio, Tempel, risorse, frame tra scale e planetario
 osservabile — possono scrivere lo stesso rapporto di evidenza JSON versionato con

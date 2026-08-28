@@ -1,5 +1,9 @@
 import type { EarthObserverLocation } from '../../../engine/simulation/earth-observer-location';
-import { createEarthHorizonProfile, projectEarthHorizonLandmark } from './earth-horizon-profile';
+import {
+  createEarthHorizonProfile,
+  earthIllustrativeLandscapePresentation,
+  projectEarthHorizonLandmark,
+} from './earth-horizon-profile';
 
 describe('profils illustratifs de l’horizon terrestre', () => {
   it('associe les huit horizons emblématiques à leur ville documentée', () => {
@@ -113,6 +117,17 @@ describe('profils illustratifs de l’horizon terrestre', () => {
       name: 'Repère',
       scale: 1,
       xPercent: 50,
+    });
+  });
+
+  it('retire progressivement le décor illustratif avant les champs télescopiques', () => {
+    expect(earthIllustrativeLandscapePresentation(82)).toEqual({ opacity: 1, state: 'full' });
+    expect(earthIllustrativeLandscapePresentation(30)).toEqual({ opacity: 0.5, state: 'fading' });
+    expect(earthIllustrativeLandscapePresentation(18)).toEqual({ opacity: 0, state: 'hidden' });
+    expect(earthIllustrativeLandscapePresentation(2)).toEqual({ opacity: 0, state: 'hidden' });
+    expect(earthIllustrativeLandscapePresentation(Number.NaN)).toEqual({
+      opacity: 1,
+      state: 'full',
     });
   });
 });

@@ -17,13 +17,15 @@ export interface LunarSkyIllumination {
 }
 
 export interface SolarSystemSkyBody {
-  readonly id: SolarSystemSkyBodyId;
+  readonly id: string;
   readonly fallbackName: string;
   readonly color: string;
   readonly angularSizeClass: 'stellar' | 'planet' | 'moon';
+  readonly skyObjectKind: 'planet' | 'moon' | 'satellite';
   readonly assistedVisibility: boolean;
   readonly textureUrl: string | null;
   readonly appearanceConfidence: 'observed' | 'observed-adapted' | 'illustrative';
+  readonly positionConfidence: 'calculated' | 'extrapolated';
 }
 
 export interface SolarSystemSkyObservation extends SolarSystemSkyBody {
@@ -31,7 +33,7 @@ export interface SolarSystemSkyObservation extends SolarSystemSkyBody {
   readonly direction: Vector3Like;
   readonly lunarIllumination: LunarSkyIllumination | null;
   readonly angularDiameterDegrees: number;
-  readonly angularDiameterConfidence: 'calculated';
+  readonly angularDiameterConfidence: 'calculated' | 'extrapolated';
 }
 
 interface SolarSystemSkyDefinition extends SolarSystemSkyBody {
@@ -50,10 +52,12 @@ const SOLAR_SYSTEM_SKY_DEFINITIONS: readonly SolarSystemSkyDefinition[] = [
     body: Body.Moon,
     color: '#e9eff4',
     angularSizeClass: 'moon',
+    skyObjectKind: 'moon',
     assistedVisibility: false,
     radiusKm: 1_737.4,
     textureUrl: '/textures/moon-lroc-1024.jpg',
     appearanceConfidence: 'observed',
+    positionConfidence: 'calculated',
   },
   {
     id: 'mercury',
@@ -61,10 +65,12 @@ const SOLAR_SYSTEM_SKY_DEFINITIONS: readonly SolarSystemSkyDefinition[] = [
     body: Body.Mercury,
     color: '#d8c5aa',
     angularSizeClass: 'planet',
+    skyObjectKind: 'planet',
     assistedVisibility: false,
     radiusKm: 2_439.7,
     textureUrl: '/textures/mercury-messenger-usgs-1024.jpg',
     appearanceConfidence: 'observed',
+    positionConfidence: 'calculated',
   },
   {
     id: 'venus',
@@ -72,10 +78,12 @@ const SOLAR_SYSTEM_SKY_DEFINITIONS: readonly SolarSystemSkyDefinition[] = [
     body: Body.Venus,
     color: '#fff0bd',
     angularSizeClass: 'planet',
+    skyObjectKind: 'planet',
     assistedVisibility: false,
     radiusKm: 6_051.8,
     textureUrl: null,
     appearanceConfidence: 'illustrative',
+    positionConfidence: 'calculated',
   },
   {
     id: 'mars',
@@ -83,10 +91,12 @@ const SOLAR_SYSTEM_SKY_DEFINITIONS: readonly SolarSystemSkyDefinition[] = [
     body: Body.Mars,
     color: '#ef9a6b',
     angularSizeClass: 'planet',
+    skyObjectKind: 'planet',
     assistedVisibility: false,
     radiusKm: 3_389.5,
     textureUrl: '/textures/mars-viking-1024.jpg',
     appearanceConfidence: 'observed-adapted',
+    positionConfidence: 'calculated',
   },
   {
     id: 'jupiter',
@@ -94,10 +104,12 @@ const SOLAR_SYSTEM_SKY_DEFINITIONS: readonly SolarSystemSkyDefinition[] = [
     body: Body.Jupiter,
     color: '#f1d4ad',
     angularSizeClass: 'planet',
+    skyObjectKind: 'planet',
     assistedVisibility: false,
     radiusKm: 69_911,
     textureUrl: '/textures/jupiter-hubble-1024.jpg',
     appearanceConfidence: 'observed-adapted',
+    positionConfidence: 'calculated',
   },
   {
     id: 'saturn',
@@ -105,10 +117,12 @@ const SOLAR_SYSTEM_SKY_DEFINITIONS: readonly SolarSystemSkyDefinition[] = [
     body: Body.Saturn,
     color: '#e7d29c',
     angularSizeClass: 'planet',
+    skyObjectKind: 'planet',
     assistedVisibility: false,
     radiusKm: 58_232,
     textureUrl: '/textures/saturn-nasa-vtad-2048.jpg',
     appearanceConfidence: 'illustrative',
+    positionConfidence: 'calculated',
   },
   {
     id: 'uranus',
@@ -116,10 +130,12 @@ const SOLAR_SYSTEM_SKY_DEFINITIONS: readonly SolarSystemSkyDefinition[] = [
     body: Body.Uranus,
     color: '#b8e7e6',
     angularSizeClass: 'stellar',
+    skyObjectKind: 'planet',
     assistedVisibility: true,
     radiusKm: 25_362,
     textureUrl: '/textures/uranus-nasa-vtad-1024.jpg',
     appearanceConfidence: 'illustrative',
+    positionConfidence: 'calculated',
   },
   {
     id: 'neptune',
@@ -127,12 +143,38 @@ const SOLAR_SYSTEM_SKY_DEFINITIONS: readonly SolarSystemSkyDefinition[] = [
     body: Body.Neptune,
     color: '#91b8ff',
     angularSizeClass: 'stellar',
+    skyObjectKind: 'planet',
     assistedVisibility: true,
     radiusKm: 24_622,
     textureUrl: '/textures/neptune-nasa-vtad-1024.jpg',
     appearanceConfidence: 'illustrative',
+    positionConfidence: 'calculated',
   },
 ];
+const SOLAR_SYSTEM_SKY_BODY_IDS = new Set<string>(SOLAR_SYSTEM_SKY_DEFINITIONS.map(({ id }) => id));
+
+export function isSolarSystemSkyBodyId(objectId: string): objectId is SolarSystemSkyBodyId {
+  return SOLAR_SYSTEM_SKY_BODY_IDS.has(objectId);
+}
+
+export function calculateSunSkyObservation(
+  time: UniverseTime,
+  location: EarthObservationLocation,
+): StellarObservation | null {
+  const calculateObservation = createStellarObservationCalculator(time, location);
+
+  if (!calculateObservation) {
+    return null;
+  }
+  const astronomyTime = MakeTime(astronomyEngineDaysSinceJ2000(time));
+  const observer = new Observer(location.latitude, location.longitude, location.heightMeters ?? 0);
+  const equatorial = Equator(Body.Sun, astronomyTime, observer, false, true);
+
+  return calculateObservation({
+    rightAscensionDegrees: equatorial.ra * 15,
+    declinationDegrees: equatorial.dec,
+  });
+}
 
 export function calculateSolarSystemSky(
   time: UniverseTime,
@@ -161,14 +203,14 @@ export function calculateSolarSystemSky(
     return {
       ...definition,
       observation,
-      direction: calculateHorizontalDirection(
+      direction: calculateEarthSkyDirection(
         observation.altitudeDegrees,
         observation.azimuthDegrees,
         referenceFrame,
       ),
       lunarIllumination: body === Body.Moon ? lunarIllumination : null,
       angularDiameterDegrees: calculateAngularDiameterDegrees(radiusKm, equatorial.dist),
-      angularDiameterConfidence: 'calculated',
+      angularDiameterConfidence: definition.positionConfidence,
     };
   });
 }
@@ -177,7 +219,7 @@ export function calculateAngularDiameterDegrees(radiusKm: number, distanceAu: nu
   return 2 * Math.asin(radiusKm / (distanceAu * ASTRONOMICAL_UNIT_KM)) * (180 / Math.PI);
 }
 
-function calculateHorizontalDirection(
+export function calculateEarthSkyDirection(
   altitudeDegrees: number,
   azimuthDegrees: number,
   referenceFrame: {

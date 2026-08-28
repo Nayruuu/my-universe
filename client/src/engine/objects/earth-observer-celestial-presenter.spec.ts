@@ -100,6 +100,94 @@ describe('EarthObserverCelestialPresenter', () => {
     presenter.dispose();
   });
 
+  it('réutilise également les modèles 3D de tous les satellites du catalogue', () => {
+    const registryRoot = new THREE.Group();
+    const io = createEntry('io');
+    const entries = new Map<string, ObjectRegistryEntry>([['io', io.entry]]);
+    const presenter = new EarthObserverCelestialPresenter(registryRoot, entries);
+    const camera = new THREE.PerspectiveCamera(12, 1, 0.025, 100);
+
+    registryRoot.add(io.node);
+    presenter.setPresentations([presentation('io', { x: 0, y: 0, z: -1 }, 16)]);
+    presenter.update(camera, 900, true);
+
+    expect(io.entry.visualRoot.userData['observerPresentationActive']).toBe(true);
+    expect(io.entry.visualRoot.userData['observerPresentationDiameterPixels']).toBe(16);
+    expect(io.entry.visualRoot.parent?.name).toBe('io-earth-observer-presentation');
+
+    presenter.setPresentations([presentation('jupiter', { x: 0, y: 0, z: -1 }, 32)]);
+    presenter.update(camera, 900, true);
+    expect(io.entry.visualRoot.visible).toBe(false);
+
+    presenter.dispose();
+    expect(io.entry.visualRoot.parent).toBe(io.node);
+  });
+
+  it('maintient les faces nocturnes lisibles uniquement pendant la vue observateur', () => {
+    const registryRoot = new THREE.Group();
+    const texture = new THREE.Texture();
+    const darkSurface = new THREE.MeshStandardMaterial({
+      color: 0xd7b873,
+      emissive: 0x123456,
+      emissiveIntensity: 0,
+      map: texture,
+    });
+    const alreadyReadable = new THREE.MeshStandardMaterial({
+      emissive: 0x88aacc,
+      emissiveIntensity: 0.2,
+    });
+    const untexturedSurface = new THREE.MeshStandardMaterial({
+      color: 0x987654,
+      emissive: 0x010203,
+      emissiveIntensity: 0,
+    });
+
+    darkSurface.userData['observerShadowFill'] = 'original-value';
+    const venus = createEntry('venus', {
+      materials: [
+        { material: darkSurface, baseOpacity: 1, baseDepthWrite: true },
+        { material: untexturedSurface, baseOpacity: 1, baseDepthWrite: true },
+        { material: alreadyReadable, baseOpacity: 1, baseDepthWrite: true },
+      ],
+    });
+    const entries = new Map<string, ObjectRegistryEntry>([['venus', venus.entry]]);
+    const presenter = new EarthObserverCelestialPresenter(registryRoot, entries);
+    const camera = new THREE.PerspectiveCamera(2, 1, 0.025, 100);
+
+    registryRoot.add(venus.node);
+    presenter.setPresentations([presentation('venus', { x: 0, y: 0, z: -1 }, 32)]);
+    presenter.update(camera, 900, true);
+    presenter.update(camera, 900, true);
+
+    expect(darkSurface.emissive.getHex()).toBe(0xffffff);
+    expect(darkSurface.emissiveMap).toBe(texture);
+    expect(darkSurface.emissiveIntensity).toBeCloseTo(0.14);
+    expect(darkSurface.userData['observerShadowFill']).toBe('illustrative-readability-fill');
+    expect(untexturedSurface.emissive.getHex()).toBe(0x987654);
+    expect(untexturedSurface.emissiveMap).toBeNull();
+    expect(untexturedSurface.userData['observerShadowFill']).toBe('illustrative-readability-fill');
+    expect(venus.entry.visualRoot.userData['observerShadowFill']).toBe(
+      'illustrative-readability-fill',
+    );
+    expect(alreadyReadable.emissiveIntensity).toBeCloseTo(0.2);
+
+    presenter.update(camera, 900, false);
+
+    expect(darkSurface.emissive.getHex()).toBe(0x123456);
+    expect(darkSurface.emissiveMap).toBeNull();
+    expect(darkSurface.emissiveIntensity).toBe(0);
+    expect(darkSurface.userData['observerShadowFill']).toBe('original-value');
+    expect(untexturedSurface.emissive.getHex()).toBe(0x010203);
+    expect(untexturedSurface.userData['observerShadowFill']).toBeUndefined();
+    expect(venus.entry.visualRoot.userData['observerShadowFill']).toBeUndefined();
+
+    presenter.dispose();
+    darkSurface.dispose();
+    untexturedSurface.dispose();
+    alreadyReadable.dispose();
+    texture.dispose();
+  });
+
   it('conserve une silhouette circulaire et un diamètre stable jusqu’au bord du ciel', () => {
     const viewport = { width: 2_304, height: 1_041 };
     const registryRoot = new THREE.Group();
@@ -163,7 +251,8 @@ function createEntry(
   const definition: SpaceObject = {
     id: objectId,
     name: objectId,
-    type: objectId === 'moon' ? 'moon' : objectId === 'sun' ? 'star' : 'planet',
+    type:
+      objectId === 'moon' || objectId === 'io' ? 'moon' : objectId === 'sun' ? 'star' : 'planet',
     referenceFrame: 'solar-system',
     scientificConfidence: 'calculated',
     visual: { scaleMode: 'adaptive', visualRadius: 1 },

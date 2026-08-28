@@ -34,12 +34,12 @@ export class EarthSkyUrlRestorer {
     let restored = false;
 
     if (target) {
-      const [{ equatorialCoordinates }, { EarthSkyJourney }] = await Promise.all([
+      const [{ isEarthSkyTarget }, { EarthSkyJourney }] = await Promise.all([
         import('./earth-sky-catalog'),
         import('./earth-sky-journey'),
       ]);
 
-      restored = equatorialCoordinates(target)
+      restored = isEarthSkyTarget(target)
         ? await this.injector.get(EarthSkyJourney).restore(target, selectedObjectId)
         : false;
     }

@@ -26,15 +26,27 @@ stabili e architettura completamente statica nel browser vincolano ogni sviluppo
   orientabile, costellazioni moderne, altezza e azimut, campo visivo da 102° a 2° ancorato al
   puntatore, 461 luoghi ripristinabili dall’URL, geolocalizzazione del browser su consenso arrotondata
   a tre decimali e contesti di scena locali illustrativi.
+- Un pianificatore locale su richiesta ordina Luna, pianeti e satelliti catalogati visibili per altezza
+  e valuta le 48 stelle più luminose del catalogo per proporne fino a otto visibili. La selezione apre
+  i dettagli esistenti e ricentra il cielo. Orizzonte calcolato e ostruzione del rilievo vengono
+  applicati quando disponibili. Il bersaglio attivo dispone ora di una curva di altezza calcolata su
+  24 ore con sorgere, culminazione, tramonto, fasce di crepuscolo USNO, disturbo lunare, indice della
+  finestra migliore esplicitamente illustrativo e un’azione che sposta insieme tempo e camera. Il
+  bersaglio della curva può essere sostituito dallo stesso catalogo locale senza muovere il cielo
+  corrente; solo quell’azione conferma bersaglio, tempo condiviso e camera. Meteo in tempo reale,
+  inquinamento luminoso e ostacoli locali non rilevati restano fuori dal modello.
 - Ogni luogo fisso del catalogo dispone di un profilo di ostruzione a 360° calcolato dal prodotto
   autorevole di rilievo superficiale NOAA/NCEI ETOPO 2022 v1 a 60 secondi d’arco. I profili compatti
-  vengono caricati su richiesta e possono nascondere stelle, Luna e pianeti dietro il terreno
+  vengono caricati su richiesta e possono nascondere stelle, Luna, pianeti e satelliti dietro il terreno
   modellato; edifici, vegetazione, microrilievo e coordinate libere restano fuori dal modello. Tre
   inviluppi di distanza calcolati (0–30, 30–100 e 100–300 km) danno profondità alla silhouette;
   colore e illuminazione sono stilizzati.
-- La Luna e i sette pianeti visibili riutilizzano oggetti Three.js, materiali, illuminazione e
-  texture differite esistenti. Direzioni topocentriche e diametri angolari sono calcolati; la soglia
-  minima di leggibilità resta esplicitamente illustrativa.
+- La Luna, i sette pianeti visibili e altri venti satelliti catalogati riutilizzano oggetti Three.js,
+  materiali, illuminazione e texture differite esistenti. Direzioni topocentriche e diametri angolari
+  usano distanze orbitali fisiche: le posizioni galileiane sono calcolate e le altre sedici traiettorie
+  da elementi medi J2000 restano indicate come estrapolate. I satelliti appaiono da un campo di 12°,
+  o subito quando sono il bersaglio, per evitare sovrapposizioni nel grandangolo; la soglia minima di
+  leggibilità resta esplicitamente illustrativa.
 - Stelle e Via Lattea acquisiscono dettaglio in modo continuo durante lo zoom. La navigazione elimina
   anche bersagli e selezioni quando il loro contesto visivo scompare.
 - Le velocità cartesiane J2000 di HYG propagano ora il catalogo condiviso, il cielo dell’osservatore

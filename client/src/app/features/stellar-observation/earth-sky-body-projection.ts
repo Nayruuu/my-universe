@@ -17,8 +17,39 @@ export interface ProjectedEarthSkyBody extends SolarSystemSkyObservation {
   readonly resolvedAppearance: boolean;
 }
 
+export type EarthSkyBodyLabelPlacement = 'above' | 'below' | 'left' | 'right';
+
+export interface EarthSkyBodyLabelLayout {
+  readonly labelOffsetXPixels: number;
+  readonly labelOffsetYPixels: number;
+  readonly labelPlacement: EarthSkyBodyLabelPlacement;
+  readonly labelVisible: boolean;
+}
+
+interface EarthSkyBodyWithLabel extends ProjectedEarthSkyBody {
+  readonly name: string;
+}
+
+interface LabelRectangle {
+  readonly left: number;
+  readonly top: number;
+  readonly right: number;
+  readonly bottom: number;
+}
+
+interface LabelCandidate extends EarthSkyBodyLabelLayout {
+  readonly rectangle: LabelRectangle;
+}
+
 const REFERENCE_FIELD_OF_VIEW_DEGREES = 82;
 const MINIMUM_FIELD_OF_VIEW_DEGREES = 2;
+const LABEL_CHARACTER_WIDTH_PIXELS = 7;
+const LABEL_HORIZONTAL_PADDING_PIXELS = 14;
+const LABEL_HEIGHT_PIXELS = 20;
+const LABEL_MARKER_GAP_PIXELS = 6;
+const LABEL_COLLISION_GAP_PIXELS = 4;
+const LABEL_VIEWPORT_MARGIN_PIXELS = 4;
+const LABEL_LANE_COUNT = 6;
 
 export function projectEarthSkyBodies(
   bodies: readonly SolarSystemSkyObservation[],
@@ -80,6 +111,69 @@ export function projectEarthSkyBodies(
   });
 }
 
+/**
+ * Places the DOM labels around their exact projected anchors. The astronomical body coordinates
+ * never move: only a label offset is selected, and lower-priority labels are suppressed when a
+ * crowded planetary system cannot provide a collision-free slot.
+ */
+export function layoutEarthSkyBodyLabels<T extends EarthSkyBodyWithLabel>(
+  bodies: readonly T[],
+  viewport: EarthSkyViewport,
+  priorityObjectIds: readonly (string | null | undefined)[] = [],
+): readonly (T & EarthSkyBodyLabelLayout)[] {
+  const width = Math.max(1, viewport.width);
+  const height = Math.max(1, viewport.height);
+  const priorityIds = new Set(
+    priorityObjectIds.filter((objectId): objectId is string => Boolean(objectId)),
+  );
+  const indexedBodies = bodies.map((body, index) => ({ body, index }));
+  const orderedBodies = [...indexedBodies].sort(
+    (first, second) =>
+      labelPriority(first.body, priorityIds) - labelPriority(second.body, priorityIds) ||
+      second.body.displayDiameterPixels - first.body.displayDiameterPixels ||
+      first.index - second.index,
+  );
+  const markerRectangles = indexedBodies.map(({ body }) =>
+    bodyMarkerRectangle(body, width, height),
+  );
+  const occupiedLabelRectangles: LabelRectangle[] = [];
+  const layouts: (EarthSkyBodyLabelLayout | undefined)[] = Array.from({ length: bodies.length });
+
+  for (const { body, index } of orderedBodies) {
+    const candidates = createLabelCandidates(body, width, height);
+    const candidate = candidates.find(
+      ({ rectangle }) =>
+        isInsideViewport(rectangle, width, height) &&
+        !occupiedLabelRectangles.some((occupied) => labelsOverlap(rectangle, occupied)) &&
+        !markerRectangles.some(
+          (marker, markerIndex) => markerIndex !== index && rectanglesOverlap(rectangle, marker),
+        ),
+    );
+    const fallback =
+      candidates.find(({ rectangle }) => isInsideViewport(rectangle, width, height)) ??
+      candidates[0]!;
+
+    layouts[index] = candidate
+      ? {
+          labelOffsetXPixels: candidate.labelOffsetXPixels,
+          labelOffsetYPixels: candidate.labelOffsetYPixels,
+          labelPlacement: candidate.labelPlacement,
+          labelVisible: true,
+        }
+      : {
+          labelOffsetXPixels: fallback.labelOffsetXPixels,
+          labelOffsetYPixels: fallback.labelOffsetYPixels,
+          labelPlacement: fallback.labelPlacement,
+          labelVisible: false,
+        };
+    if (candidate) {
+      occupiedLabelRectangles.push(candidate.rectangle);
+    }
+  }
+
+  return bodies.map((body, index) => ({ ...body, ...layouts[index]! }));
+}
+
 export function calculateAngularDiameterPixels(
   angularDiameterDegrees: number,
   verticalFieldOfViewDegrees: number,
@@ -120,6 +214,123 @@ function calculateBodyDisplayAppearance(
     resolvedAppearance:
       sizeClass === 'moon' || (zoomProgress >= 0.18 && displayDiameterPixels >= 8),
   };
+}
+
+function labelPriority(body: EarthSkyBodyWithLabel, priorityIds: ReadonlySet<string>): number {
+  if (priorityIds.has(body.id)) {
+    return 0;
+  }
+
+  return body.skyObjectKind === 'moon' ? 1 : body.skyObjectKind === 'planet' ? 2 : 3;
+}
+
+function createLabelCandidates(
+  body: EarthSkyBodyWithLabel,
+  viewportWidth: number,
+  viewportHeight: number,
+): readonly LabelCandidate[] {
+  const anchorX = (body.xPercent / 100) * viewportWidth;
+  const anchorY = (body.yPercent / 100) * viewportHeight;
+  const labelWidth =
+    [...body.name].length * LABEL_CHARACTER_WIDTH_PIXELS + LABEL_HORIZONTAL_PADDING_PIXELS;
+  const markerRadius = Math.max(24, body.displayDiameterPixels) / 2;
+  const horizontalOffset = markerRadius + LABEL_MARKER_GAP_PIXELS + labelWidth / 2;
+  const verticalOffset = markerRadius + LABEL_MARKER_GAP_PIXELS + LABEL_HEIGHT_PIXELS / 2;
+  const verticalStep = LABEL_HEIGHT_PIXELS + LABEL_COLLISION_GAP_PIXELS;
+  const candidates: LabelCandidate[] = [];
+  const add = (
+    labelOffsetXPixels: number,
+    labelOffsetYPixels: number,
+    labelPlacement: EarthSkyBodyLabelPlacement,
+  ): void => {
+    const centerX = anchorX + labelOffsetXPixels;
+    const centerY = anchorY + labelOffsetYPixels;
+
+    candidates.push({
+      labelOffsetXPixels,
+      labelOffsetYPixels,
+      labelPlacement,
+      labelVisible: true,
+      rectangle: {
+        left: centerX - labelWidth / 2,
+        top: centerY - LABEL_HEIGHT_PIXELS / 2,
+        right: centerX + labelWidth / 2,
+        bottom: centerY + LABEL_HEIGHT_PIXELS / 2,
+      },
+    });
+  };
+  const addVerticalPair = (lane: number): void => {
+    const laneOffset = lane * verticalStep;
+
+    if (body.skyObjectKind === 'moon') {
+      add(0, -verticalOffset - laneOffset, 'above');
+      add(0, verticalOffset + laneOffset, 'below');
+    } else {
+      add(0, verticalOffset + laneOffset, 'below');
+      add(0, -verticalOffset - laneOffset, 'above');
+    }
+  };
+
+  addVerticalPair(0);
+  add(horizontalOffset, 0, 'right');
+  add(-horizontalOffset, 0, 'left');
+  for (let lane = 1; lane <= LABEL_LANE_COUNT; lane += 1) {
+    addVerticalPair(lane);
+    add(horizontalOffset, lane * verticalStep, 'right');
+    add(-horizontalOffset, lane * verticalStep, 'left');
+    add(horizontalOffset, -lane * verticalStep, 'right');
+    add(-horizontalOffset, -lane * verticalStep, 'left');
+  }
+
+  return candidates;
+}
+
+function bodyMarkerRectangle(
+  body: EarthSkyBodyWithLabel,
+  viewportWidth: number,
+  viewportHeight: number,
+): LabelRectangle {
+  const radius = Math.max(24, body.displayDiameterPixels) / 2;
+  const centerX = (body.xPercent / 100) * viewportWidth;
+  const centerY = (body.yPercent / 100) * viewportHeight;
+
+  return {
+    left: centerX - radius,
+    top: centerY - radius,
+    right: centerX + radius,
+    bottom: centerY + radius,
+  };
+}
+
+function isInsideViewport(
+  rectangle: LabelRectangle,
+  viewportWidth: number,
+  viewportHeight: number,
+): boolean {
+  return (
+    rectangle.left >= LABEL_VIEWPORT_MARGIN_PIXELS &&
+    rectangle.top >= LABEL_VIEWPORT_MARGIN_PIXELS &&
+    rectangle.right <= viewportWidth - LABEL_VIEWPORT_MARGIN_PIXELS &&
+    rectangle.bottom <= viewportHeight - LABEL_VIEWPORT_MARGIN_PIXELS
+  );
+}
+
+function labelsOverlap(first: LabelRectangle, second: LabelRectangle): boolean {
+  return (
+    first.left < second.right + LABEL_COLLISION_GAP_PIXELS &&
+    first.right + LABEL_COLLISION_GAP_PIXELS > second.left &&
+    first.top < second.bottom + LABEL_COLLISION_GAP_PIXELS &&
+    first.bottom + LABEL_COLLISION_GAP_PIXELS > second.top
+  );
+}
+
+function rectanglesOverlap(first: LabelRectangle, second: LabelRectangle): boolean {
+  return (
+    first.left < second.right &&
+    first.right > second.left &&
+    first.top < second.bottom &&
+    first.bottom > second.top
+  );
 }
 
 function clampAltitude(value: number): number {

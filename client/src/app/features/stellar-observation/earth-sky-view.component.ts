@@ -8,11 +8,19 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import type { SearchEntry, SpaceObjectType } from '../../../data/models/universe.models';
+import type {
+  SearchEntry,
+  SpaceObject,
+  SpaceObjectType,
+  UniverseTime,
+} from '../../../data/models/universe.models';
 import {
   EARTH_OBSERVER_FIELD_OF_VIEW_DEGREES,
+  EARTH_OBSERVER_LOOK_AT_EVENT,
+  EARTH_OBSERVER_LOOK_AT_SETTLED_EVENT,
   EARTH_OBSERVER_VIEW_EVENT,
   EARTH_OBSERVER_ZOOM_AT_EVENT,
+  type EarthObserverLookAtDetail,
   type EarthObserverViewState,
   type EarthObserverZoomAtDetail,
 } from '../../../engine/camera/earth-observer-camera-control';
@@ -20,17 +28,37 @@ import {
   EARTH_OBSERVER_LOCATIONS,
   type EarthObserverLocation,
 } from '../../../engine/simulation/earth-observer-location';
-import { calculateSolarSystemSky } from '../../../engine/simulation/solar-system-sky';
-import { calculateStellarObservation } from '../../../engine/simulation/stellar-observation';
+import { calculateSolarSystemSatelliteSky } from '../../../engine/simulation/solar-system-satellite-sky';
+import {
+  calculateSolarSystemSky,
+  calculateSunSkyObservation,
+  isSolarSystemSkyBodyId,
+} from '../../../engine/simulation/solar-system-sky';
 import { UniverseEngineFacade } from '../../core/engine/universe-engine.facade';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { UniverseSearchComponent } from '../search/universe-search.component';
+import {
+  createEarthObservationPlan,
+  EARTH_OBSERVATION_PLANNER_CATALOG_SIZE,
+  type EarthObservationPlannerItem,
+} from './earth-observation-planner';
+import { EarthObservationPlannerComponent } from './earth-observation-planner.component';
+import {
+  createEarthObservationTimeline,
+  earthObservationTimelineStartJulianDay,
+  type EarthObservationTimeline,
+  type EarthObservationTimelineSample,
+} from './earth-observation-timeline';
 import { EarthHorizonComponent } from './earth-horizon.component';
 import { EarthObserverLocationPickerComponent } from './earth-observer-location-picker.component';
 import { EarthObserverSelection } from './earth-observer-selection';
 import { earthSkyEntryFraming } from './earth-sky-entry-framing';
-import { projectEarthSkyBodies } from './earth-sky-body-projection';
-import { equatorialCoordinates } from './earth-sky-catalog';
+import {
+  layoutEarthSkyBodyLabels,
+  projectEarthSkyBodies,
+  type ProjectedEarthSkyBody,
+} from './earth-sky-body-projection';
+import { calculateEarthSkyTargetObservation, isEarthSkyTarget } from './earth-sky-catalog';
 import {
   earthTerrainObstructionDegrees,
   isEarthTerrainObstructed,
@@ -41,12 +69,40 @@ import { lunarPhasePresentation } from './lunar-phase-presentation';
 import { EarthSkyViewState } from './earth-sky-view-state';
 import { EarthSkyJourney } from './earth-sky-journey';
 
+const FOCUS_CUE_DURATION_MILLISECONDS = 2_400;
+const SATELLITE_REVEAL_FIELD_OF_VIEW_DEGREES = 12;
+
+interface EarthSkyFocusCue {
+  readonly sequence: number;
+  readonly objectId: string;
+  readonly name: string;
+  readonly color: string;
+  readonly altitudeDegrees: number;
+  readonly compassDirection: EarthObservationPlannerItem['observation']['compassDirection'];
+  readonly xPercent: number;
+  readonly yPercent: number;
+}
+
+type EarthSkyFocusCueInput = Omit<EarthSkyFocusCue, 'sequence' | 'name'> & {
+  readonly fallbackName: string;
+};
+
+interface EarthSkyPendingFocusCue {
+  readonly cue: EarthSkyFocusCueInput;
+  readonly target: EarthObserverLookAtDetail;
+}
+
 @Component({
   selector: 'app-earth-sky-view',
   styleUrl: './earth-sky-view.component.scss',
   templateUrl: './earth-sky-view.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [EarthHorizonComponent, EarthObserverLocationPickerComponent, UniverseSearchComponent],
+  imports: [
+    EarthHorizonComponent,
+    EarthObservationPlannerComponent,
+    EarthObserverLocationPickerComponent,
+    UniverseSearchComponent,
+  ],
 })
 export class EarthSkyViewComponent implements OnDestroy {
   protected readonly facade = inject(UniverseEngineFacade);
@@ -55,6 +111,8 @@ export class EarthSkyViewComponent implements OnDestroy {
   protected readonly observerSelection = inject(EarthObserverSelection);
   protected readonly viewState = inject(EarthSkyViewState);
   protected readonly terrainHorizon = signal<EarthTerrainHorizonProfile | null>(null);
+  protected readonly plannerOpen = signal(false);
+  protected readonly focusCues = signal<readonly EarthSkyFocusCue[]>([]);
   protected readonly observableSearchTypes: readonly SpaceObjectType[] = ['star'];
   protected readonly availableLocations = computed(() => {
     const selected = this.observerSelection.location();
@@ -73,10 +131,9 @@ export class EarthSkyViewComponent implements OnDestroy {
   protected readonly observation = computed(() => {
     const target = this.target();
     const location = this.observerSelection.location();
-    const coordinates = target ? equatorialCoordinates(target) : null;
 
-    return coordinates && location
-      ? calculateStellarObservation(this.facade.currentTime(), coordinates, location)
+    return target && location
+      ? calculateEarthSkyTargetObservation(target, this.facade.currentTime(), location)
       : null;
   });
   protected readonly horizonPosition = computed(() => {
@@ -124,6 +181,18 @@ export class EarthSkyViewComponent implements OnDestroy {
       ? this.i18n.content().stellarObservation.calculatedTerrainHorizon
       : this.i18n.content().stellarObservation.illustrativeHorizon,
   );
+  protected readonly scientificNote = computed(() => {
+    const target = this.target();
+    const text = this.i18n.content().stellarObservation;
+
+    if (target?.type !== 'moon' && target?.type !== 'planet') {
+      return text.scientificNote;
+    }
+
+    return target.scientificConfidence === 'extrapolated'
+      ? text.satelliteScientificNote
+      : text.solarSystemScientificNote;
+  });
   protected readonly targetTerrainObstructionDegrees = computed(() => {
     const observation = this.observation();
     const terrainHorizon = this.terrainHorizon();
@@ -155,6 +224,20 @@ export class EarthSkyViewComponent implements OnDestroy {
         })
       : null;
   });
+  protected readonly solarSystemSky = computed(() => {
+    const location = this.observerSelection.location();
+
+    return location
+      ? [
+          ...calculateSolarSystemSky(this.facade.currentTime(), location),
+          ...calculateSolarSystemSatelliteSky(
+            this.facade.currentTime(),
+            location,
+            this.facade.objects(),
+          ),
+        ]
+      : [];
+  });
   protected readonly skyBodies = computed(() => {
     const observation = this.observation();
     const location = this.observerSelection.location();
@@ -164,36 +247,93 @@ export class EarthSkyViewComponent implements OnDestroy {
     }
 
     const terrainHorizon = this.terrainHorizon();
+    const fieldOfViewDegrees =
+      this.effectiveObserverView()?.verticalFieldOfViewDegrees ??
+      this.viewState.entryVerticalFieldOfViewDegrees();
+    const selectedObjectId = this.facade.selectedObject()?.id;
+    const activeTargetId = this.viewState.activeTargetId();
+    const viewport = this.viewport();
+    const visibleBodies = this.solarSystemSky().filter(
+      ({ id, skyObjectKind }) =>
+        skyObjectKind !== 'satellite' ||
+        fieldOfViewDegrees <= SATELLITE_REVEAL_FIELD_OF_VIEW_DEGREES ||
+        id === activeTargetId ||
+        id === selectedObjectId,
+    );
 
-    return projectEarthSkyBodies(
-      calculateSolarSystemSky(this.facade.currentTime(), location),
+    const projectedBodies = projectEarthSkyBodies(
+      visibleBodies,
       observation,
       this.effectiveObserverView(),
-      this.viewport(),
-    )
-      .filter(
-        (body) =>
-          !terrainHorizon ||
-          !isEarthTerrainObstructed(
-            terrainHorizon,
-            body.observation.geometricAltitudeDegrees,
-            body.observation.azimuthDegrees,
-          ),
-      )
-      .map((body) => ({
-        ...body,
-        name: this.i18n.objectName(body.id, body.fallbackName),
-        lunarPhase: lunarPhasePresentation(body.lunarIllumination),
-      }));
+      viewport,
+    ).filter(
+      (body) =>
+        !terrainHorizon ||
+        !isEarthTerrainObstructed(
+          terrainHorizon,
+          body.observation.geometricAltitudeDegrees,
+          body.observation.azimuthDegrees,
+        ),
+    );
+    const namedBodies = projectedBodies.map((body) => ({
+      ...body,
+      name: this.i18n.objectName(body.id, body.fallbackName),
+      lunarPhase: lunarPhasePresentation(body.lunarIllumination),
+    }));
+
+    return layoutEarthSkyBodyLabels(namedBodies, viewport, [selectedObjectId, activeTargetId]);
+  });
+  protected readonly observationPlan = computed(() => {
+    const location = this.observerSelection.location();
+
+    if (!this.plannerOpen() || !location) {
+      return null;
+    }
+    // The object signal makes catalogue installation observable without evaluating the plan while
+    // its panel is closed. The binary HYG catalogue itself is already ordered by apparent magnitude.
+    this.facade.objects();
+
+    return createEarthObservationPlan({
+      time: this.facade.currentTime(),
+      location,
+      solarSystem: this.solarSystemSky(),
+      stars: this.facade.getStellarObservationCatalog(EARTH_OBSERVATION_PLANNER_CATALOG_SIZE),
+      terrainHorizon: this.terrainHorizon(),
+    });
+  });
+  protected readonly observationTimeline = computed(() => {
+    const startJulianDay = this.observationTimelineStartJulianDay();
+    const location = this.observerSelection.location();
+    const target = this.plannerTarget() ?? this.target();
+
+    if (!this.plannerOpen() || startJulianDay === null || !location || !target) {
+      return null;
+    }
+
+    return createEarthObservationTimeline({
+      startTime: { julianDay: startJulianDay },
+      target: {
+        id: target.id,
+        fallbackName: target.name,
+        color: target.visual?.color ?? '#dce9ff',
+      },
+      terrainHorizon: this.terrainHorizon(),
+      sample: (time) => this.calculateTimelineSample(target, time, location),
+    });
   });
   private readonly observerView = signal<EarthObserverViewState | null>(null);
   private readonly pendingObserverView = signal<EarthObserverViewState | null>(null);
+  private readonly plannerTarget = signal<SpaceObject | null>(null);
   private readonly effectiveObserverView = computed(
     () => this.pendingObserverView() ?? this.observerView(),
   );
   private readonly viewport = signal(readViewport());
   private readonly earthSkyJourney = inject(EarthSkyJourney);
   private readonly terrainHorizonCatalog = inject(EarthTerrainHorizonCatalogService);
+  private focusCueSequence = 0;
+  private focusCueTimeout: number | undefined;
+  private pendingFocusCue: EarthSkyPendingFocusCue | null = null;
+  private plannerTargetRequest = 0;
   private readonly target = computed(() => {
     const targetId = this.viewState.activeTargetId();
     const selected = this.facade.selectedObject();
@@ -201,6 +341,13 @@ export class EarthSkyViewComponent implements OnDestroy {
     return selected?.id === targetId
       ? selected
       : (this.viewState.activeTarget() ?? this.facade.objects().find(({ id }) => id === targetId));
+  });
+  private readonly observationTimelineStartJulianDay = computed(() => {
+    const location = this.observerSelection.location();
+
+    return location
+      ? earthObservationTimelineStartJulianDay(this.facade.currentTime(), location.longitude)
+      : null;
   });
   private appliedObserverLocationKey = observerLocationKey(this.observerSelection.location());
   private readonly loadTerrainHorizon = effect((onCleanup) => {
@@ -251,11 +398,20 @@ export class EarthSkyViewComponent implements OnDestroy {
   });
 
   constructor() {
+    window.addEventListener(
+      EARTH_OBSERVER_LOOK_AT_SETTLED_EVENT,
+      this.handleLookAtSettled as EventListener,
+    );
     window.addEventListener(EARTH_OBSERVER_VIEW_EVENT, this.handleObserverView as EventListener);
     window.addEventListener('resize', this.handleResize);
   }
 
   public ngOnDestroy(): void {
+    window.clearTimeout(this.focusCueTimeout);
+    window.removeEventListener(
+      EARTH_OBSERVER_LOOK_AT_SETTLED_EVENT,
+      this.handleLookAtSettled as EventListener,
+    );
     window.removeEventListener(EARTH_OBSERVER_VIEW_EVENT, this.handleObserverView as EventListener);
     window.removeEventListener('resize', this.handleResize);
     this.facade.setEarthObserverCelestialPresentations([]);
@@ -263,6 +419,8 @@ export class EarthSkyViewComponent implements OnDestroy {
   }
 
   protected close(): void {
+    this.pendingFocusCue = null;
+    this.resetPlanner();
     this.facade.exitEarthObservation();
     this.viewState.close();
     this.facade.setTemporalMode('state');
@@ -332,12 +490,83 @@ export class EarthSkyViewComponent implements OnDestroy {
     this.facade.toggleLabels();
   }
 
+  protected togglePlanner(): void {
+    if (this.plannerOpen()) {
+      this.resetPlanner();
+    } else {
+      this.plannerTarget.set(null);
+      this.plannerOpen.set(true);
+    }
+  }
+
+  protected closePlanner(): void {
+    this.resetPlanner();
+  }
+
+  protected focusPlannerItem(item: EarthObservationPlannerItem): void {
+    this.focusPlannerObservation(item.id, item.fallbackName, item.color, item.observation);
+  }
+
+  protected async focusPlannerTimeline(timeline: EarthObservationTimeline): Promise<void> {
+    const bestPoint = timeline.bestPoint;
+
+    if (!bestPoint) {
+      return;
+    }
+    this.facade.setTime(bestPoint.time);
+    const target = this.plannerTarget() ?? this.target();
+
+    if (target?.id === timeline.target.id && target.id !== this.viewState.activeTargetId()) {
+      const retargeted = await this.earthSkyJourney.retarget(
+        target,
+        Number.parseFloat(this.horizonPosition()),
+      );
+
+      if (retargeted) {
+        this.resetPlanner();
+      }
+
+      return;
+    }
+    this.focusPlannerObservation(
+      timeline.target.id,
+      timeline.target.fallbackName,
+      timeline.target.color,
+      bestPoint.targetObservation,
+    );
+  }
+
+  protected async selectPlannerTarget(result: SearchEntry): Promise<void> {
+    const request = ++this.plannerTargetRequest;
+    const installed = this.facade.objects().find(({ id }) => id === result.id);
+    const target = installed ?? (await this.facade.resolveObject(result.id));
+
+    if (
+      request === this.plannerTargetRequest &&
+      this.plannerOpen() &&
+      target &&
+      isEarthSkyTarget(target)
+    ) {
+      this.plannerTarget.set(target);
+    }
+  }
+
   protected async selectSearchResult(result: SearchEntry): Promise<void> {
     await this.earthSkyJourney.retargetById(result.id, Number.parseFloat(this.horizonPosition()));
   }
 
-  protected selectSkyBody(objectId: string): void {
-    this.facade.selectObject(objectId);
+  protected selectSkyBody(body: ProjectedEarthSkyBody): void {
+    this.pendingFocusCue = null;
+    this.facade.selectObject(body.id);
+    this.showFocusCue({
+      objectId: body.id,
+      fallbackName: body.fallbackName,
+      color: body.color,
+      altitudeDegrees: body.observation.altitudeDegrees,
+      compassDirection: body.observation.compassDirection,
+      xPercent: body.xPercent,
+      yPercent: body.yPercent,
+    });
   }
 
   protected zoomSkyBody(
@@ -368,6 +597,64 @@ export class EarthSkyViewComponent implements OnDestroy {
     }
   }
 
+  private focusPlannerObservation(
+    objectId: string,
+    fallbackName: string,
+    color: string,
+    observation: EarthObservationPlannerItem['observation'],
+  ): void {
+    this.facade.selectObject(objectId);
+    const target: EarthObserverLookAtDetail = {
+      altitudeDegrees: observation.altitudeDegrees,
+      azimuthDegrees: observation.azimuthDegrees,
+    };
+
+    this.pendingFocusCue = {
+      cue: {
+        objectId,
+        fallbackName,
+        color,
+        altitudeDegrees: observation.altitudeDegrees,
+        compassDirection: observation.compassDirection,
+        xPercent: 50,
+        yPercent: 50,
+      },
+      target,
+    };
+    const lookAtEvent = new CustomEvent<EarthObserverLookAtDetail>(EARTH_OBSERVER_LOOK_AT_EVENT, {
+      cancelable: true,
+      detail: target,
+    });
+
+    window.dispatchEvent(lookAtEvent);
+    if (!lookAtEvent.defaultPrevented) {
+      this.pendingFocusCue = null;
+    }
+    this.resetPlanner();
+  }
+
+  private calculateTimelineSample(
+    target: SpaceObject,
+    time: UniverseTime,
+    location: EarthObserverLocation,
+  ): EarthObservationTimelineSample | null {
+    const solarSystem = calculateSolarSystemSky(time, location);
+    const moon = solarSystem.find(({ id }) => id === 'moon');
+    const sun = calculateSunSkyObservation(time, location);
+    const targetObservation = isSolarSystemSkyBodyId(target.id)
+      ? solarSystem.find(({ id }) => id === target.id)?.observation
+      : calculateEarthSkyTargetObservation(target, time, location);
+
+    return moon?.lunarIllumination && sun && targetObservation
+      ? {
+          target: targetObservation,
+          sun,
+          moon: moon.observation,
+          moonIlluminatedFraction: moon.lunarIllumination.illuminatedFraction,
+        }
+      : null;
+  }
+
   private applyLocation(location: EarthObserverLocation | null): void {
     const currentHorizonPercentage = Number.parseFloat(this.horizonPosition());
 
@@ -377,6 +664,46 @@ export class EarthSkyViewComponent implements OnDestroy {
       void this.recenterSky(currentHorizonPercentage);
     }
   }
+
+  private resetPlanner(): void {
+    this.plannerTargetRequest += 1;
+    this.plannerTarget.set(null);
+    this.plannerOpen.set(false);
+  }
+
+  private showFocusCue(cue: EarthSkyFocusCueInput): void {
+    window.clearTimeout(this.focusCueTimeout);
+    this.focusCues.set([
+      {
+        sequence: ++this.focusCueSequence,
+        objectId: cue.objectId,
+        name: this.i18n.objectName(cue.objectId, cue.fallbackName),
+        color: cue.color,
+        altitudeDegrees: cue.altitudeDegrees,
+        compassDirection: cue.compassDirection,
+        xPercent: cue.xPercent,
+        yPercent: cue.yPercent,
+      },
+    ]);
+    this.focusCueTimeout = window.setTimeout(() => {
+      this.focusCues.set([]);
+      this.focusCueTimeout = undefined;
+    }, FOCUS_CUE_DURATION_MILLISECONDS);
+  }
+
+  private readonly handleLookAtSettled = (event: CustomEvent<EarthObserverLookAtDetail>): void => {
+    const pending = this.pendingFocusCue;
+
+    this.pendingFocusCue = null;
+    if (
+      !pending ||
+      Math.abs(pending.target.altitudeDegrees - event.detail.altitudeDegrees) > Number.EPSILON ||
+      Math.abs(pending.target.azimuthDegrees - event.detail.azimuthDegrees) > Number.EPSILON
+    ) {
+      return;
+    }
+    this.showFocusCue(pending.cue);
+  };
 
   private readonly handleObserverView = (event: CustomEvent<EarthObserverViewState>): void => {
     const observerView = event.detail.active ? event.detail : null;

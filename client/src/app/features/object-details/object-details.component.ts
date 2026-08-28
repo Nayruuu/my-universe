@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import type { SpaceObject } from '../../../data/models/universe.models';
 import { UniverseEngineFacade } from '../../core/engine/universe-engine.facade';
 import { I18nService } from '../../core/i18n/i18n.service';
-import { equatorialCoordinates } from '../stellar-observation/earth-sky-catalog';
+import { isEarthSkyTarget } from '../stellar-observation/earth-sky-catalog';
 import { formatUniverseDate } from '../../../engine/simulation/time-utils';
 import { EarthSkyJourney } from '../stellar-observation/earth-sky-journey';
 import { EarthSkyViewState } from '../stellar-observation/earth-sky-view-state';
@@ -41,11 +41,12 @@ export class ObjectDetailsComponent {
 
       return;
     }
+    this.leaveEarthSkyForSpatialView();
     void this.facade.focus(object.id);
   }
 
   protected canObserveFromEarth(object: SpaceObject): boolean {
-    return object.type === 'star' && equatorialCoordinates(object) !== null;
+    return isEarthSkyTarget(object);
   }
 
   protected observeFromEarth(object: SpaceObject): void {
@@ -53,10 +54,12 @@ export class ObjectDetailsComponent {
   }
 
   protected viewRotation(object: SpaceObject): void {
+    this.leaveEarthSkyForSpatialView();
     void this.facade.viewRotation(object.id);
   }
 
   protected viewOrbit(object: SpaceObject): void {
+    this.leaveEarthSkyForSpatialView();
     this.facade.viewOrbit(object.id);
   }
 
@@ -66,7 +69,17 @@ export class ObjectDetailsComponent {
     if (typeof julianDay !== 'number') {
       return;
     }
+    this.leaveEarthSkyForSpatialView();
     this.facade.setTime({ julianDay });
     void this.facade.focus(object.id);
+  }
+
+  private leaveEarthSkyForSpatialView(): void {
+    if (this.earthSkyViewState.phase() === 'closed') {
+      return;
+    }
+    this.facade.exitEarthObservation();
+    this.earthSkyViewState.close();
+    this.facade.setTemporalMode('state');
   }
 }

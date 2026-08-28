@@ -2,7 +2,9 @@ import * as THREE from 'three';
 import { SpaceObject } from '../../data/models/universe.models';
 import { CameraController } from './camera-controller';
 import {
+  EARTH_OBSERVER_LOOK_AT_EVENT,
   EARTH_OBSERVER_VIEW_EVENT,
+  type EarthObserverLookAtDetail,
   type EarthObserverViewState,
 } from './earth-observer-camera-control';
 import {
@@ -521,6 +523,28 @@ describe('CameraController', () => {
     expect(Number.isFinite(direction.x)).toBe(true);
     expect(Number.isFinite(direction.y)).toBe(true);
     expect(Number.isFinite(direction.z)).toBe(true);
+  });
+
+  it('expose le recentrage animé du regard comme une transition de caméra', () => {
+    controller.observeFrom(new THREE.Vector3(15, 0, 0), new THREE.Vector3(), {
+      ...observerFraming(0),
+      northDirection: { x: 0, y: 0, z: -1 },
+      zenithDirection: { x: 0, y: 1, z: 0 },
+    });
+    controller.update(2.4);
+    const lookAt = new CustomEvent<EarthObserverLookAtDetail>(EARTH_OBSERVER_LOOK_AT_EVENT, {
+      cancelable: true,
+      detail: { altitudeDegrees: 35, azimuthDegrees: 125 },
+    });
+
+    window.dispatchEvent(lookAt);
+
+    expect(lookAt.defaultPrevented).toBe(true);
+    expect(controller.isTransitioning).toBe(true);
+    controller.update(0.2);
+    expect(controller.isTransitioning).toBe(true);
+    controller.update(1);
+    expect(controller.isTransitioning).toBe(false);
   });
 
   it('conserve les limites verticales pendant le voyage vers la vue terrestre', () => {

@@ -34,6 +34,7 @@ describe('ObjectDetailsComponent', () => {
     focus: vi.fn(() => Promise.resolve()),
     viewRotation: vi.fn(() => Promise.resolve()),
     viewOrbit: vi.fn(),
+    exitEarthObservation: vi.fn(),
     setTime: vi.fn(),
     setTemporalMode: vi.fn((temporalMode: 'state' | 'observable') =>
       displayOptions.update((options) => ({ ...options, temporalMode })),
@@ -88,9 +89,37 @@ describe('ObjectDetailsComponent', () => {
 
     component.focus(object({ id: 'earth', name: 'Terre' }));
     expect(facade.focus).toHaveBeenCalledWith('earth');
+    expect(facade.exitEarthObservation).toHaveBeenCalledOnce();
+    expect(facade.setTemporalMode).toHaveBeenCalledWith('state');
+    expect(TestBed.inject(EarthSkyViewState).phase()).toBe('closed');
+    expect(new URL(window.location.href).searchParams.get('view')).toBe('map');
   });
 
-  it('ouvre le localisateur terrestre uniquement pour une étoile dotée de coordonnées J2000', () => {
+  it('quitte le planétarium avant d’activer une caméra spatiale', () => {
+    const component = createComponent();
+    const earth = object({ id: 'earth', name: 'Terre', parentId: 'sun' });
+    const viewState = TestBed.inject(EarthSkyViewState);
+
+    viewState.open('sun', 'Soleil', sun);
+    component.viewRotation(earth);
+
+    expect(facade.exitEarthObservation).toHaveBeenCalledOnce();
+    expect(facade.setTemporalMode).toHaveBeenCalledWith('state');
+    expect(facade.viewRotation).toHaveBeenCalledWith('earth');
+    expect(viewState.phase()).toBe('closed');
+    expect(new URL(window.location.href).searchParams.get('view')).toBe('map');
+
+    viewState.open('sun', 'Soleil', sun);
+    component.viewOrbit(earth);
+
+    expect(facade.exitEarthObservation).toHaveBeenCalledTimes(2);
+    expect(facade.setTemporalMode).toHaveBeenCalledTimes(2);
+    expect(facade.viewOrbit).toHaveBeenCalledWith('earth');
+    expect(viewState.phase()).toBe('closed');
+    expect(new URL(window.location.href).searchParams.get('view')).toBe('map');
+  });
+
+  it('ouvre le localisateur terrestre pour les étoiles, planètes et satellites pris en charge', () => {
     const component = createComponent();
     const sirius = object({
       id: 'sirius',
@@ -120,6 +149,8 @@ describe('ObjectDetailsComponent', () => {
     expect(
       component.canObserveFromEarth(object({ type: 'planet', metadata: sirius.metadata })),
     ).toBe(false);
+    expect(component.canObserveFromEarth(object({ id: 'mars', name: 'Mars' }))).toBe(true);
+    expect(component.canObserveFromEarth(titan())).toBe(true);
 
     component.observeFromEarth(sirius);
     expect(earthSkyJourney.start).toHaveBeenCalledWith(sirius);
@@ -713,6 +744,30 @@ function createComponent(): ObjectDetailsAccess {
       const value = Reflect.get(source, property, source === target ? receiver : source) as unknown;
 
       return typeof value === 'function' ? value.bind(source) : value;
+    },
+  });
+}
+
+function titan(): SpaceObject {
+  return object({
+    id: 'titan',
+    name: 'Titan',
+    type: 'moon',
+    parentId: 'saturn',
+    scientificConfidence: 'extrapolated',
+    physical: { radiusKm: 2_574.76 },
+    positionProvider: {
+      type: 'keplerian',
+      semiMajorAxis: 1_221_900,
+      eccentricity: 0.029,
+      inclination: 0.3,
+      longitudeOfAscendingNode: 78.6,
+      argumentOfPeriapsis: 78.3,
+      meanAnomalyAtEpoch: 11.7,
+      epochJulianDay: 2_451_545,
+      orbitalPeriodDays: 15.945448,
+      unit: 'kilometer',
+      referencePlanePole: { rightAscensionDegrees: 40.6, declinationDegrees: 83.5 },
     },
   });
 }

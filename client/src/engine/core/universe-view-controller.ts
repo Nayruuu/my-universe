@@ -144,9 +144,22 @@ export class UniverseViewController {
     const observerPosition = earthPosition
       .clone()
       .addScaledVector(surfaceDirection, getMinimumNavigationDistance(earth));
+    const framedTargetDirection = framing?.targetDirection
+      ? new THREE.Vector3(
+          framing.targetDirection.x,
+          framing.targetDirection.y,
+          framing.targetDirection.z,
+        )
+      : null;
+    const observationTargetPosition =
+      framedTargetDirection && framedTargetDirection.lengthSq() >= Number.EPSILON
+        ? observerPosition
+            .clone()
+            .addScaledVector(framedTargetDirection.normalize(), directionToTarget.length())
+        : targetPosition;
 
     this.prepareView(objectId, selectedObjectId);
-    cameraController.observeFrom(observerPosition, targetPosition, framing);
+    cameraController.observeFrom(observerPosition, observationTargetPosition, framing);
     this.bindings.emitTargetChanged(objectId);
   }
 

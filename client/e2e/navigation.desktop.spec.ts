@@ -1,5 +1,8 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { readObjectVisualDiagnostics } from './support/visual-regression-helpers';
+import {
+  isObservedShapeAttached,
+  readObjectVisualDiagnostics,
+} from './support/visual-regression-helpers';
 import {
   chooseCustomObserverLocation,
   chooseObserverLocation,
@@ -816,7 +819,7 @@ test('la recherche localise Sirius dans le ciel terrestre à la date de la carte
 
   await chooseObserverLocation(
     detailsBody,
-    'Lieu depuis lequel localiser l’étoile',
+    'Lieu depuis lequel localiser l’astre',
     'Tokyo',
     /^Tokyo Japon$/u,
   );
@@ -861,7 +864,7 @@ test('la recherche localise Sirius dans le ciel terrestre à la date de la carte
 
   await chooseObserverLocation(
     detailsBody,
-    'Lieu depuis lequel localiser l’étoile',
+    'Lieu depuis lequel localiser l’astre',
     'Paris',
     /^Paris France$/u,
   );
@@ -885,7 +888,7 @@ test('la recherche localise Sirius dans le ciel terrestre à la date de la carte
 
   await chooseObserverLocation(
     nightSky,
-    'Lieu depuis lequel localiser l’étoile',
+    'Lieu depuis lequel localiser l’astre',
     'Tokyo',
     /^Tokyo Japon$/u,
   );
@@ -919,7 +922,7 @@ test('la recherche localise Sirius dans le ciel terrestre à la date de la carte
 
   await chooseObserverLocation(
     nightSky,
-    'Lieu depuis lequel localiser l’étoile',
+    'Lieu depuis lequel localiser l’astre',
     'Lyon',
     /^Lyon France$/u,
   );
@@ -965,7 +968,7 @@ test('la recherche localise Sirius dans le ciel terrestre à la date de la carte
 
   await chooseObserverLocation(
     nightSky,
-    'Lieu depuis lequel localiser l’étoile',
+    'Lieu depuis lequel localiser l’astre',
     'Tokyo',
     /^Tokyo Japon$/u,
   );
@@ -1458,6 +1461,56 @@ test('fermer la fiche d’une étoile dynamique conserve le sol du ciel terrestr
   expect(horizonAtLowerLimit!.y).toBeGreaterThan(canvasBounds!.y + canvasBounds!.height * 0.54);
   expect(horizonAfterContinuedDrag!.y).toBeCloseTo(horizonAtLowerLimit!.y, 1);
   expect(vectorDistance(directionAfterContinuedDrag, directionAtLowerLimit)).toBeLessThan(1e-8);
+  expect(browserErrors).toEqual([]);
+});
+
+test('le planificateur prévisualise une étoile puis engage sa cible et son meilleur instant', async ({
+  page,
+}) => {
+  const browserErrors = monitorBrowserErrors(page);
+
+  await openUniverse(
+    page,
+    universeUrl({
+      target: 'sirius',
+      selected: '',
+      time: '2026-01-15T22:00:00.000Z',
+      mode: 'observable',
+      view: 'planetarium',
+      observer: 'paris',
+    }),
+  );
+
+  const nightSky = page.locator('#earth-sky-view');
+
+  await expect(nightSky).toHaveAttribute('data-phase', 'open', { timeout: 8_000 });
+  const initialTarget = queryParameter(page, 'target');
+  const initialTime = queryParameter(page, 'time');
+
+  await page
+    .getByRole('button', { name: 'Ouvrir le planificateur d’observation', exact: true })
+    .click();
+
+  const planner = page.getByRole('complementary', {
+    name: 'Que peut-on observer maintenant ?',
+  });
+  const targetSearch = planner.getByRole('searchbox', {
+    name: 'Rechercher un objet astronomique',
+  });
+
+  await expect(planner).toContainText('Visibilité de Sirius');
+  await targetSearch.fill('Bételgeuse');
+  await planner.getByRole('option', { name: /^Bételgeuse\b/u }).click();
+  await expect(planner).toContainText('Visibilité de Bételgeuse');
+  expect(queryParameter(page, 'target')).toBe(initialTarget);
+  expect(queryParameter(page, 'time')).toBe(initialTime);
+
+  await planner.locator('[data-planner-best-time]').click();
+  await expect.poll(() => queryParameter(page, 'target')).toBe('betelgeuse');
+  await expect.poll(() => queryParameter(page, 'time')).not.toBe(initialTime);
+  await waitForCameraSettled(page);
+  await expect(planner).toHaveCount(0);
+  await expect(nightSky).toHaveAttribute('data-phase', 'open');
   expect(browserErrors).toEqual([]);
 });
 
@@ -2142,7 +2195,7 @@ test('le sélecteur traverse les sept échelles et partage le cadrage courant', 
   test.setTimeout(120_000);
   const browserErrors = monitorBrowserErrors(page);
   const tempelCatalogRequests: string[] = [];
-  const tempelWorkerUrls: string[] = [];
+  const catalogWorkerUrls: string[] = [];
 
   page.on('request', (request) => {
     if (request.url().includes('/data/structures/tempel-filament-spines.bin')) {
@@ -2150,7 +2203,7 @@ test('le sélecteur traverse les sept échelles et partage le cadrage courant', 
     }
   });
   page.on('worker', (worker) => {
-    tempelWorkerUrls.push(worker.url());
+    catalogWorkerUrls.push(worker.url());
   });
 
   await openUniverse(page, universeUrl({ target: 'earth', debug: 'true' }));
@@ -2266,8 +2319,11 @@ test('le sélecteur traverse les sept échelles et partage le cadrage courant', 
     .toBeGreaterThan(0.99);
   expect((await readCosmicGroupBatchState(page)).filamentVisible).toBe(false);
   await expect.poll(() => tempelCatalogRequests.length).toBe(1);
-  await expect.poll(() => tempelWorkerUrls.length).toBe(1);
-  expect(tempelWorkerUrls[0]).toMatch(/worker-.+\.js/);
+  await expect.poll(() => catalogWorkerUrls.length).toBe(2);
+  expect(catalogWorkerUrls).toEqual([
+    expect.stringMatching(/worker-.+\.js/),
+    expect.stringMatching(/worker-.+\.js/),
+  ]);
   await expect.poll(async () => (await readTempelFilamentSpineState(page)).loaded).toBe(false);
 
   await scaleSwitcher.click();
@@ -2344,7 +2400,7 @@ test('le sélecteur traverse les sept échelles et partage le cadrage courant', 
       batchCount: 1,
     });
   expect(tempelCatalogRequests).toHaveLength(1);
-  expect(tempelWorkerUrls).toHaveLength(1);
+  expect(catalogWorkerUrls).toHaveLength(2);
   await expect
     .poll(() => readTempelFilamentSpineState(page))
     .toMatchObject({
@@ -2924,8 +2980,11 @@ test('la recherche centre les lunes majeures et les petits corps documentés', a
   await expect(details.locator('.approximation-note')).toBeVisible();
   await expect(details).toContainText('Forme observée par Rosetta/OSIRIS');
   await expect.poll(() => wasResourceLoaded(page, '/models/67p-osiris-esa.obj')).toBe(true);
-  await page.waitForTimeout(1_500);
   const debugPanel = page.getByRole('complementary', { name: 'Statistiques de débogage' });
+
+  await expect.poll(() => isObservedShapeAttached(page, '67p-churyumov-gerasimenko')).toBe(true);
+  await page.waitForTimeout(100);
+
   const warmedResources = {
     geometries: await readDebugNumber(debugPanel, 'geometries'),
     textures: await readDebugNumber(debugPanel, 'textures'),

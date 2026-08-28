@@ -37,6 +37,7 @@ describe('earthSkyEntryPitchOffset', () => {
       10,
     );
     expect(framing.initialCenterAltitudeDegrees).toBeCloseTo(18, 10);
+    expect(Math.hypot(...Object.values(framing.targetDirection!))).toBeCloseTo(1, 12);
     expect(framing.northDirection).toBeDefined();
     expect(framing.zenithDirection).toBeDefined();
     expect(framing.resolveReferenceFrame?.({ julianDay: 2_461_269.2 })).not.toBeNull();
@@ -51,6 +52,21 @@ describe('earthSkyEntryPitchOffset', () => {
         DEFAULT_EARTH_OBSERVER_LOCATION,
       ),
     ).toBe(0);
+  });
+
+  it('cadre un satellite avec sa direction physique plutôt que sa distance de rendu', () => {
+    const framing = earthSkyEntryFraming(
+      titan(),
+      { julianDay: 2_461_056.416_666_7 },
+      DEFAULT_EARTH_OBSERVER_LOCATION,
+    );
+
+    expect(framing.targetDirection).toMatchObject({
+      x: expect.any(Number),
+      y: expect.any(Number),
+      z: expect.any(Number),
+    });
+    expect(Math.hypot(...Object.values(framing.targetDirection!))).toBeCloseTo(1, 12);
   });
 
   it('garde la cible et l’horizon visibles lorsqu’une étoile est presque au zénith', () => {
@@ -146,6 +162,33 @@ function capella(): SpaceObject {
       rightAscensionDegrees: 79.172_328,
       declinationDegrees: 45.997_991,
       skyCoordinateEpoch: 'J2000',
+    },
+  };
+}
+
+function titan(): SpaceObject {
+  return {
+    id: 'titan',
+    name: 'Titan',
+    type: 'moon',
+    parentId: 'saturn',
+    referenceFrame: 'solar-system',
+    scientificConfidence: 'extrapolated',
+    physical: { radiusKm: 2_574.76 },
+    visual: { visualRadius: 1, scaleMode: 'adaptive' },
+    positionProvider: {
+      type: 'keplerian',
+      semiMajorAxis: 1_221_900,
+      eccentricity: 0.029,
+      inclination: 0.3,
+      longitudeOfAscendingNode: 78.6,
+      argumentOfPeriapsis: 78.3,
+      meanAnomalyAtEpoch: 11.7,
+      epochJulianDay: 2_451_545,
+      orbitalPeriodDays: 15.945448,
+      unit: 'kilometer',
+      distanceScale: 40,
+      referencePlanePole: { rightAscensionDegrees: 40.6, declinationDegrees: 83.5 },
     },
   };
 }

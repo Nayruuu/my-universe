@@ -1,9 +1,13 @@
 import * as THREE from 'three';
 import { createEarthSkyProjector } from '../coordinates/earth-sky-perspective';
+import type { EarthObserverOrientation } from './earth-observer-orientation';
 import {
+  EARTH_OBSERVER_LOOK_AT_EVENT,
+  EARTH_OBSERVER_LOOK_AT_SETTLED_EVENT,
   EARTH_OBSERVER_VIEW_EVENT,
   EARTH_OBSERVER_ZOOM_AT_EVENT,
   EarthObserverCameraControl,
+  type EarthObserverLookAtDetail,
   type EarthObserverViewState,
   type EarthObserverZoomAtDetail,
 } from './earth-observer-camera-control';
@@ -127,6 +131,37 @@ describe('EarthObserverCameraControl', () => {
     expect(Math.abs(published.at(-1)?.azimuthOffsetDegrees ?? 0)).toBeGreaterThan(1);
   });
 
+  it('réduit la sensibilité du regard avec le champ de vision sans accélérer au grand angle', () => {
+    const position = camera.position.clone();
+    const target = new THREE.Vector3(120, 18, -80);
+    const published: EarthObserverViewState[] = [];
+    const dragHorizontally = (pointerId: number): number => {
+      canvas.dispatchEvent(pointerEvent('pointerdown', pointerId, 400, 300));
+      canvas.dispatchEvent(pointerEvent('pointermove', pointerId, 500, 300));
+      canvas.dispatchEvent(pointerEvent('pointerup', pointerId, 500, 300));
+
+      return Math.abs(published.at(-1)?.azimuthOffsetDegrees ?? 0);
+    };
+
+    canvas.addEventListener(EARTH_OBSERVER_VIEW_EVENT, (event) =>
+      published.push((event as CustomEvent<EarthObserverViewState>).detail),
+    );
+    camera.fov = 82;
+    control.activate(position, target);
+    const standardFieldMovement = dragHorizontally(1);
+
+    control.activate(position, target);
+    control.zoomBy(2 / 82);
+    const telescopicMovement = dragHorizontally(2);
+
+    control.activate(position, target);
+    control.zoomBy(100);
+    const maximumFieldMovement = dragHorizontally(3);
+
+    expect(telescopicMovement).toBeCloseTo(standardFieldMovement * (2 / 82), 10);
+    expect(maximumFieldMovement).toBeCloseTo(standardFieldMovement, 10);
+  });
+
   it('limite un glisser vertical au regard haut-bas', () => {
     const position = camera.position.clone();
     const published: EarthObserverViewState[] = [];
@@ -147,6 +182,153 @@ describe('EarthObserverCameraControl', () => {
     ).toBeGreaterThan(0.1);
     expect(Math.abs(published.at(-1)?.pitchOffsetDegrees ?? 0)).toBeGreaterThan(1);
     expect(published.at(-1)?.azimuthOffsetDegrees).toBeCloseTo(0, 10);
+  });
+
+  it('recentre le regard sur des coordonnées horizontales demandées par l’interface', () => {
+    const position = camera.position.clone();
+    const published: EarthObserverViewState[] = [];
+    const settled: EarthObserverLookAtDetail[] = [];
+    const handleSettled = (event: Event): void => {
+      settled.push((event as CustomEvent<EarthObserverLookAtDetail>).detail);
+    };
+    const inactive = new CustomEvent<EarthObserverLookAtDetail>(EARTH_OBSERVER_LOOK_AT_EVENT, {
+      cancelable: true,
+      detail: { altitudeDegrees: 35, azimuthDegrees: 125 },
+    });
+
+    window.dispatchEvent(inactive);
+    expect(inactive.defaultPrevented).toBe(false);
+
+    canvas.addEventListener(EARTH_OBSERVER_VIEW_EVENT, (event) =>
+      published.push((event as CustomEvent<EarthObserverViewState>).detail),
+    );
+    window.addEventListener(EARTH_OBSERVER_LOOK_AT_SETTLED_EVENT, handleSettled);
+    control.activate(position, position.clone().add(new THREE.Vector3(0, 0, -1)), {
+      ...framing(0),
+      northDirection: { x: 0, y: 0, z: -1 },
+      zenithDirection: { x: 0, y: 1, z: 0 },
+    });
+    const lookAt = new CustomEvent<EarthObserverLookAtDetail>(EARTH_OBSERVER_LOOK_AT_EVENT, {
+      cancelable: true,
+      detail: { altitudeDegrees: 35, azimuthDegrees: 125 },
+    });
+
+    window.dispatchEvent(lookAt);
+
+    expect(lookAt.defaultPrevented).toBe(true);
+    expect(control.transitioning).toBe(true);
+    expect(published.at(-1)?.centerAltitudeDegrees).toBeCloseTo(0, 10);
+    expect(settled).toEqual([]);
+
+    control.update(0.2);
+
+    expect(published.at(-1)?.centerAltitudeDegrees).toBeGreaterThan(0);
+    expect(published.at(-1)?.centerAltitudeDegrees).toBeLessThan(35);
+    expect(published.at(-1)?.centerAzimuthDegrees).toBeGreaterThan(0);
+    expect(published.at(-1)?.centerAzimuthDegrees).toBeLessThan(125);
+    expect(control.transitioning).toBe(true);
+
+    control.update(1);
+
+    expect(published.at(-1)?.centerAltitudeDegrees).toBeCloseTo(35, 10);
+    expect(published.at(-1)?.centerAzimuthDegrees).toBeCloseTo(125, 10);
+    expect(control.transitioning).toBe(false);
+    expect(settled).toEqual([{ altitudeDegrees: 35, azimuthDegrees: 125 }]);
+    expect(camera.position).toEqual(position);
+
+    const invalid = new CustomEvent<EarthObserverLookAtDetail>(EARTH_OBSERVER_LOOK_AT_EVENT, {
+      cancelable: true,
+      detail: { altitudeDegrees: 95, azimuthDegrees: 0 },
+    });
+
+    window.dispatchEvent(invalid);
+    expect(invalid.defaultPrevented).toBe(false);
+    window.removeEventListener(EARTH_OBSERVER_LOOK_AT_SETTLED_EVENT, handleSettled);
+  });
+
+  it('conserve le cadrage si une direction devient momentanément indisponible pendant le recentrage', () => {
+    const position = camera.position.clone();
+
+    control.activate(position, position.clone().add(new THREE.Vector3(0, 0, -1)), {
+      ...framing(0),
+      northDirection: { x: 0, y: 0, z: -1 },
+      zenithDirection: { x: 0, y: 1, z: 0 },
+    });
+    window.dispatchEvent(
+      new CustomEvent<EarthObserverLookAtDetail>(EARTH_OBSERVER_LOOK_AT_EVENT, {
+        cancelable: true,
+        detail: { altitudeDegrees: 35, azimuthDegrees: 125 },
+      }),
+    );
+    const orientation = (control as unknown as { readonly orientation: EarthObserverOrientation })
+      .orientation;
+
+    vi.spyOn(orientation, 'copyHorizontalDirection').mockReturnValueOnce(null);
+    control.update(0.2);
+
+    expect(control.transitioning).toBe(true);
+    expect(camera.position).toEqual(position);
+  });
+
+  it('emprunte le trajet azimutal le plus court autour du nord', () => {
+    const position = camera.position.clone();
+    const published: EarthObserverViewState[] = [];
+
+    canvas.addEventListener(EARTH_OBSERVER_VIEW_EVENT, (event) =>
+      published.push((event as CustomEvent<EarthObserverViewState>).detail),
+    );
+    control.activate(position, position.clone().add(horizontalDirection(20, 350)), {
+      ...framing(0),
+      northDirection: { x: 0, y: 0, z: -1 },
+      zenithDirection: { x: 0, y: 1, z: 0 },
+    });
+    window.dispatchEvent(
+      new CustomEvent<EarthObserverLookAtDetail>(EARTH_OBSERVER_LOOK_AT_EVENT, {
+        cancelable: true,
+        detail: { altitudeDegrees: 20, azimuthDegrees: 10 },
+      }),
+    );
+
+    control.update(0.2);
+
+    const intermediateAzimuth = published.at(-1)?.centerAzimuthDegrees ?? 180;
+
+    expect(Math.min(intermediateAzimuth, 360 - intermediateAzimuth)).toBeLessThan(10);
+
+    control.update(1);
+    expect(published.at(-1)?.centerAzimuthDegrees).toBeCloseTo(10, 10);
+  });
+
+  it('interrompt le recentrage dès le premier geste utilisateur', () => {
+    const position = camera.position.clone();
+    const settled: EarthObserverLookAtDetail[] = [];
+    const handleSettled = (event: Event): void => {
+      settled.push((event as CustomEvent<EarthObserverLookAtDetail>).detail);
+    };
+
+    window.addEventListener(EARTH_OBSERVER_LOOK_AT_SETTLED_EVENT, handleSettled);
+    control.activate(position, position.clone().add(new THREE.Vector3(0, 0, -1)), {
+      ...framing(0),
+      northDirection: { x: 0, y: 0, z: -1 },
+      zenithDirection: { x: 0, y: 1, z: 0 },
+    });
+    window.dispatchEvent(
+      new CustomEvent<EarthObserverLookAtDetail>(EARTH_OBSERVER_LOOK_AT_EVENT, {
+        cancelable: true,
+        detail: { altitudeDegrees: 45, azimuthDegrees: 120 },
+      }),
+    );
+    expect(control.transitioning).toBe(true);
+
+    canvas.dispatchEvent(pointerEvent('pointerdown', 1, 400, 300));
+    canvas.dispatchEvent(pointerEvent('pointerup', 1, 400, 300));
+    const directionAfterInterruption = camera.getWorldDirection(new THREE.Vector3());
+
+    expect(control.transitioning).toBe(false);
+    control.update(1);
+    expect(camera.getWorldDirection(new THREE.Vector3())).toEqual(directionAfterInterruption);
+    expect(settled).toEqual([]);
+    window.removeEventListener(EARTH_OBSERVER_LOOK_AT_SETTLED_EVENT, handleSettled);
   });
 
   it('utilise la verticale terrestre locale pour séparer gauche-droite et haut-bas', () => {
@@ -406,16 +588,16 @@ describe('EarthObserverCameraControl', () => {
     const centerAltitude = published.at(-1)?.centerAltitudeDegrees;
     const centerAzimuth = published.at(-1)?.centerAzimuthDegrees;
 
-    control.update({ julianDay: 1 });
+    control.update(0, { julianDay: 1 });
     const directionAfter = camera.getWorldDirection(new THREE.Vector3());
 
     expect(directionAfter.distanceTo(directionBefore)).toBeGreaterThan(0.1);
     expect(published.at(-1)?.centerAltitudeDegrees).toBeCloseTo(centerAltitude!, 10);
     expect(published.at(-1)?.centerAzimuthDegrees).toBeCloseTo(centerAzimuth!, 10);
-    control.update({ julianDay: 1 });
+    control.update(0, { julianDay: 1 });
     expect(resolveReferenceFrame).toHaveBeenCalledOnce();
 
-    control.update({ julianDay: 3 });
+    control.update(0, { julianDay: 3 });
     expect(resolveReferenceFrame).toHaveBeenCalledTimes(2);
     expect(camera.position).toEqual(position);
   });
@@ -426,7 +608,7 @@ describe('EarthObserverCameraControl', () => {
 
     control.activate(position, new THREE.Vector3(120, 18, -80));
     control.shiftOrigin(originShift);
-    control.update();
+    control.update(0);
 
     expect(camera.position).toEqual(position.sub(originShift));
   });
@@ -434,7 +616,7 @@ describe('EarthObserverCameraControl', () => {
   it('ignore les gestes hors session et restaure le champ initial à la sortie', () => {
     const directionBefore = camera.getWorldDirection(new THREE.Vector3());
 
-    control.update();
+    control.update(0);
     canvas.dispatchEvent(pointerEvent('pointerdown', 1, 100, 100));
     canvas.dispatchEvent(pointerEvent('pointermove', 1, 520, 340));
     expect(camera.getWorldDirection(new THREE.Vector3())).toEqual(directionBefore);

@@ -1,0 +1,260 @@
+@let text = i18n.content().stellarObservation;
+@let currentPlan = plan();
+<aside
+  class="earth-observation-planner"
+  [attr.aria-label]="text.plannerTitle"
+  data-confidence="calculated"
+  [attr.data-terrain-applied]="currentPlan.terrainApplied"
+>
+  <header>
+    <div>
+      <span>{{ text.plannerEyebrow }}</span>
+      <h2>{{ text.plannerTitle }}</h2>
+    </div>
+    <button
+      type="button"
+      class="earth-observation-planner__close"
+      [attr.aria-label]="text.plannerClose"
+      [title]="text.plannerClose"
+      (click)="closeRequested.emit()"
+    >
+      ×
+    </button>
+  </header>
+
+  <p class="earth-observation-planner__summary" aria-live="polite">
+    {{ i18n.interpolate(text.plannerSummary, { count: currentPlan.totalCount }) }}
+  </p>
+  <p class="earth-observation-planner__note">
+    {{ currentPlan.terrainApplied ? text.plannerTerrainApplied : text.plannerGeometricHorizon }}
+  </p>
+
+  <section class="earth-observation-planner__target-picker">
+    <div>
+      <strong>{{ text.plannerTarget }}</strong>
+      <small>{{ text.plannerTargetHint }}</small>
+    </div>
+    <app-universe-search
+      class="earth-observation-planner__target-search"
+      selectionMode="emit"
+      [allowedTypes]="targetSearchTypes"
+      [excludedIds]="excludedTargetIds"
+      [embedded]="true"
+      [placeholder]="text.plannerTargetSearch"
+      (resultSelected)="targetSelected.emit($event)"
+    />
+  </section>
+
+  @if (currentPlan.totalCount === 0 && !timeline()) {
+    <p class="earth-observation-planner__empty">{{ text.plannerEmpty }}</p>
+  } @else {
+    <div class="earth-observation-planner__scroll">
+      @if (timeline(); as currentTimeline) {
+        <section
+          class="earth-observation-planner__timeline"
+          data-confidence="illustrative"
+          [attr.data-terrain-applied]="currentTimeline.terrainApplied"
+        >
+          <div class="earth-observation-planner__timeline-heading">
+            <div>
+              <span>{{ text.plannerTimelineEyebrow }}</span>
+              <h3>
+                {{
+                  i18n.interpolate(text.plannerTimelineTitle, {
+                    name: i18n.objectName(
+                      currentTimeline.target.id,
+                      currentTimeline.target.fallbackName
+                    ),
+                  })
+                }}
+              </h3>
+            </div>
+            @if (currentTimeline.bestPoint; as bestPoint) {
+              <em>
+                {{
+                  i18n.interpolate(text.plannerScore, {
+                    score: i18n.formatNumber(bestPoint.quality * 100, 0),
+                  })
+                }}
+              </em>
+            }
+          </div>
+
+          <svg
+            class="earth-observation-planner__chart"
+            [attr.viewBox]="'0 0 ' + chartWidth + ' ' + chartHeight"
+            role="img"
+            [attr.aria-label]="
+              i18n.interpolate(text.plannerTimelineChart, {
+                name: i18n.objectName(
+                  currentTimeline.target.id,
+                  currentTimeline.target.fallbackName
+                ),
+              })
+            "
+            preserveAspectRatio="none"
+          >
+            @for (point of currentTimeline.points; track point.time.julianDay; let last = $last) {
+              @if (!last) {
+                <rect
+                  class="earth-observation-planner__twilight"
+                  [attr.data-twilight]="point.twilight"
+                  [attr.x]="point.chartX"
+                  y="0"
+                  [attr.width]="chartWidth / (currentTimeline.points.length - 1) + 0.5"
+                  [attr.height]="chartHeight"
+                />
+              }
+            }
+            <polyline
+              class="earth-observation-planner__terrain-line"
+              [attr.points]="currentTimeline.terrainPolyline"
+              vector-effect="non-scaling-stroke"
+            />
+            <polyline
+              class="earth-observation-planner__target-line"
+              [style.stroke]="currentTimeline.target.color"
+              [attr.points]="currentTimeline.targetPolyline"
+              vector-effect="non-scaling-stroke"
+            />
+            @if (currentTimeline.bestPoint; as bestPoint) {
+              <circle
+                class="earth-observation-planner__best-point"
+                [style.fill]="currentTimeline.target.color"
+                [attr.cx]="bestPoint.chartX"
+                [attr.cy]="bestPoint.chartY"
+                r="3.5"
+                vector-effect="non-scaling-stroke"
+              />
+            }
+          </svg>
+
+          <div class="earth-observation-planner__chart-times" aria-hidden="true">
+            <span>{{ formatTime(currentTimeline.startTime) }}</span>
+            <span>+12 h</span>
+            <span>{{ formatTime(currentTimeline.endTime) }}</span>
+          </div>
+
+          <dl class="earth-observation-planner__events">
+            <div>
+              <dt>{{ text.plannerRise }}</dt>
+              <dd>{{ formatShortTime(currentTimeline.riseTime) }}</dd>
+            </div>
+            <div>
+              <dt>{{ text.plannerCulmination }}</dt>
+              <dd>
+                {{ formatShortTime(currentTimeline.culminationTime) }} ·
+                {{ i18n.formatNumber(currentTimeline.culminationAltitudeDegrees, 1) }}°
+              </dd>
+            </div>
+            <div>
+              <dt>{{ text.plannerSet }}</dt>
+              <dd>{{ formatShortTime(currentTimeline.setTime) }}</dd>
+            </div>
+          </dl>
+
+          @if (currentTimeline.bestPoint; as bestPoint) {
+            <p class="earth-observation-planner__best-window">
+              {{ text.plannerBestWindow }}
+              <strong>
+                {{ formatShortTime(currentTimeline.bestWindowStart) }} –
+                {{ formatShortTime(currentTimeline.bestWindowEnd) }}
+              </strong>
+            </p>
+            <button
+              type="button"
+              class="earth-observation-planner__best-time"
+              data-planner-best-time
+              (click)="timelineSelected.emit(currentTimeline)"
+            >
+              <span aria-hidden="true">◎</span>
+              {{
+                i18n.interpolate(text.plannerGoToBestTime, {
+                  time: formatTime(bestPoint.time),
+                })
+              }}
+            </button>
+          } @else {
+            <p class="earth-observation-planner__no-window">{{ text.plannerNoBestWindow }}</p>
+          }
+          <small class="earth-observation-planner__score-note">{{ text.plannerScoreNote }}</small>
+        </section>
+      }
+
+      @if (currentPlan.totalCount === 0) {
+        <p class="earth-observation-planner__empty">{{ text.plannerEmpty }}</p>
+      }
+
+      @if (currentPlan.solarSystem.length > 0) {
+        <section>
+          <h3>{{ text.plannerSolarSystem }}</h3>
+          <ul>
+            @for (item of currentPlan.solarSystem; track item.id) {
+              <li>
+                <button
+                  type="button"
+                  [attr.data-planner-object-id]="item.id"
+                  [attr.aria-label]="
+                    i18n.interpolate(text.plannerLocate, {
+                      name: i18n.objectName(item.id, item.fallbackName),
+                    })
+                  "
+                  (click)="itemSelected.emit(item)"
+                >
+                  <i [style.--planner-color]="item.color" aria-hidden="true"></i>
+                  <span>
+                    <strong>{{ i18n.objectName(item.id, item.fallbackName) }}</strong>
+                    <small>
+                      {{ i18n.formatNumber(item.observation.altitudeDegrees, 1) }}° ·
+                      {{ text.directions[item.observation.compassDirection] }}
+                    </small>
+                  </span>
+                  @if (item.assistedVisibility) {
+                    <em>{{ text.plannerAssisted }}</em>
+                  }
+                  <b aria-hidden="true">→</b>
+                </button>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      @if (currentPlan.stars.length > 0) {
+        <section>
+          <h3>{{ text.plannerBrightStars }}</h3>
+          <ul>
+            @for (item of currentPlan.stars; track item.id) {
+              <li>
+                <button
+                  type="button"
+                  [attr.data-planner-object-id]="item.id"
+                  [attr.aria-label]="
+                    i18n.interpolate(text.plannerLocate, {
+                      name: i18n.objectName(item.id, item.fallbackName),
+                    })
+                  "
+                  (click)="itemSelected.emit(item)"
+                >
+                  <i [style.--planner-color]="item.color" aria-hidden="true"></i>
+                  <span>
+                    <strong>{{ i18n.objectName(item.id, item.fallbackName) }}</strong>
+                    <small>
+                      {{ i18n.formatNumber(item.observation.altitudeDegrees, 1) }}° ·
+                      {{ text.directions[item.observation.compassDirection] }}
+                    </small>
+                  </span>
+                  <em>
+                    {{ text.plannerMagnitude }}
+                    {{ i18n.formatNumber(item.apparentMagnitude, 1) }}
+                  </em>
+                  <b aria-hidden="true">→</b>
+                </button>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+    </div>
+  }
+</aside>

@@ -15,6 +15,7 @@ export interface EarthObserverFraming {
   readonly initialPitchOffsetDegrees: number;
   readonly pitchLimits: EarthObserverPitchLimits;
   readonly verticalFieldOfViewDegrees?: number;
+  readonly targetDirection?: Vector3Like;
   readonly zenithDirection?: Vector3Like;
   readonly northDirection?: Vector3Like;
   readonly resolveReferenceFrame?: EarthObserverReferenceFrameProvider;

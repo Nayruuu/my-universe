@@ -167,6 +167,24 @@ describe('StellarObservationComponent', () => {
     expect(fixture.nativeElement.querySelector('.horizon-indicator--below')).not.toBeNull();
   });
 
+  it('localise une planète calculée et un satellite extrapolé depuis la même fiche', () => {
+    const time = universeTime('2026-01-15T22:00:00Z');
+    const marsFixture = createFixture(mars(), time);
+
+    marsFixture.detectChanges();
+    expect(marsFixture.nativeElement.textContent).toContain('Localiser Mars');
+    expect(marsFixture.nativeElement.querySelector('app-local-sky-map')).not.toBeNull();
+    expect(marsFixture.nativeElement.textContent).toContain('Éphéméride topocentrique calculée');
+    marsFixture.destroy();
+
+    const titanFixture = createFixture(titan(), time);
+
+    titanFixture.detectChanges();
+    expect(titanFixture.nativeElement.textContent).toContain('Localiser Titan');
+    expect(titanFixture.nativeElement.querySelector('app-local-sky-map')).not.toBeNull();
+    expect(titanFixture.nativeElement.textContent).toContain('Position topocentrique extrapolée');
+  });
+
   it('valide des coordonnées personnalisées et expose leur persistance partageable', () => {
     const fixture = createFixture(sirius(), universeTime('2026-01-15T22:00:00Z'));
     const component = fixture.componentInstance as unknown as StellarObservationAccess;
@@ -216,7 +234,7 @@ describe('StellarObservationComponent', () => {
     );
 
     missing.detectChanges();
-    expect(missing.nativeElement.textContent).toContain('Coordonnées équatoriales indisponibles');
+    expect(missing.nativeElement.textContent).toContain('Position céleste calculable indisponible');
     expect(
       equatorialCoordinates({ ...sirius(), metadata: { rightAscensionDegrees: 1 } }),
     ).toBeNull();
@@ -266,6 +284,52 @@ function sirius(): SpaceObject {
       declinationDegrees: -16.716_122,
       skyCoordinateEpoch: 'J2000',
       properMotionApplied: false,
+    },
+  };
+}
+
+function mars(): SpaceObject {
+  return {
+    id: 'mars',
+    name: 'Mars',
+    type: 'planet',
+    parentId: 'sun',
+    referenceFrame: 'solar-system',
+    scientificConfidence: 'calculated',
+    physical: { radiusKm: 3_389.5 },
+    visual: { visualRadius: 1, scaleMode: 'adaptive', color: '#ef9a6b' },
+    positionProvider: {
+      type: 'ephemeris',
+      body: 'mars',
+      origin: 'sun',
+      orbitalPeriodDays: 686.98,
+      orbitEpochJulianDay: 2_451_545,
+    },
+  };
+}
+
+function titan(): SpaceObject {
+  return {
+    id: 'titan',
+    name: 'Titan',
+    type: 'moon',
+    parentId: 'saturn',
+    referenceFrame: 'solar-system',
+    scientificConfidence: 'extrapolated',
+    physical: { radiusKm: 2_574.76 },
+    visual: { visualRadius: 1, scaleMode: 'adaptive', color: '#c7954e' },
+    positionProvider: {
+      type: 'keplerian',
+      semiMajorAxis: 1_221_900,
+      eccentricity: 0.029,
+      inclination: 0.3,
+      longitudeOfAscendingNode: 78.6,
+      argumentOfPeriapsis: 78.3,
+      meanAnomalyAtEpoch: 11.7,
+      epochJulianDay: 2_451_545,
+      orbitalPeriodDays: 15.945448,
+      unit: 'kilometer',
+      referencePlanePole: { rightAscensionDegrees: 40.6, declinationDegrees: 83.5 },
     },
   };
 }

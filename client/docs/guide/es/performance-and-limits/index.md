@@ -43,13 +43,16 @@ CSS. El renderer en calidad alta aplicó su límite documentado de DPR 1,5 y per
 tres pasadas. Cada una muestreó 1452–1455 fotogramas con 9,1 ms en p95, 9,3 ms en p99,
 9,4–9,5 ms de máximo y ningún fotograma largo; Júpiter alcanzó su representación resuelta en las tres.
 
-Una matriz de estrés en el mismo equipo, marcada explícitamente como simulada, también se mantuvo
-dentro del presupuesto. Con calidad media, CPU de Chrome ralentizada 4× y DPR 1,25 del canvas, las
-medianas fueron 9,3 ms en p95, 16,7 ms en p99 y 24,9 ms de máximo, sin fotogramas largos. Con calidad
-baja, CPU 6× y DPR 1, fueron 15,9 ms en p95, 25,1 ms en p99 y 42 ms de máximo, con un peor fotograma
-de 49,9 ms y 0,20–0,34 % de fotogramas largos. Júpiter se resolvió en las seis pasadas bajo estrés.
-La GPU siguió siendo la M5 Max, así que estos datos miden margen frente a regresiones, no hardware
-físico representativo de gama media o baja.
+Una campaña simulada limpia en el mismo equipo, registrada el 28 de agosto de 2026 desde la revisión
+`27db0e1`, superó sus diez informes. Con calidad media y CPU 4×, el primer mapa utilizable mediano
+llegó en 1,26 s, el primer fotograma visible de Tempel mediano en 24,2 ms, los tres recorridos de
+escala en frío se mantuvieron en 9,3 ms p95 con un peor fotograma de 66,5 ms, y los recorridos
+observables en 9,2 ms p95 mediano con un peor fotograma de 24,9 ms y Júpiter resuelto 3/3. Con calidad
+baja y CPU 6×, los valores correspondientes fueron 1,85 s, 33,1 ms, 16,6–16,7 ms p95 con un peor
+fotograma de escala de 83,4 ms, y 9,4 ms p95 observable con un peor fotograma de 41,7 ms y Júpiter
+resuelto 3/3. Ambos protocolos de recursos conservaron sin cambios los recuentos de geometrías,
+texturas y draw calls durante tres ciclos. La GPU siguió siendo la M5 Max, así que estos datos miden
+margen frente a regresiones, no hardware físico representativo de gama media o baja.
 
 Los cinco benchmarks de rendimiento — inicio, Tempel, recursos, fotogramas entre escalas y planetario
 observable — pueden escribir el mismo informe de evidencia JSON versionado mediante

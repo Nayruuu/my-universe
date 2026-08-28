@@ -160,6 +160,41 @@ describe('EarthHorizonComponent', () => {
 
     expect(cityscape.showIllustrativeTerrain()).toBe(false);
   });
+
+  it('atténue uniquement le premier plan illustratif pendant un zoom télescopique', () => {
+    const fixture = createFixture(
+      location('paris', 'Paris', 48.8566, 2.3522),
+      180,
+      true,
+      'open',
+      terrainProfile(180),
+      30,
+    );
+    const landscape = fixture.nativeElement.querySelector(
+      '.earth-sky-view__landscape',
+    ) as HTMLElement;
+    const foreground = fixture.nativeElement.querySelector(
+      '.earth-sky-view__foreground',
+    ) as HTMLElement;
+    const measuredTerrain = fixture.nativeElement.querySelector(
+      '.earth-sky-view__measured-terrain',
+    ) as SVGElement;
+
+    expect(landscape.dataset['illustrativeForeground']).toBe('fading');
+    expect(foreground.style.opacity).toBe('0.5');
+    expect(foreground.contains(measuredTerrain)).toBe(false);
+
+    fixture.componentRef.setInput('perspective', {
+      centerAzimuthDegrees: 180,
+      verticalFieldOfViewDegrees: 18,
+      viewport: { width: 1_600, height: 900 },
+    });
+    fixture.detectChanges();
+
+    expect(landscape.dataset['illustrativeForeground']).toBe('hidden');
+    expect(foreground.style.opacity).toBe('0');
+    expect(measuredTerrain.isConnected).toBe(true);
+  });
 });
 
 function createFixture(
@@ -168,6 +203,7 @@ function createFixture(
   isAboveHorizon = true,
   phase: 'travelling' | 'open' = 'open',
   terrainHorizon: EarthTerrainHorizonProfile | null = null,
+  verticalFieldOfViewDegrees = 82,
 ) {
   const fixture = TestBed.createComponent(EarthHorizonComponent);
 
@@ -177,7 +213,7 @@ function createFixture(
   fixture.componentRef.setInput('horizonPosition', '72%');
   fixture.componentRef.setInput('perspective', {
     centerAzimuthDegrees,
-    verticalFieldOfViewDegrees: 82,
+    verticalFieldOfViewDegrees,
     viewport: { width: 1_600, height: 900 },
   });
   fixture.componentRef.setInput('terrainHorizon', terrainHorizon);

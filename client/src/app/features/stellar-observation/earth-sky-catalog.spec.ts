@@ -1,8 +1,10 @@
 import type { SpaceObject } from '../../../data/models/universe.models';
 import {
+  calculateEarthSkyTargetObservation,
   createEarthSkyCatalog,
   createEarthSkyTarget,
   equatorialCoordinates,
+  isEarthSkyTarget,
 } from './earth-sky-catalog';
 
 describe('catalogue de la vue terrestre', () => {
@@ -76,6 +78,26 @@ describe('catalogue de la vue terrestre', () => {
     expect(createEarthSkyTarget({ ...star('planet', 1, 0, 0), type: 'planet' })).toBeNull();
     expect(createEarthSkyTarget({ ...star('invalid', 1, 0, 0), metadata: {} })).toBeNull();
   });
+
+  it('reconnaît et calcule les planètes et satellites physiques depuis la Terre', () => {
+    const time = { julianDay: 2_461_056.416_666_7 };
+    const location = { latitude: 48.8566, longitude: 2.3522, heightMeters: 35 };
+
+    expect(isEarthSkyTarget(mars())).toBe(true);
+    expect(isEarthSkyTarget(titan())).toBe(true);
+    expect(isEarthSkyTarget({ ...mars(), id: 'earth' })).toBe(false);
+    expect(calculateEarthSkyTargetObservation(mars(), time, location)).toMatchObject({
+      altitudeDegrees: expect.any(Number),
+      azimuthDegrees: expect.any(Number),
+    });
+    expect(calculateEarthSkyTargetObservation(titan(), time, location)).toMatchObject({
+      altitudeDegrees: expect.any(Number),
+      azimuthDegrees: expect.any(Number),
+    });
+    expect(
+      calculateEarthSkyTargetObservation(mars(), { julianDay: Number.MAX_SAFE_INTEGER }, location),
+    ).toBeNull();
+  });
 });
 
 function star(
@@ -99,6 +121,52 @@ function star(
       rightAscensionDegrees,
       declinationDegrees,
       skyCoordinateEpoch: 'J2000',
+    },
+  };
+}
+
+function mars(): SpaceObject {
+  return {
+    id: 'mars',
+    name: 'Mars',
+    type: 'planet',
+    parentId: 'sun',
+    referenceFrame: 'solar-system',
+    scientificConfidence: 'calculated',
+    physical: { radiusKm: 3_389.5 },
+    visual: { visualRadius: 1, scaleMode: 'adaptive' },
+    positionProvider: {
+      type: 'ephemeris',
+      body: 'mars',
+      origin: 'sun',
+      orbitalPeriodDays: 686.98,
+      orbitEpochJulianDay: 2_451_545,
+    },
+  };
+}
+
+function titan(): SpaceObject {
+  return {
+    id: 'titan',
+    name: 'Titan',
+    type: 'moon',
+    parentId: 'saturn',
+    referenceFrame: 'solar-system',
+    scientificConfidence: 'extrapolated',
+    physical: { radiusKm: 2_574.76 },
+    visual: { visualRadius: 1, scaleMode: 'adaptive' },
+    positionProvider: {
+      type: 'keplerian',
+      semiMajorAxis: 1_221_900,
+      eccentricity: 0.029,
+      inclination: 0.3,
+      longitudeOfAscendingNode: 78.6,
+      argumentOfPeriapsis: 78.3,
+      meanAnomalyAtEpoch: 11.7,
+      epochJulianDay: 2_451_545,
+      orbitalPeriodDays: 15.945448,
+      unit: 'kilometer',
+      referencePlanePole: { rightAscensionDegrees: 40.6, declinationDegrees: 83.5 },
     },
   };
 }

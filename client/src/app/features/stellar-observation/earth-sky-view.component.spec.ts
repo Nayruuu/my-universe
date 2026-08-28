@@ -1,16 +1,25 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import type { DisplayOptions, SpaceObject } from '../../../data/models/universe.models';
+import type {
+  DisplayOptions,
+  SearchEntry,
+  SpaceObject,
+} from '../../../data/models/universe.models';
 import {
   EARTH_OBSERVER_FIELD_OF_VIEW_DEGREES,
+  EARTH_OBSERVER_LOOK_AT_EVENT,
+  EARTH_OBSERVER_LOOK_AT_SETTLED_EVENT,
   EARTH_OBSERVER_VIEW_EVENT,
   EARTH_OBSERVER_ZOOM_AT_EVENT,
+  type EarthObserverLookAtDetail,
   type EarthObserverViewState,
   type EarthObserverZoomAtDetail,
 } from '../../../engine/camera/earth-observer-camera-control';
 import type { EarthObserverFraming } from '../../../engine/camera/earth-observer-orientation';
 import { EARTH_OBSERVER_LOCATIONS } from '../../../engine/simulation/earth-observer-location';
+import type { SolarSystemSkyObservation } from '../../../engine/simulation/solar-system-sky';
 import { UniverseEngineFacade } from '../../core/engine/universe-engine.facade';
+import type { EarthObservationTimeline } from './earth-observation-timeline';
 import { EarthObserverSelection } from './earth-observer-selection';
 import { EarthSkyViewComponent } from './earth-sky-view.component';
 import { EarthSkyViewState } from './earth-sky-view-state';
@@ -49,7 +58,20 @@ describe('EarthSkyViewComponent', () => {
     >(() => Promise.resolve()),
     exitEarthObservation: vi.fn(),
     setEarthObserverCelestialPresentations: vi.fn(),
+    getStellarObservationCatalog: vi.fn(() => [
+      {
+        id: 'sirius',
+        name: 'Sirius',
+        coordinates: {
+          rightAscensionDegrees: 101.287_155,
+          declinationDegrees: -16.716_116,
+        },
+        apparentMagnitude: -1.46,
+        color: '#b8ccff',
+      },
+    ]),
     selectObject: vi.fn(),
+    setTime: vi.fn((time: { readonly julianDay: number }) => currentTime.set(time)),
     setTemporalMode: vi.fn(),
     toggleConstellations: vi.fn(() => {
       displayOptions.update((options) => ({
@@ -264,29 +286,419 @@ describe('EarthSkyViewComponent', () => {
     expect(labelsButton.getAttribute('aria-pressed')).toBe('false');
   });
 
-  it('sélectionne une planète visible sans quitter le ciel terrestre', () => {
+  it('calcule le plan à la demande puis recentre le regard sur une suggestion', () => {
     const fixture = TestBed.createComponent(EarthSkyViewComponent);
+    const focused: EarthObserverLookAtDetail[] = [];
+    const handleLookAt = (event: Event): void => {
+      focused.push((event as CustomEvent<EarthObserverLookAtDetail>).detail);
+      event.preventDefault();
+    };
+
+    window.addEventListener(EARTH_OBSERVER_LOOK_AT_EVENT, handleLookAt);
+    try {
+      fixture.detectChanges();
+      const toggle = fixture.nativeElement.querySelector(
+        '.earth-sky-view__planner-toggle',
+      ) as HTMLButtonElement;
+
+      expect(toggle.getAttribute('aria-expanded')).toBe('false');
+      expect(fixture.nativeElement.querySelector('.earth-observation-planner')).toBeNull();
+      expect(facade.getStellarObservationCatalog).not.toHaveBeenCalled();
+
+      window.dispatchEvent(
+        new CustomEvent<EarthObserverLookAtDetail>(EARTH_OBSERVER_LOOK_AT_SETTLED_EVENT, {
+          detail: { altitudeDegrees: 0, azimuthDegrees: 0 },
+        }),
+      );
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.earth-sky-view__focus-cue')).toBeNull();
+
+      toggle.click();
+      fixture.detectChanges();
+
+      const planner = fixture.nativeElement.querySelector(
+        '.earth-observation-planner',
+      ) as HTMLElement;
+      const suggestion = planner.querySelector('[data-planner-object-id]') as HTMLButtonElement;
+
+      expect(toggle.getAttribute('aria-expanded')).toBe('true');
+      expect(planner.dataset['confidence']).toBe('calculated');
+      expect(planner.textContent).toContain('Que peut-on observer maintenant ?');
+      expect(planner.textContent).toContain('au-dessus de l’horizon calculé');
+      expect(facade.getStellarObservationCatalog).toHaveBeenCalledWith(48);
+      expect(suggestion).not.toBeNull();
+
+      (planner.querySelector('.earth-observation-planner__close') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.earth-observation-planner')).toBeNull();
+
+      toggle.click();
+      fixture.detectChanges();
+      const reopenedSuggestion = fixture.nativeElement.querySelector(
+        '[data-planner-object-id]',
+      ) as HTMLButtonElement;
+
+      reopenedSuggestion.click();
+      fixture.detectChanges();
+
+      expect(facade.selectObject).toHaveBeenCalledWith(
+        reopenedSuggestion.dataset['plannerObjectId'],
+      );
+      expect(focused.at(-1)).toEqual({
+        altitudeDegrees: expect.any(Number),
+        azimuthDegrees: expect.any(Number),
+      });
+      expect(fixture.nativeElement.querySelector('.earth-sky-view__focus-cue')).toBeNull();
+
+      window.dispatchEvent(
+        new CustomEvent<EarthObserverLookAtDetail>(EARTH_OBSERVER_LOOK_AT_SETTLED_EVENT, {
+          detail: focused.at(-1)!,
+        }),
+      );
+      fixture.detectChanges();
+      const focusCue = fixture.nativeElement.querySelector(
+        '.earth-sky-view__focus-cue',
+      ) as HTMLElement;
+
+      expect(focusCue.dataset['focusObjectId']).toBe(reopenedSuggestion.dataset['plannerObjectId']);
+      expect(focusCue.style.left).toBe('50%');
+      expect(focusCue.style.top).toBe('50%');
+      expect(focusCue.textContent).toContain('°');
+      expect(fixture.nativeElement.querySelector('.earth-observation-planner')).toBeNull();
+      expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    } finally {
+      window.removeEventListener(EARTH_OBSERVER_LOOK_AT_EVENT, handleLookAt);
+    }
+  });
+
+  it('annule le repère de focus si aucun contrôle caméra ne prend le recentrage', () => {
+    const fixture = TestBed.createComponent(EarthSkyViewComponent);
+
+    fixture.detectChanges();
+    (
+      fixture.nativeElement.querySelector('.earth-sky-view__planner-toggle') as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-planner-object-id]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.earth-sky-view__focus-cue')).toBeNull();
+  });
+
+  it('affiche la fenêtre calculée sur 24 h puis déplace le temps et la caméra au meilleur instant', () => {
+    const fixture = TestBed.createComponent(EarthSkyViewComponent);
+    const focused: EarthObserverLookAtDetail[] = [];
+    const handleLookAt = (event: Event): void => {
+      focused.push((event as CustomEvent<EarthObserverLookAtDetail>).detail);
+      event.preventDefault();
+    };
+
+    window.addEventListener(EARTH_OBSERVER_LOOK_AT_EVENT, handleLookAt);
+    try {
+      fixture.detectChanges();
+      (
+        fixture.nativeElement.querySelector('.earth-sky-view__planner-toggle') as HTMLButtonElement
+      ).click();
+      fixture.detectChanges();
+
+      const timeline = fixture.nativeElement.querySelector(
+        '.earth-observation-planner__timeline',
+      ) as HTMLElement;
+      const bestTime = timeline.querySelector('[data-planner-best-time]') as HTMLButtonElement;
+      const initialJulianDay = currentTime().julianDay;
+
+      expect(timeline.dataset['confidence']).toBe('illustrative');
+      expect(timeline.textContent).toContain('Visibilité de Sirius');
+      expect(timeline.textContent).toContain('Meilleure fenêtre');
+      expect(timeline.querySelector('.earth-observation-planner__chart')).not.toBeNull();
+      expect(bestTime.textContent).toContain('Aller à');
+
+      bestTime.click();
+      fixture.detectChanges();
+
+      expect(facade.setTime).toHaveBeenCalledWith({ julianDay: expect.any(Number) });
+      expect(currentTime().julianDay).not.toBe(initialJulianDay);
+      expect(facade.selectObject).toHaveBeenCalledWith('sirius');
+      expect(focused.at(-1)).toEqual({
+        altitudeDegrees: expect.any(Number),
+        azimuthDegrees: expect.any(Number),
+      });
+      expect(fixture.nativeElement.querySelector('.earth-observation-planner')).toBeNull();
+    } finally {
+      window.removeEventListener(EARTH_OBSERVER_LOOK_AT_EVENT, handleLookAt);
+    }
+  });
+
+  it('prévisualise une autre étoile sans déplacer le ciel puis la rejoint au meilleur instant', async () => {
+    const fixture = TestBed.createComponent(EarthSkyViewComponent);
+    const component = fixture.componentInstance as unknown as SkyViewAccess;
     const viewState = TestBed.inject(EarthSkyViewState);
 
     fixture.detectChanges();
-    const jupiter = fixture.nativeElement.querySelector(
-      '[data-body-id="jupiter"]',
+    (
+      fixture.nativeElement.querySelector('.earth-sky-view__planner-toggle') as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    const targetSearch = fixture.nativeElement.querySelector(
+      '.earth-observation-planner__target-search input[type="search"]',
+    ) as HTMLInputElement;
+
+    expect(targetSearch.placeholder).toBe('Rechercher une étoile, une planète ou une lune');
+    expect(fixture.nativeElement.textContent).toContain('Visibilité de Sirius');
+
+    await component.selectPlannerTarget({
+      id: 'betelgeuse',
+      name: 'Bételgeuse',
+      aliases: [],
+      type: 'star',
+    });
+    fixture.detectChanges();
+
+    const timeline = component.observationTimeline();
+
+    expect(timeline?.target.id).toBe('betelgeuse');
+    expect(fixture.nativeElement.textContent).toContain('Visibilité de Bételgeuse');
+    expect(facade.resolveObject).toHaveBeenCalledWith('betelgeuse');
+    expect(facade.setTime).not.toHaveBeenCalled();
+    expect(facade.prepareEarthObservation).not.toHaveBeenCalled();
+    expect(facade.selectObject).not.toHaveBeenCalled();
+    expect(viewState.activeTargetId()).toBe('sirius');
+
+    expect(timeline?.bestPoint).not.toBeNull();
+    await component.focusPlannerTimeline(timeline!);
+    fixture.detectChanges();
+
+    expect(facade.setTime).toHaveBeenCalledWith({ julianDay: expect.any(Number) });
+    expect(facade.prepareEarthObservation).toHaveBeenCalledWith(
+      'betelgeuse',
+      expect.objectContaining({ initialPitchOffsetDegrees: expect.any(Number) }),
+    );
+    expect(facade.selectObject).toHaveBeenCalledWith('betelgeuse');
+    expect(viewState.activeTargetId()).toBe('betelgeuse');
+    expect(fixture.nativeElement.querySelector('.earth-observation-planner')).toBeNull();
+  });
+
+  it('ignore une cible de planification introuvable et referme le panneau avec son interrupteur', async () => {
+    const fixture = TestBed.createComponent(EarthSkyViewComponent);
+    const component = fixture.componentInstance as unknown as SkyViewAccess;
+
+    fixture.detectChanges();
+    const toggle = fixture.nativeElement.querySelector(
+      '.earth-sky-view__planner-toggle',
     ) as HTMLButtonElement;
 
-    expect(jupiter.dataset['angularDiameterConfidence']).toBe('calculated');
-    expect(Number(jupiter.dataset['angularDiameterDegrees'])).toBeGreaterThan(0);
-    expect(Number(jupiter.dataset['apparentDiameterPixels'])).toBeGreaterThan(0);
-    expect(jupiter.dataset['displayScaleMode']).toBe(
-      'calculated-angular-size-with-illustrative-readability-floor',
-    );
-    expect(jupiter.dataset['resolved']).toBe('false');
-    expect(jupiter.dataset['renderer']).toBe('webgl-existing-object');
-    expect(jupiter.style.getPropertyValue('--body-texture')).toBe('');
-    jupiter.click();
+    toggle.click();
+    fixture.detectChanges();
 
-    expect(facade.selectObject).toHaveBeenCalledWith('jupiter');
+    await component.selectPlannerTarget({
+      id: 'unknown-star',
+      name: 'Étoile inconnue',
+      aliases: [],
+      type: 'star',
+    });
+
+    expect(facade.resolveObject).toHaveBeenCalledWith('unknown-star');
+    expect(component.observationTimeline()?.target.id).toBe('sirius');
+
+    toggle.click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.earth-observation-planner')).toBeNull();
+  });
+
+  it('conserve la cible et le panneau quand le voyage vers la cible planifiée échoue', async () => {
+    const fixture = TestBed.createComponent(EarthSkyViewComponent);
+    const component = fixture.componentInstance as unknown as SkyViewAccess;
+    const viewState = TestBed.inject(EarthSkyViewState);
+
+    fixture.detectChanges();
+    (
+      fixture.nativeElement.querySelector('.earth-sky-view__planner-toggle') as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    await component.selectPlannerTarget({
+      id: 'betelgeuse',
+      name: 'Bételgeuse',
+      aliases: [],
+      type: 'star',
+    });
+    const timeline = component.observationTimeline();
+
+    expect(timeline?.bestPoint).not.toBeNull();
+    facade.prepareEarthObservation.mockRejectedValueOnce(new Error('navigation unavailable'));
+    await component.focusPlannerTimeline(timeline!);
+    fixture.detectChanges();
+
     expect(viewState.activeTargetId()).toBe('sirius');
-    expect(fixture.nativeElement.querySelector('#earth-sky-view')).not.toBeNull();
+    expect(facade.selectObject).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('.earth-observation-planner')).not.toBeNull();
+  });
+
+  it('garde la chronologie paresseuse et ignore une sélection sans meilleur instant', async () => {
+    const fixture = TestBed.createComponent(EarthSkyViewComponent);
+    const component = fixture.componentInstance as unknown as SkyViewAccess;
+    const observerSelection = TestBed.inject(EarthObserverSelection);
+
+    fixture.detectChanges();
+    expect(component.observationTimeline()).toBeNull();
+
+    await component.focusPlannerTimeline({ bestPoint: null });
+    expect(facade.setTime).not.toHaveBeenCalled();
+
+    observerSelection.setLocation(null);
+    expect(component.observationTimeline()).toBeNull();
+  });
+
+  it('calcule aussi la chronologie d’une planète et tolère une date hors éphéméride', () => {
+    const viewState = TestBed.inject(EarthSkyViewState);
+    const planet = mars();
+
+    selectedObject.set(planet);
+    objects.set([planet]);
+    viewState.open(planet.id, planet.name);
+    const fixture = TestBed.createComponent(EarthSkyViewComponent);
+
+    fixture.detectChanges();
+    (
+      fixture.nativeElement.querySelector('.earth-sky-view__planner-toggle') as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    expect(
+      fixture.nativeElement.querySelector('.earth-observation-planner__timeline'),
+    ).not.toBeNull();
+
+    currentTime.set({ julianDay: Number.MAX_SAFE_INTEGER });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.earth-observation-planner__timeline')).toBeNull();
+  });
+
+  it('affiche les événements absents d’une étoile circumpolaire', () => {
+    const viewState = TestBed.inject(EarthSkyViewState);
+    const target = circumpolarStar();
+
+    selectedObject.set(target);
+    objects.set([target]);
+    viewState.open(target.id, target.name);
+    const fixture = TestBed.createComponent(EarthSkyViewComponent);
+
+    fixture.detectChanges();
+    (
+      fixture.nativeElement.querySelector('.earth-sky-view__planner-toggle') as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    const events = fixture.nativeElement.querySelector(
+      '.earth-observation-planner__events',
+    ) as HTMLElement;
+
+    expect(events.textContent).toContain('Lever');
+    expect(events.textContent).toContain('Coucher');
+    expect(events.textContent?.match(/—/g)).toHaveLength(2);
+  });
+
+  it('distingue une éphéméride calculée d’une trajectoire de satellite extrapolée', () => {
+    const viewState = TestBed.inject(EarthSkyViewState);
+    const fixture = TestBed.createComponent(EarthSkyViewComponent);
+    const planet = mars();
+
+    selectedObject.set(planet);
+    objects.set([planet]);
+    viewState.open(planet.id, planet.name);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Éphéméride topocentrique calculée');
+
+    const satellite = titan();
+
+    selectedObject.set(satellite);
+    objects.set([satellite]);
+    viewState.open(satellite.id, satellite.name);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Position topocentrique extrapolée');
+  });
+
+  it('sélectionne une planète visible sans quitter le ciel terrestre', () => {
+    vi.useFakeTimers();
+    const fixture = TestBed.createComponent(EarthSkyViewComponent);
+    const viewState = TestBed.inject(EarthSkyViewState);
+
+    try {
+      fixture.detectChanges();
+      const jupiter = fixture.nativeElement.querySelector(
+        '[data-body-id="jupiter"]',
+      ) as HTMLButtonElement;
+
+      expect(jupiter.dataset['angularDiameterConfidence']).toBe('calculated');
+      expect(Number(jupiter.dataset['angularDiameterDegrees'])).toBeGreaterThan(0);
+      expect(Number(jupiter.dataset['apparentDiameterPixels'])).toBeGreaterThan(0);
+      expect(jupiter.dataset['displayScaleMode']).toBe(
+        'calculated-angular-size-with-illustrative-readability-floor',
+      );
+      expect(jupiter.dataset['resolved']).toBe('false');
+      expect(jupiter.dataset['renderer']).toBe('webgl-existing-object');
+      expect(jupiter.dataset['readabilityMarker']).toBe('illustrative-unresolved-only');
+      expect(jupiter.style.getPropertyValue('--body-texture')).toBe('');
+      expect(jupiter.getAttribute('aria-pressed')).toBe('false');
+      jupiter.click();
+      fixture.detectChanges();
+
+      const focusCue = fixture.nativeElement.querySelector(
+        '[data-focus-object-id="jupiter"]',
+      ) as HTMLElement;
+
+      expect(facade.selectObject).toHaveBeenCalledWith('jupiter');
+      expect(focusCue.style.left).toBe(jupiter.style.left);
+      expect(focusCue.style.top).toBe(jupiter.style.top);
+      expect(focusCue.textContent).toContain('Jupiter');
+
+      selectedObject.set({ ...sirius(), id: 'jupiter', name: 'Jupiter', type: 'planet' });
+      fixture.detectChanges();
+      expect(jupiter.getAttribute('aria-pressed')).toBe('true');
+      expect(jupiter.classList).toContain('earth-sky-view__body--selected');
+
+      vi.advanceTimersByTime(2_400);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.earth-sky-view__focus-cue')).toBeNull();
+      expect(viewState.activeTargetId()).toBe('sirius');
+      expect(fixture.nativeElement.querySelector('#earth-sky-view')).not.toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('révèle les satellites physiques avec le zoom sans encombrer le grand champ', () => {
+    objects.set([sirius(), io()]);
+    const fixture = TestBed.createComponent(EarthSkyViewComponent);
+    const component = fixture.componentInstance as unknown as SkyViewAccess;
+
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-body-id="io"]')).toBeNull();
+    const ioObservation = component.solarSystemSky().find(({ id }) => id === 'io')!;
+
+    expect(ioObservation.observation.isAboveHorizon).toBe(true);
+    dispatchObserverView({
+      active: true,
+      pitchOffsetDegrees: 0,
+      centerAltitudeDegrees: ioObservation.observation.altitudeDegrees,
+      centerAzimuthDegrees: ioObservation.observation.azimuthDegrees,
+      verticalFieldOfViewDegrees: 10,
+    });
+    fixture.detectChanges();
+    const marker = fixture.nativeElement.querySelector('[data-body-id="io"]') as HTMLButtonElement;
+
+    expect(marker).not.toBeNull();
+    expect(marker.dataset['kind']).toBe('satellite');
+    expect(marker.dataset['positionConfidence']).toBe('calculated');
+    expect(marker.dataset['renderer']).toBe('webgl-existing-object');
+    expect(marker.dataset['labelVisible']).toBe('true');
+    expect(marker.dataset['labelPlacement']).toMatch(/^(above|below|left|right)$/);
+    expect(marker.style.getPropertyValue('--label-y')).toMatch(/px$/);
+    expect(facade.setEarthObserverCelestialPresentations).toHaveBeenLastCalledWith(
+      expect.arrayContaining([expect.objectContaining({ objectId: 'io' })]),
+    );
+
+    dispatchObserverView({ active: true, pitchOffsetDegrees: 0 });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-body-id="io"]')).toBeNull();
   });
 
   it('transmet la molette d’une planète au zoom observateur avec sa position écran', () => {
@@ -644,6 +1056,9 @@ describe('EarthSkyViewComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
+    const component = fixture.componentInstance as unknown as SkyViewAccess;
+
+    expect(component.solarSystemSky()).toEqual([]);
     expect(facade.prepareEarthObservation).not.toHaveBeenCalled();
   });
 
@@ -798,6 +1213,12 @@ interface SkyViewAccess {
   }): Promise<void>;
   horizonPosition(): string;
   horizonPerspective(): { readonly centerAzimuthDegrees: number };
+  solarSystemSky(): readonly SolarSystemSkyObservation[];
+  observationTimeline(): EarthObservationTimeline | null;
+  selectPlannerTarget(result: SearchEntry): Promise<void>;
+  focusPlannerTimeline(
+    timeline: EarthObservationTimeline | { readonly bestPoint: null },
+  ): Promise<void>;
 }
 
 function installGeolocation(geolocation: Geolocation): void {
@@ -928,6 +1349,24 @@ function sirius(): SpaceObject {
   };
 }
 
+function circumpolarStar(): SpaceObject {
+  return {
+    id: 'north-pole-star',
+    name: 'Étoile polaire de test',
+    type: 'star',
+    parentId: 'milky-way',
+    referenceFrame: 'stellar',
+    scientificConfidence: 'observed',
+    visual: { visualRadius: 1, scaleMode: 'adaptive' },
+    positionProvider: { type: 'static', position: [1, 2, 3], unit: 'parsec' },
+    metadata: {
+      rightAscensionDegrees: 37.95,
+      declinationDegrees: 89.2,
+      skyCoordinateEpoch: 'J2000',
+    },
+  };
+}
+
 function moonSightline(): SpaceObject {
   return {
     ...sirius(),
@@ -937,6 +1376,74 @@ function moonSightline(): SpaceObject {
       rightAscensionDegrees: 190.754_291_893_899_68,
       declinationDegrees: -9.424_038_747_322_9,
       skyCoordinateEpoch: 'J2000',
+    },
+  };
+}
+
+function io(): SpaceObject {
+  return {
+    id: 'io',
+    name: 'Io',
+    type: 'moon',
+    parentId: 'jupiter',
+    referenceFrame: 'solar-system',
+    scientificConfidence: 'calculated',
+    physical: { radiusKm: 1_821.49 },
+    visual: { visualRadius: 0.26, scaleMode: 'exaggerated', color: '#d8b96e' },
+    positionProvider: {
+      type: 'ephemeris',
+      body: 'io',
+      origin: 'jupiter',
+      orbitalPeriodDays: 1.769_137_799_754,
+      orbitEpochJulianDay: 2_451_545,
+      distanceScale: 40,
+    },
+    metadata: { appearanceConfidence: 'observed' },
+  };
+}
+
+function mars(): SpaceObject {
+  return {
+    id: 'mars',
+    name: 'Mars',
+    type: 'planet',
+    parentId: 'sun',
+    referenceFrame: 'solar-system',
+    scientificConfidence: 'calculated',
+    physical: { radiusKm: 3_389.5 },
+    visual: { visualRadius: 1, scaleMode: 'adaptive' },
+    positionProvider: {
+      type: 'ephemeris',
+      body: 'mars',
+      origin: 'sun',
+      orbitalPeriodDays: 686.98,
+      orbitEpochJulianDay: 2_451_545,
+    },
+  };
+}
+
+function titan(): SpaceObject {
+  return {
+    id: 'titan',
+    name: 'Titan',
+    type: 'moon',
+    parentId: 'saturn',
+    referenceFrame: 'solar-system',
+    scientificConfidence: 'extrapolated',
+    physical: { radiusKm: 2_574.76 },
+    visual: { visualRadius: 1, scaleMode: 'adaptive' },
+    positionProvider: {
+      type: 'keplerian',
+      semiMajorAxis: 1_221_900,
+      eccentricity: 0.029,
+      inclination: 0.3,
+      longitudeOfAscendingNode: 78.6,
+      argumentOfPeriapsis: 78.3,
+      meanAnomalyAtEpoch: 11.7,
+      epochJulianDay: 2_451_545,
+      orbitalPeriodDays: 15.945_448,
+      unit: 'kilometer',
+      referencePlanePole: { rightAscensionDegrees: 40.6, declinationDegrees: 83.5 },
     },
   };
 }

@@ -165,6 +165,26 @@ describe('UniverseViewController', () => {
     expect(harness.emitTargetChanged).toHaveBeenCalledWith('catalog-star');
   });
 
+  it('préfère la direction topocentrique fournie au décalage visuel de la cible', async () => {
+    const harness = createHarness();
+    const targetDirection = new THREE.Vector3(-0.4, 0.2, 0.8).normalize();
+
+    await harness.controller.prepareEarthObservation('catalog-star', {
+      initialPitchOffsetDegrees: 0,
+      pitchLimits: {
+        minimumPitchOffsetDegrees: -88,
+        maximumPitchOffsetDegrees: 88,
+      },
+      targetDirection,
+    });
+    const [observerPosition, observedPosition] =
+      harness.cameraController.observeFrom.mock.calls.at(-1)!;
+    const actualDirection = observedPosition.clone().sub(observerPosition).normalize();
+
+    expect(actualDirection.distanceTo(targetDirection)).toBeLessThan(1e-12);
+    expect(observedPosition.distanceTo(harness.positions.get('catalog-star')!)).toBeGreaterThan(1);
+  });
+
   it('refuse une observation terrestre sans services ou objets disponibles', async () => {
     const harness = createHarness();
 

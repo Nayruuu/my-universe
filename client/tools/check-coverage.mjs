@@ -126,6 +126,14 @@ const scientificModules = [
     suffix: '/src/engine/simulation/stellar-observation.ts',
   },
   {
+    name: 'ciel topocentrique du Système solaire',
+    suffix: '/src/engine/simulation/solar-system-sky.ts',
+  },
+  {
+    name: 'fenêtre locale de planification astronomique',
+    suffix: '/src/app/features/stellar-observation/earth-observation-timeline.ts',
+  },
+  {
     name: 'mouvement spatial stellaire',
     suffix: '/src/engine/simulation/stellar-space-motion.ts',
   },

@@ -43,12 +43,15 @@ high-quality renderer applied its documented DPR 1.5 cap and remained stable the
 runs. Each run sampled 1,452–1,455 frames at 9.1 ms p95, 9.3 ms p99, 9.4–9.5 ms maximum, and zero
 long frames; Jupiter reached its resolved representation in all three runs.
 
-An explicitly simulated same-host stress matrix also stayed within budget. Medium quality with
-Chrome CPU throttled 4× used canvas DPR 1.25 and measured median p95 at 9.3 ms, p99 at 16.7 ms,
-maximum at 24.9 ms, and zero long frames. Low quality at CPU 6× used canvas DPR 1 and measured median
-p95 at 15.9 ms, p99 at 25.1 ms, maximum at 42 ms, a 49.9 ms worst frame, and 0.20–0.34% long frames.
-Jupiter resolved in all six stressed runs. The GPU remained the M5 Max, so these results measure
-regression headroom rather than representative medium- or low-end hardware.
+A clean same-host simulated campaign recorded on 28 August 2026 from revision `27db0e1` passed all
+ten reports. At medium quality and CPU 4×, the median first usable map was 1.26 s, Tempel's median
+first visible frame was 24.2 ms, three cold scale journeys held at 9.3 ms p95 with a 66.5 ms worst
+frame, and observable runs held at 9.2 ms median p95 with a 24.9 ms worst frame and Jupiter resolved
+3/3. At low quality and CPU 6×, the corresponding values were 1.85 s, 33.1 ms, 16.6–16.7 ms p95 with
+an 83.4 ms worst scale frame, and 9.4 ms observable p95 with a 41.7 ms worst frame and Jupiter
+resolved 3/3. Both resource protocols kept geometry, texture, and draw-call counts unchanged over
+three cycles. The GPU remained the M5 Max, so these results measure regression headroom rather than
+representative medium- or low-end hardware.
 
 All five performance benchmarks—startup, Tempel, resources, scale frames, and the observable
 planetarium—can write the same versioned JSON evidence report with

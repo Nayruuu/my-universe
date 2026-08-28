@@ -13,14 +13,11 @@ import {
   parseEarthObserverCoordinates,
   type EarthObserverLocation,
 } from '../../../engine/simulation/earth-observer-location';
-import {
-  calculateStellarObservation,
-  type CompassDirection,
-} from '../../../engine/simulation/stellar-observation';
+import type { CompassDirection } from '../../../engine/simulation/stellar-observation';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { EarthObserverSelection } from './earth-observer-selection';
 import { EarthObserverLocationPickerComponent } from './earth-observer-location-picker.component';
-import { equatorialCoordinates } from './earth-sky-catalog';
+import { calculateEarthSkyTargetObservation, isEarthSkyTarget } from './earth-sky-catalog';
 import { LocalSkyMapComponent } from './local-sky-map.component';
 
 const CUSTOM_LOCATION_ID = 'custom';
@@ -98,14 +95,26 @@ export class StellarObservationComponent {
       name: this.localizedObjectName(),
     }),
   );
-  protected readonly coordinates = computed(() => equatorialCoordinates(this.object()));
+  protected readonly supportedTarget = computed(() => isEarthSkyTarget(this.object()));
   protected readonly observation = computed(() => {
-    const coordinates = this.coordinates();
+    const object = this.object();
     const location = this.selectedLocation();
 
-    return coordinates && location
-      ? calculateStellarObservation(this.time(), coordinates, location)
+    return this.supportedTarget() && location
+      ? calculateEarthSkyTargetObservation(object, this.time(), location)
       : null;
+  });
+  protected readonly scientificNote = computed(() => {
+    const object = this.object();
+    const text = this.i18n.content().stellarObservation;
+
+    if (object.type !== 'moon' && object.type !== 'planet') {
+      return text.scientificNote;
+    }
+
+    return object.scientificConfidence === 'extrapolated'
+      ? text.satelliteScientificNote
+      : text.solarSystemScientificNote;
   });
   private readonly synchronizeObserverLocation = effect(() =>
     this.observerSelection.setLocation(this.selectedLocation()),

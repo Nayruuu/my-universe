@@ -111,6 +111,12 @@
   opacity: 0.72;
 }
 
+.earth-sky-view__foreground {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+}
+
 .earth-sky-view__measured-terrain {
   --terrain-height: 180px;
 

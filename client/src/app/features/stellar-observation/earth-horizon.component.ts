@@ -5,6 +5,7 @@ import { I18nService } from '../../core/i18n/i18n.service';
 import { EarthCityscapeComponent } from './earth-cityscape.component';
 import {
   createEarthHorizonProfile,
+  earthIllustrativeLandscapePresentation,
   type EarthHorizonPerspective,
   projectEarthHorizonLandmark,
 } from './earth-horizon-profile';
@@ -29,6 +30,9 @@ export class EarthHorizonComponent {
   public readonly terrainHorizon = input<EarthTerrainHorizonProfile | null>(null);
   protected readonly i18n = inject(I18nService);
   protected readonly profile = computed(() => createEarthHorizonProfile(this.location()));
+  protected readonly illustrativeLandscapePresentation = computed(() =>
+    earthIllustrativeLandscapePresentation(this.perspective().verticalFieldOfViewDegrees),
+  );
   protected readonly landmark = computed(() => {
     const landmark = this.profile().landmark;
 

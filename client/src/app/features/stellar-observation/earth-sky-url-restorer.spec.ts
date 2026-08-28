@@ -67,6 +67,21 @@ describe('EarthSkyUrlRestorer', () => {
     expect(navigation.setViewMode).not.toHaveBeenCalled();
   });
 
+  it('restaure aussi une planète calculable depuis la Terre', async () => {
+    facade.resolveObject.mockResolvedValue(mars());
+    targetId.set('mars');
+    const restorer = TestBed.inject(EarthSkyUrlRestorer);
+
+    restorer.start();
+    ready.set(true);
+    TestBed.flushEffects();
+
+    await vi.waitFor(() => {
+      expect(journey.restore).toHaveBeenCalledWith(expect.objectContaining({ id: 'mars' }), null);
+    });
+    expect(navigation.setViewMode).not.toHaveBeenCalled();
+  });
+
   it('ne restaure ni une carte standard ni un restaurateur arrêté', () => {
     viewMode.set('map');
     const mapRestorer = TestBed.inject(EarthSkyUrlRestorer);
@@ -151,5 +166,13 @@ function earth(): SpaceObject {
     scientificConfidence: 'calculated',
     visual: { visualRadius: 1, scaleMode: 'adaptive' },
     positionProvider: { type: 'static', position: [1, 0, 0], unit: 'astronomical-unit' },
+  };
+}
+
+function mars(): SpaceObject {
+  return {
+    ...earth(),
+    id: 'mars',
+    name: 'Mars',
   };
 }
