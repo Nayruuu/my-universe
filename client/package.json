@@ -86,7 +86,7 @@
   "packageManager": "npm@8.6.0",
   "dependencies": {
     "@angular/common": "^21.2.19",
-    "@angular/compiler": "^21.2.19",
+    "@angular/compiler": "^21.2.20",
     "@angular/core": "^21.2.19",
     "@angular/forms": "^21.2.19",
     "@angular/platform-browser": "^21.2.19",
